@@ -7,6 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "lint": "ng lint",
+    "typecheck": "tsc --noEmit",
     "add-admin": "tsx scripts/add-admin.ts",
     "remove-admin": "tsx scripts/add-admin.ts --remove",
     "setup-provisioning": "tsx scripts/setup-provisioning.ts"
