@@ -1,0 +1,160 @@
+.detail-page { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+.detail-page__back { margin-bottom: 1.5rem; a { color: #667eea; text-decoration: none; font-size: .9rem; } }
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  margin-bottom: 1.25rem;
+
+  &__color { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; }
+  &__info { flex: 1; display: flex; align-items: center; gap: .75rem; }
+  &__name { font-size: 1.3rem; font-weight: 700; margin: 0; }
+  &__actions { display: flex; gap: .5rem; }
+}
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+
+.detail-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+
+  &__title { font-size: 1rem; font-weight: 600; margin: 0 0 1.25rem; color: #374151; }
+}
+
+.detail-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .5rem 1rem;
+  margin: 0;
+  dt { font-size: .8rem; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: .04em; align-self: center; }
+  dd { font-size: .9rem; margin: 0; word-break: break-all; a { color: #667eea; } }
+}
+
+.action-list { display: flex; flex-direction: column; gap: .75rem; }
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  text-align: left;
+  padding: .875rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: .9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+  &:not(:disabled):hover { background: #f9fafb; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+  small { font-weight: 400; font-size: .75rem; color: #9ca3af; }
+  &--danger { color: #dc2626; border-color: #fecaca; }
+}
+
+.badge {
+  font-size: .7rem; font-weight: 600; padding: .2rem .6rem; border-radius: 99px;
+  text-transform: uppercase; letter-spacing: .04em;
+  &--active { background: #d1fae5; color: #065f46; }
+  &--provisioning { background: #fef3c7; color: #92400e; }
+  &--suspended { background: #f3f4f6; color: #6b7280; }
+  &--error { background: #fee2e2; color: #991b1b; }
+}
+
+.btn { display: inline-flex; align-items: center; padding: .5rem 1rem; border-radius: 8px; font-weight: 500; font-size: .875rem; cursor: pointer; text-decoration: none; border: none; }
+.btn-secondary { background: white; color: #374151; border: 1px solid #d1d5db; &:hover { background: #f9fafb; } }
+.capitalize { text-transform: capitalize; }
+.loading { text-align: center; padding: 4rem; color: #9ca3af; }
+
+// ── Provisioning panel ─────────────────────────────────────────────────────
+.provisioning-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  margin-bottom: 1.25rem;
+
+  &__title {
+    font-size: 1rem; font-weight: 600; margin: 0 0 .4rem; color: #374151;
+  }
+  &__sub { font-size: .85rem; color: #6b7280; margin: 0 0 1.5rem; }
+}
+
+.step-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: .625rem .875rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  transition: background .2s;
+
+  &--running { background: #fffbeb; }
+  &--done    { background: #f0fdf4; }
+  &--error   { background: #fef2f2; }
+  &--pending { color: #9ca3af; }
+
+  &__icon { flex-shrink: 0; font-size: 1rem; width: 1.25rem; text-align: center; }
+  &__label { flex: 1; }
+  &__error { font-size: .75rem; color: #dc2626; margin-top: .15rem; }
+}
+
+.spinner {
+  width: 16px; height: 16px; border: 2px solid #fbbf24; border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 700px) { .detail-grid { grid-template-columns: 1fr; } }
+
+// ── Domain form ────────────────────────────────────────────────────────────
+.domain-form {
+  display: flex; gap: .5rem; margin-top: .5rem;
+  .form-control {
+    flex: 1; padding: .5rem .75rem; border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: .875rem; outline: none;
+    &:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.15); }
+  }
+}
+
+.btn-primary { background: #667eea; color: white; &:hover:not(:disabled) { background: #5a6fd6; } &:disabled { opacity: .6; cursor: not-allowed; } }
+.btn-danger  { background: #dc2626; color: white; &:hover:not(:disabled) { background: #b91c1c; } &:disabled { opacity: .6; cursor: not-allowed; } }
+
+.dns-card {
+  background: #f8f9fa; border-radius: 8px; padding: .875rem 1rem;
+  &__title { font-size: .8rem; font-weight: 600; color: #374151; margin: 0 0 .5rem; }
+}
+.dns-record {
+  display: block; font-size: .75rem; color: #4b5563; margin-bottom: .25rem;
+  background: white; border: 1px solid #e5e7eb; border-radius: 4px; padding: .2rem .5rem;
+}
+
+.action-error { font-size: .825rem; color: #dc2626; margin: .25rem 0 0; }
+
+.spinner-sm {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .25rem;
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: white; border-radius: 16px; padding: 2rem; max-width: 420px; width: 90%;
+  box-shadow: 0 24px 64px rgba(0,0,0,.25);
+  &__title { font-size: 1.1rem; font-weight: 700; margin: 0 0 .75rem; }
+  &__body  { font-size: .9rem; color: #374151; margin: 0 0 1.5rem; line-height: 1.6; }
+  &__actions { display: flex; gap: .75rem; justify-content: flex-end; }
+}

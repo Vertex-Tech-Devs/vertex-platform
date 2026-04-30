@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "vertex-platform-app"
+  },
+  "targets": {
+    "vertex-platform-app": {
+      "hosting": {
+        "vertex-platform-app": ["vertex-platform-app"]
+      }
+    }
+  }
+}

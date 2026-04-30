@@ -1,0 +1,21 @@
+{
+  "name": "vertex-platform-functions",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": { "node": "22" },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "@google-cloud/secret-manager": "^5.0.0",
+    "google-auth-library": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

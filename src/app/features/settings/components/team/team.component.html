@@ -1,0 +1,82 @@
+<div class="team-page">
+  <div class="page-top">
+    <div>
+      <h1 class="page-title">Equipo</h1>
+      <p class="page-sub">Administradores con acceso a Vertex Platform</p>
+    </div>
+    <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
+  </div>
+
+  <!-- Add admin -->
+  <div class="add-card">
+    <h2 class="add-card__title">Agregar administrador</h2>
+    <p class="add-card__hint">
+      El usuario debe haber iniciado sesión al menos una vez antes de ser promovido.
+    </p>
+    <div class="add-form">
+      <input
+        type="email"
+        class="form-control"
+        placeholder="email@dominio.com"
+        [value]="newEmail()"
+        (input)="newEmail.set($any($event.target).value)"
+        (keydown.enter)="addAdmin()"
+      />
+      <button class="btn btn-primary" (click)="addAdmin()" [disabled]="isAdding() || !newEmail().trim()">
+        {{ isAdding() ? 'Agregando…' : 'Agregar' }}
+      </button>
+    </div>
+    @if (addError()) {
+      <p class="add-card__error">{{ addError() }}</p>
+    }
+  </div>
+
+  <!-- Admin list -->
+  <div class="admins-card">
+    <h2 class="admins-card__title">
+      Administradores activos
+      @if (!adminsService.isLoading()) {
+        <span class="count">{{ adminsService.admins().length }}</span>
+      }
+    </h2>
+
+    @if (adminsService.isLoading()) {
+      <div class="loading">Cargando…</div>
+    } @else if (adminsService.error()) {
+      <div class="error-msg">{{ adminsService.error() }}</div>
+    } @else if (adminsService.admins().length === 0) {
+      <p class="empty">No hay administradores registrados.</p>
+    } @else {
+      <ul class="admin-list">
+        @for (admin of adminsService.admins(); track admin.uid) {
+          <li class="admin-item">
+            <div class="admin-item__avatar">
+              @if (admin.photoURL) {
+                <img [src]="admin.photoURL" [alt]="admin.displayName ?? admin.email" />
+              } @else {
+                <span>{{ (admin.email[0] ?? '?').toUpperCase() }}</span>
+              }
+            </div>
+            <div class="admin-item__info">
+              <strong>{{ admin.displayName ?? admin.email }}</strong>
+              @if (admin.displayName) {
+                <small>{{ admin.email }}</small>
+              }
+            </div>
+            @if (admin.email === auth.user()?.email) {
+              <span class="badge-you">Vos</span>
+            } @else {
+              <button
+                class="btn-remove"
+                (click)="removeAdmin(admin.uid, admin.email)"
+                [disabled]="removingUid() === admin.uid"
+              >
+                {{ removingUid() === admin.uid ? '…' : 'Eliminar' }}
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

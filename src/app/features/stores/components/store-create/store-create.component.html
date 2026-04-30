@@ -1,0 +1,104 @@
+<div class="create-page">
+  <div class="create-page__back">
+    <a routerLink="/stores">← Volver a tiendas</a>
+  </div>
+
+  <h1 class="create-page__title">Nueva tienda</h1>
+  <p class="create-page__sub">Completá los datos. El provisionamiento es automático.</p>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="create-form" novalidate>
+
+    <section class="form-section">
+      <h2 class="form-section__title">Identidad</h2>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label class="form-label">Nombre de la tienda *</label>
+          <input formControlName="name" type="text" class="form-control"
+                 (blur)="autoSlug()"
+                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+                 placeholder="Ropa María" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <div class="invalid-feedback">Campo obligatorio.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Slug (URL) *</label>
+          <div class="input-addon">
+            <span class="input-addon__pre">vertex-stores.web.app/</span>
+            <input formControlName="slug" type="text" class="form-control"
+                   [class.is-invalid]="form.get('slug')?.invalid && form.get('slug')?.touched"
+                   placeholder="ropa-maria" />
+          </div>
+          @if (form.get('slug')?.invalid && form.get('slug')?.touched) {
+            <div class="invalid-feedback">Solo letras minúsculas, números y guiones.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email del cliente *</label>
+          <input formControlName="ownerEmail" type="email" class="form-control"
+                 [class.is-invalid]="form.get('ownerEmail')?.invalid && form.get('ownerEmail')?.touched"
+                 placeholder="cliente@email.com" />
+          @if (form.get('ownerEmail')?.invalid && form.get('ownerEmail')?.touched) {
+            <div class="invalid-feedback">Email inválido.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Plan</label>
+          <select formControlName="plan" class="form-select">
+            <option value="starter">Starter</option>
+            <option value="professional">Professional</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2 class="form-section__title">Marca</h2>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label class="form-label">Color primario</label>
+          <div class="color-row">
+            <input type="color" [value]="form.get('primaryColor')!.value"
+                   (input)="form.get('primaryColor')!.setValue($any($event.target).value)"
+                   class="color-swatch" />
+            <input formControlName="primaryColor" type="text" class="form-control"
+                   placeholder="#ea580c" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Logo URL</label>
+          <input formControlName="logoUrl" type="url" class="form-control"
+                 placeholder="https://..." />
+        </div>
+
+        <div class="form-group form-grid--full">
+          <label class="form-label">Dominio personalizado (opcional)</label>
+          <input formControlName="customDomain" type="text" class="form-control"
+                 placeholder="tienda.com" />
+          <small class="form-hint">Se puede configurar después del provisionamiento.</small>
+        </div>
+
+      </div>
+    </section>
+
+    @if (errorMessage()) {
+      <div class="alert alert-error">{{ errorMessage() }}</div>
+    }
+
+    <div class="form-actions">
+      <a routerLink="/stores" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Creando tienda…' : 'Crear tienda' }}
+      </button>
+    </div>
+
+  </form>
+</div>
