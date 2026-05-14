@@ -25,7 +25,6 @@ export class StoreCreateComponent {
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
     plan: ['starter' as const, Validators.required],
-    primaryColor: ['#ea580c', Validators.required],
     logoUrl: [''],
     customDomain: [''],
   });

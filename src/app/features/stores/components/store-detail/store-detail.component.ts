@@ -28,7 +28,7 @@ const STEP_ORDER = [
         </div>
 
         <div class="detail-header">
-          <div class="detail-header__color" [style.background]="store()!.primaryColor"></div>
+          <div class="detail-header__color"></div>
           <div class="detail-header__info">
             <h1 class="detail-header__name">{{ store()!.name }}</h1>
             <span class="badge badge--{{ store()!.status }}">{{ statusLabel(store()!.status) }}</span>

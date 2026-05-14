@@ -63,17 +63,6 @@
       <div class="form-grid">
 
         <div class="form-group">
-          <label class="form-label">Color primario</label>
-          <div class="color-row">
-            <input type="color" [value]="form.get('primaryColor')!.value"
-                   (input)="form.get('primaryColor')!.setValue($any($event.target).value)"
-                   class="color-swatch" />
-            <input formControlName="primaryColor" type="text" class="form-control"
-                   placeholder="#ea580c" />
-          </div>
-        </div>
-
-        <div class="form-group">
           <label class="form-label">Logo URL</label>
           <input formControlName="logoUrl" type="url" class="form-control"
                  placeholder="https://..." />

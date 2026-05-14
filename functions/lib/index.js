@@ -117,7 +117,7 @@ exports.provisionStore = (0, https_1.onCall)({ timeoutSeconds: 540, memory: '512
     if (!request.auth?.token['platformAdmin']) {
         throw new https_1.HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
-    const { name, slug, ownerEmail, plan, primaryColor, logoUrl, customDomain } = request.data;
+    const { name, slug, ownerEmail, plan, logoUrl, customDomain } = request.data;
     // GCP project IDs: lowercase, 6-30 chars, letters/digits/hyphens, starts with letter
     const projectId = `vtx-${slug}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 30);
     const storeId = crypto.randomUUID();
@@ -139,7 +139,6 @@ exports.provisionStore = (0, https_1.onCall)({ timeoutSeconds: 540, memory: '512
         slug,
         ownerEmail,
         plan,
-        primaryColor,
         logoUrl: logoUrl ?? null,
         customDomain: customDomain ?? null,
         firebaseProjectId: projectId,
@@ -287,8 +286,6 @@ exports.provisionStore = (0, https_1.onCall)({ timeoutSeconds: 540, memory: '512
         const newDb = (0, firestore_1.getFirestore)(newApp);
         await newDb.collection('storeConfig').doc('main').set({
             storeName: name,
-            primaryColor,
-            secondaryColor: '#ffffff',
             logoUrl: logoUrl ?? null,
             seo: {
                 metaTitle: name,
@@ -368,7 +365,6 @@ exports.provisionStore = (0, https_1.onCall)({ timeoutSeconds: 540, memory: '512
                     project_id: projectId,
                     firebase_config: JSON.stringify(firebaseConfig),
                     store_name: name,
-                    primary_color: primaryColor,
                 },
             }),
         });
@@ -426,7 +422,6 @@ exports.redeployStore = (0, https_1.onCall)(async (request) => {
                 project_id: store.firebaseProjectId,
                 firebase_config: JSON.stringify(firebaseConfig),
                 store_name: store.name,
-                primary_color: store.primaryColor,
             },
         }),
     });
@@ -542,7 +537,6 @@ exports.getActiveStores = (0, https_1.onCall)(async (request) => {
             storeId: store.id,
             projectId: store.firebaseProjectId,
             storeName: store.name,
-            primaryColor: store.primaryColor,
             firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,
         };
     }));

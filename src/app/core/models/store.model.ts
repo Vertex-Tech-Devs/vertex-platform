@@ -17,7 +17,6 @@ export interface Store {
   customDomain?: string;
   status: StoreStatus;
   plan: StorePlan;
-  primaryColor: string;
   logoUrl?: string;
   ownerEmail: string;
   createdAt: Date;
@@ -33,7 +32,6 @@ export interface CreateStorePayload {
   slug: string;
   ownerEmail: string;
   plan: StorePlan;
-  primaryColor: string;
   logoUrl?: string;
   customDomain?: string;
 }

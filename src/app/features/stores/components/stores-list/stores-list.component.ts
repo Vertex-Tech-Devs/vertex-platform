@@ -46,7 +46,7 @@ const STATUS_LABELS: Record<Store['status'], string> = {
           <div class="stores-grid">
             @for (store of stores.stores(); track store.id) {
               <a [routerLink]="['/stores', store.id]" class="store-card">
-                <div class="store-card__color" [style.background]="store.primaryColor"></div>
+                <div class="store-card__color"></div>
                 <div class="store-card__body">
                   <div class="store-card__header">
                     <h3 class="store-card__name">{{ store.name }}</h3>

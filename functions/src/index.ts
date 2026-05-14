@@ -26,7 +26,6 @@ interface CreateStorePayload {
   slug: string;
   ownerEmail: string;
   plan: string;
-  primaryColor: string;
   logoUrl?: string;
   customDomain?: string;
 }
@@ -179,7 +178,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
 
-    const { name, slug, ownerEmail, plan, primaryColor, logoUrl, customDomain } = request.data;
+    const { name, slug, ownerEmail, plan, logoUrl, customDomain } = request.data;
 
     // GCP project IDs: lowercase, 6-30 chars, letters/digits/hyphens, starts with letter
     const projectId = `vtx-${slug}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 30);
@@ -204,7 +203,6 @@ export const provisionStore = onCall<CreateStorePayload>(
       slug,
       ownerEmail,
       plan,
-      primaryColor,
       logoUrl: logoUrl ?? null,
       customDomain: customDomain ?? null,
       firebaseProjectId: projectId,
@@ -395,8 +393,6 @@ export const provisionStore = onCall<CreateStorePayload>(
 
       await newDb.collection('storeConfig').doc('main').set({
         storeName: name,
-        primaryColor,
-        secondaryColor: '#ffffff',
         logoUrl: logoUrl ?? null,
         seo: {
           metaTitle: name,
@@ -488,7 +484,6 @@ export const provisionStore = onCall<CreateStorePayload>(
               project_id: projectId,
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
-              primary_color: primaryColor,
             },
           }),
         }
@@ -528,7 +523,6 @@ export const redeployStore = onCall<{ storeId: string }>(async (request) => {
   const store = storeSnap.data() as {
     firebaseProjectId: string;
     name: string;
-    primaryColor: string;
   };
 
   // Get firebase config from private subcollection
@@ -560,7 +554,6 @@ export const redeployStore = onCall<{ storeId: string }>(async (request) => {
           project_id: store.firebaseProjectId,
           firebase_config: JSON.stringify(firebaseConfig),
           store_name: store.name,
-          primary_color: store.primaryColor,
         },
       }),
     }
@@ -705,7 +698,6 @@ export const getActiveStores = onCall(async (request) => {
         id: string;
         name: string;
         firebaseProjectId: string;
-        primaryColor: string;
       };
 
       const configSnap = await db
@@ -719,7 +711,6 @@ export const getActiveStores = onCall(async (request) => {
         storeId: store.id,
         projectId: store.firebaseProjectId,
         storeName: store.name,
-        primaryColor: store.primaryColor,
         firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,
       };
     })
