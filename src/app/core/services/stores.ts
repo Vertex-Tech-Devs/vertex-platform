@@ -3,6 +3,9 @@ import {
   getFirestore,
   collection,
   onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -51,6 +54,17 @@ export class StoresService {
     >(this.fns, 'connectDomain');
     const result = await fn({ storeId, domain });
     return { dnsRecords: result.data.dnsRecords };
+  }
+
+  async updateStore(
+    id: string,
+    data: Partial<Pick<Store, 'name' | 'plan' | 'ownerEmail' | 'logoUrl'>>
+  ): Promise<void> {
+    await updateDoc(doc(this.db, 'stores', id), { ...data, updatedAt: serverTimestamp() });
+  }
+
+  async setStatus(id: string, status: 'active' | 'suspended'): Promise<void> {
+    await updateDoc(doc(this.db, 'stores', id), { status, updatedAt: serverTimestamp() });
   }
 }
 

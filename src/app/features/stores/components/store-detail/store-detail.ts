@@ -1,7 +1,7 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
 import type { ProvisioningStep } from '@core/models/store';
 
@@ -19,182 +19,16 @@ const STEP_ORDER = [
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule],
-  template: `
-    @if (store()) {
-      <div class="detail-page">
-        <div class="detail-page__back">
-          <a routerLink="/stores">← Volver a tiendas</a>
-        </div>
-
-        <div class="detail-header">
-          <div class="detail-header__color"></div>
-          <div class="detail-header__info">
-            <h1 class="detail-header__name">{{ store()!.name }}</h1>
-            <span class="badge badge--{{ store()!.status }}">{{ statusLabel(store()!.status) }}</span>
-          </div>
-          <div class="detail-header__actions">
-            @if (store()!.status === 'active') {
-              <a [href]="store()!.defaultUrl" target="_blank" class="btn btn-secondary">Abrir tienda ↗</a>
-            }
-          </div>
-        </div>
-
-        <!-- Provisioning panel -->
-        @if (store()!.status === 'provisioning' || store()!.status === 'error') {
-          <div class="provisioning-panel">
-            <p class="provisioning-panel__title">
-              {{ store()!.status === 'error' ? 'Error en el aprovisionamiento' : 'Aprovisionando tienda…' }}
-            </p>
-            <p class="provisioning-panel__sub">
-              {{ store()!.status === 'error'
-                ? 'Hubo un problema. Revisá los detalles del error abajo.'
-                : 'Esto tarda unos minutos. El proceso sigue aunque cierres esta ventana.' }}
-            </p>
-            <ul class="step-list">
-              @for (stepId of orderedSteps(); track stepId) {
-                @let step = store()!.provisioningSteps?.[stepId];
-                @if (step) {
-                  <li class="step-item step-item--{{ step.status }}">
-                    <span class="step-item__icon">
-                      @if (step.status === 'running') {
-                        <span class="spinner"></span>
-                      } @else {
-                        {{ stepIcon(step.status) }}
-                      }
-                    </span>
-                    <span class="step-item__label">
-                      {{ step.label }}
-                      @if (step.error) {
-                        <div class="step-item__error">{{ step.error }}</div>
-                      }
-                    </span>
-                  </li>
-                }
-              }
-            </ul>
-          </div>
-        }
-
-        <!-- Main content (active stores) -->
-        @if (store()!.status === 'active' || store()!.status === 'suspended') {
-          <div class="detail-grid">
-            <div class="detail-card">
-              <h2 class="detail-card__title">Información general</h2>
-              <dl class="detail-dl">
-                <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
-                <dt>Plan</dt><dd class="capitalize">{{ store()!.plan }}</dd>
-                <dt>Cliente</dt><dd>{{ store()!.ownerEmail }}</dd>
-                <dt>Firebase Project</dt><dd>{{ store()!.firebaseProjectId }}</dd>
-                <dt>URL</dt><dd><a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a></dd>
-                @if (store()!.customDomain) {
-                  <dt>Dominio</dt><dd>{{ store()!.customDomain }}</dd>
-                }
-                <dt>Creada</dt><dd>{{ store()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
-                @if (store()!.lastDeployedAt) {
-                  <dt>Último deploy</dt><dd>{{ store()!.lastDeployedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
-                }
-              </dl>
-            </div>
-
-            <div class="detail-card">
-              <h2 class="detail-card__title">Acciones</h2>
-              <div class="action-list">
-
-                <!-- Redeploy -->
-                <button
-                  class="action-btn"
-                  [disabled]="isRedeploying()"
-                  (click)="redeploy()">
-                  @if (isRedeploying()) {
-                    <span class="spinner-sm"></span> Desplegando…
-                  } @else {
-                    🚀 Redeploy manual
-                  }
-                  <small>Actualiza la tienda con la última versión del template</small>
-                </button>
-
-                <!-- Connect domain -->
-                @if (!store()!.customDomain) {
-                  <button class="action-btn" (click)="showDomainForm.set(!showDomainForm())">
-                    🌐 Conectar dominio
-                    <small>Asigná un dominio custom a esta tienda</small>
-                  </button>
-                  @if (showDomainForm()) {
-                    <div class="domain-form">
-                      <input
-                        class="form-control"
-                        [(ngModel)]="domainInput"
-                        placeholder="mitienda.com"
-                        type="text" />
-                      <button
-                        class="btn btn-primary"
-                        [disabled]="isConnectingDomain() || !domainInput"
-                        (click)="connectDomain()">
-                        {{ isConnectingDomain() ? 'Conectando…' : 'Confirmar' }}
-                      </button>
-                    </div>
-                  }
-                }
-
-                <!-- DNS records after domain connection -->
-                @if (dnsRecords().length > 0) {
-                  <div class="dns-card">
-                    <p class="dns-card__title">Configurá estos registros DNS en tu proveedor:</p>
-                    @for (record of dnsRecords(); track record.rdata) {
-                      <code class="dns-record">{{ record.requiredAction }}: {{ record.rdata }}</code>
-                    }
-                  </div>
-                }
-
-                @if (actionError()) {
-                  <p class="action-error">{{ actionError() }}</p>
-                }
-
-                <!-- Delete -->
-                <button
-                  class="action-btn action-btn--danger"
-                  [disabled]="isDeleting()"
-                  (click)="showDeleteConfirm.set(true)">
-                  🗑 Eliminar tienda
-                  <small>Elimina el proyecto Firebase y todos sus datos</small>
-                </button>
-
-              </div>
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- Delete confirmation modal -->
-      @if (showDeleteConfirm()) {
-        <div class="modal-overlay" (click)="showDeleteConfirm.set(false)">
-          <div class="modal" (click)="$event.stopPropagation()">
-            <h3 class="modal__title">⚠️ Eliminar tienda</h3>
-            <p class="modal__body">
-              Vas a eliminar <strong>{{ store()!.name }}</strong> y su proyecto Firebase.
-              Esta acción <strong>no se puede deshacer</strong> y todos los datos se perderán.
-            </p>
-            <div class="modal__actions">
-              <button class="btn btn-secondary" (click)="showDeleteConfirm.set(false)">Cancelar</button>
-              <button class="btn btn-danger" [disabled]="isDeleting()" (click)="deleteStore()">
-                {{ isDeleting() ? 'Eliminando…' : 'Sí, eliminar' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-
-    } @else {
-      <div class="loading">Cargando…</div>
-    }
-  `,
+  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule],
+  templateUrl: './store-detail.html',
   styleUrls: ['./store-detail.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StoreDetail {
   private storesService = inject(StoresService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
   readonly store = computed(() => {
     const id = this.route.snapshot.paramMap.get('id');
@@ -209,11 +43,86 @@ export class StoreDetail {
   readonly isRedeploying = signal(false);
   readonly isDeleting = signal(false);
   readonly isConnectingDomain = signal(false);
+  readonly isSuspending = signal(false);
+  readonly isActivating = signal(false);
+  readonly isSaving = signal(false);
   readonly showDeleteConfirm = signal(false);
   readonly showDomainForm = signal(false);
+  readonly showEditModal = signal(false);
   readonly actionError = signal('');
+  readonly saveError = signal('');
   readonly dnsRecords = signal<Array<{ rdata: string; requiredAction: string }>>([]);
   domainInput = '';
+
+  readonly editForm = this.fb.group({
+    name: ['', Validators.required],
+    plan: ['starter' as const, Validators.required],
+    ownerEmail: ['', [Validators.required, Validators.email]],
+    logoUrl: [''],
+  });
+
+  openEdit(): void {
+    const s = this.store();
+    if (!s) return;
+    this.editForm.setValue({
+      name: s.name,
+      plan: s.plan as 'starter',
+      ownerEmail: s.ownerEmail,
+      logoUrl: s.logoUrl ?? '',
+    });
+    this.saveError.set('');
+    this.showEditModal.set(true);
+  }
+
+  async saveStore(): Promise<void> {
+    if (this.editForm.invalid) { this.editForm.markAllAsTouched(); return; }
+    const id = this.store()?.id;
+    if (!id) return;
+    this.isSaving.set(true);
+    this.saveError.set('');
+    try {
+      const { name, plan, ownerEmail, logoUrl } = this.editForm.value;
+      await this.storesService.updateStore(id, {
+        name: name!,
+        plan: plan as 'starter' | 'professional' | 'enterprise',
+        ownerEmail: ownerEmail!,
+        ...(logoUrl ? { logoUrl } : {}),
+      });
+      this.showEditModal.set(false);
+    } catch {
+      this.saveError.set('No se pudo guardar los cambios. Intentá de nuevo.');
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async suspend(): Promise<void> {
+    const id = this.store()?.id;
+    if (!id) return;
+    this.isSuspending.set(true);
+    this.actionError.set('');
+    try {
+      await this.storesService.setStatus(id, 'suspended');
+    } catch {
+      this.actionError.set('No se pudo suspender la tienda.');
+    } finally {
+      this.isSuspending.set(false);
+    }
+  }
+
+  async activate(): Promise<void> {
+    const id = this.store()?.id;
+    if (!id) return;
+    this.isActivating.set(true);
+    this.actionError.set('');
+    try {
+      await this.storesService.setStatus(id, 'active');
+    } catch {
+      this.actionError.set('No se pudo reactivar la tienda.');
+    } finally {
+      this.isActivating.set(false);
+    }
+  }
 
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
