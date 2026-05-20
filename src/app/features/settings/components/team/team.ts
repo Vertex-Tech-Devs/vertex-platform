@@ -1,17 +1,17 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AdminsService } from '@core/services/admins.service';
-import { AuthService } from '@core/services/auth.service';
+import { AdminsService } from '@core/services/admins';
+import { AuthService } from '@core/services/auth';
 
 @Component({
   selector: 'app-team',
   standalone: true,
   imports: [RouterLink, FormsModule],
-  templateUrl: './team.component.html',
-  styleUrls: ['./team.component.scss'],
+  templateUrl: './team.html',
+  styleUrls: ['./team.scss'],
 })
-export class TeamComponent implements OnInit {
+export class Team implements OnInit {
   readonly adminsService = inject(AdminsService);
   readonly auth = inject(AuthService);
 

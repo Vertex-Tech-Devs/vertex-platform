@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '@core/services/auth.service';
+import { AuthService } from '@core/services/auth';
 
 @Component({
   selector: 'app-login',
@@ -150,7 +150,7 @@ import { AuthService } from '@core/services/auth.service';
     }
   `],
 })
-export class LoginComponent {
+export class Login {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 

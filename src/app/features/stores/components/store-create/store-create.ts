@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { StoresService } from '@core/services/stores.service';
+import { StoresService } from '@core/services/stores';
 
 const SLUG_RE = /^[a-z0-9-]+$/;
 
@@ -9,10 +9,10 @@ const SLUG_RE = /^[a-z0-9-]+$/;
   selector: 'app-store-create',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './store-create.component.html',
-  styleUrls: ['./store-create.component.scss'],
+  templateUrl: './store-create.html',
+  styleUrls: ['./store-create.scss'],
 })
-export class StoreCreateComponent {
+export class StoreCreate {
   private fb = inject(FormBuilder);
   private storesService = inject(StoresService);
   private router = inject(Router);

@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '@core/services/auth.service';
+import { AuthService } from '@core/services/auth';
 
 @Component({
   selector: 'app-platform-layout',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  templateUrl: './platform-layout.component.html',
-  styleUrl: './platform-layout.component.scss',
+  templateUrl: './platform-layout.html',
+  styleUrl: './platform-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PlatformLayoutComponent {
+export class PlatformLayout {
   readonly auth = inject(AuthService);
   readonly isSidebarOpen = signal(false);
 
