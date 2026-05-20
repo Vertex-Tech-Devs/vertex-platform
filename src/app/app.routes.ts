@@ -1,16 +1,16 @@
 import type { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard } from './core/guards/auth';
 
 export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () =>
-      import('./features/auth/components/login/login.component').then((m) => m.LoginComponent),
+      import('./features/auth/components/login/login').then((m) => m.Login),
   },
   {
     path: '',
     loadComponent: () =>
-      import('./layout/platform-layout.component').then((m) => m.PlatformLayoutComponent),
+      import('./layout/platform-layout').then((m) => m.PlatformLayout),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'stores', pathMatch: 'full' },
@@ -21,24 +21,24 @@ export const routes: Routes = [
             path: '',
             title: 'Tiendas',
             loadComponent: () =>
-              import('./features/stores/components/stores-list/stores-list.component').then(
-                (m) => m.StoresListComponent
+              import('./features/stores/components/stores-list/stores-list').then(
+                (m) => m.StoresList
               ),
           },
           {
             path: 'new',
             title: 'Nueva tienda',
             loadComponent: () =>
-              import('./features/stores/components/store-create/store-create.component').then(
-                (m) => m.StoreCreateComponent
+              import('./features/stores/components/store-create/store-create').then(
+                (m) => m.StoreCreate
               ),
           },
           {
             path: ':id',
             title: 'Detalle de tienda',
             loadComponent: () =>
-              import('./features/stores/components/store-detail/store-detail.component').then(
-                (m) => m.StoreDetailComponent
+              import('./features/stores/components/store-detail/store-detail').then(
+                (m) => m.StoreDetail
               ),
           },
         ],
@@ -50,8 +50,8 @@ export const routes: Routes = [
             path: 'team',
             title: 'Equipo',
             loadComponent: () =>
-              import('./features/settings/components/team/team.component').then(
-                (m) => m.TeamComponent
+              import('./features/settings/components/team/team').then(
+                (m) => m.Team
               ),
           },
         ],

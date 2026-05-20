@@ -2,8 +2,8 @@ import { Component, inject, computed, signal } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { StoresService } from '@core/services/stores.service';
-import type { ProvisioningStep } from '@core/models/store.model';
+import { StoresService } from '@core/services/stores';
+import type { ProvisioningStep } from '@core/models/store';
 
 const STEP_ORDER = [
   'createProject',
@@ -189,9 +189,9 @@ const STEP_ORDER = [
       <div class="loading">Cargando…</div>
     }
   `,
-  styleUrls: ['./store-detail.component.scss'],
+  styleUrls: ['./store-detail.scss'],
 })
-export class StoreDetailComponent {
+export class StoreDetail {
   private storesService = inject(StoresService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);

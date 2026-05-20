@@ -7,7 +7,7 @@ import { initializeApp } from 'firebase/app';
 
 import { environment } from '@environments/environment';
 import { routes } from './app.routes';
-import { AuthService } from '@core/services/auth.service';
+import { AuthService } from '@core/services/auth';
 
 // Initialize Firebase once — services use getAuth()/getFirestore() directly
 export const firebaseApp = initializeApp(environment.firebaseConfig);

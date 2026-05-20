@@ -8,7 +8,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
-import type { Store, CreateStorePayload } from '../models/store.model';
+import type { Store, CreateStorePayload } from '../models/store';
 
 @Injectable({ providedIn: 'root' })
 export class StoresService {

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { StoresService } from '@core/services/stores.service';
-import type { Store } from '@core/models/store.model';
+import { StoresService } from '@core/services/stores';
+import type { Store } from '@core/models/store';
 
 const STATUS_LABELS: Record<Store['status'], string> = {
   provisioning: 'Provisionando',
@@ -57,9 +57,9 @@ const STATUS_LABELS: Record<Store['status'], string> = {
       }
     </div>
   `,
-  styleUrls: ['./stores-list.component.scss'],
+  styleUrls: ['./stores-list.scss'],
 })
-export class StoresListComponent {
+export class StoresList {
   readonly stores = inject(StoresService);
 
   statusLabel(s: Store['status']): string {
