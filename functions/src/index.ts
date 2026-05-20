@@ -113,7 +113,7 @@ async function pollOperation(
 /**
  * Sets or removes the platformAdmin custom claim on a Firebase Auth user.
  */
-export const manageAdmin = onCall<ManageAdminPayload>(async (request) => {
+export const manageAdmin = onCall<ManageAdminPayload>({ cors: true }, async (request) => {
   if (!request.auth?.token['platformAdmin']) {
     throw new HttpsError('permission-denied', 'Only platform admins can manage other admins.');
   }
@@ -147,7 +147,7 @@ export const manageAdmin = onCall<ManageAdminPayload>(async (request) => {
 /**
  * Lists all platform admins.
  */
-export const listAdmins = onCall(async (request) => {
+export const listAdmins = onCall({ cors: true }, async (request) => {
   if (!request.auth?.token['platformAdmin']) {
     throw new HttpsError('permission-denied', 'Only platform admins can list admins.');
   }
@@ -172,7 +172,7 @@ export const listAdmins = onCall(async (request) => {
  *        createWebApp → getConfig → initFirestore → triggerDeploy
  */
 export const provisionStore = onCall<CreateStorePayload>(
-  { timeoutSeconds: 540, memory: '512MiB' },
+  { timeoutSeconds: 540, memory: '512MiB', cors: true },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
@@ -510,7 +510,7 @@ export const provisionStore = onCall<CreateStorePayload>(
 
 // ─── redeployStore ────────────────────────────────────────────────────────────
 
-export const redeployStore = onCall<{ storeId: string }>(async (request) => {
+export const redeployStore = onCall<{ storeId: string }>({ cors: true }, async (request) => {
   if (!request.auth?.token['platformAdmin']) {
     throw new HttpsError('permission-denied', 'Only platform admins can redeploy stores.');
   }
@@ -574,7 +574,7 @@ export const redeployStore = onCall<{ storeId: string }>(async (request) => {
 // ─── deleteStore ──────────────────────────────────────────────────────────────
 
 export const deleteStore = onCall<{ storeId: string }>(
-  { timeoutSeconds: 120 },
+  { timeoutSeconds: 120, cors: true },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can delete stores.');
@@ -617,7 +617,7 @@ export const deleteStore = onCall<{ storeId: string }>(
 
 // ─── connectDomain ────────────────────────────────────────────────────────────
 
-export const connectDomain = onCall<{ storeId: string; domain: string }>(async (request) => {
+export const connectDomain = onCall<{ storeId: string; domain: string }>({ cors: true }, async (request) => {
   if (!request.auth?.token['platformAdmin']) {
     throw new HttpsError('permission-denied', 'Only platform admins can connect domains.');
   }
@@ -671,7 +671,7 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(async (
 // ─── getActiveStores — called by GitHub Actions to get deploy matrix ──────────
 // Uses a shared secret token for machine-to-machine auth (no Firebase user needed)
 
-export const getActiveStores = onCall(async (request) => {
+export const getActiveStores = onCall({ cors: true }, async (request) => {
   // Allow platform admins OR GitHub Actions via deploy token
   const deployToken = request.data?.deployToken as string | undefined;
   const isAdmin = !!request.auth?.token['platformAdmin'];

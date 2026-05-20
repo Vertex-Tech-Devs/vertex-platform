@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "add-admin": "tsx scripts/add-admin.ts",
     "remove-admin": "tsx scripts/add-admin.ts --remove",
-    "setup-provisioning": "tsx scripts/setup-provisioning.ts"
+    "setup-provisioning": "tsx scripts/setup-provisioning.ts",
+    "seed:stores": "tsx scripts/seed-existing-stores.ts"
   },
   "private": true,
   "packageManager": "npm@10.9.4",
