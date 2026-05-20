@@ -1,0 +1,61 @@
+<div class="platform-shell">
+  <div
+    class="platform-backdrop"
+    [class.platform-backdrop--active]="isSidebarOpen()"
+    (click)="closeSidebar()"
+    aria-hidden="true"
+  ></div>
+
+  <aside class="platform-sidebar" [class.sidebar-open]="isSidebarOpen()">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">Vertex</span>
+      <span class="sidebar-tagline">Platform</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a
+        class="nav-item"
+        routerLink="/stores"
+        routerLinkActive="nav-item--active"
+        [routerLinkActiveOptions]="{ exact: false }"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-shop-window"></i>
+        <span>Tiendas</span>
+      </a>
+      <a
+        class="nav-item"
+        routerLink="/settings/team"
+        routerLinkActive="nav-item--active"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-people"></i>
+        <span>Equipo</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar">{{ userInitial() }}</div>
+        <span class="user-email">{{ auth.user()?.email }}</span>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <div class="platform-main" [class.platform-main--dimmed]="isSidebarOpen()">
+    <header class="platform-header">
+      <button class="menu-toggle" (click)="toggleSidebar()" aria-label="Abrir menú">
+        <i class="bi bi-list"></i>
+      </button>
+      <span class="header-brand">Vertex Platform</span>
+    </header>
+
+    <main class="platform-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
