@@ -54,7 +54,7 @@
               @if (admin.photoURL) {
                 <img [src]="admin.photoURL" [alt]="admin.displayName ?? admin.email" />
               } @else {
-                <span>{{ (admin.email[0] ?? '?').toUpperCase() }}</span>
+                <span>{{ admin.email[0].toUpperCase() }}</span>
               }
             </div>
             <div class="admin-item__info">
