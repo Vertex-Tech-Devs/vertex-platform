@@ -20,11 +20,12 @@ export class StoresService {
   private storesRef = collection(this.db, 'stores');
 
   readonly stores = toSignal(
-    new Observable<Store[]>((subscriber) =>
-      onSnapshot(this.storesRef, (snap) =>
+    new Observable<Store[]>((subscriber) => {
+      const unsub = onSnapshot(this.storesRef, (snap) =>
         subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Store)))
-      )
-    ),
+      );
+      return unsub;
+    }),
     { initialValue: [] }
   );
 

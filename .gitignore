@@ -42,3 +42,23 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Secrets & credentials (CRITICAL — never commit)
+.env
+.env.*
+!.env.example
+*.json.key
+service-account*.json
+serviceAccountKey.json
+application_default_credentials.json
+credentials.json
+*.pem
+*.p12
+*.p8
+.firebase/
+functions/.env
+functions/.env.*
+!functions/.env.example
+functions/lib/
+firebase-debug.log
+.runtimeconfig.json

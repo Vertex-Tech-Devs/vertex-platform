@@ -1,11 +1,18 @@
 {
   "projects": {
-    "default": "vertex-platform-app"
+    "default": "vertex-platform-app",
+    "prod": "vertex-platform-app",
+    "dev": "vertex-platform-dev"
   },
   "targets": {
     "vertex-platform-app": {
       "hosting": {
-        "vertex-platform-app": ["vertex-platform-app"]
+        "prod": ["vertex-platform-app"]
+      }
+    },
+    "vertex-platform-dev": {
+      "hosting": {
+        "dev": ["vertex-platform-dev"]
       }
     }
   }

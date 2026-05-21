@@ -9,6 +9,13 @@
       <div class="detail-header__info">
         <h1 class="detail-header__name">{{ store()!.name }}</h1>
         <span class="badge badge--{{ store()!.status }}">{{ statusLabel(store()!.status) }}</span>
+        <a
+          class="firebase-console-link"
+          href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
+          target="_blank"
+          title="Abrir Firebase Console">
+          <i class="bi bi-fire"></i> {{ store()!.firebaseProjectId }} ↗
+        </a>
       </div>
       <div class="detail-header__actions">
         @if (store()!.status === 'active' || store()!.status === 'suspended') {
@@ -35,6 +42,10 @@
             ? 'Hubo un problema. Revisá los detalles del error abajo.'
             : 'Esto tarda unos minutos. El proceso sigue aunque cierres esta ventana.' }}
         </p>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" [style.width.%]="progressPercent()"></div>
+        </div>
+        <p class="progress-bar__label">{{ progressPercent() }}% completado</p>
         <ul class="step-list">
           @for (stepId of orderedSteps(); track stepId) {
             @let step = store()!.provisioningSteps?.[stepId];
@@ -57,6 +68,20 @@
             }
           }
         </ul>
+
+        @if (store()!.status === 'error') {
+          <div class="error-actions">
+            @if (actionError()) {
+              <p class="action-error">{{ actionError() }}</p>
+            }
+            <button
+              class="btn btn-danger"
+              [disabled]="isDeleting()"
+              (click)="showDeleteConfirm.set(true)">
+              <i class="bi bi-trash"></i> Eliminar tienda
+            </button>
+          </div>
+        }
       </div>
     }
 
@@ -70,7 +95,14 @@
             <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
             <dt>Plan</dt><dd class="capitalize">{{ store()!.plan }}</dd>
             <dt>Cliente</dt><dd>{{ store()!.ownerEmail }}</dd>
-            <dt>Firebase Project</dt><dd>{{ store()!.firebaseProjectId }}</dd>
+            <dt>Firebase Project</dt>
+            <dd>
+              <a
+                href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
+                target="_blank">
+                {{ store()!.firebaseProjectId }} ↗
+              </a>
+            </dd>
             <dt>URL</dt>
             <dd><a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a></dd>
             @if (store()!.customDomain) {
@@ -96,10 +128,9 @@
               <button
                 class="action-btn action-btn--warning"
                 [disabled]="isSuspending()"
-                (click)="suspend()">
-                @if (isSuspending()) { <span class="spinner-sm"></span> Suspendiendo… }
-                @else { <i class="bi bi-pause-circle"></i> Suspender tienda }
-                <small>Marca la tienda como suspendida en la plataforma</small>
+                (click)="showSleepConfirm.set(true)">
+                <i class="bi bi-moon"></i> Dormir tienda
+                <small>Suspende la tienda y la excluye del ciclo de deploys</small>
               </button>
             }
             @if (store()!.status === 'suspended') {
@@ -166,7 +197,7 @@
               [disabled]="isDeleting()"
               (click)="showDeleteConfirm.set(true)">
               <i class="bi bi-trash"></i> Eliminar tienda
-              <small>Elimina el proyecto Firebase y todos sus datos</small>
+              <small>Elimina el proyecto Firebase y todos sus datos de forma permanente</small>
             </button>
 
           </div>
@@ -225,19 +256,70 @@
     </div>
   }
 
+  <!-- Sleep (suspend) confirmation modal -->
+  @if (showSleepConfirm()) {
+    <div class="modal-overlay" (click)="showSleepConfirm.set(false); sleepConfirmInput = ''">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title">Dormir tienda</h3>
+        <p class="modal__body">
+          La tienda <strong>{{ store()!.name }}</strong> quedará suspendida y
+          <strong>no recibirá más deploys</strong> hasta que la reactives.
+        </p>
+        <div class="form-group" style="margin: 1rem 0">
+          <label class="form-label">
+            Escribí <code>{{ store()!.firebaseProjectId }}</code> para confirmar:
+          </label>
+          <input
+            class="form-control"
+            [(ngModel)]="sleepConfirmInput"
+            [placeholder]="store()!.firebaseProjectId"
+            autocomplete="off" />
+        </div>
+        <div class="modal__actions">
+          <button class="btn btn-secondary" (click)="showSleepConfirm.set(false); sleepConfirmInput = ''">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-warning"
+            [disabled]="isSuspending() || sleepConfirmInput !== store()!.firebaseProjectId"
+            (click)="suspend()">
+            @if (isSuspending()) { <span class="spinner-sm"></span> Suspendiendo… }
+            @else { <i class="bi bi-moon"></i> Dormir tienda }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Delete confirmation modal -->
   @if (showDeleteConfirm()) {
-    <div class="modal-overlay" (click)="showDeleteConfirm.set(false)">
+    <div class="modal-overlay" (click)="showDeleteConfirm.set(false); deleteConfirmInput = ''">
       <div class="modal" (click)="$event.stopPropagation()">
         <h3 class="modal__title">Eliminar tienda</h3>
         <p class="modal__body">
-          Vas a eliminar <strong>{{ store()!.name }}</strong> y su proyecto Firebase.
-          Esta acción <strong>no se puede deshacer</strong> y todos los datos se perderán.
+          Vas a eliminar <strong>{{ store()!.name }}</strong> y su proyecto GCP/Firebase completo.
+          Esta acción <strong>no se puede deshacer</strong>: se borran Firestore, Auth, Storage y Hosting.
         </p>
+        <div class="form-group" style="margin: 1rem 0">
+          <label class="form-label">
+            Escribí <code>{{ store()!.firebaseProjectId }}</code> para confirmar:
+          </label>
+          <input
+            class="form-control"
+            [(ngModel)]="deleteConfirmInput"
+            [placeholder]="store()!.firebaseProjectId"
+            autocomplete="off" />
+        </div>
         <div class="modal__actions">
-          <button class="btn btn-secondary" (click)="showDeleteConfirm.set(false)">Cancelar</button>
-          <button class="btn btn-danger" [disabled]="isDeleting()" (click)="deleteStore()">
-            {{ isDeleting() ? 'Eliminando…' : 'Sí, eliminar' }}
+          <button class="btn btn-secondary" (click)="showDeleteConfirm.set(false); deleteConfirmInput = ''">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-danger"
+            [disabled]="isDeleting() || deleteConfirmInput !== store()!.firebaseProjectId"
+            (click)="deleteStore()">
+            @if (isDeleting()) { <span class="spinner-sm"></span> Eliminando… }
+            @else { <i class="bi bi-trash"></i> Eliminar definitivamente }
           </button>
         </div>
       </div>

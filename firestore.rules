@@ -8,6 +8,14 @@ service cloud.firestore {
 
     match /stores/{storeId} {
       allow read, write: if isPlatformAdmin();
+
+      match /private/{doc} {
+        allow read, write: if isPlatformAdmin();
+      }
+    }
+
+    match /billingAccounts/{accountId} {
+      allow read, write: if isPlatformAdmin();
     }
   }
 }

@@ -40,6 +40,12 @@ export class StoreDetail {
     return STEP_ORDER.filter((id) => id in steps);
   });
 
+  readonly progressPercent = computed(() => {
+    const steps = this.store()?.provisioningSteps ?? {};
+    const done = Object.values(steps).filter((s) => s.status === 'done').length;
+    return Math.round((done / STEP_ORDER.length) * 100);
+  });
+
   readonly isRedeploying = signal(false);
   readonly isDeleting = signal(false);
   readonly isConnectingDomain = signal(false);
@@ -47,12 +53,15 @@ export class StoreDetail {
   readonly isActivating = signal(false);
   readonly isSaving = signal(false);
   readonly showDeleteConfirm = signal(false);
+  readonly showSleepConfirm = signal(false);
   readonly showDomainForm = signal(false);
   readonly showEditModal = signal(false);
   readonly actionError = signal('');
   readonly saveError = signal('');
   readonly dnsRecords = signal<Array<{ rdata: string; requiredAction: string }>>([]);
   domainInput = '';
+  deleteConfirmInput = '';
+  sleepConfirmInput = '';
 
   readonly editForm = this.fb.group({
     name: ['', Validators.required],
@@ -103,10 +112,12 @@ export class StoreDetail {
     this.actionError.set('');
     try {
       await this.storesService.setStatus(id, 'suspended');
+      this.showSleepConfirm.set(false);
     } catch {
       this.actionError.set('No se pudo suspender la tienda.');
     } finally {
       this.isSuspending.set(false);
+      this.sleepConfirmInput = '';
     }
   }
 
@@ -180,6 +191,7 @@ export class StoreDetail {
       this.actionError.set('No se pudo eliminar la tienda. Intentá de nuevo.');
       this.isDeleting.set(false);
       this.showDeleteConfirm.set(false);
+      this.deleteConfirmInput = '';
     }
   }
 }

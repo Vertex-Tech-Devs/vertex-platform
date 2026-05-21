@@ -12,7 +12,7 @@ env:
 
 jobs:
   validate:
-    name: Type Check
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +23,9 @@ jobs:
           cache: npm
 
       - run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
 
       - name: Type check
         run: npx tsc --noEmit
@@ -65,7 +68,7 @@ jobs:
         working-directory: functions
 
       - name: Build Angular
-        run: npm run build
+        run: npm run build -- --configuration=production
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

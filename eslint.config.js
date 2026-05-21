@@ -1,0 +1,79 @@
+const angularPlugin = require('@angular-eslint/eslint-plugin');
+const angularTemplatePlugin = require('@angular-eslint/eslint-plugin-template');
+const angularTemplateParser = require('@angular-eslint/template-parser');
+const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
+const typescriptParser = require('@typescript-eslint/parser');
+
+module.exports = [
+  {
+    ignores: ['dist/**/*', 'coverage/**/*', 'node_modules/**/*', '.angular/**/*'],
+  },
+  // Application source — Angular + TypeScript strict rules
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/**/*.spec.ts'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: ['tsconfig.app.json'],
+        createDefaultProgram: true,
+      },
+    },
+    plugins: {
+      '@angular-eslint': angularPlugin,
+      '@typescript-eslint': typescriptEslintPlugin,
+    },
+    rules: {
+      '@angular-eslint/directive-selector': [
+        'error',
+        { type: 'attribute', prefix: 'app', style: 'camelCase' },
+      ],
+      '@angular-eslint/component-selector': [
+        'error',
+        { type: 'element', prefix: 'app', style: 'kebab-case' },
+      ],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      eqeqeq: ['error', 'always'],
+    },
+  },
+  // Test files — relaxed rules, separate tsconfig
+  {
+    files: ['src/**/*.spec.ts'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: ['tsconfig.spec.json'],
+        createDefaultProgram: true,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescriptEslintPlugin,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      'no-debugger': 'error',
+      'prefer-const': 'error',
+    },
+  },
+  // Templates
+  {
+    files: ['src/**/*.html'],
+    languageOptions: {
+      parser: angularTemplateParser,
+    },
+    plugins: {
+      '@angular-eslint/template': angularTemplatePlugin,
+    },
+    rules: {
+      '@angular-eslint/template/no-negated-async': 'error',
+    },
+  },
+];

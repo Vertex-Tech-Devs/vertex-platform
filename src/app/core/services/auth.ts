@@ -21,7 +21,17 @@ export class AuthService {
   readonly isLoading = computed(() => this.user() === undefined);
 
   constructor() {
-    onAuthStateChanged(this.auth, (u) => this.user.set(u));
+    onAuthStateChanged(this.auth, async (u) => {
+      if (u) {
+        const token = await getIdTokenResult(u, true);
+        if (!token.claims['platformAdmin']) {
+          await signOut(this.auth);
+          this.authError.set('unauthorized');
+          return;
+        }
+      }
+      this.user.set(u);
+    });
   }
 
   async loginWithGoogle(): Promise<void> {
