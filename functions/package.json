@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc",
     "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "npm run build && firebase deploy --only functions"
+    "deploy": "npm run build && firebase deploy --only functions",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": { "node": "22" },
   "main": "lib/index.js",
@@ -16,6 +18,7 @@
     "google-auth-library": "^9.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   }
 }
