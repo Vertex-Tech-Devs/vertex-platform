@@ -47,6 +47,7 @@ export class StoreDetail {
   });
 
   readonly isRedeploying = signal(false);
+  readonly isRetrying = signal(false);
   readonly isDeleting = signal(false);
   readonly isConnectingDomain = signal(false);
   readonly isSuspending = signal(false);
@@ -160,6 +161,20 @@ export class StoreDetail {
       this.actionError.set('No se pudo iniciar el redeploy. Intentá de nuevo.');
     } finally {
       this.isRedeploying.set(false);
+    }
+  }
+
+  async retry(): Promise<void> {
+    const id = this.store()?.id;
+    if (!id) return;
+    this.isRetrying.set(true);
+    this.actionError.set('');
+    try {
+      await this.storesService.retryProvisioning(id);
+    } catch {
+      this.actionError.set('No se pudo reintentar el aprovisionamiento. Intentá de nuevo.');
+    } finally {
+      this.isRetrying.set(false);
     }
   }
 

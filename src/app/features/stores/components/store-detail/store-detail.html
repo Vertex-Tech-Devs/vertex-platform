@@ -75,6 +75,13 @@
               <p class="action-error">{{ actionError() }}</p>
             }
             <button
+              class="btn btn-primary"
+              [disabled]="isRetrying()"
+              (click)="retry()">
+              @if (isRetrying()) { <span class="spinner-sm"></span> Reintentando… }
+              @else { <i class="bi bi-arrow-repeat"></i> Reintentar aprovisionamiento }
+            </button>
+            <button
               class="btn btn-danger"
               [disabled]="isDeleting()"
               (click)="showDeleteConfirm.set(true)">

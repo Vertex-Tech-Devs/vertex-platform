@@ -67,5 +67,10 @@ export class StoresService {
   async setStatus(id: string, status: 'active' | 'suspended'): Promise<void> {
     await updateDoc(doc(this.db, 'stores', id), { status, updatedAt: serverTimestamp() });
   }
+
+  async retryProvisioning(storeId: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'retryProvisioning');
+    await fn({ storeId });
+  }
 }
 
