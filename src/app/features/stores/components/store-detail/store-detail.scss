@@ -187,6 +187,82 @@
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
+.action-btn--warning {
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.3);
+  &:not(:disabled):hover {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.5);
+  }
+}
+
+.action-btn--success {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.3);
+  &:not(:disabled):hover {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.5);
+  }
+}
+
+// ── Edit modal ─────────────────────────────────────────────────────────────
+.modal--edit { max-width: 520px; }
+
+.edit-form { display: flex; flex-direction: column; gap: 0; }
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--platform-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.form-control {
+  padding: 0.55rem 0.875rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 8px;
+  color: var(--platform-text-primary);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  &::placeholder { color: var(--platform-text-muted); }
+  &:focus {
+    border-color: var(--platform-accent-purple);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+}
+
+.form-select {
+  padding: 0.55rem 0.875rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 8px;
+  color: var(--platform-text-primary);
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+  option { background: #0d1117; }
+  &:focus {
+    border-color: var(--platform-accent-purple);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+}
+
+.invalid-feedback { font-size: 0.75rem; color: #fca5a5; }
+
+@media (max-width: 480px) { .edit-grid { grid-template-columns: 1fr; } }
+
 .capitalize { text-transform: capitalize; }
 .loading { text-align: center; padding: 4rem; color: var(--platform-text-muted); }
 
@@ -200,7 +276,29 @@
   margin-bottom: 1.25rem;
 
   &__title { font-size: 1rem; font-weight: 600; margin: 0 0 0.4rem; color: var(--platform-text-primary); }
-  &__sub { font-size: 0.85rem; color: var(--platform-text-muted); margin: 0 0 1.5rem; }
+  &__sub { font-size: 0.85rem; color: var(--platform-text-muted); margin: 0 0 1rem; }
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+
+  &__fill {
+    height: 100%;
+    background: var(--platform-accent-gradient);
+    border-radius: 999px;
+    transition: width 0.5s ease;
+  }
+}
+
+.progress-bar__label {
+  font-size: 0.75rem;
+  color: var(--platform-text-muted);
+  margin: 0 0 1.25rem;
+  text-align: right;
 }
 
 .step-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -305,6 +403,42 @@
 }
 
 .action-error { font-size: 0.825rem; color: #fca5a5; margin: 0.25rem 0 0; }
+
+.error-actions {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--platform-card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.firebase-console-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--platform-text-muted);
+  text-decoration: none;
+  border: 1px solid var(--platform-card-border);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.4);
+  }
+}
+
+.btn-warning {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  &:hover:not(:disabled) { background: rgba(234, 179, 8, 0.22); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
 
 // ── Modal ──────────────────────────────────────────────────────────────────
 .modal-overlay {

@@ -54,6 +54,14 @@ export const routes: Routes = [
                 (m) => m.Team
               ),
           },
+          {
+            path: 'billing',
+            title: 'Facturación',
+            loadComponent: () =>
+              import('./features/settings/components/billing/billing').then(
+                (m) => m.Billing
+              ),
+          },
         ],
       },
     ],

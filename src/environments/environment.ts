@@ -1,11 +1,15 @@
 export const environment = {
   production: false,
+  // Set to true to auto-generate a debug token printed in the console,
+  // or set to a specific token string from Firebase Console → App Check → Apps → Manage debug tokens
+  appCheckDebugToken: true as boolean | string,
+  errorReportingUrl: '', // empty in dev — errors go to console only
   firebaseConfig: {
-    apiKey: 'AIzaSyBQTl4_xK4AJW9Q6ts48Nop-x6ME-4gCzs',
-    authDomain: 'vertex-platform-app.firebaseapp.com',
-    projectId: 'vertex-platform-app',
-    storageBucket: 'vertex-platform-app.firebasestorage.app',
-    messagingSenderId: '291764287509',
-    appId: '1:291764287509:web:50049859785fab7673761c',
+    apiKey: 'AIzaSyCmADhCFtiRKHz3ICFZo0rmWqXJ5e-ONFg',
+    authDomain: 'vertex-platform-dev.firebaseapp.com',
+    projectId: 'vertex-platform-dev',
+    storageBucket: 'vertex-platform-dev.firebasestorage.app',
+    messagingSenderId: '1011688892358',
+    appId: '1:1011688892358:web:c28f5cb282321d602174c7',
   },
 };

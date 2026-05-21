@@ -1,5 +1,10 @@
 export const environment = {
   production: true,
+  // TODO: Register reCAPTCHA v3 in Firebase Console → App Check → Apps → Register,
+  // then paste the site key here. Leave empty to skip App Check enforcement.
+  appCheckSiteKey: '',
+  // Routed via Firebase Hosting rewrite → logClientError Cloud Function
+  errorReportingUrl: '/api/log-error',
   firebaseConfig: {
     apiKey: 'AIzaSyBQTl4_xK4AJW9Q6ts48Nop-x6ME-4gCzs',
     authDomain: 'vertex-platform-app.firebaseapp.com',

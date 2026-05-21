@@ -3,6 +3,9 @@ import {
   getFirestore,
   collection,
   onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -17,11 +20,12 @@ export class StoresService {
   private storesRef = collection(this.db, 'stores');
 
   readonly stores = toSignal(
-    new Observable<Store[]>((subscriber) =>
-      onSnapshot(this.storesRef, (snap) =>
+    new Observable<Store[]>((subscriber) => {
+      const unsub = onSnapshot(this.storesRef, (snap) =>
         subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Store)))
-      )
-    ),
+      );
+      return unsub;
+    }),
     { initialValue: [] }
   );
 
@@ -51,6 +55,17 @@ export class StoresService {
     >(this.fns, 'connectDomain');
     const result = await fn({ storeId, domain });
     return { dnsRecords: result.data.dnsRecords };
+  }
+
+  async updateStore(
+    id: string,
+    data: Partial<Pick<Store, 'name' | 'plan' | 'ownerEmail' | 'logoUrl'>>
+  ): Promise<void> {
+    await updateDoc(doc(this.db, 'stores', id), { ...data, updatedAt: serverTimestamp() });
+  }
+
+  async setStatus(id: string, status: 'active' | 'suspended'): Promise<void> {
+    await updateDoc(doc(this.db, 'stores', id), { status, updatedAt: serverTimestamp() });
   }
 }
 
