@@ -14,7 +14,7 @@ import { GlobalErrorHandler } from '@core/services/error-reporter';
 export const firebaseApp = initializeApp(environment.firebaseConfig);
 
 if (!environment.production) {
-  (self as typeof globalThis & { FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string })
+  (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string })
     .FIREBASE_APPCHECK_DEBUG_TOKEN = environment.appCheckDebugToken;
 } else if (environment.appCheckSiteKey) {
   initializeAppCheck(firebaseApp, {
