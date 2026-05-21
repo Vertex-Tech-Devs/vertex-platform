@@ -70,58 +70,58 @@ describe('provisionStore handler', () => {
   });
 
   it('rejects non-admin callers', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     await expect(handler(makeRequest(VALID_PAYLOAD, false))).rejects.toThrow(HttpsError);
   });
 
   it('rejects missing required fields', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     await expect(
       handler(makeRequest({ ...VALID_PAYLOAD, name: '' }))
     ).rejects.toThrow(HttpsError);
   });
 
   it('rejects invalid slug — too short', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     await expect(
       handler(makeRequest({ ...VALID_PAYLOAD, slug: 'ab' }))
     ).rejects.toThrow(HttpsError);
   });
 
   it('rejects invalid slug — uppercase', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     await expect(
       handler(makeRequest({ ...VALID_PAYLOAD, slug: 'MyStore' }))
     ).rejects.toThrow(HttpsError);
   });
 
   it('rejects invalid slug — starts with hyphen', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     await expect(
       handler(makeRequest({ ...VALID_PAYLOAD, slug: '-mystore' }))
     ).rejects.toThrow(HttpsError);
   });
 
   it('rejects duplicate slug', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb(true) as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb(true) as unknown as ReturnType<typeof getFirestore>);
     await expect(handler(makeRequest(VALID_PAYLOAD))).rejects.toThrow(HttpsError);
   });
 
   it('accepts valid slug — lowercase alphanumeric', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     const result = await handler(makeRequest({ ...VALID_PAYLOAD, slug: 'mystore123' }));
     expect(result).toHaveProperty('storeId');
     expect(result).toHaveProperty('projectId');
   });
 
   it('accepts valid slug — with hyphens', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     const result = await handler(makeRequest({ ...VALID_PAYLOAD, slug: 'my-store-name' }));
     expect(result).toHaveProperty('storeId');
   });
 
   it('sets projectId as vtx-{slug}', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
     const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
     expect(result.projectId).toBe('vtx-my-store');
   });

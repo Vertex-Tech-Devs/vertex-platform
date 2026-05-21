@@ -4,7 +4,10 @@
       "target": "prod",
       "public": "dist/vertex-platform/browser",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        { "source": "/api/log-error", "function": "logClientError" },
+        { "source": "**", "destination": "/index.html" }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|woff2|woff|ttf|eot|ico|png|jpg|svg)",
@@ -20,7 +23,10 @@
       "target": "dev",
       "public": "dist/vertex-platform/browser",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        { "source": "/api/log-error", "function": "logClientError" },
+        { "source": "**", "destination": "/index.html" }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|woff2|woff|ttf|eot|ico|png|jpg|svg)",

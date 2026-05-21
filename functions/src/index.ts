@@ -6,3 +6,4 @@ export * from './admin';
 export * from './provisioning';
 export * from './stores';
 export * from './billing';
+export * from './monitoring';
