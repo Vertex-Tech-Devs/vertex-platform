@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 
-export type AuthError = 'unauthorized' | 'unknown';
+export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -17,6 +17,7 @@ export class AuthService {
 
   readonly user = signal<User | null | undefined>(undefined);
   readonly authError = signal<AuthError | null>(null);
+  readonly authErrorCode = signal<string>('');
   readonly isLoggedIn = computed(() => !!this.user());
   readonly isLoading = computed(() => this.user() === undefined);
 
@@ -45,8 +46,15 @@ export class AuthService {
         this.authError.set('unauthorized');
         return;
       }
-    } catch {
-      this.authError.set('unknown');
+    } catch (err) {
+      const code = (err as { code?: string })?.code ?? '';
+      console.error('[Auth] loginWithGoogle failed:', code, err);
+      this.authErrorCode.set(code);
+      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
+        this.authError.set('popup-blocked');
+      } else {
+        this.authError.set('unknown');
+      }
     }
   }
 

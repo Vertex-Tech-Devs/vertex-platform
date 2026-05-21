@@ -24,10 +24,20 @@ import { AuthService } from '@core/services/auth';
                   Contactá al administrador.
                 </div>
               </div>
+            } @else if (auth.authError() === 'popup-blocked') {
+              <div class="alert">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>El popup fue bloqueado. Permití popups para este sitio e intentá de nuevo.</div>
+              </div>
             } @else if (auth.authError() === 'unknown') {
               <div class="alert">
                 <i class="bi bi-exclamation-triangle"></i>
-                <div>Error al iniciar sesión. Intentá de nuevo.</div>
+                <div>
+                  Error al iniciar sesión. Intentá de nuevo.
+                  @if (auth.authErrorCode()) {
+                    <br><small style="opacity:0.7">{{ auth.authErrorCode() }}</small>
+                  }
+                </div>
               </div>
             }
 
