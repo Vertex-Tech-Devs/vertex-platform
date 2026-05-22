@@ -57,6 +57,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       enableApis:    { status: 'pending', label: 'Habilitar APIs' },
       createWebApp:  { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
+      initAdmin:     { status: 'pending', label: 'Crear usuario administrador' },
       grantAccess:   { status: 'pending', label: 'Configurar permisos de deploy' },
       triggerDeploy: { status: 'pending', label: 'Desplegar tienda' },
     };
@@ -90,9 +91,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentData = currentSnap.data();
   if (!currentData || !['provisioning', 'error'].includes(currentData['status'])) return;
 
-  const { name, logoUrl, firebaseProjectId: projectId, billingAccountId } = currentData as {
+  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId } = currentData as {
     name: string;
     logoUrl: string | null;
+    ownerEmail: string;
     firebaseProjectId: string;
     billingAccountId: string;
   };
@@ -260,7 +262,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  // ── Step 6: Init Firestore in new project ──────────────────────────────
+  // ── Step 6: Init Firestore + seed store config ─────────────────────────
   if (!isDone('initFirestore')) {
     await setStep('initFirestore', 'running');
     try {
@@ -279,24 +281,45 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const now = new Date().toISOString();
       await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/storeConfig/main`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
         {
           method: 'PATCH',
           body: {
             fields: {
-              storeName: { stringValue: name },
-              logoUrl: logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+              storeName:      { stringValue: name },
+              strapline:      { stringValue: '' },
+              logoUrl:        logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+              contact: {
+                mapValue: {
+                  fields: {
+                    email:    { stringValue: ownerEmail },
+                    phone:    { stringValue: '' },
+                    whatsapp: { stringValue: '' },
+                  },
+                },
+              },
               seo: {
                 mapValue: {
                   fields: {
-                    metaTitle: { stringValue: name },
+                    metaTitle:       { stringValue: name },
                     metaDescription: { stringValue: `Bienvenido a ${name}` },
                   },
                 },
               },
-              social: { mapValue: { fields: {} } },
-              createdAt: { timestampValue: now },
-              updatedAt: { timestampValue: now },
+              features: {
+                mapValue: {
+                  fields: {
+                    reviewsEnabled:  { booleanValue: false },
+                    wishlistEnabled: { booleanValue: false },
+                    blogEnabled:     { booleanValue: false },
+                  },
+                },
+              },
+              currency:       { stringValue: 'ARS' },
+              currencySymbol: { stringValue: '$' },
+              country:        { stringValue: 'AR' },
+              createdAt:      { timestampValue: now },
+              updatedAt:      { timestampValue: now },
             },
           },
         }
@@ -307,7 +330,54 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  // ── Step 7: Grant platform SA deploy access ────────────────────────────
+  // ── Step 7: Create store admin user and send invite email ──────────────
+  if (!isDone('initAdmin')) {
+    await setStep('initAdmin', 'running');
+    try {
+      // Create user (retry to handle API propagation delay after enableApis)
+      const createOrFetchUid = async (): Promise<string> => {
+        try {
+          const res = (await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
+            { method: 'POST', body: { email: ownerEmail, emailVerified: false } }
+          )) as { localId: string };
+          return res.localId;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('EMAIL_EXISTS')) throw err;
+          const lookup = (await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+            { method: 'POST', body: { email: [ownerEmail] } }
+          )) as { users: Array<{ localId: string }> };
+          if (!lookup.users?.length) throw new Error(`User ${ownerEmail} not found after EMAIL_EXISTS`);
+          return lookup.users[0].localId;
+        }
+      };
+      const uid = await retry(createOrFetchUid, 5, 8000);
+
+      // Set admin: true custom claim
+      await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
+        { method: 'POST', body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) } }
+      );
+
+      // Send password reset email as the invite link
+      await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        { method: 'POST', body: { requestType: 'PASSWORD_RESET', email: ownerEmail } }
+      );
+
+      await setStep('initAdmin', 'done');
+    } catch (err) {
+      await fail('initAdmin', err); return;
+    }
+  }
+
+  // ── Step 8: Grant platform SA deploy access ────────────────────────────
   if (!isDone('grantAccess')) {
     await setStep('grantAccess', 'running');
     try {
@@ -349,7 +419,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  // ── Step 8: Trigger GitHub Actions deploy ──────────────────────────────
+  // ── Step 9: Trigger GitHub Actions deploy ──────────────────────────────
   if (!isDone('triggerDeploy')) {
     await setStep('triggerDeploy', 'running');
     try {
