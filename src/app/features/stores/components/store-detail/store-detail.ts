@@ -12,6 +12,7 @@ const STEP_ORDER = [
   'enableApis',
   'createWebApp',
   'initFirestore',
+  'initAdmin',
   'grantAccess',
   'triggerDeploy',
 ];

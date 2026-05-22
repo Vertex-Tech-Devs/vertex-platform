@@ -187,26 +187,31 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('enableApis')) {
     await setStep('enableApis', 'running');
     try {
-      const tokenRes = await auth.getAccessToken();
-      const res = await fetch(
+      const enableOp = (await apiFetch(
+        auth,
         `https://serviceusage.googleapis.com/v1/projects/${projectId}/services:batchEnable`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${tokenRes.token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             serviceIds: [
               'firestore.googleapis.com',
               'identitytoolkit.googleapis.com',
               'storage.googleapis.com',
               'cloudresourcemanager.googleapis.com',
             ],
-          }),
+          },
         }
-      );
-      if (!res.ok && res.status !== 409) throw new Error(`${res.status}: ${await res.text()}`);
+      )) as { name: string; done?: boolean };
+      if (!enableOp.done) {
+        await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
+      }
       await setStep('enableApis', 'done');
     } catch (err) {
-      await fail('enableApis', err); return;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('already') && !msg.includes('409')) {
+        await fail('enableApis', err); return;
+      }
+      await setStep('enableApis', 'done');
     }
   }
 
@@ -279,50 +284,54 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      await apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
-        {
-          method: 'PATCH',
-          body: {
-            fields: {
-              storeName:      { stringValue: name },
-              strapline:      { stringValue: '' },
-              logoUrl:        logoUrl ? { stringValue: logoUrl } : { nullValue: null },
-              contact: {
-                mapValue: {
-                  fields: {
-                    email:    { stringValue: ownerEmail },
-                    phone:    { stringValue: '' },
-                    whatsapp: { stringValue: '' },
+      await retry(
+        () => apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+          {
+            method: 'PATCH',
+            body: {
+              fields: {
+                storeName:      { stringValue: name },
+                strapline:      { stringValue: '' },
+                logoUrl:        logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+                contact: {
+                  mapValue: {
+                    fields: {
+                      email:    { stringValue: ownerEmail },
+                      phone:    { stringValue: '' },
+                      whatsapp: { stringValue: '' },
+                    },
                   },
                 },
-              },
-              seo: {
-                mapValue: {
-                  fields: {
-                    metaTitle:       { stringValue: name },
-                    metaDescription: { stringValue: `Bienvenido a ${name}` },
+                seo: {
+                  mapValue: {
+                    fields: {
+                      metaTitle:       { stringValue: name },
+                      metaDescription: { stringValue: `Bienvenido a ${name}` },
+                    },
                   },
                 },
-              },
-              features: {
-                mapValue: {
-                  fields: {
-                    reviewsEnabled:  { booleanValue: false },
-                    wishlistEnabled: { booleanValue: false },
-                    blogEnabled:     { booleanValue: false },
+                features: {
+                  mapValue: {
+                    fields: {
+                      reviewsEnabled:  { booleanValue: false },
+                      wishlistEnabled: { booleanValue: false },
+                      blogEnabled:     { booleanValue: false },
+                    },
                   },
                 },
+                currency:       { stringValue: 'ARS' },
+                currencySymbol: { stringValue: '$' },
+                country:        { stringValue: 'AR' },
+                createdAt:      { timestampValue: now },
+                updatedAt:      { timestampValue: now },
               },
-              currency:       { stringValue: 'ARS' },
-              currencySymbol: { stringValue: '$' },
-              country:        { stringValue: 'AR' },
-              createdAt:      { timestampValue: now },
-              updatedAt:      { timestampValue: now },
             },
-          },
-        }
+          }
+        ),
+        5,
+        6000
       );
       await setStep('initFirestore', 'done');
     } catch (err) {
@@ -334,13 +343,54 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('initAdmin')) {
     await setStep('initAdmin', 'running');
     try {
+      // Initialize Identity Platform configuration (enables Email/Password provider)
+      const initIdentityPlatform = async (): Promise<void> => {
+        // Step 1: Initialize Identity Platform configuration on the target project
+        try {
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
+            {
+              method: 'POST',
+              body: {},
+              quotaProject: projectId
+            }
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          // If Identity Platform is already enabled or initialized, it might throw a 409 or ALREADY_EXISTS.
+          // We can safely ignore this and proceed to configuration.
+          if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+            throw err;
+          }
+        }
+
+        // Step 2: Configure and enable the Email/Password sign-in method
+        await apiFetch(
+          auth,
+          `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
+          {
+            method: 'PATCH',
+            body: {
+              signIn: {
+                email: {
+                  enabled: true
+                }
+              }
+            },
+            quotaProject: projectId
+          }
+        );
+      };
+      await retry(initIdentityPlatform, 5, 8000);
+
       // Create user (retry to handle API propagation delay after enableApis)
       const createOrFetchUid = async (): Promise<string> => {
         try {
           const res = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
-            { method: 'POST', body: { email: ownerEmail, emailVerified: false } }
+            { method: 'POST', body: { email: ownerEmail, emailVerified: false }, quotaProject: projectId }
           )) as { localId: string };
           return res.localId;
         } catch (err) {
@@ -349,7 +399,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           const lookup = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            { method: 'POST', body: { email: [ownerEmail] } }
+            { method: 'POST', body: { email: [ownerEmail] }, quotaProject: projectId }
           )) as { users: Array<{ localId: string }> };
           if (!lookup.users?.length) throw new Error(`User ${ownerEmail} not found after EMAIL_EXISTS`);
           return lookup.users[0].localId;
@@ -361,14 +411,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
-        { method: 'POST', body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) } }
+        { method: 'POST', body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) }, quotaProject: projectId }
       );
 
       // Send password reset email as the invite link
       await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        { method: 'POST', body: { requestType: 'PASSWORD_RESET', email: ownerEmail } }
+        { method: 'POST', body: { requestType: 'PASSWORD_RESET', email: ownerEmail }, quotaProject: projectId }
       );
 
       await setStep('initAdmin', 'done');

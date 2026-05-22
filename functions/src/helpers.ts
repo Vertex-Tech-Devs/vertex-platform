@@ -10,41 +10,49 @@ export const ALLOWED_ORIGINS = [
   'https://vertex-platform-dev.web.app',
 ];
 
+let cachedGitHubPat: string | null = null;
+let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token: string } | null = null;
+const secretsClient = new SecretManagerServiceClient();
+
 export async function getOwnerOAuthClient(): Promise<OAuth2Client> {
-  const secrets = new SecretManagerServiceClient();
-  const [version] = await secrets.accessSecretVersion({
-    name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
-  });
-  const creds = JSON.parse(version.payload!.data!.toString()) as {
-    client_id: string;
-    client_secret: string;
-    refresh_token: string;
-  };
-  const oauth2 = new OAuth2Client(creds.client_id, creds.client_secret);
-  oauth2.setCredentials({ refresh_token: creds.refresh_token });
+  if (!cachedOwnerCreds) {
+    const [version] = await secretsClient.accessSecretVersion({
+      name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
+    });
+    cachedOwnerCreds = JSON.parse(version.payload!.data!.toString()) as {
+      client_id: string;
+      client_secret: string;
+      refresh_token: string;
+    };
+  }
+  const oauth2 = new OAuth2Client(cachedOwnerCreds.client_id, cachedOwnerCreds.client_secret);
+  oauth2.setCredentials({ refresh_token: cachedOwnerCreds.refresh_token });
   return oauth2;
 }
 
 export async function getGitHubPat(): Promise<string> {
-  const secrets = new SecretManagerServiceClient();
-  const [version] = await secrets.accessSecretVersion({
+  if (cachedGitHubPat) return cachedGitHubPat;
+  const [version] = await secretsClient.accessSecretVersion({
     name: `projects/${PLATFORM_PROJECT}/secrets/github-pat/versions/latest`,
   });
-  return version.payload!.data!.toString().trim();
+  cachedGitHubPat = version.payload!.data!.toString().trim();
+  return cachedGitHubPat;
 }
 
 export async function apiFetch(
   auth: OAuth2Client,
   url: string,
-  options: { method?: string; body?: unknown } = {}
+  options: { method?: string; body?: unknown; quotaProject?: string } = {}
 ): Promise<unknown> {
   const tokenRes = await auth.getAccessToken();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${tokenRes.token}`,
+    'Content-Type': 'application/json',
+  };
+  if (options.quotaProject) headers['x-goog-user-project'] = options.quotaProject;
   const res = await fetch(url, {
     method: options.method ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${tokenRes.token}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
   if (!res.ok) {
