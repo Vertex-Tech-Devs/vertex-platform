@@ -98,3 +98,21 @@ npm run deploy:prod  # activates 'vertex-prod' gcloud config, deploys to vertex-
 ```
 
 Firebase CLI uses the currently active gcloud account for ADC — switching configs is mandatory.
+
+## Cumulative Knowledge / Memory & Guidelines
+
+To ensure continuous, automated learning and smooth collaboration:
+1. **Always update this CLAUDE.md**: At the end of any significant coding session or bug resolution, update this section with your findings. This guarantees that future agents or sessions build on top of verified knowledge immediately.
+2. **Identity Platform (Firebase Auth) Provisioning Flow**:
+   - **Initialization Handshake Required**: In newly provisioned GCP projects, you cannot call Identity Toolkit endpoints (like creating or configuring accounts) without first triggering an explicit initialization. You must send a `POST` request to `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth` with an empty body `{}` to create the auth configuration resource.
+   - **Enable Provider**: Immediately after initialization, make a `PATCH` request to `/config?updateMask=signIn` to set `signIn.email.enabled = true`.
+3. **Multi-tenant GCP API Calls (`quotaProject`)**:
+   - When calling Identity Toolkit v1/v2 REST APIs (especially when executing under local Application Default Credentials or user-associated roles), you must pass the `x-goog-user-project` header.
+   - In the `apiFetch` helper, this is mapped via the `quotaProject` option. Always include `quotaProject: projectId` in `apiFetch` options to avoid `403 Forbidden` credentials/quota errors.
+4. **Secret Manager Performance Optimization**:
+   - In Cloud Functions, instantiating the client and retrieving secrets on every step incurs high latency (~300ms overhead) and API usage costs.
+   - Re-use a single, module-scoped `SecretManagerServiceClient` instance and cache retrieved secrets (such as GCP Owner Credentials and GitHub PAT) in global variables to bypass repeated API calls.
+5. **Git Push Policies**:
+   - **ecommerce-vertex**: Direct pushes to the `main` branch are strictly blocked by pre-push hooks. Always commit to `develop` and open a Pull Request to merge into `main`.
+   - **vertex-platform**: Both `develop` and `main` can be committed and pushed directly.
+
