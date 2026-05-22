@@ -124,6 +124,54 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     return;
   }
 
+  // Verify that the GCP project exists and is active if createProject is already marked as done
+  let projectIsActive = false;
+  if (isDone('createProject')) {
+    try {
+      const projRes = (await apiFetch(
+        auth,
+        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`
+      )) as { state: string };
+      if (projRes.state === 'ACTIVE') {
+        projectIsActive = true;
+      }
+    } catch {
+      // If the project doesn't exist or is inaccessible, projectIsActive remains false
+    }
+  }
+
+  if (isDone('createProject') && !projectIsActive) {
+    const suffix = `-${Math.random().toString(36).substring(2, 6)}`;
+    const newProjectId = `${projectId.substring(0, 30 - suffix.length)}${suffix}`;
+
+    await storeRef.update({
+      firebaseProjectId: newProjectId,
+      defaultUrl: `https://${newProjectId}.web.app`,
+      'provisioningSteps.createProject.status': 'pending',
+      'provisioningSteps.createProject.error': null,
+      'provisioningSteps.linkBilling.status': 'pending',
+      'provisioningSteps.linkBilling.error': null,
+      'provisioningSteps.addFirebase.status': 'pending',
+      'provisioningSteps.addFirebase.error': null,
+      'provisioningSteps.enableApis.status': 'pending',
+      'provisioningSteps.enableApis.error': null,
+      'provisioningSteps.createWebApp.status': 'pending',
+      'provisioningSteps.createWebApp.error': null,
+      'provisioningSteps.initFirestore.status': 'pending',
+      'provisioningSteps.initFirestore.error': null,
+      'provisioningSteps.initAdmin.status': 'pending',
+      'provisioningSteps.initAdmin.error': null,
+      'provisioningSteps.grantAccess.status': 'pending',
+      'provisioningSteps.grantAccess.error': null,
+      'provisioningSteps.triggerDeploy.status': 'pending',
+      'provisioningSteps.triggerDeploy.error': null,
+      updatedAt: new Date(),
+    });
+
+    await executeProvisioningSteps(storeId);
+    return;
+  }
+
   // ── Step 1: Create GCP project ─────────────────────────────────────────
   if (!isDone('createProject')) {
     await setStep('createProject', 'running');
@@ -431,7 +479,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('grantAccess')) {
     await setStep('grantAccess', 'running');
     try {
-      const platformSA = `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`;
+      const serviceAccounts = Array.from(
+        new Set([
+          `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+        ])
+      );
       const tokenRes = await auth.getAccessToken();
 
       const policyRes = await fetch(
@@ -447,12 +500,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         etag: string;
       };
 
-      const ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
-      const member = `serviceAccount:${platformSA}`;
-      if (ownerBinding) {
-        if (!ownerBinding.members.includes(member)) ownerBinding.members.push(member);
-      } else {
-        policy.bindings = [...(policy.bindings ?? []), { role: 'roles/owner', members: [member] }];
+      let ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
+      if (!ownerBinding) {
+        ownerBinding = { role: 'roles/owner', members: [] };
+        policy.bindings = [...(policy.bindings ?? []), ownerBinding];
+      }
+
+      for (const sa of serviceAccounts) {
+        const member = `serviceAccount:${sa}`;
+        if (!ownerBinding.members.includes(member)) {
+          ownerBinding.members.push(member);
+        }
       }
 
       await fetch(
