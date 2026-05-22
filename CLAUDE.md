@@ -39,9 +39,10 @@ Entry: `functions/src/index.ts` (re-exports only — no logic)
 ## Provisioning flow
 
 1. Admin calls `provisionStore` → creates Firestore doc with `status: 'provisioning'`
-2. `runProvisioning` Firestore trigger fires → 8 sequential GCP steps tracked in `provisioningSteps`
-3. Step 8 dispatches `repository_dispatch` event to `Vertex-Tech-Devs/ecommerce-vertex`
-4. ecommerce-vertex CI builds Angular app with store's Firebase config and deploys to store's hosting
+2. `runProvisioning` Firestore trigger fires → 9 sequential GCP steps tracked in `provisioningSteps`
+3. Step 7 (`initAdmin`) creates the store admin Firebase Auth user, sets `admin: true` claim, sends password-reset invite email
+4. Step 9 (`triggerDeploy`) dispatches `repository_dispatch` to `Vertex-Tech-Devs/ecommerce-vertex`
+5. ecommerce-vertex CI builds Angular app with store's Firebase config and deploys to store's hosting
 
 Steps are idempotent: each step checks its current status (`done`) before executing — safe to retry.
 
