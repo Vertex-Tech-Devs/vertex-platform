@@ -9,16 +9,18 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
-const [, , email, flag] = process.argv;
-const remove = flag === '--remove';
+const args = process.argv.slice(2);
+const email = args.find((a) => !a.startsWith('--'));
+const remove = args.includes('--remove');
+const isDev = args.includes('--dev');
 
 if (!email) {
-  console.error('Usage: npm run add-admin <email>');
-  console.error('       npm run add-admin <email> --remove');
+  console.error('Usage: npm run add-admin <email> [--remove] [--dev]');
   process.exit(1);
 }
 
-initializeApp({ projectId: 'vertex-platform-app' });
+const projectId = isDev ? 'vertex-platform-dev' : 'vertex-platform-app';
+initializeApp({ projectId });
 
 const auth = getAuth();
 
@@ -30,10 +32,10 @@ void (async () => {
     if (remove) {
       const { platformAdmin: _, ...rest } = currentClaims as Record<string, unknown>;
       await auth.setCustomUserClaims(user.uid, rest);
-      console.log(`✅ Removed platform admin access from ${email}`);
+      console.log(`✅ Removed platform admin access from ${email} in project "${projectId}"`);
     } else {
       await auth.setCustomUserClaims(user.uid, { ...currentClaims, platformAdmin: true });
-      console.log(`✅ ${email} is now a platform admin`);
+      console.log(`✅ ${email} is now a platform admin in project "${projectId}"`);
       console.log('   They must sign out and back in for the claim to take effect.');
     }
   } catch (err: unknown) {

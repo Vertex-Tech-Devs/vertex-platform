@@ -15,13 +15,15 @@ import { readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const PROJECT_ID = 'vertex-platform-app';
-
 const args = process.argv.slice(2);
+const isDev = args.includes('--dev');
+const PROJECT_ID = isDev ? 'vertex-platform-dev' : 'vertex-platform-app';
+
 const patArg = args.find((a) => a.startsWith('--github-pat='));
 const githubPat = patArg?.split('=')[1];
 
 void (async () => {
+  console.log(`🔑 Initializing Secret Manager setup for project: "${PROJECT_ID}"...`);
   const client = new SecretManagerServiceClient();
 
   // ── Store ADC credentials ────────────────────────────────────────────────
