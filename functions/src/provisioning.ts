@@ -1,6 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
 import type { CreateStorePayload, StepStatus, ProvisioningStep } from './types';
 import {
@@ -529,6 +530,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 9: Trigger GitHub Actions deploy ──────────────────────────────
   if (!isDone('triggerDeploy')) {
+    if (currentSteps['triggerDeploy']?.status === 'running') {
+      return;
+    }
     await setStep('triggerDeploy', 'running');
     try {
       const pat = await getGitHubPat();
@@ -549,24 +553,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               project_id: projectId,
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
+              platform_project_id: PLATFORM_PROJECT,
             },
           }),
         }
       );
       if (!res.ok && res.status !== 204) throw new Error(`GitHub API: ${res.status} ${await res.text()}`);
-      await setStep('triggerDeploy', 'done');
     } catch (err) {
       await fail('triggerDeploy', err); return;
     }
   }
-
-  // ── Done ───────────────────────────────────────────────────────────────
-  await storeRef.update({
-    status: 'active',
-    lastDeployedAt: new Date(),
-    templateVersion: '1.0.0',
-    updatedAt: new Date(),
-  });
 }
 
 export const runProvisioning = onDocumentCreated(
@@ -614,6 +610,63 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     await storeRef.update(updates);
 
     await executeProvisioningSteps(storeId);
+    return { success: true };
+  }
+);
+
+export const completeStoreDeployment = onCall<{ storeId: string; success: boolean; deployToken: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    const { storeId, success, deployToken } = request.data;
+
+    if (!storeId || !deployToken) {
+      throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
+    }
+
+    // 1. Verify the deploy token using Secret Manager
+    const secrets = new SecretManagerServiceClient();
+    const [version] = await secrets.accessSecretVersion({
+      name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+    });
+    const expected = version.payload!.data!.toString().trim();
+    if (deployToken !== expected) {
+      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    }
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const snap = await storeRef.get();
+    if (!snap.exists) {
+      throw new HttpsError('not-found', 'Store not found.');
+    }
+
+    const storeData = snap.data()!;
+    if (storeData['status'] === 'active') {
+      return { success: true };
+    }
+
+    if (storeData['status'] !== 'provisioning' && storeData['status'] !== 'error') {
+      throw new HttpsError('failed-precondition', 'Store is not in provisioning or error status.');
+    }
+
+    if (success) {
+      await storeRef.update({
+        'provisioningSteps.triggerDeploy.status': 'done',
+        'provisioningSteps.triggerDeploy.error': null,
+        status: 'active',
+        lastDeployedAt: new Date(),
+        templateVersion: '1.0.0',
+        updatedAt: new Date(),
+      });
+    } else {
+      await storeRef.update({
+        'provisioningSteps.triggerDeploy.status': 'error',
+        'provisioningSteps.triggerDeploy.error': 'Storefront deployment failed. Check GitHub Action logs for details.',
+        status: 'error',
+        updatedAt: new Date(),
+      });
+    }
+
     return { success: true };
   }
 );
