@@ -56,15 +56,6 @@ export interface StoreFeatureFlags {
   blogEnabled: boolean;
 }
 
-export interface StoreTheme {
-  primaryColor: string;
-  secondaryColor: string;
-  backgroundColor: string;
-  textColor: string;
-  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  fontFamily: 'Inter' | 'Roboto' | 'Outfit' | 'Playfair Display';
-}
-
 export interface StoreConfig {
   storeName: string;
   strapline: string;
@@ -73,7 +64,6 @@ export interface StoreConfig {
   contact: StoreContact;
   seo: StoreSeo;
   features: StoreFeatureFlags;
-  theme?: StoreTheme;
   currency: string;
   currencySymbol: string;
   country: string;

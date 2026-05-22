@@ -117,14 +117,6 @@ export class StoreDetail implements OnInit, OnDestroy {
       reviewsEnabled: [false],
       wishlistEnabled: [false],
       blogEnabled: [false]
-    }),
-    theme: this.fb.group({
-      primaryColor: ['#4f46e5'],
-      secondaryColor: ['#06b6d4'],
-      backgroundColor: ['#0d1117'],
-      textColor: ['#f3f4f6'],
-      borderRadius: ['md'],
-      fontFamily: ['Inter']
     })
   });
 
@@ -241,14 +233,6 @@ export class StoreDetail implements OnInit, OnDestroy {
             reviewsEnabled: !!config.features?.reviewsEnabled,
             wishlistEnabled: !!config.features?.wishlistEnabled,
             blogEnabled: !!config.features?.blogEnabled
-          },
-          theme: {
-            primaryColor: config.theme?.primaryColor || '#4f46e5',
-            secondaryColor: config.theme?.secondaryColor || '#06b6d4',
-            backgroundColor: config.theme?.backgroundColor || '#0d1117',
-            textColor: config.theme?.textColor || '#f3f4f6',
-            borderRadius: config.theme?.borderRadius || 'md',
-            fontFamily: config.theme?.fontFamily || 'Inter'
           }
         });
       } else {
