@@ -20,19 +20,38 @@ export class StoreCreate {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
 
+  readonly selectedVerticalType = signal<'indumentaria' | 'gastronomia' | 'retail' | 'custom'>('indumentaria');
+  readonly customVerticalName = signal('');
+
   readonly form = this.fb.group({
     name: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
-    plan: ['starter' as const, Validators.required],
     logoUrl: [''],
     customDomain: [''],
+    verticalId: ['indumentaria' as string, Validators.required],
   });
 
   autoSlug(): void {
     const name = this.form.get('name')?.value ?? '';
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     this.form.get('slug')?.setValue(slug);
+  }
+
+  selectVertical(type: 'indumentaria' | 'gastronomia' | 'retail' | 'custom'): void {
+    this.selectedVerticalType.set(type);
+    if (type !== 'custom') {
+      this.form.get('verticalId')?.setValue(type);
+    } else {
+      this.form.get('verticalId')?.setValue(this.customVerticalName().trim());
+    }
+  }
+
+  onCustomVerticalChange(value: string): void {
+    this.customVerticalName.set(value);
+    if (this.selectedVerticalType() === 'custom') {
+      this.form.get('verticalId')?.setValue(value.trim());
+    }
   }
 
   async onSubmit(): Promise<void> {

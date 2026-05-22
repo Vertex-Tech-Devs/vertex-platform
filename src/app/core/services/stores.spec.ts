@@ -87,7 +87,6 @@ describe('StoresService', () => {
       name: 'My Store',
       slug: 'my-store',
       ownerEmail: 'owner@test.com',
-      plan: 'starter',
     });
 
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'provisionStore');

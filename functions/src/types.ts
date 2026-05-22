@@ -14,9 +14,9 @@ export interface CreateStorePayload {
   name: string;
   slug: string;
   ownerEmail: string;
-  plan: string;
   logoUrl?: string;
   customDomain?: string;
+  verticalId?: string;
 }
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';
@@ -39,3 +39,58 @@ export interface UpdateBillingAccountPayload {
   maxProjects?: number;
   active?: boolean;
 }
+
+export interface StoreContact {
+  email: string;
+  phone: string;
+  whatsapp: string;
+  address?: string;
+  instagram?: string;
+  facebook?: string;
+}
+
+export interface StoreSeo {
+  metaTitle: string;
+  metaDescription: string;
+}
+
+export interface StoreFeatureFlags {
+  reviewsEnabled: boolean;
+  wishlistEnabled: boolean;
+  blogEnabled: boolean;
+}
+
+export interface StoreTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
+  fontFamily: 'Inter' | 'Roboto' | 'Outfit' | 'Playfair Display';
+}
+
+export interface StoreConfig {
+  storeName: string;
+  strapline: string;
+  logoUrl: string;
+  faviconUrl?: string;
+  contact: StoreContact;
+  seo: StoreSeo;
+  features: StoreFeatureFlags;
+  theme?: StoreTheme;
+  currency: string;
+  currencySymbol: string;
+  country: string;
+}
+
+export interface UpdateStoreConfigPayload {
+  storeId: string;
+  config: Partial<StoreConfig>;
+}
+
+export interface InviteStaffPayload {
+  storeId: string;
+  email: string;
+  role: 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
+}
+

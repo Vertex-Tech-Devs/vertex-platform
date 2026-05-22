@@ -115,4 +115,8 @@ To ensure continuous, automated learning and smooth collaboration:
 5. **Git Push Policies**:
    - **ecommerce-vertex**: Direct pushes to the `main` branch are strictly blocked by pre-push hooks. Always commit to `develop` and open a Pull Request to merge into `main`.
    - **vertex-platform**: Both `develop` and `main` can be committed and pushed directly.
+6. **Removal of HttpClient and ESLint Safe-Typing (v1.4.0)**:
+   - The platform operates purely on direct Firebase SDKs. Angular's `HttpClient` is completely unused and should not be imported or provided.
+   - To comply with strict quality gates and avoid `no-explicit-any` errors, always type records using descriptive interfaces like `RawDnsRecord`, and handle caught exceptions using safe `unknown` catches with `err instanceof Error` type guards.
+
 

@@ -14,6 +14,7 @@ import {
   pollOperation,
   pickBillingAccount,
 } from './helpers';
+import { seedStoreData } from './seeds';
 
 export const provisionStore = onCall<CreateStorePayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -22,10 +23,10 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
 
-    const { name, slug, ownerEmail, plan, logoUrl, customDomain } = request.data;
+    const { name, slug, ownerEmail, logoUrl, customDomain, verticalId } = request.data;
 
-    if (!name?.trim() || !ownerEmail?.trim() || !plan?.trim()) {
-      throw new HttpsError('invalid-argument', 'name, ownerEmail, and plan are required.');
+    if (!name?.trim() || !ownerEmail?.trim()) {
+      throw new HttpsError('invalid-argument', 'name and ownerEmail are required.');
     }
     if (!/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/.test(slug)) {
       throw new HttpsError(
@@ -68,9 +69,9 @@ export const provisionStore = onCall<CreateStorePayload>(
       name,
       slug,
       ownerEmail,
-      plan,
       logoUrl: logoUrl ?? null,
       customDomain: customDomain ?? null,
+      verticalId: verticalId ?? null,
       firebaseProjectId: projectId,
       defaultUrl: `https://${projectId}.web.app`,
       billingAccountId,
@@ -92,12 +93,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentData = currentSnap.data();
   if (!currentData || !['provisioning', 'error'].includes(currentData['status'])) return;
 
-  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId } = currentData as {
+  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId, verticalId } = currentData as {
     name: string;
     logoUrl: string | null;
     ownerEmail: string;
     firebaseProjectId: string;
     billingAccountId: string;
+    verticalId?: string;
   };
 
   const currentSteps = (currentData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
@@ -382,6 +384,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         5,
         6000
       );
+
+      if (verticalId) {
+        await seedStoreData(auth, projectId, verticalId);
+      }
+
       await setStep('initFirestore', 'done');
     } catch (err) {
       await fail('initFirestore', err); return;

@@ -182,6 +182,100 @@
   &:hover { background: rgba(255, 255, 255, 0.08); color: var(--platform-text-primary); }
 }
 
+.vertical-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.custom-vertical-container {
+  display: block;
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--platform-card-border);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.vertical-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--platform-card-border-hover);
+    transform: translateY(-2px);
+  }
+
+  &.is-selected {
+    background: rgba(79, 70, 229, 0.08);
+    border-color: var(--platform-accent-purple);
+    box-shadow: 0 0 20px rgba(79, 70, 229, 0.15), inset 0 0 12px rgba(79, 70, 229, 0.1);
+  }
+
+  &__icon {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--platform-text-primary);
+  }
+
+  &__desc {
+    font-size: 0.75rem;
+    color: var(--platform-text-muted);
+    line-height: 1.35;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .vertical-selector { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 600px) {
   .form-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .vertical-selector { grid-template-columns: 1fr; }
 }

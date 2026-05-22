@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
-import type { Store, StoreStatus, StorePlan } from '@core/models/store';
+import type { Store, StoreStatus } from '@core/models/store';
 
 const STATUS_LABELS: Record<StoreStatus, string> = {
   provisioning: 'Provisionando',
@@ -73,12 +73,6 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
           <option value="suspended">Suspendida</option>
           <option value="error">Error</option>
         </select>
-        <select class="filter-select" [(ngModel)]="planFilter">
-          <option value="all">Todos los planes</option>
-          <option value="starter">Starter</option>
-          <option value="professional">Professional</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
       </div>
 
       <!-- Results -->
@@ -105,7 +99,6 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
               </div>
               <p class="store-card__url">{{ store.defaultUrl }}</p>
               <p class="store-card__meta">
-                <span class="plan-badge">{{ store.plan }}</span>
                 {{ store.ownerEmail }}
               </p>
             </a>
@@ -121,7 +114,6 @@ export class StoresList {
 
   searchQuery = '';
   statusFilter: StoreStatus | 'all' = 'all';
-  planFilter: StorePlan | 'all' = 'all';
 
   readonly counts = computed(() => {
     const all = this.stores.stores();
@@ -143,8 +135,7 @@ export class StoresList {
         s.ownerEmail.toLowerCase().includes(q) ||
         s.slug.toLowerCase().includes(q);
       const matchesStatus = this.statusFilter === 'all' || s.status === this.statusFilter;
-      const matchesPlan = this.planFilter === 'all' || s.plan === this.planFilter;
-      return matchesSearch && matchesStatus && matchesPlan;
+      return matchesSearch && matchesStatus;
     });
   });
 

@@ -46,16 +46,63 @@
           }
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Plan</label>
-          <select formControlName="plan" class="form-select">
-            <option value="starter">Starter</option>
-            <option value="professional">Professional</option>
-            <option value="enterprise">Enterprise</option>
-          </select>
-        </div>
-
       </div>
+    </section>
+
+    <section class="form-section">
+      <h2 class="form-section__title">Vertical de Negocio *</h2>
+      <p class="form-hint" style="margin-bottom: 1.25rem; margin-top: -0.75rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+        Seleccioná el rubro de la tienda. Se cargará un catálogo inicial de productos de prueba.
+      </p>
+      
+      <div class="vertical-selector">
+        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'indumentaria'" (click)="selectVertical('indumentaria')">
+          <div class="vertical-card__icon">👕</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Indumentaria</span>
+            <span class="vertical-card__desc">Talles, colores y colecciones de moda con stock inicial.</span>
+          </div>
+        </label>
+        
+        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'gastronomia'" (click)="selectVertical('gastronomia')">
+          <div class="vertical-card__icon">🍔</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Gastronomía</span>
+            <span class="vertical-card__desc">Menú inicial, variantes de platos y delivery configurado.</span>
+          </div>
+        </label>
+        
+        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'retail'" (click)="selectVertical('retail')">
+          <div class="vertical-card__icon">📦</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Retail General</span>
+            <span class="vertical-card__desc">Productos generales multirubro y especificaciones de prueba.</span>
+          </div>
+        </label>
+
+        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'custom'" (click)="selectVertical('custom')">
+          <div class="vertical-card__icon">🌟</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Otro Rubro</span>
+            <span class="vertical-card__desc">Creá una tienda con rubro totalmente personalizado.</span>
+          </div>
+        </label>
+      </div>
+
+      @if (selectedVerticalType() === 'custom') {
+        <div class="custom-vertical-container">
+          <div class="form-group">
+            <label class="form-label">Nombre del Rubro Personalizado *</label>
+            <input type="text" class="form-control"
+                   [value]="customVerticalName()"
+                   (input)="onCustomVerticalChange($any($event.target).value)"
+                   placeholder="Ej: Juguetería, Petshop, Ferretería..." />
+            @if (form.get('verticalId')?.invalid && form.get('verticalId')?.touched) {
+              <div class="invalid-feedback">Debés escribir el nombre del rubro personalizado.</div>
+            }
+          </div>
+        </div>
+      }
     </section>
 
     <section class="form-section">

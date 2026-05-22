@@ -1,7 +1,6 @@
 import type { ApplicationConfig } from '@angular/core';
 import { ErrorHandler, provideBrowserGlobalErrorListeners, provideAppInitializer, inject } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideFirebaseApp } from '@angular/fire/app';
 import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -10,7 +9,6 @@ import { environment } from '@environments/environment';
 import { routes } from './app.routes';
 import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
-import { httpErrorInterceptor } from '@core/interceptors/http-error.interceptor';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
 
@@ -28,7 +26,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([httpErrorInterceptor])),
 
     provideFirebaseApp(() => firebaseApp),
 

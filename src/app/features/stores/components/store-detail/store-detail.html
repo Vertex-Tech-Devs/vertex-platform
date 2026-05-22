@@ -4,6 +4,7 @@
       <a routerLink="/stores">← Volver a tiendas</a>
     </div>
 
+    <!-- Header Block -->
     <div class="detail-header">
       <div class="detail-header__color"></div>
       <div class="detail-header__info">
@@ -20,12 +21,12 @@
       <div class="detail-header__actions">
         @if (store()!.status === 'active' || store()!.status === 'suspended') {
           <button class="btn btn-secondary" (click)="openEdit()">
-            <i class="bi bi-pencil"></i> Editar
+            <i class="bi bi-pencil"></i> Editar Info
           </button>
         }
         @if (store()!.status === 'active') {
-          <a [href]="store()!.defaultUrl" target="_blank" class="btn btn-secondary">
-            Abrir tienda ↗
+          <a [href]="store()!.defaultUrl" target="_blank" class="btn btn-primary">
+            <i class="bi bi-box-arrow-up-right"></i> Abrir tienda
           </a>
         }
       </div>
@@ -92,205 +93,684 @@
       </div>
     }
 
-    <!-- Main content (active / suspended stores) -->
+    <!-- Main Tabbed dashboard (active / suspended stores) -->
     @if (store()!.status === 'active' || store()!.status === 'suspended') {
-      <div class="detail-grid">
-        <!-- Info card -->
-        <div class="detail-card">
-          <h2 class="detail-card__title">Información general</h2>
-          <dl class="detail-dl">
-            <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
-            <dt>Plan</dt><dd class="capitalize">{{ store()!.plan }}</dd>
-            <dt>Cliente</dt><dd>{{ store()!.ownerEmail }}</dd>
-            <dt>Firebase Project</dt>
-            <dd>
-              <a
-                href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
-                target="_blank">
-                {{ store()!.firebaseProjectId }} ↗
-              </a>
-            </dd>
-            <dt>URL</dt>
-            <dd><a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a></dd>
-            @if (store()!.customDomain) {
-              <dt>Dominio</dt><dd>{{ store()!.customDomain }}</dd>
-            }
-            @if (store()!.logoUrl) {
-              <dt>Logo</dt><dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
-            }
-            <dt>Creada</dt><dd>{{ store()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
-            @if (store()!.lastDeployedAt) {
-              <dt>Último deploy</dt><dd>{{ store()!.lastDeployedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
-            }
-          </dl>
-        </div>
+      
+      <!-- Premium Glass Tabs -->
+      <div class="tabs-container">
+        <button class="tab-button" [class.is-active]="activeTab() === 'orquestacion'" (click)="setTab('orquestacion')">
+          <i class="bi bi-cpu"></i> Orquestación GCP
+        </button>
+        <button class="tab-button" [class.is-active]="activeTab() === 'config'" (click)="setTab('config')">
+          <i class="bi bi-sliders"></i> Ajustes (Hot-Update)
+        </button>
+        <button class="tab-button" [class.is-active]="activeTab() === 'equipo'" (click)="setTab('equipo')">
+          <i class="bi bi-people"></i> Equipo (RBAC)
+        </button>
+        <button class="tab-button" [class.is-active]="activeTab() === 'dominios'" (click)="setTab('dominios')">
+          <i class="bi bi-globe"></i> Dominios (DNS)
+        </button>
+      </div>
 
-        <!-- Actions card -->
-        <div class="detail-card">
-          <h2 class="detail-card__title">Acciones</h2>
-          <div class="action-list">
+      <!-- Tab Content Area -->
+      <div class="tab-content">
+        
+        <!-- Tab 1: Orquestación GCP -->
+        @if (activeTab() === 'orquestacion') {
+          <div class="detail-grid">
+            <!-- Info card -->
+            <div class="detail-card">
+              <h2 class="detail-card__title">Información general</h2>
+              <dl class="detail-dl">
+                <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
+                <dt>Cliente (Dueño)</dt><dd>{{ store()!.ownerEmail }}</dd>
+                <dt>Firebase Project</dt>
+                <dd>
+                  <a href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}" target="_blank">
+                    {{ store()!.firebaseProjectId }} ↗
+                  </a>
+                </dd>
+                <dt>URL Temporal</dt>
+                <dd><a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a></dd>
+                @if (store()!.customDomain) {
+                  <dt>Dominio Custom</dt><dd class="text-accent">{{ store()!.customDomain }}</dd>
+                }
+                @if (store()!.logoUrl) {
+                  <dt>Logo URL</dt><dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
+                }
+                @if (store()!.verticalId) {
+                  <dt>Rubro / Vertical</dt><dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
+                }
+                <dt>Creada</dt><dd>{{ store()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                @if (store()!.lastDeployedAt) {
+                  <dt>Último deploy</dt><dd>{{ store()!.lastDeployedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                }
+              </dl>
+            </div>
 
-            <!-- Suspend / Activate -->
-            @if (store()!.status === 'active') {
-              <button
-                class="action-btn action-btn--warning"
-                [disabled]="isSuspending()"
-                (click)="showSleepConfirm.set(true)">
-                <i class="bi bi-moon"></i> Dormir tienda
-                <small>Suspende la tienda y la excluye del ciclo de deploys</small>
-              </button>
-            }
-            @if (store()!.status === 'suspended') {
-              <button
-                class="action-btn action-btn--success"
-                [disabled]="isActivating()"
-                (click)="activate()">
-                @if (isActivating()) { <span class="spinner-sm"></span> Activando… }
-                @else { <i class="bi bi-play-circle"></i> Reactivar tienda }
-                <small>Restaura el estado activo de la tienda</small>
-              </button>
-            }
+            <!-- Actions card -->
+            <div class="detail-card">
+              <h2 class="detail-card__title">Operaciones de Infraestructura</h2>
+              <div class="action-list">
+                <!-- Redeploy -->
+                <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
+                  @if (isRedeploying()) { <span class="spinner-sm"></span> Desplegando… }
+                  @else { <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual }
+                  <small>Actualiza la infraestructura y código de la tienda con la última versión v1.1.0+</small>
+                </button>
 
-            <!-- Redeploy -->
-            <button
-              class="action-btn"
-              [disabled]="isRedeploying()"
-              (click)="redeploy()">
-              @if (isRedeploying()) { <span class="spinner-sm"></span> Desplegando… }
-              @else { <i class="bi bi-arrow-repeat"></i> Redeploy manual }
-              <small>Actualiza la tienda con la última versión del template</small>
-            </button>
+                <!-- Suspend / Activate -->
+                @if (store()!.status === 'active') {
+                  <button class="action-btn action-btn--warning" [disabled]="isSuspending()" (click)="showSleepConfirm.set(true)">
+                    <i class="bi bi-moon"></i> Dormir tienda (Suspender)
+                    <small>Suspende el proyecto temporalmente y lo excluye del ciclo de deploys globales</small>
+                  </button>
+                }
+                @if (store()!.status === 'suspended') {
+                  <button class="action-btn action-btn--success" [disabled]="isActivating()" (click)="activate()">
+                    @if (isActivating()) { <span class="spinner-sm"></span> Activando… }
+                    @else { <i class="bi bi-play-circle"></i> Reactivar tienda }
+                    <small>Restaura la tienda y reactiva el acceso al storefront del cliente</small>
+                  </button>
+                }
 
-            <!-- Connect domain -->
-            @if (!store()!.customDomain) {
-              <button class="action-btn" (click)="showDomainForm.set(!showDomainForm())">
-                <i class="bi bi-globe"></i> Conectar dominio
-                <small>Asigná un dominio custom a esta tienda</small>
-              </button>
-              @if (showDomainForm()) {
-                <div class="domain-form">
-                  <input
-                    class="form-control"
-                    [(ngModel)]="domainInput"
-                    placeholder="mitienda.com"
-                    type="text" />
-                  <button
-                    class="btn btn-primary"
-                    [disabled]="isConnectingDomain() || !domainInput"
-                    (click)="connectDomain()">
-                    {{ isConnectingDomain() ? 'Conectando…' : 'Confirmar' }}
+                @if (actionError()) {
+                  <p class="action-error alert alert-error">{{ actionError() }}</p>
+                }
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                  <h3 class="danger-zone__title">Zona Peligrosa</h3>
+                  <button class="action-btn action-btn--danger" [disabled]="isDeleting()" (click)="showDeleteConfirm.set(true)">
+                    <i class="bi bi-trash"></i> Eliminar tienda
+                    <small>Destrucción permanente de la tienda y su proyecto GCP completo</small>
                   </button>
                 </div>
-              }
-            }
+              </div>
+            </div>
 
-            <!-- DNS records after domain connection -->
-            @if (dnsRecords().length > 0) {
-              <div class="dns-card">
-                <p class="dns-card__title">Configurá estos registros DNS en tu proveedor:</p>
-                @for (record of dnsRecords(); track record.rdata) {
-                  <code class="dns-record">{{ record.requiredAction }}: {{ record.rdata }}</code>
+            <!-- Deployment History Card -->
+            <div class="detail-card detail-card--full">
+              <div class="detail-card__header">
+                <h2 class="detail-card__title">Historial de Despliegues</h2>
+                @if (isLoadingHistory()) {
+                  <span class="spinner-sm text-muted"></span>
+                } @else {
+                  <button class="btn-refresh" (click)="loadHistory()" title="Actualizar historial">
+                    <i class="bi bi-arrow-clockwise"></i> Actualizar
+                  </button>
                 }
               </div>
-            }
 
-            @if (actionError()) {
-              <p class="action-error">{{ actionError() }}</p>
-            }
-
-            <!-- Delete -->
-            <button
-              class="action-btn action-btn--danger"
-              [disabled]="isDeleting()"
-              (click)="showDeleteConfirm.set(true)">
-              <i class="bi bi-trash"></i> Eliminar tienda
-              <small>Elimina el proyecto Firebase y todos sus datos de forma permanente</small>
-            </button>
-
+              <div class="deployment-list">
+                @if (deploymentHistory().length === 0) {
+                  @if (isLoadingHistory()) {
+                    <div class="deployment-loading">
+                      <span class="spinner"></span>
+                      <p>Cargando historial de despliegues...</p>
+                    </div>
+                  } @else {
+                    <div class="deployment-empty">
+                      <i class="bi bi-cloud-slash"></i>
+                      <p>No se encontraron despliegues recientes para esta tienda.</p>
+                    </div>
+                  }
+                } @else {
+                  <div class="table-responsive">
+                    <table class="deployment-table">
+                      <thead>
+                        <tr>
+                          <th>Ejecución</th>
+                          <th>Estado</th>
+                          <th>Detalle del Workflow</th>
+                          <th>Fecha</th>
+                          <th>Logs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (run of deploymentHistory(); track run.id) {
+                          <tr class="deployment-row">
+                            <td class="deployment-number">#{{ run.runNumber }}</td>
+                            <td>
+                              @if (run.status === 'in_progress' || run.status === 'queued') {
+                                <span class="badge-neon badge-neon--running">
+                                  <span class="pulse-dot"></span>
+                                  {{ run.status === 'queued' ? 'En cola' : 'En progreso' }}
+                                </span>
+                              } @else if (run.status === 'completed' && run.conclusion === 'success') {
+                                <span class="badge-neon badge-neon--success">
+                                  <i class="bi bi-check-circle-fill"></i> Exitoso
+                                </span>
+                              } @else if (run.status === 'completed' && run.conclusion === 'failure') {
+                                <span class="badge-neon badge-neon--failure">
+                                  <i class="bi bi-exclamation-triangle-fill"></i> Fallido
+                                </span>
+                              } @else {
+                                <span class="badge-neon badge-neon--muted">
+                                  {{ run.conclusion || run.status }}
+                                </span>
+                              }
+                            </td>
+                            <td class="deployment-title" [title]="run.displayTitle">
+                              {{ run.displayTitle }}
+                            </td>
+                            <td class="deployment-date">
+                              {{ run.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                            </td>
+                            <td>
+                              <a [href]="run.htmlUrl" target="_blank" class="logs-link">
+                                Ver logs <i class="bi bi-box-arrow-up-right"></i>
+                              </a>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
-        </div>
+        }
 
-        <!-- Deployment History Card -->
-        <div class="detail-card detail-card--full">
-          <div class="detail-card__header">
-            <h2 class="detail-card__title">Historial de Despliegues</h2>
-            @if (isLoadingHistory()) {
-              <span class="spinner-sm text-muted"></span>
+        <!-- Tab 2: Hot Configuration (Ajustes) -->
+        @if (activeTab() === 'config') {
+          <div class="config-container">
+            @if (isLoadingConfig()) {
+              <div class="config-loading">
+                <span class="spinner"></span>
+                <p>Recuperando configuración reactiva del Firestore de la tienda...</p>
+              </div>
             } @else {
-              <button class="btn-refresh" (click)="loadHistory()" title="Actualizar historial">
-                <i class="bi bi-arrow-clockwise"></i> Actualizar
-              </button>
+              <form [formGroup]="configForm" (ngSubmit)="saveConfig()" class="config-form">
+                
+                @if (configError()) {
+                  <div class="alert alert-error">{{ configError() }}</div>
+                }
+                @if (configSuccess()) {
+                  <div class="alert alert-success">{{ configSuccess() }}</div>
+                }
+
+                <div class="config-grid">
+                  
+                  <!-- Main settings card -->
+                  <div class="config-card">
+                    <h3 class="config-card__title"><i class="bi bi-shop"></i> Identidad & Marca</h3>
+                    <div class="config-fields">
+                      <div class="form-group">
+                        <label class="form-label">Nombre Comercial *</label>
+                        <input formControlName="storeName" type="text" class="form-control" placeholder="Mi Tienda Online" />
+                        @if (configForm.get('storeName')?.invalid && configForm.get('storeName')?.touched) {
+                          <span class="invalid-feedback">El nombre es obligatorio.</span>
+                        }
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Eslogan / Frase</label>
+                        <input formControlName="strapline" type="text" class="form-control" placeholder="La mejor moda a un click" />
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Logo URL</label>
+                        <input formControlName="logoUrl" type="url" class="form-control" placeholder="https://..." />
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Favicon URL</label>
+                        <input formControlName="faviconUrl" type="url" class="form-control" placeholder="https://..." />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Localizacion settings card -->
+                  <div class="config-card">
+                    <h3 class="config-card__title"><i class="bi bi-geo-alt"></i> Región & Moneda</h3>
+                    <div class="config-fields-2">
+                      <div class="form-group">
+                        <label class="form-label">País</label>
+                        <input formControlName="country" type="text" class="form-control" placeholder="Argentina" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Código Moneda (e.g. ARS)</label>
+                        <input formControlName="currency" type="text" class="form-control" placeholder="ARS" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Símbolo Moneda (e.g. $)</label>
+                        <input formControlName="currencySymbol" type="text" class="form-control" placeholder="$" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Contact Channels card -->
+                  <div class="config-card" formGroupName="contact">
+                    <h3 class="config-card__title"><i class="bi bi-chat-left-text"></i> Canales de Contacto</h3>
+                    <div class="config-fields">
+                      <div class="form-group">
+                        <label class="form-label">Email de Consultas *</label>
+                        <input formControlName="email" type="email" class="form-control" placeholder="hola@tienda.com" />
+                        @if (configForm.get('contact.email')?.invalid && configForm.get('contact.email')?.touched) {
+                          <span class="invalid-feedback">Email inválido.</span>
+                        }
+                      </div>
+
+                      <div class="form-group-grid">
+                        <div class="form-group">
+                          <label class="form-label">Teléfono</label>
+                          <input formControlName="phone" type="tel" class="form-control" placeholder="+54 11 ..." />
+                        </div>
+                        <div class="form-group">
+                          <label class="form-label">WhatsApp (Formato Internacional)</label>
+                          <input formControlName="whatsapp" type="tel" class="form-control" placeholder="54911..." />
+                        </div>
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Dirección Física</label>
+                        <input formControlName="address" type="text" class="form-control" placeholder="Av. Cabildo 123, CABA" />
+                      </div>
+
+                      <div class="form-group-grid">
+                        <div class="form-group">
+                          <label class="form-label">Instagram Usuario</label>
+                          <input formControlName="instagram" type="text" class="form-control" placeholder="tienda.instagram" />
+                        </div>
+                        <div class="form-group">
+                          <label class="form-label">Facebook URL</label>
+                          <input formControlName="facebook" type="text" class="form-control" placeholder="https://facebook.com/..." />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- SEO settings card -->
+                  <div class="config-card" formGroupName="seo">
+                    <h3 class="config-card__title"><i class="bi bi-search"></i> Posicionamiento SEO</h3>
+                    <div class="config-fields">
+                      <div class="form-group">
+                        <label class="form-label">Meta Título Principal</label>
+                        <input formControlName="metaTitle" type="text" class="form-control" placeholder="Comprá Ropa Online | Mi Tienda" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Meta Descripción Corta</label>
+                        <textarea formControlName="metaDescription" class="form-control" rows="3" placeholder="Encontrá los mejores calzados y remeras de algodón peinado con envíos a todo el país..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Feature Flags settings card -->
+                  <div class="config-card" formGroupName="features">
+                    <h3 class="config-card__title"><i class="bi bi-toggle-on"></i> Módulos Especiales</h3>
+                    <div class="config-features-list">
+                      <label class="checkbox-label">
+                        <input type="checkbox" formControlName="reviewsEnabled" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Reseñas de Clientes (Reviews)</strong>
+                          <p>Habilita la caja de comentarios y valoración con estrellas en productos.</p>
+                        </div>
+                      </label>
+
+                      <label class="checkbox-label">
+                        <input type="checkbox" formControlName="wishlistEnabled" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Lista de Favoritos (Wishlist)</strong>
+                          <p>Habilita el botón de corazón para guardar productos en favoritos.</p>
+                        </div>
+                      </label>
+
+                      <label class="checkbox-label">
+                        <input type="checkbox" formControlName="blogEnabled" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Módulo de Blog de Novedades</strong>
+                          <p>Permite escribir artículos informativos y publicarlos en la tienda.</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- UI Theme styling settings card -->
+                  <div class="config-card" formGroupName="theme">
+                    <h3 class="config-card__title"><i class="bi bi-palette"></i> Diseño & Paleta Visual</h3>
+                    
+                    <div class="color-picker-grid">
+                      <div class="color-picker-item">
+                        <label class="form-label">Color Primario</label>
+                        <div class="color-picker-wrapper">
+                          <input type="color" formControlName="primaryColor" />
+                          <code>{{ configForm.get('theme.primaryColor')?.value }}</code>
+                        </div>
+                      </div>
+                      
+                      <div class="color-picker-item">
+                        <label class="form-label">Color Secundario</label>
+                        <div class="color-picker-wrapper">
+                          <input type="color" formControlName="secondaryColor" />
+                          <code>{{ configForm.get('theme.secondaryColor')?.value }}</code>
+                        </div>
+                      </div>
+
+                      <div class="color-picker-item">
+                        <label class="form-label">Fondo App</label>
+                        <div class="color-picker-wrapper">
+                          <input type="color" formControlName="backgroundColor" />
+                          <code>{{ configForm.get('theme.backgroundColor')?.value }}</code>
+                        </div>
+                      </div>
+
+                      <div class="color-picker-item">
+                        <label class="form-label">Texto Base</label>
+                        <div class="color-picker-wrapper">
+                          <input type="color" formControlName="textColor" />
+                          <code>{{ configForm.get('theme.textColor')?.value }}</code>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="config-fields-2" style="margin-top: 1.5rem;">
+                      <div class="form-group">
+                        <label class="form-label">Tipografía Global</label>
+                        <select formControlName="fontFamily" class="form-select">
+                          <option value="Inter">Inter (Sans-Serif)</option>
+                          <option value="Roboto">Roboto (Clásica)</option>
+                          <option value="Outfit">Outfit (Moderna/Limpia)</option>
+                          <option value="Playfair Display">Playfair Display (Premium/Serif)</option>
+                        </select>
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Redondez Bordes (Botonera/Tarjetas)</label>
+                        <select formControlName="borderRadius" class="form-select">
+                          <option value="none">Sin Bordes (Recto - 0px)</option>
+                          <option value="sm">Chico (4px)</option>
+                          <option value="md">Mediano (8px)</option>
+                          <option value="lg">Grande (16px)</option>
+                          <option value="full">Completamente Redondeado (Cápsula)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="config-actions">
+                  <button type="submit" class="btn btn-primary" [disabled]="isSavingConfig()">
+                    @if (isSavingConfig()) {
+                      <span class="spinner-sm"></span> Guardando Ajustes reactivos…
+                    } @else {
+                      <i class="bi bi-save"></i> Guardar y Aplicar (Hot-Update)
+                    }
+                  </button>
+                </div>
+
+              </form>
             }
           </div>
+        }
 
-          <div class="deployment-list">
-            @if (deploymentHistory().length === 0) {
-              @if (isLoadingHistory()) {
-                <div class="deployment-loading">
-                  <span class="spinner"></span>
-                  <p>Cargando historial de despliegues...</p>
+        <!-- Tab 3: Equipo (RBAC) -->
+        @if (activeTab() === 'equipo') {
+          <div class="staff-container">
+            @if (isLoadingStaff()) {
+              <div class="config-loading">
+                <span class="spinner"></span>
+                <p>Conectando al GCP Identity Platform del subproyecto para leer el equipo...</p>
+              </div>
+            } @else {
+              
+              @if (inviteError()) {
+                <div class="alert alert-error">{{ inviteError() }}</div>
+              }
+              @if (inviteSuccess()) {
+                <div class="alert alert-success">{{ inviteSuccess() }}</div>
+              }
+
+              <!-- Staff grid layout -->
+              <div class="staff-grid">
+                
+                <!-- Invite new member card -->
+                <div class="detail-card">
+                  <h2 class="detail-card__title"><i class="bi bi-person-plus"></i> Invitar Staff</h2>
+                  <p class="form-hint" style="margin-bottom: 1rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+                    La invitación inyecta Custom Claims en Firebase Auth del subproyecto y sincroniza el perfil del usuario.
+                  </p>
+                  
+                  <form [formGroup]="inviteForm" (ngSubmit)="sendInvitation()" class="invite-form">
+                    <div class="form-group">
+                      <label class="form-label">Email de la cuenta Google *</label>
+                      <input formControlName="email" type="email" class="form-control" placeholder="operador@gmail.com" />
+                      @if (inviteForm.get('email')?.invalid && inviteForm.get('email')?.touched) {
+                        <span class="invalid-feedback">Email requerido.</span>
+                      }
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Rol en la Tienda (RBAC Claims)</label>
+                      <select formControlName="role" class="form-select">
+                        <option value="admin">Administrador (Acceso total)</option>
+                        <option value="warehouse">Warehouse (Inventario & Stock)</option>
+                        <option value="fulfillment">Fulfillment (Pedidos & Despachos)</option>
+                        <option value="analyst">Analista (Solo lectura / Métricas)</option>
+                      </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" [disabled]="isInvitingStaff()" style="margin-top: 1rem;">
+                      @if (isInvitingStaff()) {
+                        <span class="spinner-sm"></span> Enviando invitación…
+                      } @else {
+                        <i class="bi bi-send"></i> Enviar Invitación
+                      }
+                    </button>
+                  </form>
                 </div>
-              } @else {
-                <div class="deployment-empty">
-                  <i class="bi bi-cloud-slash"></i>
-                  <p>No se encontraron despliegues recientes para esta tienda.</p>
+
+                <!-- Current active team members -->
+                <div class="detail-card">
+                  <h2 class="detail-card__title"><i class="bi bi-shield-lock"></i> Miembros del Equipo</h2>
+                  
+                  <div class="staff-list">
+                    @if (staff().length === 0) {
+                      <div class="deployment-empty" style="padding: 2rem 0;">
+                        <i class="bi bi-people-mute"></i>
+                        <p>No se encontraron miembros activos adicionales. Solo el dueño tiene acceso.</p>
+                      </div>
+                    } @else {
+                      @for (member of staff(); track member.uid) {
+                        <div class="staff-item">
+                          <div class="staff-item__avatar">
+                            {{ (member.displayName || member.email).charAt(0).toUpperCase() }}
+                          </div>
+                          <div class="staff-item__info">
+                            <span class="staff-item__name">{{ member.displayName || 'Operador Vertex' }}</span>
+                            <span class="staff-item__email">{{ member.email }}</span>
+                          </div>
+                          <div class="staff-item__role">
+                            <span class="badge-role badge-role--{{ member.role }}">{{ member.role }}</span>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+
+                <!-- Pending Invitations Card -->
+                <div class="detail-card detail-card--full" style="margin-top: 1rem;">
+                  <h2 class="detail-card__title"><i class="bi bi-envelope-open"></i> Invitaciones Pendientes</h2>
+                  
+                  <div class="invitations-list">
+                    @if (invitations().length === 0) {
+                      <p class="text-muted" style="font-size: 0.9rem; padding: 1rem 0;">No hay invitaciones pendientes de aceptación.</p>
+                    } @else {
+                      <div class="table-responsive">
+                        <table class="deployment-table">
+                          <thead>
+                            <tr>
+                              <th>Email Destinatario</th>
+                              <th>Rol Asignado</th>
+                              <th>Fecha Invitación</th>
+                              <th>Estado Token</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (invite of invitations(); track invite.id) {
+                              <tr class="deployment-row">
+                                <td class="deployment-title" style="font-weight: 500;">{{ invite.email }}</td>
+                                <td>
+                                  <span class="badge-role badge-role--{{ invite.role }}">{{ invite.role }}</span>
+                                </td>
+                                <td class="deployment-date">
+                                  {{ invite.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                                </td>
+                                <td>
+                                  <span class="badge-invite-status badge-invite-status--{{ invite.status }}">
+                                    {{ invite.status === 'pending' ? 'Pendiente aceptación' : invite.status }}
+                                  </span>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+
+            }
+          </div>
+        }
+
+        <!-- Tab 4: Dominios (DNS) -->
+        @if (activeTab() === 'dominios') {
+          <div class="dns-container">
+            
+            @if (dnsVerificationError()) {
+              <div class="alert alert-error">{{ dnsVerificationError() }}</div>
+            }
+            @if (dnsVerificationSuccess()) {
+              <div class="alert alert-success">{{ dnsVerificationSuccess() }}</div>
+            }
+
+            <div class="dns-grid">
+              
+              <!-- Connection info/setup card -->
+              <div class="detail-card">
+                <h2 class="detail-card__title"><i class="bi bi-globe"></i> Conexión de Dominio</h2>
+                
+                @if (!store()!.customDomain) {
+                  <!-- Non-connected state -->
+                  <div class="dns-setup-flow">
+                    <p style="font-size: 0.9rem; color: var(--platform-text-secondary); margin-bottom: 1.5rem; line-height: 1.45;">
+                      Vertex Platform permite enrutar tus tiendas a dominios personalizados de forma automática mediante la infraestructura de Firebase Hosting.
+                    </p>
+                    
+                    <div class="form-group" style="max-width: 450px;">
+                      <label class="form-label">Dominio Custom a conectar</label>
+                      <div class="input-addon">
+                        <span class="input-addon__pre">https://</span>
+                        <input
+                          class="form-control"
+                          [(ngModel)]="domainInput"
+                          placeholder="tienda.com o tienda.com.ar"
+                          type="text" />
+                      </div>
+                      <small class="form-hint" style="margin-top: 0.25rem;">
+                        No incluyas "www" ni barras finales ("/").
+                      </small>
+                    </div>
+
+                    <button
+                      class="btn btn-primary"
+                      [disabled]="isConnectingDomain() || !domainInput"
+                      (click)="connectDomain()"
+                      style="margin-top: 1.25rem;">
+                      @if (isConnectingDomain()) {
+                        <span class="spinner-sm"></span> Vinculando proyecto Hosting…
+                      } @else {
+                        <i class="bi bi-link-45deg"></i> Vincular Dominio
+                      }
+                    </button>
+                  </div>
+                } @else {
+                  <!-- Connected domain info -->
+                  <div class="dns-connected-info">
+                    <div class="dns-connected-header">
+                      <div class="dns-globe-icon"><i class="bi bi-globe-americas"></i></div>
+                      <div class="dns-globe-details">
+                        <span class="dns-domain-name">{{ store()!.customDomain }}</span>
+                        
+                        @if (domainStatus() === 'live') {
+                          <span class="badge-dns badge-dns--live">
+                            <span class="pulse-dot-green"></span> Activo & Enrutado (SSL Listo)
+                          </span>
+                        } @else {
+                          <span class="badge-dns badge-dns--pending">
+                            <span class="pulse-dot-yellow"></span> Esperando propagación DNS
+                          </span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="dns-meta-info" style="margin-top: 1.5rem; border-top: 1px solid var(--platform-card-border); padding-top: 1rem;">
+                      <p style="font-size: 0.85rem; color: var(--platform-text-muted);">
+                        El enrutamiento está configurado en Vertex API. Recordá que la propagación del certificado SSL gratuito puede tardar entre 2 y 24 horas una vez creados los registros.
+                      </p>
+                    </div>
+
+                    <div class="dns-actions-bar" style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                      <button class="btn btn-primary" [disabled]="isVerifyingDNS()" (click)="verifyDNS(false)">
+                        @if (isVerifyingDNS()) {
+                          <span class="spinner-sm"></span> Consultando Name Servers…
+                        } @else {
+                          <i class="bi bi-arrow-repeat"></i> Verificar Registros DNS
+                        }
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- DNS Records Table / Copy Card -->
+              @if (dnsRecords().length > 0 || store()!.customDomain) {
+                <div class="detail-card">
+                  <h2 class="detail-card__title"><i class="bi bi-server"></i> Registros DNS Requeridos</h2>
+                  <p class="form-hint" style="margin-bottom: 1.25rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+                    Ingresá al panel de control de tu registrador de dominio (e.g. NIC.ar, GoDaddy, Cloudflare) y da de alta los siguientes registros.
+                  </p>
+                  
+                  <div class="dns-records-container">
+                    @if (dnsRecords().length === 0) {
+                      <div class="dns-loading-records">
+                        <span class="spinner-sm"></span> Recuperando registros del proyecto Firebase Hosting...
+                      </div>
+                    } @else {
+                      @for (record of dnsRecords(); track record.rdata) {
+                        <div class="dns-record-block">
+                          <div class="dns-record-block__type">
+                            <span class="badge-role badge-role--admin">{{ record.requiredAction }}</span>
+                          </div>
+                          <div class="dns-record-block__data">
+                            <span class="dns-record-label">Host / Nombre</span>
+                            <code>@ (o vacío)</code>
+                            
+                            <span class="dns-record-label" style="margin-top: 0.5rem;">Valor / IP</span>
+                            <div class="dns-value-copy">
+                              <code>{{ record.rdata }}</code>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
                 </div>
               }
-            } @else {
-              <div class="table-responsive">
-                <table class="deployment-table">
-                  <thead>
-                    <tr>
-                      <th>Ejecución</th>
-                      <th>Estado</th>
-                      <th>Detalle del Workflow</th>
-                      <th>Fecha</th>
-                      <th>Logs</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (run of deploymentHistory(); track run.id) {
-                      <tr class="deployment-row">
-                        <td class="deployment-number">#{{ run.runNumber }}</td>
-                        <td>
-                          @if (run.status === 'in_progress' || run.status === 'queued') {
-                            <span class="badge-neon badge-neon--running">
-                              <span class="pulse-dot"></span>
-                              {{ run.status === 'queued' ? 'En cola' : 'En progreso' }}
-                            </span>
-                          } @else if (run.status === 'completed' && run.conclusion === 'success') {
-                            <span class="badge-neon badge-neon--success">
-                              <i class="bi bi-check-circle-fill"></i> Exitoso
-                            </span>
-                          } @else if (run.status === 'completed' && run.conclusion === 'failure') {
-                            <span class="badge-neon badge-neon--failure">
-                              <i class="bi bi-exclamation-triangle-fill"></i> Fallido
-                            </span>
-                          } @else {
-                            <span class="badge-neon badge-neon--muted">
-                              {{ run.conclusion || run.status }}
-                            </span>
-                          }
-                        </td>
-                        <td class="deployment-title" [title]="run.displayTitle">
-                          {{ run.displayTitle }}
-                        </td>
-                        <td class="deployment-date">
-                          {{ run.createdAt | date:'dd/MM/yyyy HH:mm' }}
-                        </td>
-                        <td>
-                          <a [href]="run.htmlUrl" target="_blank" class="logs-link">
-                            Ver logs <i class="bi bi-box-arrow-up-right"></i>
-                          </a>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
+
+            </div>
+
           </div>
-        </div>
+        }
 
       </div>
     }
@@ -299,8 +779,8 @@
   <!-- Edit modal -->
   @if (showEditModal()) {
     <div class="modal-overlay" (click)="showEditModal.set(false)">
-      <div class="modal modal--edit" (click)="$event.stopPropagation()">
-        <h3 class="modal__title">Editar tienda</h3>
+      <div class="modal modal--edit glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title">Editar Info de Tienda</h3>
         <form [formGroup]="editForm" class="edit-form" (ngSubmit)="saveStore()">
           <div class="edit-grid">
             <div class="form-group">
@@ -310,14 +790,7 @@
                 <span class="invalid-feedback">Requerido</span>
               }
             </div>
-            <div class="form-group">
-              <label class="form-label">Plan</label>
-              <select class="form-select" formControlName="plan">
-                <option value="starter">Starter</option>
-                <option value="professional">Professional</option>
-                <option value="enterprise">Enterprise</option>
-              </select>
-            </div>
+
             <div class="form-group">
               <label class="form-label">Email del cliente *</label>
               <input class="form-control" formControlName="ownerEmail" type="email" placeholder="cliente@email.com" />
@@ -349,7 +822,7 @@
   <!-- Sleep (suspend) confirmation modal -->
   @if (showSleepConfirm()) {
     <div class="modal-overlay" (click)="showSleepConfirm.set(false); sleepConfirmInput = ''">
-      <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
         <h3 class="modal__title">Dormir tienda</h3>
         <p class="modal__body">
           La tienda <strong>{{ store()!.name }}</strong> quedará suspendida y
@@ -384,7 +857,7 @@
   <!-- Delete confirmation modal -->
   @if (showDeleteConfirm()) {
     <div class="modal-overlay" (click)="showDeleteConfirm.set(false); deleteConfirmInput = ''">
-      <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
         <h3 class="modal__title">Eliminar tienda</h3>
         <p class="modal__body">
           Vas a eliminar <strong>{{ store()!.name }}</strong> y su proyecto GCP/Firebase completo.
@@ -417,5 +890,8 @@
   }
 
 } @else {
-  <div class="loading">Cargando…</div>
+  <div class="loading-state">
+    <span class="spinner"></span>
+    <p>Cargando información consolidada de la tienda...</p>
+  </div>
 }

@@ -32,7 +32,6 @@ const VALID_PAYLOAD = {
   name: 'Test Store',
   slug: 'my-store',
   ownerEmail: 'owner@test.com',
-  plan: 'basic',
 };
 
 function makeRequest(data: Record<string, unknown>, isAdmin = true) {

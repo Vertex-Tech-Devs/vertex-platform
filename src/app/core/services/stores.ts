@@ -11,7 +11,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
-import type { Store, CreateStorePayload } from '../models/store';
+import type { Store, CreateStorePayload, StoreConfig, StaffMember, PendingInvitation } from '../models/store';
 
 export interface DeploymentHistoryItem {
   id: number;
@@ -70,7 +70,7 @@ export class StoresService {
 
   async updateStore(
     id: string,
-    data: Partial<Pick<Store, 'name' | 'plan' | 'ownerEmail' | 'logoUrl'>>
+    data: Partial<Pick<Store, 'name' | 'ownerEmail' | 'logoUrl'>>
   ): Promise<void> {
     await updateDoc(doc(this.db, 'stores', id), { ...data, updatedAt: serverTimestamp() });
   }
@@ -89,4 +89,66 @@ export class StoresService {
     const result = await fn({ projectId });
     return result.data.history;
   }
+
+  async updateStoreConfig(storeId: string, config: Partial<StoreConfig>): Promise<void> {
+    const fn = httpsCallable<{ storeId: string; config: Partial<StoreConfig> }, { success: boolean }>(
+      this.fns,
+      'updateStoreConfig'
+    );
+    await fn({ storeId, config });
+  }
+
+  async getStoreStaff(storeId: string): Promise<{ staff: StaffMember[]; invitations: PendingInvitation[] }> {
+    const fn = httpsCallable<
+      { storeId: string },
+      { success: boolean; staff: StaffMember[]; invitations: PendingInvitation[] }
+    >(this.fns, 'getStoreStaff');
+    const result = await fn({ storeId });
+    return {
+      staff: result.data.staff ?? [],
+      invitations: result.data.invitations ?? [],
+    };
+  }
+
+  async inviteStaff(storeId: string, email: string, role: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string; email: string; role: string }, { success: boolean }>(
+      this.fns,
+      'inviteStaff'
+    );
+    await fn({ storeId, email, role });
+  }
+
+  async verifyDomain(
+    storeId: string,
+    domain: string
+  ): Promise<{ status: 'live' | 'pending'; dnsRecords: Array<{ rdata: string; requiredAction: string }> }> {
+    const fn = httpsCallable<
+      { storeId: string; domain: string },
+      { success: boolean; status: 'live' | 'pending'; dnsRecords: Array<{ rdata: string; requiredAction: string }> }
+    >(this.fns, 'verifyDomainDNSStatus');
+    const result = await fn({ storeId, domain });
+    return {
+      status: result.data.status,
+      dnsRecords: blockDnsRecords(result.data.dnsRecords),
+    };
+  }
+
+  async getStoreConfig(storeId: string): Promise<StoreConfig | null> {
+    const fn = httpsCallable<{ storeId: string }, { config: StoreConfig | null }>(this.fns, 'getStoreConfig');
+    const result = await fn({ storeId });
+    return result.data.config;
+  }
+}
+
+interface RawDnsRecord {
+  rdata?: string;
+  requiredAction?: string;
+  type?: string;
+}
+
+function blockDnsRecords(records: RawDnsRecord[]): Array<{ rdata: string; requiredAction: string }> {
+  return (records ?? []).map(r => ({
+    rdata: r.rdata ?? '',
+    requiredAction: r.requiredAction ?? r.type ?? 'TXT'
+  }));
 }
