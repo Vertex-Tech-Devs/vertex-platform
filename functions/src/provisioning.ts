@@ -536,6 +536,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     await setStep('triggerDeploy', 'running');
     try {
       const pat = await getGitHubPat();
+      
+      // Fetch the deploy token for this environment to pass to GitHub Action
+      const secrets = new SecretManagerServiceClient();
+      const [version] = await secrets.accessSecretVersion({
+        name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+      });
+      const deployTokenValue = version.payload!.data!.toString().trim();
+
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
         {
@@ -554,6 +562,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
+              deploy_token: deployTokenValue,
             },
           }),
         }
