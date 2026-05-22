@@ -7,7 +7,8 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
-initializeApp({ projectId: 'vertex-platform-app' });
+const projectId = process.argv.includes('--dev') ? 'vertex-platform-dev' : 'vertex-platform-app';
+initializeApp({ projectId });
 
 const db = getFirestore();
 
@@ -42,5 +43,5 @@ void (async () => {
     await db.collection('stores').doc(id).set(data, { merge: true });
     console.log(`✅ Seeded: ${store.name} (${id})`);
   }
-  console.log('\nDone. Reload the platform to see the stores.');
+  console.log(`\nDone. Seeded to project: "${projectId}". Reload the platform to see the stores.`);
 })();
