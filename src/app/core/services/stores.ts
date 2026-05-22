@@ -13,6 +13,17 @@ import { Observable } from 'rxjs';
 
 import type { Store, CreateStorePayload } from '../models/store';
 
+export interface DeploymentHistoryItem {
+  id: number;
+  runNumber: number;
+  status: string;
+  conclusion: string | null;
+  htmlUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  displayTitle: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StoresService {
   private db = getFirestore();
@@ -72,5 +83,10 @@ export class StoresService {
     const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'retryProvisioning');
     await fn({ storeId });
   }
-}
 
+  async getDeploymentHistory(projectId: string): Promise<DeploymentHistoryItem[]> {
+    const fn = httpsCallable<{ projectId: string }, { history: DeploymentHistoryItem[] }>(this.fns, 'getStoreDeploymentHistory');
+    const result = await fn({ projectId });
+    return result.data.history;
+  }
+}

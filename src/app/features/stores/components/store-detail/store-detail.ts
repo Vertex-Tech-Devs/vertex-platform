@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
+import type { OnInit, OnDestroy } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
+import type { DeploymentHistoryItem } from '@core/services/stores';
 import type { ProvisioningStep } from '@core/models/store';
 
 const STEP_ORDER = [
@@ -25,7 +27,7 @@ const STEP_ORDER = [
   styleUrls: ['./store-detail.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StoreDetail {
+export class StoreDetail implements OnInit, OnDestroy {
   private storesService = inject(StoresService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -61,6 +63,10 @@ export class StoreDetail {
   readonly actionError = signal('');
   readonly saveError = signal('');
   readonly dnsRecords = signal<Array<{ rdata: string; requiredAction: string }>>([]);
+  readonly deploymentHistory = signal<DeploymentHistoryItem[]>([]);
+  readonly isLoadingHistory = signal(false);
+  private pollIntervalId: ReturnType<typeof setInterval> | null = null;
+
   domainInput = '';
   deleteConfirmInput = '';
   sleepConfirmInput = '';
@@ -71,6 +77,48 @@ export class StoreDetail {
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
   });
+
+  ngOnInit(): void {
+    void this.loadHistory();
+    this.startPolling();
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  async loadHistory(): Promise<void> {
+    const s = this.store();
+    if (!s) return;
+    const projectId = s.firebaseProjectId;
+    if (!projectId) return;
+    
+    this.isLoadingHistory.set(true);
+    try {
+      const history = await this.storesService.getDeploymentHistory(projectId);
+      this.deploymentHistory.set(history);
+    } catch (err) {
+      console.error('Error loading deployment history:', err);
+    } finally {
+      this.isLoadingHistory.set(false);
+    }
+  }
+
+  startPolling(): void {
+    this.stopPolling();
+    this.pollIntervalId = setInterval(() => {
+      const s = this.store();
+      if (!s) return;
+      void this.loadHistory();
+    }, 6000);
+  }
+
+  stopPolling(): void {
+    if (this.pollIntervalId) {
+      clearInterval(this.pollIntervalId);
+      this.pollIntervalId = null;
+    }
+  }
 
   openEdit(): void {
     const s = this.store();
@@ -158,6 +206,7 @@ export class StoreDetail {
     this.actionError.set('');
     try {
       await this.storesService.redeployStore(id);
+      setTimeout(() => void this.loadHistory(), 2000);
     } catch {
       this.actionError.set('No se pudo iniciar el redeploy. Intentá de nuevo.');
     } finally {

@@ -1,69 +1,97 @@
 :root {
-  --platform-bg: #080b14;
-  --platform-bg-alt: #0d1117;
-  --platform-sidebar-bg: rgba(8, 11, 20, 0.96);
-  --platform-header-bg: rgba(8, 11, 20, 0.85);
+  /* HSL Coordinates for dynamic theme generation */
+  --platform-bg: hsl(225, 30%, 6%);
+  --platform-bg-alt: hsl(225, 25%, 9%);
+  --platform-sidebar-bg: hsla(225, 30%, 6%, 0.85);
+  --platform-header-bg: hsla(225, 30%, 6%, 0.7);
 
-  --platform-card-bg: rgba(255, 255, 255, 0.03);
-  --platform-card-border: rgba(255, 255, 255, 0.07);
-  --platform-card-border-hover: rgba(79, 70, 229, 0.3);
-  --platform-card-radius: 12px;
+  /* Glassmorphic Cards & Containers */
+  --platform-card-bg: hsla(225, 20%, 12%, 0.45);
+  --platform-card-border: hsla(0, 0%, 100%, 0.05);
+  --platform-card-border-hover: hsla(245, 75%, 65%, 0.35);
+  --platform-card-radius: 16px;
 
-  --platform-text-primary: #f8fafc;
-  --platform-text-secondary: rgba(148, 163, 184, 0.9);
-  --platform-text-muted: rgba(148, 163, 184, 0.6);
+  /* Typography Colors */
+  --platform-text-primary: hsl(210, 40%, 98%);
+  --platform-text-secondary: hsla(215, 25%, 85%, 0.85);
+  --platform-text-muted: hsla(215, 15%, 75%, 0.5);
 
-  --platform-accent-purple: #4f46e5;
-  --platform-accent-blue: #0284c7;
-  --platform-accent-gradient: linear-gradient(135deg, #0284c7, #4f46e5);
+  /* Vivid HSL Accents */
+  --platform-accent-purple: hsl(244, 75%, 64%);
+  --platform-accent-blue: hsl(199, 89%, 48%);
+  --platform-accent-gradient: linear-gradient(135deg, hsl(199, 89%, 48%) 0%, hsl(244, 75%, 64%) 100%);
 
-  --platform-status-active-bg: rgba(34, 197, 94, 0.12);
-  --platform-status-active-text: #86efac;
-  --platform-status-active-border: rgba(34, 197, 94, 0.25);
+  /* Neon-Atenuated Statuses */
+  --platform-status-active-bg: hsla(142, 70%, 45%, 0.07);
+  --platform-status-active-text: hsl(142, 75%, 70%);
+  --platform-status-active-border: hsla(142, 70%, 45%, 0.25);
 
-  --platform-status-provisioning-bg: rgba(234, 179, 8, 0.12);
-  --platform-status-provisioning-text: #fde047;
-  --platform-status-provisioning-border: rgba(234, 179, 8, 0.25);
+  --platform-status-provisioning-bg: hsla(38, 92%, 50%, 0.07);
+  --platform-status-provisioning-text: hsl(38, 95%, 65%);
+  --platform-status-provisioning-border: hsla(38, 92%, 50%, 0.25);
 
-  --platform-status-error-bg: rgba(220, 38, 38, 0.12);
-  --platform-status-error-text: #fca5a5;
-  --platform-status-error-border: rgba(220, 38, 38, 0.25);
+  --platform-status-error-bg: hsla(350, 84%, 48%, 0.07);
+  --platform-status-error-text: hsl(350, 90%, 75%);
+  --platform-status-error-border: hsla(350, 84%, 48%, 0.25);
 
-  --platform-status-suspended-bg: rgba(100, 116, 139, 0.15);
-  --platform-status-suspended-text: #94a3b8;
-  --platform-status-suspended-border: rgba(100, 116, 139, 0.25);
+  --platform-status-suspended-bg: hsla(215, 16%, 47%, 0.1);
+  --platform-status-suspended-text: hsl(215, 20%, 75%);
+  --platform-status-suspended-border: hsla(215, 16%, 47%, 0.25);
 
-  --platform-sidebar-width: 240px;
-  --platform-header-height: 60px;
+  --platform-sidebar-width: 260px;
+  --platform-header-height: 64px;
 
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  background-color: var(--platform-bg);
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--platform-text-primary);
-  background: var(--platform-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a { color: inherit; }
+/* Headings with premium typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.02em;
+}
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
+a {
+  color: inherit;
+  transition: var(--transition-base);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--platform-bg-alt);
+}
+::-webkit-scrollbar-thumb {
+  background: hsla(0, 0%, 100%, 0.08);
+  border-radius: 99px;
+  border: 2px solid var(--platform-bg-alt);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(0, 0%, 100%, 0.16);
+}
 
 :focus-visible {
   outline: 2px solid var(--platform-accent-purple);
@@ -71,6 +99,25 @@ a { color: inherit; }
 }
 
 ::selection {
-  background-color: rgba(79, 70, 229, 0.3);
+  background-color: hsla(244, 75%, 64%, 0.25);
   color: inherit;
+}
+
+/* Glassmorphism utility helpers */
+.glass-card {
+  background: var(--platform-card-bg);
+  border: 1px solid var(--platform-card-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--platform-card-radius);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.glass-modal {
+  background: hsla(225, 30%, 8%, 0.75);
+  border: 1px solid var(--platform-card-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.65), 
+              0 0 40px 0 rgba(79, 70, 229, 0.05);
 }

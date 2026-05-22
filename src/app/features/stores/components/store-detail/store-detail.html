@@ -209,6 +209,89 @@
 
           </div>
         </div>
+
+        <!-- Deployment History Card -->
+        <div class="detail-card detail-card--full">
+          <div class="detail-card__header">
+            <h2 class="detail-card__title">Historial de Despliegues</h2>
+            @if (isLoadingHistory()) {
+              <span class="spinner-sm text-muted"></span>
+            } @else {
+              <button class="btn-refresh" (click)="loadHistory()" title="Actualizar historial">
+                <i class="bi bi-arrow-clockwise"></i> Actualizar
+              </button>
+            }
+          </div>
+
+          <div class="deployment-list">
+            @if (deploymentHistory().length === 0) {
+              @if (isLoadingHistory()) {
+                <div class="deployment-loading">
+                  <span class="spinner"></span>
+                  <p>Cargando historial de despliegues...</p>
+                </div>
+              } @else {
+                <div class="deployment-empty">
+                  <i class="bi bi-cloud-slash"></i>
+                  <p>No se encontraron despliegues recientes para esta tienda.</p>
+                </div>
+              }
+            } @else {
+              <div class="table-responsive">
+                <table class="deployment-table">
+                  <thead>
+                    <tr>
+                      <th>Ejecución</th>
+                      <th>Estado</th>
+                      <th>Detalle del Workflow</th>
+                      <th>Fecha</th>
+                      <th>Logs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (run of deploymentHistory(); track run.id) {
+                      <tr class="deployment-row">
+                        <td class="deployment-number">#{{ run.runNumber }}</td>
+                        <td>
+                          @if (run.status === 'in_progress' || run.status === 'queued') {
+                            <span class="badge-neon badge-neon--running">
+                              <span class="pulse-dot"></span>
+                              {{ run.status === 'queued' ? 'En cola' : 'En progreso' }}
+                            </span>
+                          } @else if (run.status === 'completed' && run.conclusion === 'success') {
+                            <span class="badge-neon badge-neon--success">
+                              <i class="bi bi-check-circle-fill"></i> Exitoso
+                            </span>
+                          } @else if (run.status === 'completed' && run.conclusion === 'failure') {
+                            <span class="badge-neon badge-neon--failure">
+                              <i class="bi bi-exclamation-triangle-fill"></i> Fallido
+                            </span>
+                          } @else {
+                            <span class="badge-neon badge-neon--muted">
+                              {{ run.conclusion || run.status }}
+                            </span>
+                          }
+                        </td>
+                        <td class="deployment-title" [title]="run.displayTitle">
+                          {{ run.displayTitle }}
+                        </td>
+                        <td class="deployment-date">
+                          {{ run.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                        </td>
+                        <td>
+                          <a [href]="run.htmlUrl" target="_blank" class="logs-link">
+                            Ver logs <i class="bi bi-box-arrow-up-right"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </div>
+
       </div>
     }
   </div>
