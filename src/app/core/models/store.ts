@@ -21,6 +21,7 @@ export interface Store {
   updatedAt: Date;
   lastDeployedAt?: Date;
   templateVersion?: string;
+  schemaVersion?: number;
   templateCommit?: string;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;

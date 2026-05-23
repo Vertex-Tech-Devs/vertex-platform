@@ -141,6 +141,12 @@
                 @if (store()!.verticalId) {
                   <dt>Rubro / Vertical</dt><dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
                 }
+                @if (store()!.templateVersion) {
+                  <dt>Versión plantilla</dt><dd class="text-accent">v{{ store()!.templateVersion }}</dd>
+                }
+                @if (store()!.schemaVersion) {
+                  <dt>Versión esquema</dt><dd class="text-accent">{{ store()!.schemaVersion }}</dd>
+                }
                 <dt>Creada</dt><dd>{{ formatDate(store()!.createdAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
                 @if (store()!.lastDeployedAt) {
                   <dt>Último deploy</dt><dd>{{ formatDate(store()!.lastDeployedAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
