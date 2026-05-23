@@ -60,6 +60,23 @@ export interface StoreFeatureFlags {
   blogEnabled: boolean;
 }
 
+export interface StoreMercadoPagoConfig {
+  publicKey: string;
+  accessToken?: string;
+  accessTokenSecret?: string;
+  accessTokenMasked?: string;
+  accountEmail?: string;
+  accountUserId?: string;
+  webhookUrl: string;
+  validationStatus?: 'pending' | 'valid' | 'invalid';
+  validationMessage?: string;
+  validatedAt?: string;
+}
+
+export interface StorePayments {
+  mercadoPago: StoreMercadoPagoConfig;
+}
+
 export interface StoreTheme {
   primaryColor: string;
   secondaryColor: string;
@@ -77,6 +94,7 @@ export interface StoreConfig {
   contact: StoreContact;
   seo: StoreSeo;
   features: StoreFeatureFlags;
+  payments?: StorePayments;
   theme?: StoreTheme;
   currency: string;
   currencySymbol: string;
