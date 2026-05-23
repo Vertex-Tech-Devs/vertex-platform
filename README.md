@@ -150,7 +150,17 @@ billingAccounts/{accountId}
 
 ## Security
 
-- All Cloud Functions require `platformAdmin: true` custom claim
-- CORS restricted to `vertex-platform-app.web.app` and `vertex-platform-dev.web.app`
-- Slug validated server-side: `/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/`
-- Error messages sanitized before returning to clients
+- All Cloud Functions require `platformAdmin: true` custom claim.
+- CORS is strictly restricted to `vertex-platform-app.web.app` and `vertex-platform-dev.web.app`.
+- Slug validated server-side: `/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/`.
+- Error messages sanitized before returning to clients.
+- **Firebase Auth Domain Best Practice**: When developing locally, add `localhost` as an authorized domain *strictly* inside the Dev project (`vertex-platform-dev`). **Never** add `localhost` to the Production project (`vertex-platform-app` / `vertex-prod`) to prevent phishing and session hijacking vulnerabilities.
+
+## Custom Seeding Engine & Mock Data
+
+The platform features a premium seeding engine that customizes the demo storefront's catalogs dynamically based on the vertical (Fashion, Gastronomy, Retail) and commercial identity defined by the tenant.
+
+- **`includeMockData` Toggle Flag**: During both store creation and manual store database seeding (from the Orchestration panel), you can check/uncheck the **"Datos de Demostración"** checkbox to include or skip the 20 simulated clients and 20 simulated orders.
+- **Why this option exists**: Firestore security rules in the storefront project (`ecommerce-vertex`) block editing or deleting client records (`allow write: if false`), and orders are permanent transactions. Omit this mock data to keep the database completely clean for pure production tenants, while still pre-populating attributes, categories, customized pages, and personalized banners.
+- **Personalized Brand Engine**: The backend runs a recursive customizer (`customizeSeed`) that automatically replaces all references of `'Vertex'` with the store's dynamic commercial name inside product details, categories, pages, and footer contact handles.
+
