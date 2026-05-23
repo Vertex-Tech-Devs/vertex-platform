@@ -7,12 +7,12 @@ on:
     branches: [develop, main]
 
 concurrency:
-  group: ci-${{ github.head_ref || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  NODE_VERSION: '22'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   validate:
@@ -50,6 +50,13 @@ jobs:
 
       - name: Run frontend tests
         run: npm run test
+
+      - name: Upload frontend coverage
+        uses: codecov/codecov-action@v6
+        continue-on-error: true
+        with:
+          files: ./coverage/vertex-platform/coverage-final.json
+          fail_ci_if_error: false
 
       - name: Install backend dependencies
         run: npm ci
@@ -127,6 +134,47 @@ jobs:
         working-directory: functions
         continue-on-error: true
 
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    outputs:
+      mode: ${{ steps.check-e2e.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Check for E2E suite
+        id: check-e2e
+        run: |
+          if npm run --silent 2>/dev/null | grep -q "e2e:ci"; then
+            echo "has_e2e=true" >> "$GITHUB_OUTPUT"
+            echo "mode=real" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_e2e=false" >> "$GITHUB_OUTPUT"
+            echo "mode=stub" >> "$GITHUB_OUTPUT"
+            echo "::notice::No e2e:ci script found — skipping E2E run."
+          fi
+
+      - name: Run E2E tests
+        if: steps.check-e2e.outputs.has_e2e == 'true'
+        run: npm run e2e:ci
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-screenshots-${{ github.sha }}
+          path: cypress/screenshots
+          retention-days: 3
+
   divergence-check:
     name: Divergence Check (develop vs main)
     runs-on: ubuntu-latest
@@ -153,7 +201,6 @@ jobs:
           else
             echo "✅ develop está sincronizado con main." >> $GITHUB_STEP_SUMMARY
           fi
-
 
   preview:
     name: Hosting Preview
@@ -193,7 +240,7 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [validate, unit-tests, build, functions-build, security-audit, preview]
+    needs: [validate, unit-tests, build, functions-build, security-audit, e2e-tests, preview]
     if: always()
     steps:
       - name: Report and evaluate
@@ -209,10 +256,28 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint & Type Check | ${{ needs.validate.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result == 'success' && needs.e2e-tests.outputs.mode == 'stub' && '⏭ Stub (no suite yet)' || needs.e2e-tests.result == 'success' && '✅ Pass' || needs.e2e-tests.result == 'skipped' && '⏭ Skipped (push)' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Frontend | ${{ needs.build.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Functions | ${{ needs.functions-build.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Audit | ${{ needs.security-audit.result == 'success' && '✅ Pass' || '⚠️ See logs' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Hosting Preview | ${{ needs.preview.result == 'success' && '✅ Pass' || needs.preview.result == 'skipped' && '⏭ Skipped' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.preview.result }}" == "failure" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**❌ Hosting preview failed — merge blocked.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          if [[ "${{ needs.e2e-tests.result }}" == "failure" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**❌ E2E checks failed — merge blocked.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          if [[ "${{ needs.e2e-tests.outputs.mode }}" == "stub" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**ℹ️ E2E is currently a structural stub until a real suite is added.**" >> $GITHUB_STEP_SUMMARY
+          fi
 
           if [[ "${{ needs.validate.result }}"        != "success" || \
                 "${{ needs.unit-tests.result }}"      != "success" || \
