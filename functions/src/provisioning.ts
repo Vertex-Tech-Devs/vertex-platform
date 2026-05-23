@@ -13,6 +13,7 @@ import {
   retry,
   pollOperation,
   pickBillingAccount,
+  listProvisioningOwnerCandidates,
 } from './helpers';
 import { seedStoreData } from './seeds';
 
@@ -26,7 +27,15 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
 
-    const { name, slug, ownerEmail, logoUrl, customDomain, verticalId, includeMockData = true } = request.data;
+    const {
+      name,
+      slug,
+      ownerEmail,
+      logoUrl,
+      customDomain,
+      verticalId,
+      includeMockData = true,
+    } = request.data;
 
     if (!name?.trim() || !ownerEmail?.trim()) {
       throw new HttpsError('invalid-argument', 'name and ownerEmail are required.');
@@ -34,7 +43,7 @@ export const provisionStore = onCall<CreateStorePayload>(
     if (!/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/.test(slug)) {
       throw new HttpsError(
         'invalid-argument',
-        'slug must be 3–20 lowercase letters, numbers, or hyphens, and cannot start or end with a hyphen.'
+        'slug must be 3–20 lowercase letters, numbers, or hyphens, and cannot start or end with a hyphen.',
       );
     }
 
@@ -57,37 +66,40 @@ export const provisionStore = onCall<CreateStorePayload>(
 
     const steps: Record<string, ProvisioningStep> = {
       createProject: { status: 'pending', label: 'Crear proyecto GCP' },
-      linkBilling:   { status: 'pending', label: 'Vincular facturación' },
-      addFirebase:   { status: 'pending', label: 'Activar Firebase' },
-      enableApis:    { status: 'pending', label: 'Habilitar APIs' },
-      createWebApp:  { status: 'pending', label: 'Crear app web' },
+      linkBilling: { status: 'pending', label: 'Vincular facturación' },
+      addFirebase: { status: 'pending', label: 'Activar Firebase' },
+      enableApis: { status: 'pending', label: 'Habilitar APIs' },
+      createWebApp: { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
       configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
-      initAdmin:     { status: 'pending', label: 'Crear usuario administrador' },
-      grantAccess:   { status: 'pending', label: 'Configurar permisos de deploy' },
+      initAdmin: { status: 'pending', label: 'Crear usuario administrador' },
+      grantAccess: { status: 'pending', label: 'Configurar permisos de deploy' },
       triggerDeploy: { status: 'pending', label: 'Desplegar tienda' },
     };
 
-    await db.collection('stores').doc(storeId).set({
-      id: storeId,
-      name,
-      slug,
-      ownerEmail,
-      logoUrl: logoUrl ?? null,
-      customDomain: customDomain ?? null,
-      verticalId: verticalId ?? null,
-      firebaseProjectId: projectId,
-      defaultUrl: `https://${projectId}.web.app`,
-      billingAccountId,
-      includeMockData: includeMockData !== false,
-      status: 'provisioning',
-      provisioningSteps: steps,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await db
+      .collection('stores')
+      .doc(storeId)
+      .set({
+        id: storeId,
+        name,
+        slug,
+        ownerEmail,
+        logoUrl: logoUrl ?? null,
+        customDomain: customDomain ?? null,
+        verticalId: verticalId ?? null,
+        firebaseProjectId: projectId,
+        defaultUrl: `https://${projectId}.web.app`,
+        billingAccountId,
+        includeMockData: includeMockData !== false,
+        status: 'provisioning',
+        provisioningSteps: steps,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
     return { storeId, projectId };
-  }
+  },
 );
 
 async function executeProvisioningSteps(storeId: string): Promise<void> {
@@ -98,7 +110,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentData = currentSnap.data();
   if (!currentData || !['provisioning', 'error'].includes(currentData['status'])) return;
 
-  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId, verticalId, includeMockData } = currentData as {
+  const {
+    name,
+    logoUrl,
+    ownerEmail,
+    firebaseProjectId: projectId,
+    billingAccountId,
+    verticalId,
+    includeMockData,
+  } = currentData as {
     name: string;
     logoUrl: string | null;
     ownerEmail: string;
@@ -107,6 +127,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     verticalId?: string;
     includeMockData?: boolean;
   };
+  let provisioningOwnerId =
+    typeof currentData['provisioningOwnerId'] === 'string'
+      ? (currentData['provisioningOwnerId'] as string)
+      : undefined;
 
   const currentSteps = (currentData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
   const isDone = (stepId: string): boolean => currentSteps[stepId]?.status === 'done';
@@ -119,9 +143,36 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     });
   };
 
+  const isProjectQuotaExceeded = (value: string): boolean => {
+    const normalized = value.toLowerCase();
+    return (
+      normalized.includes('exceeded your allotted project quota') ||
+      normalized.includes('project quota') ||
+      normalized.includes('quota exceeded for projects') ||
+      normalized.includes('cuota de creación de proyectos')
+    );
+  };
+
+  const assignProvisioningOwner = async (ownerId: string): Promise<OAuth2Client> => {
+    const nextAuth = await getOwnerOAuthClient(ownerId);
+    if (provisioningOwnerId !== ownerId) {
+      provisioningOwnerId = ownerId;
+      await storeRef.update({ provisioningOwnerId: ownerId, updatedAt: new Date() });
+    }
+    return nextAuth;
+  };
+
   const formatProvisioningError = (stepId: string, err: unknown): string => {
     const raw = err instanceof Error ? err.message : String(err);
     const normalized = raw.toLowerCase();
+
+    if (
+      stepId === 'createProject' &&
+      (isProjectQuotaExceeded(raw) ||
+        normalized.includes('all provisioning owner accounts are at capacity'))
+    ) {
+      return 'No se pudo crear el proyecto GCP porque las credenciales de aprovisionamiento agotaron su capacidad de alta de proyectos. Agregá otra cuenta en platform-owner-credentials-pool o aumentá la cuota de Google Cloud y luego reintentá.';
+    }
 
     if (
       stepId === 'linkBilling' &&
@@ -148,7 +199,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   let auth: OAuth2Client;
   try {
-    auth = await getOwnerOAuthClient();
+    auth = provisioningOwnerId
+      ? await getOwnerOAuthClient(provisioningOwnerId)
+      : await getOwnerOAuthClient();
   } catch {
     await storeRef.update({ status: 'error', updatedAt: new Date() });
     return;
@@ -160,7 +213,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     try {
       const projRes = (await apiFetch(
         auth,
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`
+        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`,
       )) as { state: string };
       if (projRes.state === 'ACTIVE') {
         projectIsActive = true;
@@ -208,17 +261,46 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('createProject')) {
     await setStep('createProject', 'running');
     try {
-      const op = (await apiFetch(
-        auth,
-        'https://cloudresourcemanager.googleapis.com/v3/projects',
-        { method: 'POST', body: { projectId, displayName: name } }
-      )) as { name: string };
-      await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
+      const ownerCandidates = await listProvisioningOwnerCandidates(db, provisioningOwnerId);
+      let createProjectError: unknown = null;
+
+      for (const candidate of ownerCandidates) {
+        try {
+          auth = await assignProvisioningOwner(candidate.id);
+          const op = (await apiFetch(
+            auth,
+            'https://cloudresourcemanager.googleapis.com/v3/projects',
+            {
+              method: 'POST',
+              body: { projectId, displayName: name },
+            },
+          )) as { name: string };
+          await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
+          createProjectError = null;
+          break;
+        } catch (err) {
+          createProjectError = err;
+          const raw = err instanceof Error ? err.message : String(err);
+          const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
+          if (!isProjectQuotaExceeded(raw) || isLastCandidate) {
+            throw err;
+          }
+          console.warn(
+            `[provisioning:createProject] El owner ${candidate.id} agotó su cuota de proyectos. Reintentando con otra credencial.`,
+          );
+        }
+      }
+
+      if (createProjectError) {
+        throw createProjectError;
+      }
+
       await setStep('createProject', 'done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('already exists') && !msg.includes('409')) {
-        await fail('createProject', err); return;
+        await fail('createProject', err);
+        return;
       }
       await setStep('createProject', 'done');
     }
@@ -235,13 +317,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     while (attemptsLeft > 0 && !success) {
       try {
         await retry(
-          () => apiFetch(
-            auth,
-            `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
-            { method: 'PUT', body: { billingAccountName: `billingAccounts/${activeBillingAccountId}` } }
-          ),
+          () =>
+            apiFetch(
+              auth,
+              `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
+              {
+                method: 'PUT',
+                body: { billingAccountName: `billingAccounts/${activeBillingAccountId}` },
+              },
+            ),
           3,
-          4000
+          4000,
         );
         success = true;
       } catch (err) {
@@ -257,26 +343,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           normalized.includes('billing quota') ||
           normalized.includes('limit exceeded')
         ) {
-          console.warn(`[provisioning:linkBilling] La cuenta de facturación ${activeBillingAccountId} falló por cuota excedida. Desactivándola y reintentando con otra.`);
-          
+          console.warn(
+            `[provisioning:linkBilling] La cuenta de facturación ${activeBillingAccountId} falló por cuota excedida. Desactivándola y reintentando con otra.`,
+          );
+
           try {
             // Desactivar la cuenta fallida para que el motor no la vuelva a seleccionar
             await db.collection('billingAccounts').doc(activeBillingAccountId).update({
               active: false,
               deactivatedReason: 'Cuota de proyectos excedida en GCP',
-              deactivatedAt: new Date()
+              deactivatedAt: new Date(),
             });
 
             // Buscar y seleccionar una nueva cuenta de facturación activa
             const newAccountId = await pickBillingAccount(db);
-            console.info(`[provisioning:linkBilling] Nueva cuenta de facturación seleccionada: ${newAccountId}`);
-            
+            console.info(
+              `[provisioning:linkBilling] Nueva cuenta de facturación seleccionada: ${newAccountId}`,
+            );
+
             // Actualizar el ID en la variable local y en el documento de la tienda en Firestore
             activeBillingAccountId = newAccountId;
             await storeRef.update({ billingAccountId: newAccountId });
             attemptsLeft--;
           } catch (selectErr) {
-            console.error('[provisioning:linkBilling] No se pudo encontrar otra cuenta de facturación de reemplazo activa:', selectErr);
+            console.error(
+              '[provisioning:linkBilling] No se pudo encontrar otra cuenta de facturación de reemplazo activa:',
+              selectErr,
+            );
             throw err; // Relanzar el error original de facturación si no hay reemplazo
           }
         } else {
@@ -300,14 +393,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const op = (await apiFetch(
         auth,
         `https://firebase.googleapis.com/v1beta1/projects/${projectId}:addFirebase`,
-        { method: 'POST', body: {} }
+        { method: 'POST', body: {} },
       )) as { name: string };
       await pollOperation(auth, op.name, 'https://firebase.googleapis.com/v1beta1');
       await setStep('addFirebase', 'done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('already') && !msg.includes('409')) {
-        await fail('addFirebase', err); return;
+        await fail('addFirebase', err);
+        return;
       }
       await setStep('addFirebase', 'done');
     }
@@ -330,7 +424,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'cloudresourcemanager.googleapis.com',
             ],
           },
-        }
+        },
       )) as { name: string; done?: boolean };
       if (!enableOp.done) {
         await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
@@ -339,7 +433,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('already') && !msg.includes('409')) {
-        await fail('enableApis', err); return;
+        await fail('enableApis', err);
+        return;
       }
       await setStep('enableApis', 'done');
     }
@@ -361,19 +456,19 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const appOp = (await apiFetch(
         auth,
         `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-        { method: 'POST', body: { displayName: name } }
+        { method: 'POST', body: { displayName: name } },
       )) as { name: string };
       await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
 
       const appsRes = (await apiFetch(
         auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
       )) as { apps: Array<{ appId: string }> };
       const appId = appsRes.apps[0].appId;
 
       const configRes = (await apiFetch(
         auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
       )) as Record<string, string>;
 
       firebaseConfig = {
@@ -393,7 +488,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         .set(firebaseConfig);
       await setStep('createWebApp', 'done');
     } catch (err) {
-      await fail('createWebApp', err); return;
+      await fail('createWebApp', err);
+      return;
     }
   }
 
@@ -405,7 +501,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         const dbOp = (await apiFetch(
           auth,
           `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
-          { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } }
+          { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
         )) as { name: string };
         await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
       } catch (err) {
@@ -415,42 +511,43 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       const now = new Date().toISOString();
       await retry(
-        () => apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
-          {
-            method: 'PATCH',
-            body: {
-              fields: {
-                storeName:      { stringValue: name },
-                strapline:      { stringValue: '' },
-                logoUrl:        logoUrl ? { stringValue: logoUrl } : { nullValue: null },
-                contact: {
-                  mapValue: {
-                    fields: {
-                      email:    { stringValue: ownerEmail },
-                      phone:    { stringValue: '' },
-                      whatsapp: { stringValue: '' },
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+            {
+              method: 'PATCH',
+              body: {
+                fields: {
+                  storeName: { stringValue: name },
+                  strapline: { stringValue: '' },
+                  logoUrl: logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+                  contact: {
+                    mapValue: {
+                      fields: {
+                        email: { stringValue: ownerEmail },
+                        phone: { stringValue: '' },
+                        whatsapp: { stringValue: '' },
+                      },
                     },
                   },
-                },
-                seo: {
-                  mapValue: {
-                    fields: {
-                      metaTitle:       { stringValue: name },
-                      metaDescription: { stringValue: `Bienvenido a ${name}` },
+                  seo: {
+                    mapValue: {
+                      fields: {
+                        metaTitle: { stringValue: name },
+                        metaDescription: { stringValue: `Bienvenido a ${name}` },
+                      },
                     },
                   },
-                },
-                features: {
-                  mapValue: {
-                    fields: {
-                      reviewsEnabled:  { booleanValue: false },
-                      wishlistEnabled: { booleanValue: false },
-                      blogEnabled:     { booleanValue: false },
+                  features: {
+                    mapValue: {
+                      fields: {
+                        reviewsEnabled: { booleanValue: false },
+                        wishlistEnabled: { booleanValue: false },
+                        blogEnabled: { booleanValue: false },
+                      },
                     },
                   },
-                },
                   payments: {
                     mapValue: {
                       fields: {
@@ -469,17 +566,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                       },
                     },
                   },
-                currency:       { stringValue: 'ARS' },
-                currencySymbol: { stringValue: '$' },
-                country:        { stringValue: 'AR' },
-                createdAt:      { timestampValue: now },
-                updatedAt:      { timestampValue: now },
+                  currency: { stringValue: 'ARS' },
+                  currencySymbol: { stringValue: '$' },
+                  country: { stringValue: 'AR' },
+                  createdAt: { timestampValue: now },
+                  updatedAt: { timestampValue: now },
+                },
               },
             },
-          }
-        ),
+          ),
         5,
-        6000
+        6000,
       );
 
       if (verticalId) {
@@ -488,7 +585,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       await setStep('initFirestore', 'done');
     } catch (err) {
-      await fail('initFirestore', err); return;
+      await fail('initFirestore', err);
+      return;
     }
   }
 
@@ -499,79 +597,89 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const now = new Date().toISOString();
 
       await retry(
-        () => apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates`,
-          {
-            method: 'PATCH',
-            body: {
-              fields: {
-                storeOwnerEmail: { stringValue: ownerEmail },
-                storeWhatsappNumber: { stringValue: '' },
-                adminNotification: {
-                  mapValue: {
-                    fields: {
-                      subject: { stringValue: `Nuevo pedido recibido en ${name} - #{orderId}` },
-                      template: {
-                        stringValue:
-                          '<h2>Nuevo pedido #{orderId}</h2><p>Cliente: {clientName}</p><p>Email: {clientEmail}</p><p>Teléfono: {clientPhone}</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates`,
+            {
+              method: 'PATCH',
+              body: {
+                fields: {
+                  storeOwnerEmail: { stringValue: ownerEmail },
+                  storeWhatsappNumber: { stringValue: '' },
+                  adminNotification: {
+                    mapValue: {
+                      fields: {
+                        subject: { stringValue: `Nuevo pedido recibido en ${name} - #{orderId}` },
+                        template: {
+                          stringValue:
+                            '<h2>Nuevo pedido #{orderId}</h2><p>Cliente: {clientName}</p><p>Email: {clientEmail}</p><p>Teléfono: {clientPhone}</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+                        },
+                        showManageButton: { booleanValue: true },
+                        showWhatsappButton: { booleanValue: true },
                       },
-                      showManageButton: { booleanValue: true },
-                      showWhatsappButton: { booleanValue: true },
                     },
                   },
-                },
-                customerConfirmation: {
-                  mapValue: {
-                    fields: {
-                      subject: { stringValue: `Confirmación de tu pedido #{orderId}` },
-                      template: {
-                        stringValue:
-                          '<h2>Gracias por tu compra, {clientName}</h2><p>Tu pedido #{orderId} fue recibido correctamente.</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+                  customerConfirmation: {
+                    mapValue: {
+                      fields: {
+                        subject: { stringValue: `Confirmación de tu pedido #{orderId}` },
+                        template: {
+                          stringValue:
+                            '<h2>Gracias por tu compra, {clientName}</h2><p>Tu pedido #{orderId} fue recibido correctamente.</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+                        },
+                        showWhatsappButton: { booleanValue: true },
                       },
-                      showWhatsappButton: { booleanValue: true },
                     },
                   },
+                  createdAt: { timestampValue: now },
+                  updatedAt: { timestampValue: now },
                 },
-                createdAt: { timestampValue: now },
-                updatedAt: { timestampValue: now },
               },
+              quotaProject: projectId,
             },
-            quotaProject: projectId,
-          }
-        ),
+          ),
         5,
-        6000
+        6000,
       );
 
       await retry(
-        () => apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine`,
-          {
-            method: 'PATCH',
-            body: {
-              fields: {
-                provider: { stringValue: 'firebase-trigger-email' },
-                status: { stringValue: 'ready' },
-                autoConfigured: { booleanValue: true },
-                warning: { stringValue: 'La extension firebase-trigger-email debe instalarse y configurarse con SMTP en este proyecto Firebase para que el envio de correos funcione de forma real.' },
-                updatedAt: { timestampValue: now },
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine`,
+            {
+              method: 'PATCH',
+              body: {
+                fields: {
+                  provider: { stringValue: 'firebase-trigger-email' },
+                  status: { stringValue: 'ready' },
+                  autoConfigured: { booleanValue: true },
+                  warning: {
+                    stringValue:
+                      'La extension firebase-trigger-email debe instalarse y configurarse con SMTP en este proyecto Firebase para que el envio de correos funcione de forma real.',
+                  },
+                  updatedAt: { timestampValue: now },
+                },
               },
+              quotaProject: projectId,
             },
-            quotaProject: projectId,
-          }
-        ),
+          ),
         5,
-        6000
+        6000,
       );
 
-      console.info(`[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates y settings/emailEngine para el proyecto ${projectId}.`);
-      console.warn(`[provisioning:configureEmail] ¡ATENCIÓN! La extensión 'firebase-trigger-email' debe ser provista/instalada físicamente en el proyecto Firebase '${projectId}' y vinculada a un servidor SMTP real para el envío efectivo de correos. Consultar docs/email-provisioning.md para más detalles.`);
+      console.info(
+        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates y settings/emailEngine para el proyecto ${projectId}.`,
+      );
+      console.warn(
+        `[provisioning:configureEmail] ¡ATENCIÓN! La extensión 'firebase-trigger-email' debe ser provista/instalada físicamente en el proyecto Firebase '${projectId}' y vinculada a un servidor SMTP real para el envío efectivo de correos. Consultar docs/email-provisioning.md para más detalles.`,
+      );
 
       await setStep('configureEmail', 'done');
     } catch (err) {
-      await fail('configureEmail', err); return;
+      await fail('configureEmail', err);
+      return;
     }
   }
 
@@ -589,14 +697,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             {
               method: 'POST',
               body: {},
-              quotaProject: projectId
-            }
+              quotaProject: projectId,
+            },
           );
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           // If Identity Platform is already enabled or initialized, it might throw a 409 or ALREADY_EXISTS.
           // We can safely ignore this and proceed to configuration.
-          if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+          if (
+            !msg.includes('ALREADY_EXISTS') &&
+            !msg.includes('already exists') &&
+            !msg.includes('409')
+          ) {
             throw err;
           }
         }
@@ -610,12 +722,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             body: {
               signIn: {
                 email: {
-                  enabled: true
-                }
-              }
+                  enabled: true,
+                },
+              },
             },
-            quotaProject: projectId
-          }
+            quotaProject: projectId,
+          },
         );
       };
       await retry(initIdentityPlatform, 5, 8000);
@@ -626,7 +738,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           const res = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
-            { method: 'POST', body: { email: ownerEmail, emailVerified: false }, quotaProject: projectId }
+            {
+              method: 'POST',
+              body: { email: ownerEmail, emailVerified: false },
+              quotaProject: projectId,
+            },
           )) as { localId: string };
           return res.localId;
         } catch (err) {
@@ -635,9 +751,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           const lookup = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            { method: 'POST', body: { email: [ownerEmail] }, quotaProject: projectId }
+            { method: 'POST', body: { email: [ownerEmail] }, quotaProject: projectId },
           )) as { users: Array<{ localId: string }> };
-          if (!lookup.users?.length) throw new Error(`User ${ownerEmail} not found after EMAIL_EXISTS`);
+          if (!lookup.users?.length)
+            throw new Error(`User ${ownerEmail} not found after EMAIL_EXISTS`);
           return lookup.users[0].localId;
         }
       };
@@ -647,19 +764,28 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
-        { method: 'POST', body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) }, quotaProject: projectId }
+        {
+          method: 'POST',
+          body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) },
+          quotaProject: projectId,
+        },
       );
 
       // Send password reset email as the invite link
       await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        { method: 'POST', body: { requestType: 'PASSWORD_RESET', email: ownerEmail }, quotaProject: projectId }
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email: ownerEmail },
+          quotaProject: projectId,
+        },
       );
 
       await setStep('initAdmin', 'done');
     } catch (err) {
-      await fail('initAdmin', err); return;
+      await fail('initAdmin', err);
+      return;
     }
   }
 
@@ -671,7 +797,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         new Set([
           `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
           `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-        ])
+        ]),
       );
       const tokenRes = await auth.getAccessToken();
 
@@ -679,9 +805,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${tokenRes.token}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${tokenRes.token}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({}),
-        }
+        },
       );
       const policy = (await policyRes.json()) as {
         bindings: Array<{ role: string; members: string[] }>;
@@ -705,13 +834,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${tokenRes.token}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${tokenRes.token}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ policy }),
-        }
+        },
       );
       await setStep('grantAccess', 'done');
     } catch (err) {
-      await fail('grantAccess', err); return;
+      await fail('grantAccess', err);
+      return;
     }
   }
 
@@ -723,7 +856,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     await setStep('triggerDeploy', 'running');
     try {
       const pat = await getGitHubPat();
-      
+
       // Fetch the deploy token for this environment to pass to GitHub Action
       const secrets = new SecretManagerServiceClient();
       const [version] = await secrets.accessSecretVersion({
@@ -752,11 +885,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               deploy_token: deployTokenValue,
             },
           }),
-        }
+        },
       );
-      if (!res.ok && res.status !== 204) throw new Error(`GitHub API: ${res.status} ${await res.text()}`);
+      if (!res.ok && res.status !== 204)
+        throw new Error(`GitHub API: ${res.status} ${await res.text()}`);
     } catch (err) {
-      await fail('triggerDeploy', err); return;
+      await fail('triggerDeploy', err);
+      return;
     }
   }
 }
@@ -767,7 +902,7 @@ export const runProvisioning = onDocumentCreated(
     const data = event.data?.data();
     if (!data || data['status'] !== 'provisioning') return;
     await executeProvisioningSteps(event.params.storeId);
-  }
+  },
 );
 
 export const retryProvisioning = onCall<{ storeId: string }>(
@@ -803,67 +938,72 @@ export const retryProvisioning = onCall<{ storeId: string }>(
         updates[`provisioningSteps.${id}.error`] = null;
       }
     }
+    if (steps['createProject']?.status === 'error') {
+      updates['provisioningOwnerId'] = null;
+    }
     await storeRef.update(updates);
 
     await executeProvisioningSteps(storeId);
     return { success: true };
-  }
+  },
 );
 
-export const completeStoreDeployment = onCall<{ storeId: string; success: boolean; deployToken: string }>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
-  async (request) => {
-    const { storeId, success, deployToken } = request.data;
+export const completeStoreDeployment = onCall<{
+  storeId: string;
+  success: boolean;
+  deployToken: string;
+}>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
+  const { storeId, success, deployToken } = request.data;
 
-    if (!storeId || !deployToken) {
-      throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
-    }
+  if (!storeId || !deployToken) {
+    throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
+  }
 
-    // 1. Verify the deploy token using Secret Manager
-    const secrets = new SecretManagerServiceClient();
-    const [version] = await secrets.accessSecretVersion({
-      name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-    });
-    const expected = version.payload!.data!.toString().trim();
-    if (deployToken !== expected) {
-      throw new HttpsError('permission-denied', 'Invalid deploy token.');
-    }
+  // 1. Verify the deploy token using Secret Manager
+  const secrets = new SecretManagerServiceClient();
+  const [version] = await secrets.accessSecretVersion({
+    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+  });
+  const expected = version.payload!.data!.toString().trim();
+  if (deployToken !== expected) {
+    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  }
 
-    const db = getFirestore();
-    const storeRef = db.collection('stores').doc(storeId);
-    const snap = await storeRef.get();
-    if (!snap.exists) {
-      throw new HttpsError('not-found', 'Store not found.');
-    }
+  const db = getFirestore();
+  const storeRef = db.collection('stores').doc(storeId);
+  const snap = await storeRef.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'Store not found.');
+  }
 
-    const storeData = snap.data()!;
-    if (storeData['status'] === 'active') {
-      return { success: true };
-    }
-
-    if (storeData['status'] !== 'provisioning' && storeData['status'] !== 'error') {
-      throw new HttpsError('failed-precondition', 'Store is not in provisioning or error status.');
-    }
-
-    if (success) {
-      await storeRef.update({
-        'provisioningSteps.triggerDeploy.status': 'done',
-        'provisioningSteps.triggerDeploy.error': null,
-        status: 'active',
-        lastDeployedAt: new Date(),
-        templateVersion: CURRENT_TEMPLATE_VERSION,
-        schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
-        updatedAt: new Date(),
-      });
-    } else {
-      await storeRef.update({
-        'provisioningSteps.triggerDeploy.status': 'error',
-        'provisioningSteps.triggerDeploy.error': 'Storefront deployment failed. Check GitHub Action logs for details.',
-        status: 'error',
-        updatedAt: new Date(),
-      });
-    }
-
+  const storeData = snap.data()!;
+  if (storeData['status'] === 'active') {
     return { success: true };
   }
-);
+
+  if (storeData['status'] !== 'provisioning' && storeData['status'] !== 'error') {
+    throw new HttpsError('failed-precondition', 'Store is not in provisioning or error status.');
+  }
+
+  if (success) {
+    await storeRef.update({
+      'provisioningSteps.triggerDeploy.status': 'done',
+      'provisioningSteps.triggerDeploy.error': null,
+      status: 'active',
+      lastDeployedAt: new Date(),
+      templateVersion: CURRENT_TEMPLATE_VERSION,
+      schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
+      updatedAt: new Date(),
+    });
+  } else {
+    await storeRef.update({
+      'provisioningSteps.triggerDeploy.status': 'error',
+      'provisioningSteps.triggerDeploy.error':
+        'Storefront deployment failed. Check GitHub Action logs for details.',
+      status: 'error',
+      updatedAt: new Date(),
+    });
+  }
+
+  return { success: true };
+});

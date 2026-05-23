@@ -2,6 +2,24 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { OAuth2Client } from 'google-auth-library';
 
+interface OwnerCredentialsSecret {
+  id?: string;
+  label?: string;
+  client_id: string;
+  client_secret: string;
+  refresh_token: string;
+  maxProjects?: number;
+}
+
+export interface ProvisioningOwnerCredentials {
+  id: string;
+  label?: string;
+  client_id: string;
+  client_secret: string;
+  refresh_token: string;
+  maxProjects?: number;
+}
+
 export const PLATFORM_PROJECT =
   process.env['GCLOUD_PROJECT'] ?? process.env['GOOGLE_CLOUD_PROJECT'] ?? 'vertex-platform-app';
 
@@ -11,10 +29,52 @@ export const ALLOWED_ORIGINS = [
 ];
 
 let cachedGitHubPat: string | null = null;
-let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token: string } | null = null;
+let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token: string } | null =
+  null;
+let cachedOwnerPool: ProvisioningOwnerCredentials[] | null = null;
 const secretsClient = new SecretManagerServiceClient();
 
-export async function getOwnerOAuthClient(): Promise<OAuth2Client> {
+function isMissingSecretError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('404') || msg.toLowerCase().includes('not found');
+}
+
+function normalizeOwnerCredential(
+  raw: OwnerCredentialsSecret,
+  index: number,
+): ProvisioningOwnerCredentials {
+  return {
+    id: raw.id?.trim() || `owner-${index + 1}`,
+    label: raw.label?.trim(),
+    client_id: raw.client_id,
+    client_secret: raw.client_secret,
+    refresh_token: raw.refresh_token,
+    maxProjects: typeof raw.maxProjects === 'number' ? raw.maxProjects : undefined,
+  };
+}
+
+async function loadOwnerCredentialPool(): Promise<ProvisioningOwnerCredentials[]> {
+  if (cachedOwnerPool) return cachedOwnerPool;
+
+  try {
+    const [version] = await secretsClient.accessSecretVersion({
+      name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials-pool/versions/latest`,
+    });
+    const parsed = JSON.parse(version.payload!.data!.toString()) as
+      | OwnerCredentialsSecret[]
+      | { owners?: OwnerCredentialsSecret[] };
+    const rawOwners = Array.isArray(parsed) ? parsed : parsed.owners;
+    if (!Array.isArray(rawOwners) || rawOwners.length === 0) {
+      throw new Error(
+        'Secret platform-owner-credentials-pool must contain a non-empty array of owner credentials.',
+      );
+    }
+    cachedOwnerPool = rawOwners.map((owner, index) => normalizeOwnerCredential(owner, index));
+    return cachedOwnerPool;
+  } catch (err) {
+    if (!isMissingSecretError(err)) throw err;
+  }
+
   if (!cachedOwnerCreds) {
     const [version] = await secretsClient.accessSecretVersion({
       name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
@@ -25,9 +85,79 @@ export async function getOwnerOAuthClient(): Promise<OAuth2Client> {
       refresh_token: string;
     };
   }
-  const oauth2 = new OAuth2Client(cachedOwnerCreds.client_id, cachedOwnerCreds.client_secret);
-  oauth2.setCredentials({ refresh_token: cachedOwnerCreds.refresh_token });
+
+  cachedOwnerPool = [
+    normalizeOwnerCredential(
+      {
+        id: 'primary',
+        label: 'Primary owner',
+        ...cachedOwnerCreds,
+      },
+      0,
+    ),
+  ];
+  return cachedOwnerPool;
+}
+
+export async function getOwnerOAuthClient(ownerId?: string): Promise<OAuth2Client> {
+  const owners = await loadOwnerCredentialPool();
+  const owner = ownerId ? owners.find((candidate) => candidate.id === ownerId) : owners[0];
+  if (!owner) {
+    throw new Error(`Provisioning owner credential "${ownerId}" was not found in Secret Manager.`);
+  }
+  const oauth2 = new OAuth2Client(owner.client_id, owner.client_secret);
+  oauth2.setCredentials({ refresh_token: owner.refresh_token });
   return oauth2;
+}
+
+export async function listProvisioningOwnerCandidates(
+  db: Firestore,
+  preferredOwnerId?: string,
+): Promise<ProvisioningOwnerCredentials[]> {
+  const owners = await loadOwnerCredentialPool();
+  const storesSnap = await db
+    .collection('stores')
+    .where('status', 'in', ['provisioning', 'active', 'suspended'])
+    .get();
+
+  const usageMap: Record<string, number> = {};
+  storesSnap.docs.forEach((doc) => {
+    const ownerId = doc.data()['provisioningOwnerId'] as string | undefined;
+    if (ownerId) usageMap[ownerId] = (usageMap[ownerId] ?? 0) + 1;
+  });
+
+  const ranked = owners
+    .map((owner, index) => {
+      const usedProjects = usageMap[owner.id] ?? 0;
+      const remainingProjects =
+        typeof owner.maxProjects === 'number'
+          ? owner.maxProjects - usedProjects
+          : Number.POSITIVE_INFINITY;
+
+      return { owner, index, usedProjects, remainingProjects };
+    })
+    .sort((left, right) => {
+      if (preferredOwnerId) {
+        if (left.owner.id === preferredOwnerId && right.owner.id !== preferredOwnerId) return -1;
+        if (right.owner.id === preferredOwnerId && left.owner.id !== preferredOwnerId) return 1;
+      }
+      if (left.remainingProjects !== right.remainingProjects) {
+        return right.remainingProjects - left.remainingProjects;
+      }
+      if (left.usedProjects !== right.usedProjects) {
+        return left.usedProjects - right.usedProjects;
+      }
+      return left.index - right.index;
+    });
+
+  const available = ranked.filter((candidate) => candidate.remainingProjects > 0);
+  if (available.length === 0) {
+    throw new Error(
+      'All provisioning owner accounts are at capacity. Add another owner credential to platform-owner-credentials-pool or increase the Google Cloud project quota.',
+    );
+  }
+
+  return available.map((candidate) => candidate.owner);
 }
 
 export async function getGitHubPat(): Promise<string> {
@@ -42,7 +172,7 @@ export async function getGitHubPat(): Promise<string> {
 export async function apiFetch(
   auth: OAuth2Client,
   url: string,
-  options: { method?: string; body?: unknown; quotaProject?: string } = {}
+  options: { method?: string; body?: unknown; quotaProject?: string } = {},
 ): Promise<unknown> {
   const tokenRes = await auth.getAccessToken();
   const headers: Record<string, string> = {
@@ -62,7 +192,11 @@ export async function apiFetch(
   return res.json();
 }
 
-export async function retry<T>(fn: () => Promise<T>, attempts: number, delayMs: number): Promise<T> {
+export async function retry<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  delayMs: number,
+): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, delayMs * i));
@@ -103,7 +237,7 @@ export async function pickBillingAccount(db: Firestore): Promise<string> {
 
   if (!bestId || bestRemaining <= 0) {
     throw new Error(
-      'All billing accounts are at capacity. Add a new billing account from Settings → Facturación.'
+      'All billing accounts are at capacity. Add a new billing account from Settings → Facturación.',
     );
   }
 
@@ -115,7 +249,7 @@ export async function pollOperation(
   operationName: string,
   apiBase: string,
   maxAttempts = 36,
-  delayMs = 5000
+  delayMs = 5000,
 ): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, delayMs));

@@ -9,6 +9,7 @@
  * Usage:
  *   npm run setup-provisioning
  *   npm run setup-provisioning -- --github-pat=ghp_xxxxxxxxxxxx
+ *   npm run setup-provisioning -- --owner-pool-file=/abs/path/owners.json
  */
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { readFileSync } from 'fs';
@@ -21,6 +22,17 @@ const PROJECT_ID = isDev ? 'vertex-platform-dev' : 'vertex-platform-app';
 
 const patArg = args.find((a) => a.startsWith('--github-pat='));
 const githubPat = patArg?.split('=')[1];
+const ownerPoolArg = args.find((a) => a.startsWith('--owner-pool-file='));
+const ownerPoolFile = ownerPoolArg?.split('=')[1];
+
+interface OwnerCredentialsSecret {
+  id?: string;
+  label?: string;
+  client_id: string;
+  client_secret: string;
+  refresh_token: string;
+  maxProjects?: number;
+}
 
 void (async () => {
   console.log(`🔑 Initializing Secret Manager setup for project: "${PROJECT_ID}"...`);
@@ -46,6 +58,21 @@ void (async () => {
   await upsertSecret(client, 'platform-owner-credentials', adcJson);
   console.log('✅ ADC credentials stored in Secret Manager.');
 
+  let ownerPool: OwnerCredentialsSecret[];
+  if (ownerPoolFile) {
+    ownerPool = loadOwnerPool(ownerPoolFile);
+    console.log(
+      `✅ Loaded ${ownerPool.length} provisioning owner credential(s) from ${ownerPoolFile}.`,
+    );
+  } else {
+    const parsed = JSON.parse(adcJson) as OwnerCredentialsSecret;
+    ownerPool = [{ id: 'primary', label: 'Primary owner', ...parsed }];
+    console.log('ℹ️ No owner pool file provided. Creating a single-owner pool from local ADC.');
+  }
+
+  await upsertSecret(client, 'platform-owner-credentials-pool', JSON.stringify(ownerPool, null, 2));
+  console.log('✅ Provisioning owner pool stored in Secret Manager.');
+
   // ── Store GitHub PAT ─────────────────────────────────────────────────────
   if (githubPat) {
     await upsertSecret(client, 'github-pat', githubPat);
@@ -53,7 +80,7 @@ void (async () => {
   } else {
     console.log('\n⚠️  GitHub PAT not provided. Provisioning will fail at the deploy step.');
     console.log(
-      '   Create a PAT at https://github.com/settings/tokens with scopes: repo, workflow'
+      '   Create a PAT at https://github.com/settings/tokens with scopes: repo, workflow',
     );
     console.log('   Then run: npm run setup-provisioning -- --github-pat=ghp_xxxx');
   }
@@ -64,7 +91,7 @@ void (async () => {
 async function upsertSecret(
   client: SecretManagerServiceClient,
   secretId: string,
-  payload: string
+  payload: string,
 ): Promise<void> {
   const secretName = `projects/${PROJECT_ID}/secrets/${secretId}`;
 
@@ -85,4 +112,28 @@ async function upsertSecret(
     parent: secretName,
     payload: { data: Buffer.from(payload, 'utf-8') },
   });
+}
+
+function loadOwnerPool(filePath: string): OwnerCredentialsSecret[] {
+  try {
+    const raw = JSON.parse(readFileSync(filePath, 'utf-8')) as
+      | OwnerCredentialsSecret[]
+      | { owners?: OwnerCredentialsSecret[] };
+    const owners = Array.isArray(raw) ? raw : raw.owners;
+    if (!Array.isArray(owners) || owners.length === 0) {
+      throw new Error('Owner pool file must contain a non-empty array.');
+    }
+    for (const owner of owners) {
+      if (!owner.client_id || !owner.client_secret || !owner.refresh_token) {
+        throw new Error(
+          'Each owner credential requires client_id, client_secret and refresh_token.',
+        );
+      }
+    }
+    return owners;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`❌ Could not read owner pool file: ${msg}`);
+    process.exit(1);
+  }
 }

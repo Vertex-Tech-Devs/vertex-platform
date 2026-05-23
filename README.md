@@ -13,9 +13,9 @@ gets its own Firebase project provisioned automatically through Cloud Functions.
 
 ## Environments
 
-| Env | Firebase project | URL |
-|-----|-----------------|-----|
-| Production | `vertex-platform-app` | https://vertex-platform-app.web.app |
+| Env         | Firebase project      | URL                                 |
+| ----------- | --------------------- | ----------------------------------- |
+| Production  | `vertex-platform-app` | https://vertex-platform-app.web.app |
 | Development | `vertex-platform-dev` | https://vertex-platform-dev.web.app |
 
 ## Prerequisites
@@ -108,12 +108,12 @@ npm run setup-provisioning
 
 ### Estrategia de ramas
 
-| Rama | Propósito |
-|------|-----------|
-| `main` | Rama de producción. Todo commit en esta rama dispara el CI/CD hacia `vertex-platform-app`. |
-| `develop` | Rama de integración continua. Base de todo trabajo nuevo. |
-| `feature/*` | Ramas de funcionalidad. Se crean desde `develop` y se fusionan a `develop`. |
-| `hotfix/*` | Parches urgentes. Se crean desde `main`, se fusionan a `main` **y** a `develop`. |
+| Rama        | Propósito                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `main`      | Rama de producción. Todo commit en esta rama dispara el CI/CD hacia `vertex-platform-app`. |
+| `develop`   | Rama de integración continua. Base de todo trabajo nuevo.                                  |
+| `feature/*` | Ramas de funcionalidad. Se crean desde `develop` y se fusionan a `develop`.                |
+| `hotfix/*`  | Parches urgentes. Se crean desde `main`, se fusionan a `main` **y** a `develop`.           |
 
 ### Flujo de trabajo estándar
 
@@ -154,12 +154,12 @@ git push origin develop
 
 ### Functions modules
 
-| Module | Functions |
-|--------|-----------|
-| `admin.ts` | `manageAdmin`, `listAdmins` |
-| `provisioning.ts` | `provisionStore`, `runProvisioning` |
-| `stores.ts` | `redeployStore`, `deleteStore`, `connectDomain`, `getActiveStores` |
-| `billing.ts` | `listBillingAccounts`, `addBillingAccount`, `updateBillingAccount`, `removeBillingAccount` |
+| Module            | Functions                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `admin.ts`        | `manageAdmin`, `listAdmins`                                                                |
+| `provisioning.ts` | `provisionStore`, `runProvisioning`                                                        |
+| `stores.ts`       | `redeployStore`, `deleteStore`, `connectDomain`, `getActiveStores`                         |
+| `billing.ts`      | `listBillingAccounts`, `addBillingAccount`, `updateBillingAccount`, `removeBillingAccount` |
 
 ### Store provisioning flow
 
@@ -188,11 +188,12 @@ billingAccounts/{accountId}
 
 ### Key secrets (Secret Manager — `vertex-platform-app`)
 
-| Secret | Purpose |
-|--------|---------|
-| `platform-owner-credentials` | OAuth2 ADC for `vertex.tech.dev@gmail.com` — creates GCP projects |
-| `github-pat` | GitHub PAT with `repo` scope — dispatches to ecommerce-vertex |
-| `deploy-token` | Machine-to-machine auth token for `getActiveStores` |
+| Secret                            | Purpose                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `platform-owner-credentials`      | Legacy single-owner OAuth2 ADC kept as backward-compatible fallback                                       |
+| `platform-owner-credentials-pool` | Array of provisioning owner credentials used to rotate GCP project creation across multiple quota buckets |
+| `github-pat`                      | GitHub PAT with `repo` scope — dispatches to ecommerce-vertex                                             |
+| `deploy-token`                    | Machine-to-machine auth token for `getActiveStores`                                                       |
 
 ## Security
 
@@ -200,7 +201,7 @@ billingAccounts/{accountId}
 - CORS is strictly restricted to `vertex-platform-app.web.app` and `vertex-platform-dev.web.app`.
 - Slug validated server-side: `/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/`.
 - Error messages sanitized before returning to clients.
-- **Firebase Auth Domain Best Practice**: When developing locally, add `localhost` as an authorized domain *strictly* inside the Dev project (`vertex-platform-dev`). **Never** add `localhost` to the Production project (`vertex-platform-app` / `vertex-prod`) to prevent phishing and session hijacking vulnerabilities.
+- **Firebase Auth Domain Best Practice**: When developing locally, add `localhost` as an authorized domain _strictly_ inside the Dev project (`vertex-platform-dev`). **Never** add `localhost` to the Production project (`vertex-platform-app` / `vertex-prod`) to prevent phishing and session hijacking vulnerabilities.
 
 ## Custom Seeding Engine & Mock Data
 
@@ -209,4 +210,3 @@ The platform features a premium seeding engine that customizes the demo storefro
 - **`includeMockData` Toggle Flag**: During both store creation and manual store database seeding (from the Orchestration panel), you can check/uncheck the **"Datos de Demostración"** checkbox to include or skip the 20 simulated clients and 20 simulated orders.
 - **Why this option exists**: Firestore security rules in the storefront project (`ecommerce-vertex`) block editing or deleting client records (`allow write: if false`), and orders are permanent transactions. Omit this mock data to keep the database completely clean for pure production tenants, while still pre-populating attributes, categories, customized pages, and personalized banners.
 - **Personalized Brand Engine**: The backend runs a recursive customizer (`customizeSeed`) that automatically replaces all references of `'Vertex'` with the store's dynamic commercial name inside product details, categories, pages, and footer contact handles.
-
