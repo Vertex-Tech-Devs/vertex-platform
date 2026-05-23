@@ -26,6 +26,21 @@ Owner account for dev: `juan.l.espeche@gmail.com` (personal ADC).
 Provisioning owners can now be configured as a pool in Secret Manager under `platform-owner-credentials-pool`.
 `createProject` rotates across that pool when one owner reaches its project creation quota.
 
+## Project Quota Incident Notes
+
+- Google Cloud project quota is currently a real operational constraint for the dedicated-project provisioning model.
+- Projects in `DELETE_REQUESTED` still count against quota until permanently deleted.
+- Billing account rotation does **not** solve `projects_count` exhaustion.
+- Treat `1 store = 1 project` as a temporary compatibility path, not the scalable target architecture.
+
+The long-term solution is documented in [docs/scalability-roadmap.md](docs/scalability-roadmap.md).
+
+Current architectural direction:
+
+- `shared-shard` runtime for standard stores
+- `dedicated-project` runtime only for premium exceptions
+- shard capacity target: `100` stores initially
+
 ## Functions architecture
 
 Entry: `functions/src/index.ts` (re-exports only — no logic)

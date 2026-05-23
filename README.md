@@ -152,6 +152,24 @@ git push origin develop
 
 ## Architecture
 
+## Scalability Direction
+
+The current `1 store = 1 Firebase/GCP project` provisioning model is operationally functional but not the long-term business architecture.
+
+- Google Cloud `projects_count` becomes a hard blocker as stores grow.
+- Projects in `DELETE_REQUESTED` continue counting against that quota until permanently purged.
+- The target architecture is a `shared-shard` runtime model where many stores share one runtime project and are isolated by `tenantId`.
+
+The detailed migration plan lives in [docs/scalability-roadmap.md](docs/scalability-roadmap.md).
+
+High-level target:
+
+- `shared-shard` is the default runtime mode for new stores.
+- `dedicated-project` remains only for premium exceptions.
+- Initial target capacity is `100` stores per shard.
+
+Legacy dedicated-project provisioning remains documented below because it is still the active compatibility path today.
+
 ### Functions modules
 
 | Module            | Functions                                                                                  |

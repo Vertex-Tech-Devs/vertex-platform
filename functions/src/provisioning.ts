@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
-import type { CreateStorePayload, StepStatus, ProvisioningStep } from './types';
+import type { CreateStorePayload, StepStatus, ProvisioningStep, StoreRuntimeMode } from './types';
 import {
   ALLOWED_ORIGINS,
   PLATFORM_PROJECT,
@@ -55,6 +55,8 @@ export const provisionStore = onCall<CreateStorePayload>(
 
     const projectId = `vtx-${slug}`.slice(0, 30);
     const storeId = crypto.randomUUID();
+    const runtimeMode: StoreRuntimeMode = 'dedicated-project';
+    const tenantId = slug;
 
     let billingAccountId: string;
     try {
@@ -88,6 +90,11 @@ export const provisionStore = onCall<CreateStorePayload>(
         logoUrl: logoUrl ?? null,
         customDomain: customDomain ?? null,
         verticalId: verticalId ?? null,
+        runtimeMode,
+        tenantId,
+        shardId: null,
+        runtimeProjectId: projectId,
+        runtimeSiteId: 'default',
         firebaseProjectId: projectId,
         defaultUrl: `https://${projectId}.web.app`,
         billingAccountId,
