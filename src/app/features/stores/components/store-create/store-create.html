@@ -6,6 +6,30 @@
   <h1 class="create-page__title">Nueva tienda</h1>
   <p class="create-page__sub">Completá los datos. El provisionamiento es automático.</p>
 
+  @if (runtimeSummary()) {
+    <section class="runtime-summary" data-testid="runtime-summary">
+      <div>
+        <p class="runtime-summary__eyebrow">Capacidad runtime</p>
+        <h2 class="runtime-summary__title">
+          @if (runtimeSummary()!.recommendedRuntimeMode === 'shared-shard') {
+            Shared-shard disponible
+          } @else {
+            Shared-shard sin cupo activo
+          }
+        </h2>
+        <p class="runtime-summary__body">
+          {{ runtimeSummary()!.activeSharedShardCount }} shard{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} activa{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} con {{ runtimeSummary()!.availableSharedSlots }} lugar{{ runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : '' }} libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}.
+          El alta actual sigue usando el flujo dedicado mientras termina la migración tenant-aware del storefront.
+        </p>
+      </div>
+      <div class="runtime-summary__badge runtime-summary__badge--{{ runtimeSummary()!.recommendedRuntimeMode }}">
+        {{ runtimeSummary()!.recommendedRuntimeMode === 'shared-shard' ? 'Ready' : 'Fallback' }}
+      </div>
+    </section>
+  } @else if (runtimeSummaryError()) {
+    <div class="alert alert-error">{{ runtimeSummaryError() }}</div>
+  }
+
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="create-form" novalidate>
 
     <section class="form-section">

@@ -104,10 +104,12 @@ npm ci --legacy-peer-deps   # legacy needed: @angular/fire@20 peer conflict with
 npm run start               # serve Angular app
 npm run lint                # ESLint (ng lint)
 npm run typecheck           # tsc --noEmit
+npm run e2e:ci              # Cypress e2e suite
 
 cd functions
 npm ci
 npm run build               # tsc
+npm run test                # Vitest suite
 ```
 
 ## Deploy scripts
@@ -118,6 +120,19 @@ npm run deploy:prod  # activates 'vertex-prod' gcloud config, deploys to vertex-
 ```
 
 Firebase CLI uses the currently active gcloud account for ADC — switching configs is mandatory.
+
+## Shared-shard registry operations
+
+```bash
+npm run register-shard -- \
+   --shard-id=dev-shard-01 \
+   --project-id=vertex-shared-dev \
+   --site-id=vertex-shared-dev \
+   --environment=development \
+   --max-stores=100
+```
+
+The store creation screen reads shard capacity through `getRuntimeCapacitySummary` so operations can track shared-shard headroom while dedicated-project provisioning remains the active compatibility path.
 
 ## Cumulative Knowledge / Memory & Guidelines
 
