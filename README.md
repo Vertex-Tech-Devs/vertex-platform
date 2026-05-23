@@ -104,6 +104,52 @@ npm run seed:stores
 npm run setup-provisioning
 ```
 
+## Development Workflow
+
+### Estrategia de ramas
+
+| Rama | Propósito |
+|------|-----------|
+| `main` | Rama de producción. Todo commit en esta rama dispara el CI/CD hacia `vertex-platform-app`. |
+| `develop` | Rama de integración continua. Base de todo trabajo nuevo. |
+| `feature/*` | Ramas de funcionalidad. Se crean desde `develop` y se fusionan a `develop`. |
+| `hotfix/*` | Parches urgentes. Se crean desde `main`, se fusionan a `main` **y** a `develop`. |
+
+### Flujo de trabajo estándar
+
+```
+feature/* → develop → main
+                ↑
+         (Back-Merge obligatorio)
+```
+
+### ⚠️ Protocolo Obligatorio de Sincronización Inversa (Back-Merge)
+
+**REGLA CRÍTICA:** Cada vez que se realice un merge de `develop` → `main` (o se aplique un `hotfix`), es **MANDATORIO** ejecutar inmediatamente el siguiente bloque de sincronización inversa para evitar divergencias de historial en el pipeline multi-tenant.
+
+El criterio de éxito es que `git diff develop..main` **no devuelva ninguna salida de código fuente**.
+
+```bash
+# Flujo Obligatorio de Sincronización Inversa (Back-Merge)
+git checkout develop
+git pull origin develop
+git merge origin/main
+# Resolver conflictos manteniendo la estabilidad si los hubiera
+git push origin develop
+```
+
+> **¿Por qué es obligatorio?** El pipeline de aprovisionamiento multi-tenant genera commits automáticos (incrementos de versión en `package.json`, actualizaciones de `CURRENT_TEMPLATE_VERSION` en `provisioning.ts`). Si `develop` diverge de `main`, estos incrementos se pierden en el próximo merge, causando regresiones silenciosas de versión en los tenants ya desplegados.
+
+### Ciclo de vida de un incremento de versión
+
+1. Se mergea `develop` → `main` (PR aprobado)
+2. CI/CD despliega automáticamente a producción
+3. **Inmediatamente** ejecutar el Back-Merge (`main` → `develop`)
+4. Verificar con `git diff develop..main` que no hay divergencia
+5. Recién entonces crear la próxima rama `feature/*`
+
+---
+
 ## Architecture
 
 ### Functions modules
