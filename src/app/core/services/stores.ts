@@ -11,7 +11,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
-import type { Store, CreateStorePayload, StoreConfig, StaffMember, PendingInvitation } from '../models/store';
+import type { Store, CreateStorePayload, StoreConfig, StaffMember, PendingInvitation, TemplateVersion } from '../models/store';
 
 export interface DnsRecord {
   host: string;
@@ -154,6 +154,23 @@ export class StoresService {
   async seedStore(storeId: string): Promise<void> {
     const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'seedStore');
     await fn({ storeId });
+  }
+
+  async listTemplateVersions(): Promise<TemplateVersion[]> {
+    const fn = httpsCallable<Record<string, never>, { versions: TemplateVersion[] }>(
+      this.fns,
+      'listTemplateVersions'
+    );
+    const result = await fn({});
+    return result.data.versions;
+  }
+
+  async updateStoreVersion(storeId: string, version: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string; version: string }, { success: boolean }>(
+      this.fns,
+      'updateStoreVersion'
+    );
+    await fn({ storeId, version });
   }
 }
 

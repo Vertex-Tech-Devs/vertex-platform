@@ -1,5 +1,14 @@
 export type StoreStatus = 'provisioning' | 'active' | 'suspended' | 'error';
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';
+export type VersionUpdateStatus = 'idle' | 'updating' | 'failed';
+
+export interface TemplateVersion {
+  version: string;
+  tag: string;
+  publishedAt: string;
+  isLatest: boolean;
+  notes?: string;
+}
 
 export interface ProvisioningStep {
   status: StepStatus;
@@ -21,7 +30,10 @@ export interface Store {
   updatedAt: Date;
   lastDeployedAt?: Date;
   templateVersion?: string;
+  schemaVersion?: number;
   templateCommit?: string;
+  versionUpdateStatus?: VersionUpdateStatus;
+  versionUpdateTarget?: string;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;
   verticalId?: string;

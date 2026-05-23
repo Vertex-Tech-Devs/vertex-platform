@@ -16,6 +16,9 @@ import {
 } from './helpers';
 import { seedStoreData } from './seeds';
 
+const CURRENT_TEMPLATE_VERSION = '1.0.0';
+const CURRENT_STORE_SCHEMA_VERSION = 1;
+
 export const provisionStore = onCall<CreateStorePayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -671,7 +674,8 @@ export const completeStoreDeployment = onCall<{ storeId: string; success: boolea
         'provisioningSteps.triggerDeploy.error': null,
         status: 'active',
         lastDeployedAt: new Date(),
-        templateVersion: '1.0.0',
+        templateVersion: CURRENT_TEMPLATE_VERSION,
+        schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
         updatedAt: new Date(),
       });
     } else {
