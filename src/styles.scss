@@ -121,3 +121,28 @@ a {
   box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.65), 
               0 0 40px 0 rgba(79, 70, 229, 0.05);
 }
+
+/* Global loading spinners */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(234, 179, 8, 0.4);
+  border-top-color: #fde047;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-sm {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+

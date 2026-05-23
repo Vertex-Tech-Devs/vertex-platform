@@ -648,7 +648,11 @@
                               [disabled]="isGeneratingLink()"
                               (click)="generateAccessLink(member.email)"
                               title="Obtener enlace manual de restablecimiento de contraseña">
-                              <i class="bi bi-key-fill"></i>
+                              @if (isGeneratingLink()) {
+                                <span class="spinner-sm" style="margin-right: 0;"></span>
+                              } @else {
+                                <i class="bi bi-key-fill"></i>
+                              }
                             </button>
                           </div>
                         </div>

@@ -145,7 +145,11 @@
     <div class="form-actions">
       <a routerLink="/stores" class="btn btn-secondary">Cancelar</a>
       <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
-        {{ isSubmitting() ? 'Creando tienda…' : 'Crear tienda' }}
+        @if (isSubmitting()) {
+          <span class="spinner-sm"></span> Creando tienda…
+        } @else {
+          Crear tienda
+        }
       </button>
     </div>
 
