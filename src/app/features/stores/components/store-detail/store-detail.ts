@@ -342,8 +342,14 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.inviteSuccess.set('');
     try {
       const { email, role } = this.inviteForm.value;
-      await this.storesService.inviteStaff(s.id, email!, role!);
-      this.inviteSuccess.set(`Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`);
+      const result = await this.storesService.inviteStaff(s.id, email!, role!);
+      if (result.inviteEmailSent) {
+        this.inviteSuccess.set(`Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`);
+      } else {
+        this.inviteSuccess.set(
+          `Usuario creado y rol asignado para ${email}, pero el email automático falló. Podés reenviar acceso desde Firebase Auth.`
+        );
+      }
       this.inviteForm.reset({ email: '', role: 'admin' });
       await this.loadStaff();
     } catch (err) {

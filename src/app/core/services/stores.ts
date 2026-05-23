@@ -117,12 +117,16 @@ export class StoresService {
     };
   }
 
-  async inviteStaff(storeId: string, email: string, role: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string; email: string; role: string }, { success: boolean }>(
+  async inviteStaff(storeId: string, email: string, role: string): Promise<{ inviteEmailSent: boolean }> {
+    const fn = httpsCallable<
+      { storeId: string; email: string; role: string },
+      { success: boolean; inviteEmailSent?: boolean }
+    >(
       this.fns,
       'inviteStaff'
     );
-    await fn({ storeId, email, role });
+    const result = await fn({ storeId, email, role });
+    return { inviteEmailSent: result.data.inviteEmailSent !== false };
   }
 
   async verifyDomain(
