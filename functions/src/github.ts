@@ -109,8 +109,8 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
 
       return { history: filteredHistory };
     } catch (err) {
-      console.error('getStoreDeploymentHistory error:', err);
-      throw new HttpsError('internal', 'No se pudo obtener el historial de despliegues.');
+      console.warn('[getStoreDeploymentHistory] Gracefully caught error (likely missing or invalid github-pat secret):', err);
+      return { history: [] };
     }
   }
 );

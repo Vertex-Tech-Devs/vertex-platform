@@ -33,7 +33,7 @@ function toFirestoreValue(val: unknown): unknown {
 }
 
 // Convert a standard JavaScript object into a Firestore fields wrapper
-function toFirestoreFields(obj: Record<string, unknown>): { fields: Record<string, unknown> } {
+export function toFirestoreFields(obj: Record<string, unknown>): { fields: Record<string, unknown> } {
   const fields: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
     fields[k] = toFirestoreValue(v);

@@ -138,6 +138,11 @@ export class StoresService {
     const result = await fn({ storeId });
     return result.data.config;
   }
+
+  async seedStore(storeId: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'seedStore');
+    await fn({ storeId });
+  }
 }
 
 interface RawDnsRecord {

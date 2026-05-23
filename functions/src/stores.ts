@@ -345,7 +345,6 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     const store = storeSnap.data() as { firebaseProjectId: string };
     const projectId = store.firebaseProjectId;
-    const auth = await getOwnerOAuthClient();
 
     const token = crypto.randomUUID();
     const invitationId = crypto.randomUUID();
@@ -357,6 +356,14 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       status: 'pending',
       createdAt: new Date(),
     });
+
+    let auth;
+    try {
+      auth = await getOwnerOAuthClient();
+    } catch (err) {
+      console.warn(`[inviteStaff] Failed to load GCP owner credentials. Skipping physical tenant provisioning but local invitation was registered.`, err);
+      return { success: true, token };
+    }
 
     try {
       const createRes = await apiFetch(
@@ -403,48 +410,52 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[inviteStaff] Inner API call failed for project ${projectId}:`, err);
+      
       if (msg.includes('EMAIL_EXISTS')) {
-        const lookup = (await apiFetch(
-          auth,
-          `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-          { method: 'POST', body: { email: [email.trim().toLowerCase()] }, quotaProject: projectId }
-        )) as { users: Array<{ localId: string }> };
-
-        if (lookup.users?.length) {
-          const uid = lookup.users[0].localId;
-          await apiFetch(
+        try {
+          const lookup = (await apiFetch(
             auth,
-            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
-            {
-              method: 'POST',
-              body: {
-                localId: uid,
-                customAttributes: JSON.stringify({ role, storeId })
-              },
-              quotaProject: projectId
-            }
-          );
+            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+            { method: 'POST', body: { email: [email.trim().toLowerCase()] }, quotaProject: projectId }
+          )) as { users: Array<{ localId: string }> };
 
-          const { toFirestoreFields } = require('./seeds');
-          const userDoc = {
-            email: email.trim().toLowerCase(),
-            role,
-            displayName: '',
-            joinedAt: new Date(),
-          };
+          if (lookup.users?.length) {
+            const uid = lookup.users[0].localId;
+            await apiFetch(
+              auth,
+              `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
+              {
+                method: 'POST',
+                body: {
+                  localId: uid,
+                  customAttributes: JSON.stringify({ role, storeId })
+                },
+                quotaProject: projectId
+              }
+            );
 
-          await apiFetch(
-            auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`,
-            {
-              method: 'PATCH',
-              body: toFirestoreFields(userDoc),
-              quotaProject: projectId
-            }
-          );
+            const { toFirestoreFields } = require('./seeds');
+            const userDoc = {
+              email: email.trim().toLowerCase(),
+              role,
+              displayName: '',
+              joinedAt: new Date(),
+            };
+
+            await apiFetch(
+              auth,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`,
+              {
+                method: 'PATCH',
+                body: toFirestoreFields(userDoc),
+                quotaProject: projectId
+              }
+            );
+          }
+        } catch (nestedErr) {
+          console.warn(`[inviteStaff] Nested lookup/update failed for existing user:`, nestedErr);
         }
-      } else {
-        console.error('Failed to provision auth user in tenant project:', err);
       }
     }
 
@@ -470,10 +481,10 @@ export const getStoreStaff = onCall<{ storeId: string }>(
 
     const store = storeSnap.data() as { firebaseProjectId: string };
     const projectId = store.firebaseProjectId;
-    const auth = await getOwnerOAuthClient();
 
     let users: Array<{ uid: string; email: string; role: string; displayName?: string; joinedAt?: string }> = [];
     try {
+      const auth = await getOwnerOAuthClient();
       const usersRes = await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`,
@@ -496,22 +507,27 @@ export const getStoreStaff = onCall<{ storeId: string }>(
         });
       }
     } catch (err) {
-      console.warn(`No users collection or failed to load users in ${projectId}`, err);
+      console.warn(`[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`, err);
     }
 
-    const invitationsSnap = await db.collection('stores').doc(storeId).collection('invitations').get();
-    const invitations = invitationsSnap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        email: data['email'],
-        role: data['role'],
-        status: data['status'],
-        createdAt: data['createdAt']?.toDate().toISOString(),
-      };
-    });
+    let invitations: any[] = [];
+    try {
+      const invitationsSnap = await db.collection('stores').doc(storeId).collection('invitations').get();
+      invitations = invitationsSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          email: data['email'],
+          role: data['role'],
+          status: data['status'],
+          createdAt: data['createdAt']?.toDate().toISOString(),
+        };
+      });
+    } catch (err) {
+      console.error(`[getStoreStaff] Failed to load local invitations from Firestore:`, err);
+    }
 
-    return { users, invitations };
+    return { users, staff: users, invitations };
   }
 );
 
@@ -564,3 +580,38 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     return { success: true, status, dnsRecords };
   }
 );
+
+export const seedStore = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can seed store data.');
+    }
+
+    const { storeId } = request.data;
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId is required.');
+    }
+
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+
+    const store = storeSnap.data() as { firebaseProjectId: string; verticalId?: string };
+    const projectId = store.firebaseProjectId;
+    const verticalId = store.verticalId || 'retail';
+
+    const auth = await getOwnerOAuthClient();
+    const { seedStoreData } = require('./seeds');
+
+    try {
+      await seedStoreData(auth, projectId, verticalId);
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error seeding store ${storeId} (project: ${projectId}):`, err);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new HttpsError('internal', `Failed to seed store data: ${msg}`);
+    }
+  }
+);
+

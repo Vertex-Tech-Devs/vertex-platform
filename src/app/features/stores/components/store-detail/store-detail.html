@@ -141,9 +141,9 @@
                 @if (store()!.verticalId) {
                   <dt>Rubro / Vertical</dt><dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
                 }
-                <dt>Creada</dt><dd>{{ store()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                <dt>Creada</dt><dd>{{ formatDate(store()!.createdAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
                 @if (store()!.lastDeployedAt) {
-                  <dt>Último deploy</dt><dd>{{ store()!.lastDeployedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                  <dt>Último deploy</dt><dd>{{ formatDate(store()!.lastDeployedAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
                 }
               </dl>
             </div>
@@ -158,6 +158,15 @@
                   @else { <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual }
                   <small>Actualiza la infraestructura y código de la tienda con la última versión v1.1.0+</small>
                 </button>
+
+                <!-- Seed Mock Data -->
+                @if (store()!.status === 'active') {
+                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="seedStore()">
+                    @if (isSeeding()) { <span class="spinner-sm"></span> Semillando datos… }
+                    @else { <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba }
+                    <small>Carga un catálogo completo de productos, categorías e imágenes de demostración en el Firestore de la tienda</small>
+                  </button>
+                }
 
                 <!-- Suspend / Activate -->
                 @if (store()!.status === 'active') {
@@ -176,6 +185,9 @@
 
                 @if (actionError()) {
                   <p class="action-error alert alert-error">{{ actionError() }}</p>
+                }
+                @if (actionSuccess()) {
+                  <p class="action-success alert alert-success">{{ actionSuccess() }}</p>
                 }
 
                 <!-- Danger Zone -->
@@ -255,7 +267,7 @@
                               {{ run.displayTitle }}
                             </td>
                             <td class="deployment-date">
-                              {{ run.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                              {{ formatDate(run.createdAt) | date:'dd/MM/yyyy HH:mm' }}
                             </td>
                             <td>
                               <a [href]="run.htmlUrl" target="_blank" class="logs-link">
@@ -558,7 +570,7 @@
                                   <span class="badge-role badge-role--{{ invite.role }}">{{ invite.role }}</span>
                                 </td>
                                 <td class="deployment-date">
-                                  {{ invite.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                                  {{ formatDate(invite.createdAt) | date:'dd/MM/yyyy HH:mm' }}
                                 </td>
                                 <td>
                                   <span class="badge-invite-status badge-invite-status--{{ invite.status }}">

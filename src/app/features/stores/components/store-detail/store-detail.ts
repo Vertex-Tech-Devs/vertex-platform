@@ -54,6 +54,7 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   // Action loading signals
   readonly isRedeploying = signal(false);
+  readonly isSeeding = signal(false);
   readonly isRetrying = signal(false);
   readonly isDeleting = signal(false);
   readonly isConnectingDomain = signal(false);
@@ -69,6 +70,7 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   // Error/Success state signals
   readonly actionError = signal('');
+  readonly actionSuccess = signal('');
   readonly saveError = signal('');
   readonly dnsRecords = signal<Array<{ rdata: string; requiredAction: string }>>([]);
   readonly deploymentHistory = signal<DeploymentHistoryItem[]>([]);
@@ -464,6 +466,23 @@ export class StoreDetail implements OnInit, OnDestroy {
     }
   }
 
+  async seedStore(): Promise<void> {
+    const id = this.store()?.id;
+    if (!id) return;
+    this.isSeeding.set(true);
+    this.actionError.set('');
+    this.actionSuccess.set('');
+    try {
+      await this.storesService.seedStore(id);
+      this.actionSuccess.set('¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.actionError.set('Error al semillar datos: ' + msg);
+    } finally {
+      this.isSeeding.set(false);
+    }
+  }
+
   async retry(): Promise<void> {
     const id = this.store()?.id;
     if (!id) return;
@@ -496,6 +515,24 @@ export class StoreDetail implements OnInit, OnDestroy {
     } finally {
       this.isConnectingDomain.set(false);
     }
+  }
+
+  formatDate(dateVal: unknown): Date | string | null {
+    if (!dateVal) return null;
+    if (typeof dateVal === 'string') {
+      const match = dateVal.match(/Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)/);
+      if (match) {
+        return new Date(parseInt(match[1], 10) * 1000);
+      }
+    }
+    const val = dateVal as Record<string, unknown>;
+    if (typeof val['toDate'] === 'function') {
+      return (val['toDate'] as () => Date)();
+    }
+    if (typeof val['seconds'] === 'number') {
+      return new Date(val['seconds'] * 1000);
+    }
+    return dateVal as Date | string | null;
   }
 
   async deleteStore(): Promise<void> {
