@@ -429,6 +429,41 @@
                     </div>
                   </div>
 
+                  <div class="config-card" formGroupName="payments">
+                    <h3 class="config-card__title"><i class="bi bi-credit-card-2-front"></i> Pagos (Mercado Pago)</h3>
+                    <div class="config-fields" formGroupName="mercadoPago">
+                      <div class="form-group-grid">
+                        <div class="form-group">
+                          <label class="form-label">Public Key</label>
+                          <input formControlName="publicKey" type="text" class="form-control" placeholder="APP_USR-..." />
+                        </div>
+                        <div class="form-group">
+                          <label class="form-label">Access Token</label>
+                          <input formControlName="accessToken" type="password" class="form-control" placeholder="APP_USR-..." />
+                        </div>
+                      </div>
+
+                      <div class="form-group">
+                        <label class="form-label">Webhook URL</label>
+                        <input formControlName="webhookUrl" type="url" class="form-control" placeholder="https://..." />
+                        @if (configForm.get('payments.mercadoPago.webhookUrl')?.invalid && configForm.get('payments.mercadoPago.webhookUrl')?.touched) {
+                          <span class="invalid-feedback">URL inválida.</span>
+                        }
+                      </div>
+
+                      @if (configForm.get('payments.mercadoPago.validationStatus')?.value === 'valid') {
+                        <div class="alert alert-success">
+                          {{ configForm.get('payments.mercadoPago.validationMessage')?.value || 'Credenciales válidas.' }}
+                        </div>
+                      }
+                      @if (configForm.get('payments.mercadoPago.validationStatus')?.value === 'invalid') {
+                        <div class="alert alert-error">
+                          {{ configForm.get('payments.mercadoPago.validationMessage')?.value || 'Credenciales inválidas.' }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+
                   <!-- Contact Channels card -->
                   <div class="config-card" formGroupName="contact">
                     <h3 class="config-card__title"><i class="bi bi-chat-left-text"></i> Canales de Contacto</h3>

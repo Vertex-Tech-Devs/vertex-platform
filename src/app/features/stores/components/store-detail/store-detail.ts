@@ -121,6 +121,15 @@ export class StoreDetail implements OnInit, OnDestroy {
       reviewsEnabled: [false],
       wishlistEnabled: [false],
       blogEnabled: [false]
+    }),
+    payments: this.fb.group({
+      mercadoPago: this.fb.group({
+        publicKey: [''],
+        accessToken: [''],
+        webhookUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
+        validationStatus: ['pending'],
+        validationMessage: [''],
+      }),
     })
   });
 
@@ -288,6 +297,15 @@ export class StoreDetail implements OnInit, OnDestroy {
             reviewsEnabled: !!config.features?.reviewsEnabled,
             wishlistEnabled: !!config.features?.wishlistEnabled,
             blogEnabled: !!config.features?.blogEnabled
+          },
+          payments: {
+            mercadoPago: {
+              publicKey: config.payments?.mercadoPago?.publicKey || '',
+              accessToken: config.payments?.mercadoPago?.accessToken || '',
+              webhookUrl: config.payments?.mercadoPago?.webhookUrl || '',
+              validationStatus: config.payments?.mercadoPago?.validationStatus || 'pending',
+              validationMessage: config.payments?.mercadoPago?.validationMessage || ''
+            }
           }
         });
       } else {
@@ -302,6 +320,15 @@ export class StoreDetail implements OnInit, OnDestroy {
             address: '',
             instagram: '',
             facebook: ''
+          },
+          payments: {
+            mercadoPago: {
+              publicKey: '',
+              accessToken: '',
+              webhookUrl: '',
+              validationStatus: 'pending',
+              validationMessage: ''
+            }
           }
         });
       }
@@ -336,6 +363,11 @@ export class StoreDetail implements OnInit, OnDestroy {
       formValue.contact.facebook = formValue.contact.facebook?.trim();
       formValue.seo.metaTitle = formValue.seo.metaTitle?.trim();
       formValue.seo.metaDescription = formValue.seo.metaDescription?.trim();
+      if (formValue.payments?.mercadoPago) {
+        formValue.payments.mercadoPago.publicKey = formValue.payments.mercadoPago.publicKey?.trim();
+        formValue.payments.mercadoPago.accessToken = formValue.payments.mercadoPago.accessToken?.trim();
+        formValue.payments.mercadoPago.webhookUrl = formValue.payments.mercadoPago.webhookUrl?.trim();
+      }
 
       await this.storesService.updateStoreConfig(s.id, formValue);
       this.configSuccess.set('Configuración actualizada con éxito. Los cambios se aplicarán en tiempo real.');

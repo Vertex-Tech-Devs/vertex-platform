@@ -62,6 +62,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       enableApis:    { status: 'pending', label: 'Habilitar APIs' },
       createWebApp:  { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
+      configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
       initAdmin:     { status: 'pending', label: 'Crear usuario administrador' },
       grantAccess:   { status: 'pending', label: 'Configurar permisos de deploy' },
       triggerDeploy: { status: 'pending', label: 'Desplegar tienda' },
@@ -186,6 +187,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       'provisioningSteps.createWebApp.error': null,
       'provisioningSteps.initFirestore.status': 'pending',
       'provisioningSteps.initFirestore.error': null,
+      'provisioningSteps.configureEmail.status': 'pending',
+      'provisioningSteps.configureEmail.error': null,
       'provisioningSteps.initAdmin.status': 'pending',
       'provisioningSteps.initAdmin.error': null,
       'provisioningSteps.grantAccess.status': 'pending',
@@ -416,6 +419,85 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await setStep('initFirestore', 'done');
     } catch (err) {
       await fail('initFirestore', err); return;
+    }
+  }
+
+  // ── Step 6.1: Configure email system defaults ─────────────────────────
+  if (!isDone('configureEmail')) {
+    await setStep('configureEmail', 'running');
+    try {
+      const now = new Date().toISOString();
+
+      await retry(
+        () => apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates`,
+          {
+            method: 'PATCH',
+            body: {
+              fields: {
+                storeOwnerEmail: { stringValue: ownerEmail },
+                storeWhatsappNumber: { stringValue: '' },
+                adminNotification: {
+                  mapValue: {
+                    fields: {
+                      subject: { stringValue: `Nuevo pedido recibido en ${name} - #{orderId}` },
+                      template: {
+                        stringValue:
+                          '<h2>Nuevo pedido #{orderId}</h2><p>Cliente: {clientName}</p><p>Email: {clientEmail}</p><p>Teléfono: {clientPhone}</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+                      },
+                      showManageButton: { booleanValue: true },
+                      showWhatsappButton: { booleanValue: true },
+                    },
+                  },
+                },
+                customerConfirmation: {
+                  mapValue: {
+                    fields: {
+                      subject: { stringValue: `Confirmación de tu pedido #{orderId}` },
+                      template: {
+                        stringValue:
+                          '<h2>Gracias por tu compra, {clientName}</h2><p>Tu pedido #{orderId} fue recibido correctamente.</p><p>Items: {itemsList}</p><p>Total: ${totalAmount}</p>',
+                      },
+                      showWhatsappButton: { booleanValue: true },
+                    },
+                  },
+                },
+                createdAt: { timestampValue: now },
+                updatedAt: { timestampValue: now },
+              },
+            },
+            quotaProject: projectId,
+          }
+        ),
+        5,
+        6000
+      );
+
+      await retry(
+        () => apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine`,
+          {
+            method: 'PATCH',
+            body: {
+              fields: {
+                provider: { stringValue: 'firebase-trigger-email' },
+                status: { stringValue: 'ready' },
+                autoConfigured: { booleanValue: true },
+                updatedAt: { timestampValue: now },
+              },
+            },
+            quotaProject: projectId,
+          }
+        ),
+        5,
+        6000
+      );
+
+      await setStep('configureEmail', 'done');
+    } catch (err) {
+      await fail('configureEmail', err); return;
     }
   }
 

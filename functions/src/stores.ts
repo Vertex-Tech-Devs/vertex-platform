@@ -43,6 +43,39 @@ async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof 
   await retry(initIdentityPlatform, 5, 8000);
 }
 
+async function validateMercadoPagoCredentials(accessToken: string, webhookUrl?: string): Promise<{ message: string }> {
+  const token = accessToken.trim();
+  if (!token) {
+    throw new HttpsError('invalid-argument', 'El access token de Mercado Pago es obligatorio.');
+  }
+
+  const webhook = (webhookUrl || '').trim();
+  if (webhook && !/^https:\/\//i.test(webhook)) {
+    throw new HttpsError('invalid-argument', 'El webhook de Mercado Pago debe comenzar con https://');
+  }
+
+  try {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      const details = await res.text();
+      throw new Error(`Mercado Pago respondió ${res.status}: ${details}`);
+    }
+
+    const user = (await res.json()) as { email?: string };
+    return { message: `Credenciales válidas para ${user.email || 'cuenta sin email'}.` };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new HttpsError('invalid-argument', `No se pudieron validar las credenciales de Mercado Pago. ${msg}`);
+  }
+}
+
 export const redeployStore = onCall<{ storeId: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -266,6 +299,24 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       throw new HttpsError('invalid-argument', 'storeId and config are required.');
     }
 
+    const configToSave = JSON.parse(JSON.stringify(config)) as Record<string, any>;
+    const mercadoPago = configToSave['payments']?.['mercadoPago'] as Record<string, any> | undefined;
+    if (mercadoPago) {
+      mercadoPago['publicKey'] = String(mercadoPago['publicKey'] || '').trim();
+      mercadoPago['accessToken'] = String(mercadoPago['accessToken'] || '').trim();
+      mercadoPago['webhookUrl'] = String(mercadoPago['webhookUrl'] || '').trim();
+
+      if (mercadoPago['accessToken']) {
+        const validation = await validateMercadoPagoCredentials(mercadoPago['accessToken'], mercadoPago['webhookUrl']);
+        mercadoPago['validationStatus'] = 'valid';
+        mercadoPago['validationMessage'] = validation.message;
+        mercadoPago['validatedAt'] = new Date().toISOString();
+      } else {
+        mercadoPago['validationStatus'] = 'pending';
+        mercadoPago['validationMessage'] = 'Sin token configurado.';
+      }
+    }
+
     const db = getFirestore();
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
@@ -288,7 +339,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       console.warn(`storeConfig did not exist for ${projectId}, creating new.`, err);
     }
 
-    const incomingFields = toFirestoreFields(config).fields;
+    const incomingFields = toFirestoreFields(configToSave).fields;
     const mergedFields = { ...existingFields, ...incomingFields };
 
     await retry(
@@ -306,8 +357,8 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     );
 
     const centralUpdates: Record<string, any> = { updatedAt: new Date() };
-    if (config.storeName) centralUpdates.name = config.storeName;
-    if (config.logoUrl !== undefined) centralUpdates.logoUrl = config.logoUrl;
+    if (configToSave.storeName) centralUpdates.name = configToSave.storeName;
+    if (configToSave.logoUrl !== undefined) centralUpdates.logoUrl = configToSave.logoUrl;
     await db.collection('stores').doc(storeId).update(centralUpdates);
 
     return { success: true };
