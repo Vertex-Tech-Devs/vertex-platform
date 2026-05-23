@@ -117,11 +117,6 @@ export class StoreDetail implements OnInit, OnDestroy {
       metaTitle: [''],
       metaDescription: ['']
     }),
-    features: this.fb.group({
-      reviewsEnabled: [false],
-      wishlistEnabled: [false],
-      blogEnabled: [false]
-    }),
     payments: this.fb.group({
       mercadoPago: this.fb.group({
         publicKey: [''],
@@ -300,11 +295,6 @@ export class StoreDetail implements OnInit, OnDestroy {
           seo: {
             metaTitle: config.seo?.metaTitle || '',
             metaDescription: config.seo?.metaDescription || ''
-          },
-          features: {
-            reviewsEnabled: !!config.features?.reviewsEnabled,
-            wishlistEnabled: !!config.features?.wishlistEnabled,
-            blogEnabled: !!config.features?.blogEnabled
           },
           payments: {
             mercadoPago: {
