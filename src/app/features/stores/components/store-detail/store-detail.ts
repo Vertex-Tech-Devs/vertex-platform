@@ -661,7 +661,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.isDeleting.set(true);
     this.actionError.set('');
     try {
-      await this.storesService.deleteStore(id);
+      await this.storesService.deleteStore(s.id);
       void this.router.navigate(['/stores']);
     } catch {
       this.actionError.set('No se pudo eliminar la tienda. Intentá de nuevo.');
