@@ -126,6 +126,10 @@ export class StoreDetail implements OnInit, OnDestroy {
       mercadoPago: this.fb.group({
         publicKey: [''],
         accessToken: [''],
+        accessTokenSecret: ['mp-access-token'],
+        accessTokenMasked: [''],
+        accountEmail: [''],
+        accountUserId: [''],
         webhookUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
         validationStatus: ['pending'],
         validationMessage: [''],
@@ -301,7 +305,11 @@ export class StoreDetail implements OnInit, OnDestroy {
           payments: {
             mercadoPago: {
               publicKey: config.payments?.mercadoPago?.publicKey || '',
-              accessToken: config.payments?.mercadoPago?.accessToken || '',
+              accessToken: '',
+              accessTokenSecret: config.payments?.mercadoPago?.accessTokenSecret || 'mp-access-token',
+              accessTokenMasked: config.payments?.mercadoPago?.accessTokenMasked || '',
+              accountEmail: config.payments?.mercadoPago?.accountEmail || '',
+              accountUserId: config.payments?.mercadoPago?.accountUserId || '',
               webhookUrl: config.payments?.mercadoPago?.webhookUrl || '',
               validationStatus: config.payments?.mercadoPago?.validationStatus || 'pending',
               validationMessage: config.payments?.mercadoPago?.validationMessage || ''
@@ -325,6 +333,10 @@ export class StoreDetail implements OnInit, OnDestroy {
             mercadoPago: {
               publicKey: '',
               accessToken: '',
+              accessTokenSecret: 'mp-access-token',
+              accessTokenMasked: '',
+              accountEmail: '',
+              accountUserId: '',
               webhookUrl: '',
               validationStatus: 'pending',
               validationMessage: ''

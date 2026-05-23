@@ -399,6 +399,24 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                     },
                   },
                 },
+                  payments: {
+                    mapValue: {
+                      fields: {
+                        mercadoPago: {
+                          mapValue: {
+                            fields: {
+                              publicKey: { stringValue: '' },
+                              accessTokenSecret: { stringValue: 'mp-access-token' },
+                              accessTokenMasked: { stringValue: '' },
+                              webhookUrl: { stringValue: '' },
+                              validationStatus: { stringValue: 'pending' },
+                              validationMessage: { stringValue: 'Sin token configurado.' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 currency:       { stringValue: 'ARS' },
                 currencySymbol: { stringValue: '$' },
                 country:        { stringValue: 'AR' },

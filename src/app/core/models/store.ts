@@ -70,7 +70,11 @@ export interface StoreFeatureFlags {
 
 export interface StoreMercadoPagoConfig {
   publicKey: string;
-  accessToken: string;
+  accessToken?: string;
+  accessTokenSecret?: string;
+  accessTokenMasked?: string;
+  accountEmail?: string;
+  accountUserId?: string;
   webhookUrl: string;
   validationStatus?: 'pending' | 'valid' | 'invalid';
   validationMessage?: string;
