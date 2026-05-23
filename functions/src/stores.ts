@@ -142,7 +142,8 @@ export const redeployStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string; name: string };
+    const store = storeSnap.data() as { firebaseProjectId: string; name: string; templateVersion?: string };
+    const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : undefined;
 
     const configSnap = await db
       .collection('stores')
@@ -172,6 +173,7 @@ export const redeployStore = onCall<{ storeId: string }>(
             project_id: store.firebaseProjectId,
             firebase_config: JSON.stringify(firebaseConfig),
             store_name: store.name,
+            ref: ref,
           },
         }),
       }

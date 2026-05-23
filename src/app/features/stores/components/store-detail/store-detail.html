@@ -232,7 +232,7 @@
                 <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
                   @if (isRedeploying()) { <span class="spinner-sm"></span> Desplegando… }
                   @else { <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual }
-                  <small>Actualiza la infraestructura y código de la tienda con la última versión v1.1.0+</small>
+                  <small>Re-despliega la infraestructura y el código de la tienda utilizando su versión activa (v{{ store()!.templateVersion || 'asignada' }}).</small>
                 </button>
 
                 <!-- Seed Mock Data -->
