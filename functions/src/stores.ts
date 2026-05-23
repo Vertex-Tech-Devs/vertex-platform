@@ -206,27 +206,33 @@ export const deleteStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
+    const store = storeSnap.data() as { firebaseProjectId?: string };
     const auth = await getOwnerOAuthClient();
 
-    try {
-      await apiFetch(
-        auth,
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${store.firebaseProjectId}`,
-        { method: 'DELETE' }
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('404') && !msg.includes('not found')) {
-        console.error('deleteStore GCP project deletion error:', err);
-        throw new HttpsError('internal', 'Failed to delete GCP project. Please try again.');
+    if (store.firebaseProjectId) {
+      try {
+        await apiFetch(
+          auth,
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${store.firebaseProjectId}`,
+          { method: 'DELETE' }
+        );
+      } catch (err) {
+        console.error(`[deleteStore] GCP project deletion error for ${store.firebaseProjectId}:`, err);
+        // Log the error but do not block Firestore cleanup, allowing the user to unblock themselves
       }
     }
 
+    // Delete 'private' subcollection
     const privateRef = db.collection('stores').doc(storeId).collection('private');
     const privateDocs = await privateRef.listDocuments();
     await Promise.all(privateDocs.map((d) => d.delete()));
 
+    // Delete 'invitations' subcollection
+    const invitationsRef = db.collection('stores').doc(storeId).collection('invitations');
+    const invitationsDocs = await invitationsRef.listDocuments();
+    await Promise.all(invitationsDocs.map((d) => d.delete()));
+
+    // Delete store document
     await db.collection('stores').doc(storeId).delete();
 
     return { success: true };
