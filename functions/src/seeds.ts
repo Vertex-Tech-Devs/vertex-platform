@@ -979,7 +979,7 @@ function generateVariantCombinations(
 /**
  * Seeds isolated child project database with category trees, attributes, and products with variants.
  */
-export async function seedStoreData(auth: OAuth2Client, projectId: string, verticalId: string, storeName?: string): Promise<void> {
+export async function seedStoreData(auth: OAuth2Client, projectId: string, verticalId: string, storeName?: string, includeMockData = true): Promise<void> {
   const sName = storeName ? storeName.trim() : 'Vertex';
   let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
@@ -1213,128 +1213,132 @@ export async function seedStoreData(auth: OAuth2Client, projectId: string, verti
   }
   console.log(`[SeedEngine] Seeded ${seededProducts.length} products and their variants.`);
 
-  // 6. Seed Clients (from CLIENT_DATA)
-  const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
-  let clientIdx = 0;
-  for (const client of CLIENT_DATA) {
-    const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
-    const clientDocId = `cli-${clientIdx}`;
-    const clientPayload = {
-      fullName: client.fullName,
-      email: client.email,
-      phone: client.phone,
-      firstOrderDate: new Date(Date.now() - days * 86_400_000),
-      lastOrderDate: new Date(Date.now() - Math.max(1, Math.floor(days / 4)) * 86_400_000),
-      numberOfOrders: CLIENT_ORDER_COUNTS[clientIdx] ?? 1,
-      createdAt: new Date()
-    };
-
-    await retry(
-      () => apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/clients/${clientDocId}`,
-        {
-          method: 'PATCH',
-          body: toFirestoreFields(clientPayload),
-          quotaProject: projectId
-        }
-      ),
-      5,
-      6000
-    );
-
-    seededClients.push({
-      id: clientDocId,
-      fullName: client.fullName,
-      email: client.email,
-      phone: client.phone
-    });
-    clientIdx++;
-  }
-  console.log(`[SeedEngine] Seeded ${seededClients.length} clients.`);
-
-  // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
-  let orderIdx = 0;
-  for (const order of ORDER_DATA) {
-    const cl = seededClients[order.clientIdx % seededClients.length];
-    const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
-    const orderDocId = `ord-${orderIdx++}`;
-
-    let subtotal = 0;
-    const items = order.lines.map((line) => {
-      const p = seededProducts[line.prodIdx % seededProducts.length];
-      const attrs: Record<string, string> = {};
-
-      // Dyn-map variants
-      if (p.variantAttributes.includes('color')) {
-        attrs['color'] = line.color;
-      } else if (p.variantAttributes.includes('coccion')) {
-        attrs['coccion'] = 'A punto';
-      }
-
-      if (p.variantAttributes.includes('talle-ropa') && line.talle) {
-        attrs['talle-ropa'] = line.talle;
-      } else if (p.variantAttributes.includes('talle-pantalon') && line.talle) {
-        attrs['talle-pantalon'] = line.talle;
-      } else if (p.variantAttributes.includes('talle-calzado') && line.talle) {
-        attrs['talle-calzado'] = line.talle;
-      }
-
-      const linePrice = p.finalPrice;
-      subtotal += linePrice * line.qty;
-
-      return {
-        productId: p.id,
-        variantId: `var-${p.id}`,
-        productName: p.name,
-        quantity: line.qty,
-        price: linePrice,
-        productImage: p.image,
-        attributes: attrs
+  if (includeMockData) {
+    // 6. Seed Clients (from CLIENT_DATA)
+    const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
+    let clientIdx = 0;
+    for (const client of CLIENT_DATA) {
+      const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
+      const clientDocId = `cli-${clientIdx}`;
+      const clientPayload = {
+        fullName: client.fullName,
+        email: client.email,
+        phone: client.phone,
+        firstOrderDate: new Date(Date.now() - days * 86_400_000),
+        lastOrderDate: new Date(Date.now() - Math.max(1, Math.floor(days / 4)) * 86_400_000),
+        numberOfOrders: CLIENT_ORDER_COUNTS[clientIdx] ?? 1,
+        createdAt: new Date()
       };
-    });
 
-    const orderPayload = {
-      userId: `user-${cl.id}`,
-      clientName: cl.fullName,
-      clientEmail: cl.email,
-      clientPhone: cl.phone,
-      orderDate,
-      total: subtotal + order.shippingCost,
-      status: order.status,
-      items,
-      shippingAddress: {
-        street: order.street,
-        city: order.city,
-        state: order.state,
-        zipCode: order.zip,
-        country: 'Argentina'
-      },
-      paymentDetails: {
-        paymentMethod: order.paymentMethod,
-        shippingCost: order.shippingCost,
-        taxAmount: Math.round(subtotal * 0.21),
-        subtotal
-      },
-      stockDecremented: order.status !== 'cancelled',
-      notes: orderIdx % 5 === 0 ? 'Cliente solicitó embalaje de regalo.' : null
-    };
+      await retry(
+        () => apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/clients/${clientDocId}`,
+          {
+            method: 'PATCH',
+            body: toFirestoreFields(clientPayload),
+            quotaProject: projectId
+          }
+        ),
+        5,
+        6000
+      );
 
-    await retry(
-      () => apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${orderDocId}`,
-        {
-          method: 'PATCH',
-          body: toFirestoreFields(orderPayload),
-          quotaProject: projectId
+      seededClients.push({
+        id: clientDocId,
+        fullName: client.fullName,
+        email: client.email,
+        phone: client.phone
+      });
+      clientIdx++;
+    }
+    console.log(`[SeedEngine] Seeded ${seededClients.length} clients.`);
+
+    // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
+    let orderIdx = 0;
+    for (const order of ORDER_DATA) {
+      const cl = seededClients[order.clientIdx % seededClients.length];
+      const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
+      const orderDocId = `ord-${orderIdx++}`;
+
+      let subtotal = 0;
+      const items = order.lines.map((line) => {
+        const p = seededProducts[line.prodIdx % seededProducts.length];
+        const attrs: Record<string, string> = {};
+
+        // Dyn-map variants
+        if (p.variantAttributes.includes('color')) {
+          attrs['color'] = line.color;
+        } else if (p.variantAttributes.includes('coccion')) {
+          attrs['coccion'] = 'A punto';
         }
-      ),
-      5,
-      6000
-    );
+
+        if (p.variantAttributes.includes('talle-ropa') && line.talle) {
+          attrs['talle-ropa'] = line.talle;
+        } else if (p.variantAttributes.includes('talle-pantalon') && line.talle) {
+          attrs['talle-pantalon'] = line.talle;
+        } else if (p.variantAttributes.includes('talle-calzado') && line.talle) {
+          attrs['talle-calzado'] = line.talle;
+        }
+
+        const linePrice = p.finalPrice;
+        subtotal += linePrice * line.qty;
+
+        return {
+          productId: p.id,
+          variantId: `var-${p.id}`,
+          productName: p.name,
+          quantity: line.qty,
+          price: linePrice,
+          productImage: p.image,
+          attributes: attrs
+        };
+      });
+
+      const orderPayload = {
+        userId: `user-${cl.id}`,
+        clientName: cl.fullName,
+        clientEmail: cl.email,
+        clientPhone: cl.phone,
+        orderDate,
+        total: subtotal + order.shippingCost,
+        status: order.status,
+        items,
+        shippingAddress: {
+          street: order.street,
+          city: order.city,
+          state: order.state,
+          zipCode: order.zip,
+          country: 'Argentina'
+        },
+        paymentDetails: {
+          paymentMethod: order.paymentMethod,
+          shippingCost: order.shippingCost,
+          taxAmount: Math.round(subtotal * 0.21),
+          subtotal
+        },
+        stockDecremented: order.status !== 'cancelled',
+        notes: orderIdx % 5 === 0 ? 'Cliente solicitó embalaje de regalo.' : null
+      };
+
+      await retry(
+        () => apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${orderDocId}`,
+          {
+            method: 'PATCH',
+            body: toFirestoreFields(orderPayload),
+            quotaProject: projectId
+          }
+        ),
+        5,
+        6000
+      );
+    }
+    console.log(`[SeedEngine] Seeded ${ORDER_DATA.length} orders.`);
+  } else {
+    console.log('[SeedEngine] includeMockData is false. Skipping clients and orders seeding.');
   }
-  console.log(`[SeedEngine] Seeded ${ORDER_DATA.length} orders.`);
 
   // 8. Seed Site Banners (siteContent/homePage)
   const isIndumentaria = targetVertical === 'indumentaria';

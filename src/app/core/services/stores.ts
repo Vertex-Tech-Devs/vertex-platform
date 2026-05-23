@@ -163,9 +163,9 @@ export class StoresService {
     return result.data.config;
   }
 
-  async seedStore(storeId: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'seedStore');
-    await fn({ storeId });
+  async seedStore(storeId: string, includeMockData = true): Promise<void> {
+    const fn = httpsCallable<{ storeId: string; includeMockData: boolean }, { success: boolean }>(this.fns, 'seedStore');
+    await fn({ storeId, includeMockData });
   }
 
   async listTemplateVersions(): Promise<TemplateVersion[]> {

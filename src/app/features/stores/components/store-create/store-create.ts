@@ -30,6 +30,7 @@ export class StoreCreate {
     logoUrl: [''],
     customDomain: [''],
     verticalId: ['indumentaria' as string, Validators.required],
+    includeMockData: [true],
   });
 
   autoSlug(): void {

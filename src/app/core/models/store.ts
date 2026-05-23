@@ -46,6 +46,7 @@ export interface CreateStorePayload {
   logoUrl?: string | null;
   customDomain?: string;
   verticalId?: string;
+  includeMockData?: boolean;
 }
 
 export interface StoreContact {

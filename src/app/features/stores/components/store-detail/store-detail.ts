@@ -68,6 +68,8 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly showSleepConfirm = signal(false);
   readonly showDomainForm = signal(false);
   readonly showEditModal = signal(false);
+  readonly showSeedConfirm = signal(false);
+  readonly seedIncludeMock = signal(true);
 
   // Error/Success state signals
   readonly actionError = signal('');
@@ -615,14 +617,20 @@ export class StoreDetail implements OnInit, OnDestroy {
     }
   }
 
+  openSeedConfirm(): void {
+    this.seedIncludeMock.set(true);
+    this.showSeedConfirm.set(true);
+  }
+
   async seedStore(): Promise<void> {
     const id = this.store()?.id;
     if (!id) return;
+    this.showSeedConfirm.set(false);
     this.isSeeding.set(true);
     this.actionError.set('');
     this.actionSuccess.set('');
     try {
-      await this.storesService.seedStore(id);
+      await this.storesService.seedStore(id, this.seedIncludeMock());
       this.actionSuccess.set('¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

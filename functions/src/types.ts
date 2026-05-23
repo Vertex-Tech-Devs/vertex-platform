@@ -17,6 +17,7 @@ export interface CreateStorePayload {
   logoUrl?: string;
   customDomain?: string;
   verticalId?: string;
+  includeMockData?: boolean;
 }
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';

@@ -776,14 +776,14 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
   }
 );
 
-export const seedStore = onCall<{ storeId: string }>(
+export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can seed store data.');
     }
 
-    const { storeId } = request.data;
+    const { storeId, includeMockData = true } = request.data;
     if (!storeId) {
       throw new HttpsError('invalid-argument', 'storeId is required.');
     }
@@ -800,7 +800,7 @@ export const seedStore = onCall<{ storeId: string }>(
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, verticalId, store.name);
+      await seedStoreData(auth, projectId, verticalId, store.name, includeMockData !== false);
       return { success: true };
     } catch (err: any) {
       console.error(`Error seeding store ${storeId} (project: ${projectId}):`, err);

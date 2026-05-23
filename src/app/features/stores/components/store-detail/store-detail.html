@@ -248,7 +248,7 @@
 
                 <!-- Seed Mock Data -->
                 @if (store()!.status === 'active') {
-                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="seedStore()">
+                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="openSeedConfirm()">
                     @if (isSeeding()) { <span class="spinner-sm"></span> Semillando datos… }
                     @else { <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba }
                     <small>Carga un catálogo completo de productos, categorías e imágenes de demostración en el Firestore de la tienda</small>
@@ -989,6 +989,49 @@
             (click)="deleteStore()">
             @if (isDeleting()) { <span class="spinner-sm"></span> Eliminando… }
             @else { <i class="bi bi-trash"></i> Eliminar definitivamente }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Seed confirmation modal -->
+  @if (showSeedConfirm()) {
+    <div class="modal-overlay" (click)="showSeedConfirm.set(false)">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-database-fill-gear" style="color: #60a5fa;"></i> Semillar Datos de Prueba
+        </h3>
+        <p class="modal__body" style="font-size: 0.875rem; line-height: 1.5; color: var(--platform-text-secondary); margin-bottom: 1rem;">
+          Esta operación cargará un catálogo de demostración (productos, variantes, imágenes y banners) en el Firestore de la tienda <strong>{{ store()!.name }}</strong>.
+        </p>
+
+        <div class="form-group" style="margin: 1.25rem 0; display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+          <input
+            id="seedIncludeMock"
+            type="checkbox"
+            style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+            [checked]="seedIncludeMock()"
+            (change)="seedIncludeMock.set($any($event.target).checked)" />
+          <label for="seedIncludeMock" style="color: var(--platform-text-primary); font-size: 0.9rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+            Incluir 20 clientes y 20 pedidos simulados (de prueba)
+          </label>
+        </div>
+
+        <p class="modal__body" style="font-size: 0.8rem; line-height: 1.4; color: var(--platform-text-secondary); opacity: 0.75; margin-bottom: 1.25rem;">
+          ⚠️ <em>Nota:</em> Los clientes y los pedidos de prueba no se pueden eliminar ni editar fácilmente en la plantilla del ecommerce debido a políticas de seguridad transaccionales de Firestore. Desmarcalos si querés que la base de datos de transacciones comience vacía.
+        </p>
+
+        <div class="modal__actions">
+          <button class="btn btn-secondary" (click)="showSeedConfirm.set(false)">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-primary"
+            [disabled]="isSeeding()"
+            (click)="seedStore()">
+            @if (isSeeding()) { <span class="spinner-sm"></span> Semillando… }
+            @else { <i class="bi bi-database"></i> Iniciar Semillado }
           </button>
         </div>
       </div>
