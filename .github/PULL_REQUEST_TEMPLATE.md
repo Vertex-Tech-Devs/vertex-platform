@@ -47,6 +47,24 @@ Describe las pruebas locales realizadas para validar estos cambios:
 
 ---
 
+## 🔄 Sincronización Inversa (Back-Merge) — Obligatorio al mergear a `main`
+
+> **Aplica únicamente cuando esta PR apunta a `main`.**
+> Si esta PR es `develop` → `main` o un `hotfix/*` → `main`, ejecutar **inmediatamente después del merge**:
+
+```bash
+# Flujo Obligatorio de Sincronización Inversa (Back-Merge)
+git checkout develop
+git pull origin develop
+git merge origin/main
+# Resolver conflictos manteniendo la estabilidad si los hubiera
+git push origin develop
+```
+
+- [ ] **Back-Merge ejecutado** *(solo si esta PR apunta a `main`)* — `git diff develop..main` no devuelve salida de código fuente.
+
+---
+
 ## 🤝 Flujo de Revisión y Quality Gate
 * Al abrir esta PR, se iniciará el flujo de **GitHub Actions** (`CI`).
 * Se desplegará automáticamente un canal de previsualización temporal de Firebase Hosting (**Hosting Preview Channel**). El enlace se comentará automáticamente en este hilo.

@@ -127,6 +127,34 @@ jobs:
         working-directory: functions
         continue-on-error: true
 
+  divergence-check:
+    name: Divergence Check (develop vs main)
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'develop' || github.base_ref == 'develop'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check develop is not behind main
+        run: |
+          git fetch origin main develop
+          DIFF=$(git diff origin/develop..origin/main -- '*.ts' '*.html' '*.scss' '*.json' 2>/dev/null | head -c 500)
+          if [ -n "$DIFF" ]; then
+            echo "::warning::develop está desincronizado de main. Ejecutar el Back-Merge obligatorio:"
+            echo "::warning::  git checkout develop && git pull origin develop && git merge origin/main && git push origin develop"
+            echo "### ⚠️ Back-Merge Pendiente" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`develop\` tiene commits de \`main\` que aún no fueron sincronizados." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "git checkout develop && git pull origin develop && git merge origin/main && git push origin develop" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ develop está sincronizado con main." >> $GITHUB_STEP_SUMMARY
+          fi
+
+
   preview:
     name: Hosting Preview
     runs-on: ubuntu-latest
