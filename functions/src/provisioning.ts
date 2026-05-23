@@ -261,39 +261,65 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('createProject')) {
     await setStep('createProject', 'running');
     try {
-      const ownerCandidates = await listProvisioningOwnerCandidates(db, provisioningOwnerId);
+      const maxQuotaRetryRounds = 3;
       let createProjectError: unknown = null;
 
-      for (const candidate of ownerCandidates) {
-        try {
-          auth = await assignProvisioningOwner(candidate.id);
-          const op = (await apiFetch(
-            auth,
-            'https://cloudresourcemanager.googleapis.com/v3/projects',
-            {
-              method: 'POST',
-              body: { projectId, displayName: name },
-            },
-          )) as { name: string };
-          await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
-          createProjectError = null;
-          break;
-        } catch (err) {
-          createProjectError = err;
-          const raw = err instanceof Error ? err.message : String(err);
-          const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
-          if (!isProjectQuotaExceeded(raw) || isLastCandidate) {
-            throw err;
+      for (let round = 1; round <= maxQuotaRetryRounds; round++) {
+        const ownerCandidates = await listProvisioningOwnerCandidates(db, provisioningOwnerId);
+        let created = false;
+
+        for (const candidate of ownerCandidates) {
+          try {
+            auth = await assignProvisioningOwner(candidate.id);
+            const op = (await apiFetch(
+              auth,
+              'https://cloudresourcemanager.googleapis.com/v3/projects',
+              {
+                method: 'POST',
+                body: { projectId, displayName: name },
+              },
+            )) as { name: string };
+            await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
+            createProjectError = null;
+            created = true;
+            break;
+          } catch (err) {
+            createProjectError = err;
+            const raw = err instanceof Error ? err.message : String(err);
+            const isQuotaError = isProjectQuotaExceeded(raw);
+            const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
+
+            if (!isQuotaError || isLastCandidate) {
+              if (!isQuotaError) {
+                throw err;
+              }
+              continue;
+            }
+
+            console.warn(
+              `[provisioning:createProject] El owner ${candidate.id} agotó su cuota de proyectos. Reintentando con otra credencial.`,
+            );
           }
-          console.warn(
-            `[provisioning:createProject] El owner ${candidate.id} agotó su cuota de proyectos. Reintentando con otra credencial.`,
-          );
         }
+
+        if (created) {
+          break;
+        }
+
+        const raw =
+          createProjectError instanceof Error ? createProjectError.message : String(createProjectError);
+        if (!isProjectQuotaExceeded(raw) || round === maxQuotaRetryRounds) {
+          throw createProjectError;
+        }
+
+        const delayMs = 20000 * round;
+        console.warn(
+          `[provisioning:createProject] Cuota de creación de proyectos agotada en la ronda ${round}/${maxQuotaRetryRounds}. Reintentando en ${Math.round(delayMs / 1000)}s.`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
-      if (createProjectError) {
-        throw createProjectError;
-      }
+      if (createProjectError) throw createProjectError;
 
       await setStep('createProject', 'done');
     } catch (err) {
