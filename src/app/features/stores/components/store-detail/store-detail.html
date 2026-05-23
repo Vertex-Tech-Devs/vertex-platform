@@ -142,7 +142,16 @@
                   <dt>Rubro / Vertical</dt><dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
                 }
                 @if (store()!.templateVersion) {
-                  <dt>Versión plantilla</dt><dd class="text-accent">v{{ store()!.templateVersion }}</dd>
+                  <dt>Versión plantilla</dt>
+                  <dd class="text-accent">
+                    v{{ store()!.templateVersion }}
+                    @if (store()!.versionUpdateStatus === 'updating') {
+                      <span class="badge badge--warning ms-1">actualizando…</span>
+                    }
+                    @if (store()!.versionUpdateStatus === 'failed') {
+                      <span class="badge badge--error ms-1">error en update</span>
+                    }
+                  </dd>
                 }
                 @if (store()!.schemaVersion) {
                   <dt>Versión esquema</dt><dd class="text-accent">{{ store()!.schemaVersion }}</dd>
@@ -153,6 +162,67 @@
                 }
               </dl>
             </div>
+
+            <!-- Version selector card -->
+            @if (store()!.status === 'active') {
+              <div class="detail-card">
+                <h2 class="detail-card__title">Versión de Plantilla</h2>
+                <p class="detail-card__desc">
+                  Seleccioná la versión del template que querés desplegar a esta tienda.
+                  El deploy se realiza directamente sobre su proyecto Firebase al confirmar.
+                </p>
+
+                @if (isLoadingVersions()) {
+                  <p class="text-muted">Cargando versiones disponibles…</p>
+                } @else if (availableVersions().length === 0) {
+                  <p class="text-muted">No se encontraron releases publicados.</p>
+                } @else {
+                  <div class="version-selector">
+                    <select
+                      class="form-select"
+                      [value]="selectedVersion()"
+                      (change)="selectedVersion.set($any($event.target).value)"
+                      [disabled]="isUpdatingVersion() || store()!.versionUpdateStatus === 'updating'"
+                    >
+                      @for (v of availableVersions(); track v.version) {
+                        <option [value]="v.version">
+                          v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }}
+                          — {{ v.publishedAt | date:'dd/MM/yyyy' }}
+                        </option>
+                      }
+                    </select>
+
+                    <button
+                      class="action-btn action-btn--primary"
+                      [disabled]="
+                        isUpdatingVersion() ||
+                        store()!.versionUpdateStatus === 'updating' ||
+                        selectedVersion() === store()!.templateVersion
+                      "
+                      (click)="applyVersionUpdate()"
+                    >
+                      @if (isUpdatingVersion() || store()!.versionUpdateStatus === 'updating') {
+                        <span class="spinner-sm"></span> Iniciando deploy…
+                      } @else {
+                        <i class="bi bi-box-arrow-up"></i> Aplicar versión
+                      }
+                    </button>
+                  </div>
+
+                  @if (versionUpdateSuccess()) {
+                    <p class="feedback feedback--success mt-2">{{ versionUpdateSuccess() }}</p>
+                  }
+                  @if (versionUpdateError()) {
+                    <p class="feedback feedback--error mt-2">{{ versionUpdateError() }}</p>
+                  }
+                  @if (store()!.versionUpdateStatus === 'failed') {
+                    <p class="feedback feedback--error mt-2">
+                      El último intento de actualización falló. Revisá los logs de GitHub Actions.
+                    </p>
+                  }
+                }
+              </div>
+            }
 
             <!-- Actions card -->
             <div class="detail-card">

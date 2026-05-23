@@ -6,7 +6,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { StoresService } from '@core/services/stores';
 import type { DnsRecord } from '@core/services/stores';
 import type { DeploymentHistoryItem } from '@core/services/stores';
-import type { ProvisioningStep, StoreConfig, StaffMember, PendingInvitation, Store } from '@core/models/store';
+import type { ProvisioningStep, StoreConfig, StaffMember, PendingInvitation, Store, TemplateVersion } from '@core/models/store';
 
 const STEP_ORDER = [
   'createProject',
@@ -137,6 +137,14 @@ export class StoreDetail implements OnInit, OnDestroy {
     role: ['admin', Validators.required]
   });
 
+  // Version management
+  readonly availableVersions = signal<TemplateVersion[]>([]);
+  readonly isLoadingVersions = signal(false);
+  readonly isUpdatingVersion = signal(false);
+  readonly selectedVersion = signal('');
+  readonly versionUpdateError = signal('');
+  readonly versionUpdateSuccess = signal('');
+
   // Domain DNS fields
   readonly domainStatus = signal<'live' | 'pending' | 'none'>('none');
   readonly isVerifyingDNS = signal(false);
@@ -151,6 +159,7 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.loadHistory();
+    void this.loadVersions();
     this.startPolling();
   }
 
@@ -172,6 +181,42 @@ export class StoreDetail implements OnInit, OnDestroy {
       console.error('Error loading deployment history:', err);
     } finally {
       this.isLoadingHistory.set(false);
+    }
+  }
+
+  async loadVersions(): Promise<void> {
+    this.isLoadingVersions.set(true);
+    try {
+      const versions = await this.storesService.listTemplateVersions();
+      this.availableVersions.set(versions);
+      const current = this.store()?.templateVersion;
+      if (current) {
+        this.selectedVersion.set(current);
+      } else if (versions.length > 0) {
+        this.selectedVersion.set(versions[0].version);
+      }
+    } catch (err) {
+      console.error('Error loading template versions:', err);
+    } finally {
+      this.isLoadingVersions.set(false);
+    }
+  }
+
+  async applyVersionUpdate(): Promise<void> {
+    const s = this.store();
+    const version = this.selectedVersion();
+    if (!s || !version || s.templateVersion === version) return;
+
+    this.isUpdatingVersion.set(true);
+    this.versionUpdateError.set('');
+    this.versionUpdateSuccess.set('');
+    try {
+      await this.storesService.updateStoreVersion(s.id, version);
+      this.versionUpdateSuccess.set(`Actualización a v${version} iniciada. El deploy puede tardar unos minutos.`);
+    } catch (err: unknown) {
+      this.versionUpdateError.set(err instanceof Error ? err.message : 'Error al iniciar la actualización.');
+    } finally {
+      this.isUpdatingVersion.set(false);
     }
   }
 
