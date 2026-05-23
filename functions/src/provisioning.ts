@@ -503,6 +503,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 provider: { stringValue: 'firebase-trigger-email' },
                 status: { stringValue: 'ready' },
                 autoConfigured: { booleanValue: true },
+                warning: { stringValue: 'La extension firebase-trigger-email debe instalarse y configurarse con SMTP en este proyecto Firebase para que el envio de correos funcione de forma real.' },
                 updatedAt: { timestampValue: now },
               },
             },
@@ -512,6 +513,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         5,
         6000
       );
+
+      console.info(`[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates y settings/emailEngine para el proyecto ${projectId}.`);
+      console.warn(`[provisioning:configureEmail] ¡ATENCIÓN! La extensión 'firebase-trigger-email' debe ser provista/instalada físicamente en el proyecto Firebase '${projectId}' y vinculada a un servidor SMTP real para el envío efectivo de correos. Consultar docs/email-provisioning.md para más detalles.`);
 
       await setStep('configureEmail', 'done');
     } catch (err) {
