@@ -20,6 +20,25 @@ export interface CreateStorePayload {
   includeMockData?: boolean;
 }
 
+export type StoreRuntimeMode = 'shared-shard' | 'dedicated-project';
+
+export interface StoreShard {
+  id: string;
+  environment: 'development' | 'production';
+  runtimeMode: 'shared-shard';
+  projectId: string;
+  siteId: string;
+  region: string;
+  status: 'active' | 'draining' | 'maintenance';
+  maxStores: number;
+  activeStores: number;
+  reservedStores: number;
+  currentTemplateVersion?: string;
+  currentDataVersion?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';
 
 export interface ProvisioningStep {

@@ -4,6 +4,21 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, getGitHubPat, apiFetch, retry } from './helpers';
 import type { InviteStaffPayload, UpdateStoreConfigPayload } from './types';
 
+function resolveRuntimeProjectId(store: {
+  runtimeProjectId?: string;
+  firebaseProjectId?: string;
+}): string {
+  const projectId = store.runtimeProjectId ?? store.firebaseProjectId;
+  if (!projectId) {
+    throw new HttpsError('failed-precondition', 'Store runtime project is not configured.');
+  }
+  return projectId;
+}
+
+function resolveRuntimeSiteId(store: { runtimeSiteId?: string }): string {
+  return store.runtimeSiteId ?? 'default';
+}
+
 async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>, projectId: string): Promise<void> {
   const initIdentityPlatform = async (): Promise<void> => {
     try {
@@ -142,7 +157,13 @@ export const redeployStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string; name: string; templateVersion?: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      name: string;
+      templateVersion?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
     const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : undefined;
 
     const configSnap = await db
@@ -170,7 +191,7 @@ export const redeployStore = onCall<{ storeId: string }>(
           event_type: 'provision-store',
           client_payload: {
             store_id: storeId,
-            project_id: store.firebaseProjectId,
+            project_id: projectId,
             firebase_config: JSON.stringify(firebaseConfig),
             store_name: store.name,
             ref: ref,
@@ -206,18 +227,19 @@ export const deleteStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string };
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
     const auth = await getOwnerOAuthClient();
 
-    if (store.firebaseProjectId) {
+    const projectId = store.runtimeProjectId ?? store.firebaseProjectId;
+    if (projectId) {
       try {
         await apiFetch(
           auth,
-          `https://cloudresourcemanager.googleapis.com/v3/projects/${store.firebaseProjectId}`,
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`,
           { method: 'DELETE' }
         );
       } catch (err) {
-        console.error(`[deleteStore] GCP project deletion error for ${store.firebaseProjectId}:`, err);
+        console.error(`[deleteStore] GCP project deletion error for ${projectId}:`, err);
         // Log the error but do not block Firestore cleanup, allowing the user to unblock themselves
       }
     }
@@ -255,12 +277,18 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = resolveRuntimeSiteId(store);
     const auth = await getOwnerOAuthClient();
 
     const tokenRes = await auth.getAccessToken();
     const res = await fetch(
-      `https://firebasehosting.googleapis.com/v1beta1/projects/${store.firebaseProjectId}/sites/default/domains`,
+      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains`,
       {
         method: 'POST',
         headers: {
@@ -327,7 +355,13 @@ export const getActiveStores = onCall(
 
     const stores = await Promise.all(
       snap.docs.map(async (doc) => {
-        const store = doc.data() as { id: string; name: string; firebaseProjectId: string };
+        const store = doc.data() as {
+          id: string;
+          name: string;
+          firebaseProjectId?: string;
+          runtimeProjectId?: string;
+        };
+        const projectId = resolveRuntimeProjectId(store);
 
         const configSnap = await db
           .collection('stores')
@@ -338,7 +372,7 @@ export const getActiveStores = onCall(
 
         return {
           storeId: store.id,
-          projectId: store.firebaseProjectId,
+          projectId,
           storeName: store.name,
           firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,
         };
@@ -373,8 +407,8 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const projectId = resolveRuntimeProjectId(store);
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
@@ -456,8 +490,8 @@ export const getStoreConfig = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const projectId = resolveRuntimeProjectId(store);
     const auth = await getOwnerOAuthClient();
 
     try {
@@ -527,8 +561,8 @@ export const inviteStaff = onCall<InviteStaffPayload>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const projectId = resolveRuntimeProjectId(store);
 
     const token = crypto.randomUUID();
     const invitationId = crypto.randomUUID();
@@ -667,8 +701,8 @@ export const getStoreStaff = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const projectId = resolveRuntimeProjectId(store);
 
     let users: Array<{ uid: string; email: string; role: string; displayName?: string; joinedAt?: string }> = [];
     try {
@@ -735,13 +769,18 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = resolveRuntimeSiteId(store);
     const auth = await getOwnerOAuthClient();
 
     const tokenRes = await auth.getAccessToken();
     const res = await fetch(
-      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/default/domains/${domain}`,
+      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${domain}`,
       {
         method: 'GET',
         headers: {
@@ -798,8 +837,13 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { name: string; firebaseProjectId: string; verticalId?: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as {
+      name: string;
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      verticalId?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
     const verticalId = store.verticalId || 'retail';
 
     const auth = await getOwnerOAuthClient();
@@ -832,8 +876,8 @@ export const generatePasswordResetLink = onCall<{ storeId: string; email: string
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
-    const projectId = store.firebaseProjectId;
+    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const projectId = resolveRuntimeProjectId(store);
     const auth = await getOwnerOAuthClient();
 
     try {
