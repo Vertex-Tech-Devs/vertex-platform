@@ -236,10 +236,12 @@ export class StoreDetail implements OnInit, OnDestroy {
   startPolling(): void {
     this.stopPolling();
     this.pollIntervalId = setInterval(() => {
+      if (this.activeTab() !== 'orquestacion') return;
+      if (document.hidden) return;
       const s = this.store();
       if (!s) return;
       void this.loadHistory();
-    }, 6000);
+    }, 15000);
   }
 
   stopPolling(): void {
@@ -255,7 +257,9 @@ export class StoreDetail implements OnInit, OnDestroy {
     const s = this.store();
     if (!s) return;
 
-    if (tab === 'config') {
+    if (tab === 'orquestacion') {
+      void this.loadHistory();
+    } else if (tab === 'config') {
       await this.loadConfig();
     } else if (tab === 'equipo') {
       await this.loadStaff();
@@ -652,8 +656,8 @@ export class StoreDetail implements OnInit, OnDestroy {
   }
 
   async deleteStore(): Promise<void> {
-    const id = this.store()?.id;
-    if (!id) return;
+    const s = this.store();
+    if (!s || this.deleteConfirmInput !== s.slug) return;
     this.isDeleting.set(true);
     this.actionError.set('');
     try {

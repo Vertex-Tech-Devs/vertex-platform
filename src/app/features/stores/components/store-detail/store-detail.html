@@ -973,12 +973,12 @@
         </p>
         <div class="form-group" style="margin: 1rem 0">
           <label class="form-label">
-            Escribí <code>{{ store()!.firebaseProjectId }}</code> para confirmar:
+            Escribí <code>{{ store()!.slug }}</code> para confirmar:
           </label>
           <input
             class="form-control"
             [(ngModel)]="deleteConfirmInput"
-            [placeholder]="store()!.firebaseProjectId"
+            [placeholder]="store()!.slug"
             autocomplete="off" />
         </div>
         <div class="modal__actions">
@@ -987,7 +987,7 @@
           </button>
           <button
             class="btn btn-danger"
-            [disabled]="isDeleting() || deleteConfirmInput !== store()!.firebaseProjectId"
+            [disabled]="isDeleting() || deleteConfirmInput !== store()!.slug"
             (click)="deleteStore()">
             @if (isDeleting()) { <span class="spinner-sm"></span> Eliminando… }
             @else { <i class="bi bi-trash"></i> Eliminar definitivamente }
