@@ -6,7 +6,14 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { StoresService } from '@core/services/stores';
 import type { DnsRecord } from '@core/services/stores';
 import type { DeploymentHistoryItem } from '@core/services/stores';
-import type { ProvisioningStep, StoreConfig, StaffMember, PendingInvitation, Store, TemplateVersion } from '@core/models/store';
+import type {
+  ProvisioningStep,
+  StoreConfig,
+  StaffMember,
+  PendingInvitation,
+  Store,
+  TemplateVersion,
+} from '@core/models/store';
 
 const STEP_ORDER = [
   'createProject',
@@ -113,11 +120,11 @@ export class StoreDetail implements OnInit, OnDestroy {
       whatsapp: [''],
       address: [''],
       instagram: [''],
-      facebook: ['', [Validators.pattern(this.optionalUrlRegex)]]
+      facebook: ['', [Validators.pattern(this.optionalUrlRegex)]],
     }),
     seo: this.fb.group({
       metaTitle: [''],
-      metaDescription: ['']
+      metaDescription: [''],
     }),
     payments: this.fb.group({
       mercadoPago: this.fb.group({
@@ -131,7 +138,7 @@ export class StoreDetail implements OnInit, OnDestroy {
         validationStatus: ['pending'],
         validationMessage: [''],
       }),
-    })
+    }),
   });
 
   // Team RBAC fields
@@ -148,7 +155,7 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   readonly inviteForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    role: ['admin', Validators.required]
+    role: ['admin', Validators.required],
   });
 
   // Version management
@@ -168,7 +175,11 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly hasDnsAccess = signal(false);
   readonly wantsRootOrWwwReady = signal(false);
   readonly canConnectDomain = computed(
-    () => !!this.domainInput.trim() && this.hasDomainOwnership() && this.hasDnsAccess() && this.wantsRootOrWwwReady()
+    () =>
+      !!this.domainInput.trim() &&
+      this.hasDomainOwnership() &&
+      this.hasDnsAccess() &&
+      this.wantsRootOrWwwReady(),
   );
 
   ngOnInit(): void {
@@ -226,9 +237,13 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.versionUpdateSuccess.set('');
     try {
       await this.storesService.updateStoreVersion(s.id, version);
-      this.versionUpdateSuccess.set(`Actualización a v${version} iniciada. El deploy puede tardar unos minutos.`);
+      this.versionUpdateSuccess.set(
+        `Actualización a v${version} iniciada. El deploy puede tardar unos minutos.`,
+      );
     } catch (err: unknown) {
-      this.versionUpdateError.set(err instanceof Error ? err.message : 'Error al iniciar la actualización.');
+      this.versionUpdateError.set(
+        err instanceof Error ? err.message : 'Error al iniciar la actualización.',
+      );
     } finally {
       this.isUpdatingVersion.set(false);
     }
@@ -296,25 +311,26 @@ export class StoreDetail implements OnInit, OnDestroy {
             whatsapp: config.contact?.whatsapp || '',
             address: config.contact?.address || '',
             instagram: config.contact?.instagram || '',
-            facebook: config.contact?.facebook || ''
+            facebook: config.contact?.facebook || '',
           },
           seo: {
             metaTitle: config.seo?.metaTitle || '',
-            metaDescription: config.seo?.metaDescription || ''
+            metaDescription: config.seo?.metaDescription || '',
           },
           payments: {
             mercadoPago: {
               publicKey: config.payments?.mercadoPago?.publicKey || '',
               accessToken: '',
-              accessTokenSecret: config.payments?.mercadoPago?.accessTokenSecret || 'mp-access-token',
+              accessTokenSecret:
+                config.payments?.mercadoPago?.accessTokenSecret || 'mp-access-token',
               accessTokenMasked: config.payments?.mercadoPago?.accessTokenMasked || '',
               accountEmail: config.payments?.mercadoPago?.accountEmail || '',
               accountUserId: config.payments?.mercadoPago?.accountUserId || '',
               webhookUrl: config.payments?.mercadoPago?.webhookUrl || '',
               validationStatus: config.payments?.mercadoPago?.validationStatus || 'pending',
-              validationMessage: config.payments?.mercadoPago?.validationMessage || ''
-            }
-          }
+              validationMessage: config.payments?.mercadoPago?.validationMessage || '',
+            },
+          },
         });
       } else {
         // Pre-fill with store defaults
@@ -327,7 +343,7 @@ export class StoreDetail implements OnInit, OnDestroy {
             whatsapp: '',
             address: '',
             instagram: '',
-            facebook: ''
+            facebook: '',
           },
           payments: {
             mercadoPago: {
@@ -339,9 +355,9 @@ export class StoreDetail implements OnInit, OnDestroy {
               accountUserId: '',
               webhookUrl: '',
               validationStatus: 'pending',
-              validationMessage: ''
-            }
-          }
+              validationMessage: '',
+            },
+          },
         });
       }
     } catch (err) {
@@ -377,17 +393,23 @@ export class StoreDetail implements OnInit, OnDestroy {
       formValue.seo.metaDescription = formValue.seo.metaDescription?.trim();
       if (formValue.payments?.mercadoPago) {
         formValue.payments.mercadoPago.publicKey = formValue.payments.mercadoPago.publicKey?.trim();
-        formValue.payments.mercadoPago.accessToken = formValue.payments.mercadoPago.accessToken?.trim();
-        formValue.payments.mercadoPago.webhookUrl = formValue.payments.mercadoPago.webhookUrl?.trim();
+        formValue.payments.mercadoPago.accessToken =
+          formValue.payments.mercadoPago.accessToken?.trim();
+        formValue.payments.mercadoPago.webhookUrl =
+          formValue.payments.mercadoPago.webhookUrl?.trim();
       }
 
       await this.storesService.updateStoreConfig(s.id, formValue);
-      this.configSuccess.set('Configuración actualizada con éxito. Los cambios se aplicarán en tiempo real.');
+      this.configSuccess.set(
+        'Configuración actualizada con éxito. Los cambios se aplicarán en tiempo real.',
+      );
 
       // Update central store doc if needed
       const centralUpdates: Partial<Pick<Store, 'name' | 'logoUrl'>> = {};
-      if (formValue.storeName && formValue.storeName !== s.name) centralUpdates.name = formValue.storeName;
-      if (formValue.logoUrl !== undefined && formValue.logoUrl !== s.logoUrl) centralUpdates.logoUrl = formValue.logoUrl;
+      if (formValue.storeName && formValue.storeName !== s.name)
+        centralUpdates.name = formValue.storeName;
+      if (formValue.logoUrl !== undefined && formValue.logoUrl !== s.logoUrl)
+        centralUpdates.logoUrl = formValue.logoUrl;
 
       if (Object.keys(centralUpdates).length > 0) {
         await this.storesService.updateStore(s.id, centralUpdates);
@@ -433,10 +455,12 @@ export class StoreDetail implements OnInit, OnDestroy {
       const { email, role } = this.inviteForm.value;
       const result = await this.storesService.inviteStaff(s.id, email!, role!);
       if (result.inviteEmailSent) {
-        this.inviteSuccess.set(`Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`);
+        this.inviteSuccess.set(
+          `Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`,
+        );
       } else {
         this.inviteSuccess.set(
-          `Usuario creado y rol asignado para ${email}, pero el email automático falló. Podés reenviar acceso desde Firebase Auth.`
+          `Usuario creado y rol asignado para ${email}, pero el email automático falló. Podés reenviar acceso desde Firebase Auth.`,
         );
       }
       this.inviteForm.reset({ email: '', role: 'admin' });
@@ -508,14 +532,18 @@ export class StoreDetail implements OnInit, OnDestroy {
       } else {
         this.domainStatus.set('pending');
         if (!silent) {
-          this.dnsVerificationError.set('La verificación del dominio está pendiente. Completá la configuración DNS.');
+          this.dnsVerificationError.set(
+            'La verificación del dominio está pendiente. Completá la configuración DNS.',
+          );
         }
       }
     } catch (err) {
       console.error('Error verifying DNS:', err);
       if (!silent) {
         const msg = err instanceof Error ? err.message : String(err);
-        this.dnsVerificationError.set(msg || 'No se pudo verificar el estado DNS. Intentá de nuevo.');
+        this.dnsVerificationError.set(
+          msg || 'No se pudo verificar el estado DNS. Intentá de nuevo.',
+        );
       }
     } finally {
       if (!silent) {
@@ -537,7 +565,10 @@ export class StoreDetail implements OnInit, OnDestroy {
   }
 
   async saveStore(): Promise<void> {
-    if (this.editForm.invalid) { this.editForm.markAllAsTouched(); return; }
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
     const id = this.store()?.id;
     if (!id) return;
     this.isSaving.set(true);
@@ -631,7 +662,9 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.actionSuccess.set('');
     try {
       await this.storesService.seedStore(id, this.seedIncludeMock());
-      this.actionSuccess.set('¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.');
+      this.actionSuccess.set(
+        '¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.',
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.actionError.set('Error al semillar datos: ' + msg);
@@ -647,8 +680,12 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.actionError.set('');
     try {
       await this.storesService.retryProvisioning(id);
-    } catch {
-      this.actionError.set('No se pudo reintentar el aprovisionamiento. Intentá de nuevo.');
+    } catch (err: unknown) {
+      this.actionError.set(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo reintentar el aprovisionamiento. Intentá de nuevo.',
+      );
     } finally {
       this.isRetrying.set(false);
     }

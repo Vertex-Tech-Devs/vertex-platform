@@ -14,7 +14,8 @@
           class="firebase-console-link"
           href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
           target="_blank"
-          title="Abrir Firebase Console">
+          title="Abrir Firebase Console"
+        >
           <i class="bi bi-fire"></i> {{ store()!.firebaseProjectId }} ↗
         </a>
       </div>
@@ -36,12 +37,16 @@
     @if (store()!.status === 'provisioning' || store()!.status === 'error') {
       <div class="provisioning-panel">
         <p class="provisioning-panel__title">
-          {{ store()!.status === 'error' ? 'Error en el aprovisionamiento' : 'Aprovisionando tienda…' }}
+          {{
+            store()!.status === 'error' ? 'Error en el aprovisionamiento' : 'Aprovisionando tienda…'
+          }}
         </p>
         <p class="provisioning-panel__sub">
-          {{ store()!.status === 'error'
-            ? 'Hubo un problema. Revisá los detalles del error abajo.'
-            : 'Esto tarda unos minutos. El proceso sigue aunque cierres esta ventana.' }}
+          {{
+            store()!.status === 'error'
+              ? 'Hubo un problema. Revisá los detalles del error abajo.'
+              : 'Esto tarda unos minutos. El proceso sigue aunque cierres esta ventana.'
+          }}
         </p>
         <div class="progress-bar">
           <div class="progress-bar__fill" [style.width.%]="progressPercent()"></div>
@@ -75,17 +80,18 @@
             @if (actionError()) {
               <p class="action-error">{{ actionError() }}</p>
             }
-            <button
-              class="btn btn-primary"
-              [disabled]="isRetrying()"
-              (click)="retry()">
-              @if (isRetrying()) { <span class="spinner-sm"></span> Reintentando… }
-              @else { <i class="bi bi-arrow-repeat"></i> Reintentar aprovisionamiento }
+            <button class="btn btn-primary" [disabled]="isRetrying()" (click)="retry()">
+              @if (isRetrying()) {
+                <span class="spinner-sm"></span> Reintentando…
+              } @else {
+                <i class="bi bi-arrow-repeat"></i> Reintentar aprovisionamiento
+              }
             </button>
             <button
               class="btn btn-danger"
               [disabled]="isDeleting()"
-              (click)="showDeleteConfirm.set(true)">
+              (click)="showDeleteConfirm.set(true)"
+            >
               <i class="bi bi-trash"></i> Eliminar tienda
             </button>
           </div>
@@ -95,26 +101,40 @@
 
     <!-- Main Tabbed dashboard (active / suspended stores) -->
     @if (store()!.status === 'active' || store()!.status === 'suspended') {
-      
       <!-- Premium Glass Tabs -->
       <div class="tabs-container">
-        <button class="tab-button" [class.is-active]="activeTab() === 'orquestacion'" (click)="setTab('orquestacion')">
+        <button
+          class="tab-button"
+          [class.is-active]="activeTab() === 'orquestacion'"
+          (click)="setTab('orquestacion')"
+        >
           <i class="bi bi-cpu"></i> Orquestación GCP
         </button>
-        <button class="tab-button" [class.is-active]="activeTab() === 'config'" (click)="setTab('config')">
+        <button
+          class="tab-button"
+          [class.is-active]="activeTab() === 'config'"
+          (click)="setTab('config')"
+        >
           <i class="bi bi-sliders"></i> Ajustes (Hot-Update)
         </button>
-        <button class="tab-button" [class.is-active]="activeTab() === 'equipo'" (click)="setTab('equipo')">
+        <button
+          class="tab-button"
+          [class.is-active]="activeTab() === 'equipo'"
+          (click)="setTab('equipo')"
+        >
           <i class="bi bi-people"></i> Equipo (RBAC)
         </button>
-        <button class="tab-button" [class.is-active]="activeTab() === 'dominios'" (click)="setTab('dominios')">
+        <button
+          class="tab-button"
+          [class.is-active]="activeTab() === 'dominios'"
+          (click)="setTab('dominios')"
+        >
           <i class="bi bi-globe"></i> Dominios (DNS)
         </button>
       </div>
 
       <!-- Tab Content Area -->
       <div class="tab-content">
-        
         <!-- Tab 1: Orquestación GCP -->
         @if (activeTab() === 'orquestacion') {
           <div class="detail-grid">
@@ -122,35 +142,47 @@
             <div class="detail-card">
               <h2 class="detail-card__title">Información general</h2>
               <dl class="detail-dl">
-                <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
+                <dt>Slug</dt>
+                <dd>{{ store()!.slug }}</dd>
                 <dt>Cliente (Dueño)</dt>
-                <dd style="display: flex; align-items: center; gap: 0.75rem;">
+                <dd style="display: flex; align-items: center; gap: 0.75rem">
                   <span>{{ store()!.ownerEmail }}</span>
-                  <button 
-                    class="btn-action-small" 
+                  <button
+                    class="btn-action-small"
                     type="button"
                     [disabled]="isGeneratingLink()"
                     (click)="generateAccessLink(store()!.ownerEmail)"
-                    title="Obtener enlace manual de restablecimiento / invitación">
+                    title="Obtener enlace manual de restablecimiento / invitación"
+                  >
                     <i class="bi bi-key-fill"></i> Obtener Enlace
                   </button>
                 </dd>
                 <dt>Firebase Project</dt>
                 <dd>
-                  <a href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}" target="_blank">
+                  <a
+                    href="https://console.firebase.google.com/project/{{
+                      store()!.firebaseProjectId
+                    }}"
+                    target="_blank"
+                  >
                     {{ store()!.firebaseProjectId }} ↗
                   </a>
                 </dd>
                 <dt>URL Temporal</dt>
-                <dd><a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a></dd>
+                <dd>
+                  <a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a>
+                </dd>
                 @if (store()!.customDomain) {
-                  <dt>Dominio Custom</dt><dd class="text-accent">{{ store()!.customDomain }}</dd>
+                  <dt>Dominio Custom</dt>
+                  <dd class="text-accent">{{ store()!.customDomain }}</dd>
                 }
                 @if (store()!.logoUrl) {
-                  <dt>Logo URL</dt><dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
+                  <dt>Logo URL</dt>
+                  <dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
                 }
                 @if (store()!.verticalId) {
-                  <dt>Rubro / Vertical</dt><dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
+                  <dt>Rubro / Vertical</dt>
+                  <dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
                 }
                 @if (store()!.templateVersion) {
                   <dt>Versión plantilla</dt>
@@ -165,11 +197,14 @@
                   </dd>
                 }
                 @if (store()!.schemaVersion) {
-                  <dt>Versión esquema</dt><dd class="text-accent">{{ store()!.schemaVersion }}</dd>
+                  <dt>Versión esquema</dt>
+                  <dd class="text-accent">{{ store()!.schemaVersion }}</dd>
                 }
-                <dt>Creada</dt><dd>{{ formatDate(store()!.createdAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
+                <dt>Creada</dt>
+                <dd>{{ formatDate(store()!.createdAt) | date: 'dd/MM/yyyy HH:mm' }}</dd>
                 @if (store()!.lastDeployedAt) {
-                  <dt>Último deploy</dt><dd>{{ formatDate(store()!.lastDeployedAt) | date:'dd/MM/yyyy HH:mm' }}</dd>
+                  <dt>Último deploy</dt>
+                  <dd>{{ formatDate(store()!.lastDeployedAt) | date: 'dd/MM/yyyy HH:mm' }}</dd>
                 }
               </dl>
             </div>
@@ -179,8 +214,8 @@
               <div class="detail-card">
                 <h2 class="detail-card__title">Versión de Plantilla</h2>
                 <p class="detail-card__desc">
-                  Seleccioná la versión del template que querés desplegar a esta tienda.
-                  El deploy se realiza directamente sobre su proyecto Firebase al confirmar.
+                  Seleccioná la versión del template que querés desplegar a esta tienda. El deploy
+                  se realiza directamente sobre su proyecto Firebase al confirmar.
                 </p>
 
                 @if (isLoadingVersions()) {
@@ -193,12 +228,14 @@
                       class="form-select"
                       [value]="selectedVersion()"
                       (change)="selectedVersion.set($any($event.target).value)"
-                      [disabled]="isUpdatingVersion() || store()!.versionUpdateStatus === 'updating'"
+                      [disabled]="
+                        isUpdatingVersion() || store()!.versionUpdateStatus === 'updating'
+                      "
                     >
                       @for (v of availableVersions(); track v.version) {
                         <option [value]="v.version">
-                          v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }}
-                          — {{ v.publishedAt | date:'dd/MM/yyyy' }}
+                          v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
+                          {{ v.publishedAt | date: 'dd/MM/yyyy' }}
                         </option>
                       }
                     </select>
@@ -241,31 +278,61 @@
               <div class="action-list">
                 <!-- Redeploy -->
                 <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
-                  @if (isRedeploying()) { <span class="spinner-sm"></span> Desplegando… }
-                  @else { <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual }
-                  <small>Re-despliega la infraestructura y el código de la tienda utilizando su versión activa (v{{ store()!.templateVersion || 'asignada' }}).</small>
+                  @if (isRedeploying()) {
+                    <span class="spinner-sm"></span> Desplegando…
+                  } @else {
+                    <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual
+                  }
+                  <small
+                    >Re-despliega la infraestructura y el código de la tienda utilizando su versión
+                    activa (v{{ store()!.templateVersion || 'asignada' }}).</small
+                  >
                 </button>
 
                 <!-- Seed Mock Data -->
                 @if (store()!.status === 'active') {
-                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="openSeedConfirm()">
-                    @if (isSeeding()) { <span class="spinner-sm"></span> Semillando datos… }
-                    @else { <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba }
-                    <small>Carga un catálogo completo de productos, categorías e imágenes de demostración en el Firestore de la tienda</small>
+                  <button
+                    class="action-btn action-btn--info"
+                    [disabled]="isSeeding()"
+                    (click)="openSeedConfirm()"
+                  >
+                    @if (isSeeding()) {
+                      <span class="spinner-sm"></span> Semillando datos…
+                    } @else {
+                      <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba
+                    }
+                    <small
+                      >Carga un catálogo completo de productos, categorías e imágenes de
+                      demostración en el Firestore de la tienda</small
+                    >
                   </button>
                 }
 
                 <!-- Suspend / Activate -->
                 @if (store()!.status === 'active') {
-                  <button class="action-btn action-btn--warning" [disabled]="isSuspending()" (click)="showSleepConfirm.set(true)">
+                  <button
+                    class="action-btn action-btn--warning"
+                    [disabled]="isSuspending()"
+                    (click)="showSleepConfirm.set(true)"
+                  >
                     <i class="bi bi-moon"></i> Dormir tienda (Suspender)
-                    <small>Suspende el proyecto temporalmente y lo excluye del ciclo de deploys globales</small>
+                    <small
+                      >Suspende el proyecto temporalmente y lo excluye del ciclo de deploys
+                      globales</small
+                    >
                   </button>
                 }
                 @if (store()!.status === 'suspended') {
-                  <button class="action-btn action-btn--success" [disabled]="isActivating()" (click)="activate()">
-                    @if (isActivating()) { <span class="spinner-sm"></span> Activando… }
-                    @else { <i class="bi bi-play-circle"></i> Reactivar tienda }
+                  <button
+                    class="action-btn action-btn--success"
+                    [disabled]="isActivating()"
+                    (click)="activate()"
+                  >
+                    @if (isActivating()) {
+                      <span class="spinner-sm"></span> Activando…
+                    } @else {
+                      <i class="bi bi-play-circle"></i> Reactivar tienda
+                    }
                     <small>Restaura la tienda y reactiva el acceso al storefront del cliente</small>
                   </button>
                 }
@@ -280,7 +347,11 @@
                 <!-- Danger Zone -->
                 <div class="danger-zone">
                   <h3 class="danger-zone__title">Zona Peligrosa</h3>
-                  <button class="action-btn action-btn--danger" [disabled]="isDeleting()" (click)="showDeleteConfirm.set(true)">
+                  <button
+                    class="action-btn action-btn--danger"
+                    [disabled]="isDeleting()"
+                    (click)="showDeleteConfirm.set(true)"
+                  >
                     <i class="bi bi-trash"></i> Eliminar tienda
                     <small>Destrucción permanente de la tienda y su proyecto GCP completo</small>
                   </button>
@@ -336,11 +407,15 @@
                                   <span class="pulse-dot"></span>
                                   {{ run.status === 'queued' ? 'En cola' : 'En progreso' }}
                                 </span>
-                              } @else if (run.status === 'completed' && run.conclusion === 'success') {
+                              } @else if (
+                                run.status === 'completed' && run.conclusion === 'success'
+                              ) {
                                 <span class="badge-neon badge-neon--success">
                                   <i class="bi bi-check-circle-fill"></i> Exitoso
                                 </span>
-                              } @else if (run.status === 'completed' && run.conclusion === 'failure') {
+                              } @else if (
+                                run.status === 'completed' && run.conclusion === 'failure'
+                              ) {
                                 <span class="badge-neon badge-neon--failure">
                                   <i class="bi bi-exclamation-triangle-fill"></i> Fallido
                                 </span>
@@ -354,7 +429,7 @@
                               {{ run.displayTitle }}
                             </td>
                             <td class="deployment-date">
-                              {{ formatDate(run.createdAt) | date:'dd/MM/yyyy HH:mm' }}
+                              {{ formatDate(run.createdAt) | date: 'dd/MM/yyyy HH:mm' }}
                             </td>
                             <td>
                               <a [href]="run.htmlUrl" target="_blank" class="logs-link">
@@ -382,7 +457,6 @@
               </div>
             } @else {
               <form [formGroup]="configForm" (ngSubmit)="saveConfig()" class="config-form">
-                
                 @if (configError()) {
                   <div class="alert alert-error">{{ configError() }}</div>
                 }
@@ -391,72 +465,131 @@
                 }
 
                 <div class="config-grid">
-                  
                   <!-- Main settings card -->
                   <div class="config-card">
                     <h3 class="config-card__title"><i class="bi bi-shop"></i> Identidad & Marca</h3>
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Nombre Comercial *</label>
-                        <input formControlName="storeName" type="text" class="form-control" [placeholder]="store()?.name || 'Mi Tienda Online'" />
-                        @if (configForm.get('storeName')?.invalid && configForm.get('storeName')?.touched) {
+                        <input
+                          formControlName="storeName"
+                          type="text"
+                          class="form-control"
+                          [placeholder]="store()?.name || 'Mi Tienda Online'"
+                        />
+                        @if (
+                          configForm.get('storeName')?.invalid &&
+                          configForm.get('storeName')?.touched
+                        ) {
                           <span class="invalid-feedback">El nombre es obligatorio.</span>
                         }
                       </div>
 
                       <div class="form-group">
                         <label class="form-label">Eslogan / Frase</label>
-                        <input formControlName="strapline" type="text" class="form-control" placeholder="La mejor moda a un click" />
+                        <input
+                          formControlName="strapline"
+                          type="text"
+                          class="form-control"
+                          placeholder="La mejor moda a un click"
+                        />
                       </div>
 
                       <div class="form-group">
                         <label class="form-label">Logo URL</label>
-                        <input formControlName="logoUrl" type="url" class="form-control" placeholder="https://..." />
+                        <input
+                          formControlName="logoUrl"
+                          type="url"
+                          class="form-control"
+                          placeholder="https://..."
+                        />
                       </div>
 
                       <div class="form-group">
                         <label class="form-label">Favicon URL</label>
-                        <input formControlName="faviconUrl" type="url" class="form-control" placeholder="https://..." />
+                        <input
+                          formControlName="faviconUrl"
+                          type="url"
+                          class="form-control"
+                          placeholder="https://..."
+                        />
                       </div>
                     </div>
                   </div>
 
                   <!-- Localizacion settings card -->
                   <div class="config-card">
-                    <h3 class="config-card__title"><i class="bi bi-geo-alt"></i> Región & Moneda</h3>
+                    <h3 class="config-card__title">
+                      <i class="bi bi-geo-alt"></i> Región & Moneda
+                    </h3>
                     <div class="config-fields-2">
                       <div class="form-group">
                         <label class="form-label">País</label>
-                        <input formControlName="country" type="text" class="form-control" placeholder="Argentina" />
+                        <input
+                          formControlName="country"
+                          type="text"
+                          class="form-control"
+                          placeholder="Argentina"
+                        />
                       </div>
                       <div class="form-group">
                         <label class="form-label">Código Moneda (e.g. ARS)</label>
-                        <input formControlName="currency" type="text" class="form-control" placeholder="ARS" />
+                        <input
+                          formControlName="currency"
+                          type="text"
+                          class="form-control"
+                          placeholder="ARS"
+                        />
                       </div>
                       <div class="form-group">
                         <label class="form-label">Símbolo Moneda (e.g. $)</label>
-                        <input formControlName="currencySymbol" type="text" class="form-control" placeholder="$" />
+                        <input
+                          formControlName="currencySymbol"
+                          type="text"
+                          class="form-control"
+                          placeholder="$"
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div class="config-card" formGroupName="payments">
-                    <h3 class="config-card__title"><i class="bi bi-credit-card-2-front"></i> Pagos (Mercado Pago)</h3>
+                    <h3 class="config-card__title">
+                      <i class="bi bi-credit-card-2-front"></i> Pagos (Mercado Pago)
+                    </h3>
                     <div class="config-fields" formGroupName="mercadoPago">
                       <div class="form-group-grid">
                         <div class="form-group">
                           <label class="form-label">Public Key</label>
-                          <input formControlName="publicKey" type="text" class="form-control" placeholder="APP_USR-..." />
+                          <input
+                            formControlName="publicKey"
+                            type="text"
+                            class="form-control"
+                            placeholder="APP_USR-..."
+                          />
                         </div>
                         <div class="form-group">
                           <label class="form-label">Access Token</label>
-                          <input formControlName="accessToken" type="password" class="form-control" placeholder="APP_USR-..." />
-                          <span class="form-hint" style="text-transform: none; letter-spacing: normal;">
-                            Se guarda en Secret Manager. Completá este campo solo para crear o rotar el token.
+                          <input
+                            formControlName="accessToken"
+                            type="password"
+                            class="form-control"
+                            placeholder="APP_USR-..."
+                          />
+                          <span
+                            class="form-hint"
+                            style="text-transform: none; letter-spacing: normal"
+                          >
+                            Se guarda en Secret Manager. Completá este campo solo para crear o rotar
+                            el token.
                           </span>
                           @if (configForm.get('payments.mercadoPago.accessTokenMasked')?.value) {
-                            <span class="form-hint" style="text-transform: none; letter-spacing: normal;">
-                              Token actual: {{ configForm.get('payments.mercadoPago.accessTokenMasked')?.value }}
+                            <span
+                              class="form-hint"
+                              style="text-transform: none; letter-spacing: normal"
+                            >
+                              Token actual:
+                              {{ configForm.get('payments.mercadoPago.accessTokenMasked')?.value }}
                             </span>
                           }
                         </div>
@@ -464,25 +597,44 @@
 
                       <div class="form-group">
                         <label class="form-label">Webhook URL</label>
-                        <input formControlName="webhookUrl" type="url" class="form-control" placeholder="https://..." />
-                        @if (configForm.get('payments.mercadoPago.webhookUrl')?.invalid && configForm.get('payments.mercadoPago.webhookUrl')?.touched) {
+                        <input
+                          formControlName="webhookUrl"
+                          type="url"
+                          class="form-control"
+                          placeholder="https://..."
+                        />
+                        @if (
+                          configForm.get('payments.mercadoPago.webhookUrl')?.invalid &&
+                          configForm.get('payments.mercadoPago.webhookUrl')?.touched
+                        ) {
                           <span class="invalid-feedback">URL inválida.</span>
                         }
                       </div>
 
-                      @if (configForm.get('payments.mercadoPago.validationStatus')?.value === 'valid') {
+                      @if (
+                        configForm.get('payments.mercadoPago.validationStatus')?.value === 'valid'
+                      ) {
                         <div class="alert alert-success">
-                          {{ configForm.get('payments.mercadoPago.validationMessage')?.value || 'Credenciales válidas.' }}
+                          {{
+                            configForm.get('payments.mercadoPago.validationMessage')?.value ||
+                              'Credenciales válidas.'
+                          }}
                           @if (configForm.get('payments.mercadoPago.accountEmail')?.value) {
-                            <div class="mt-2" style="font-size: 0.8rem;">
-                              Cuenta conectada: {{ configForm.get('payments.mercadoPago.accountEmail')?.value }}
+                            <div class="mt-2" style="font-size: 0.8rem">
+                              Cuenta conectada:
+                              {{ configForm.get('payments.mercadoPago.accountEmail')?.value }}
                             </div>
                           }
                         </div>
                       }
-                      @if (configForm.get('payments.mercadoPago.validationStatus')?.value === 'invalid') {
+                      @if (
+                        configForm.get('payments.mercadoPago.validationStatus')?.value === 'invalid'
+                      ) {
                         <div class="alert alert-error">
-                          {{ configForm.get('payments.mercadoPago.validationMessage')?.value || 'Credenciales inválidas.' }}
+                          {{
+                            configForm.get('payments.mercadoPago.validationMessage')?.value ||
+                              'Credenciales inválidas.'
+                          }}
                         </div>
                       }
                     </div>
@@ -490,12 +642,22 @@
 
                   <!-- Contact Channels card -->
                   <div class="config-card" formGroupName="contact">
-                    <h3 class="config-card__title"><i class="bi bi-chat-left-text"></i> Canales de Contacto</h3>
+                    <h3 class="config-card__title">
+                      <i class="bi bi-chat-left-text"></i> Canales de Contacto
+                    </h3>
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Email de Consultas *</label>
-                        <input formControlName="email" type="email" class="form-control" placeholder="hola@tienda.com" />
-                        @if (configForm.get('contact.email')?.invalid && configForm.get('contact.email')?.touched) {
+                        <input
+                          formControlName="email"
+                          type="email"
+                          class="form-control"
+                          placeholder="hola@tienda.com"
+                        />
+                        @if (
+                          configForm.get('contact.email')?.invalid &&
+                          configForm.get('contact.email')?.touched
+                        ) {
                           <span class="invalid-feedback">Email inválido.</span>
                         }
                       </div>
@@ -503,27 +665,52 @@
                       <div class="form-group-grid">
                         <div class="form-group">
                           <label class="form-label">Teléfono</label>
-                          <input formControlName="phone" type="tel" class="form-control" placeholder="+54 11 ..." />
+                          <input
+                            formControlName="phone"
+                            type="tel"
+                            class="form-control"
+                            placeholder="+54 11 ..."
+                          />
                         </div>
                         <div class="form-group">
                           <label class="form-label">WhatsApp (Formato Internacional)</label>
-                          <input formControlName="whatsapp" type="tel" class="form-control" placeholder="54911..." />
+                          <input
+                            formControlName="whatsapp"
+                            type="tel"
+                            class="form-control"
+                            placeholder="54911..."
+                          />
                         </div>
                       </div>
 
                       <div class="form-group">
                         <label class="form-label">Dirección Física</label>
-                        <input formControlName="address" type="text" class="form-control" placeholder="Av. Cabildo 123, CABA" />
+                        <input
+                          formControlName="address"
+                          type="text"
+                          class="form-control"
+                          placeholder="Av. Cabildo 123, CABA"
+                        />
                       </div>
 
                       <div class="form-group-grid">
                         <div class="form-group">
                           <label class="form-label">Instagram Usuario</label>
-                          <input formControlName="instagram" type="text" class="form-control" placeholder="tienda.instagram" />
+                          <input
+                            formControlName="instagram"
+                            type="text"
+                            class="form-control"
+                            placeholder="tienda.instagram"
+                          />
                         </div>
                         <div class="form-group">
                           <label class="form-label">Facebook URL</label>
-                          <input formControlName="facebook" type="text" class="form-control" placeholder="https://facebook.com/..." />
+                          <input
+                            formControlName="facebook"
+                            type="text"
+                            class="form-control"
+                            placeholder="https://facebook.com/..."
+                          />
                         </div>
                       </div>
                     </div>
@@ -531,22 +718,42 @@
 
                   <!-- SEO settings card -->
                   <div class="config-card" formGroupName="seo">
-                    <h3 class="config-card__title"><i class="bi bi-search"></i> Posicionamiento SEO</h3>
-                    <p class="form-hint" style="margin-bottom: 0.85rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
-                      Recomendado: gestionarlo desde el panel admin de la tienda. Este bloque queda como configuración central inicial.
+                    <h3 class="config-card__title">
+                      <i class="bi bi-search"></i> Posicionamiento SEO
+                    </h3>
+                    <p
+                      class="form-hint"
+                      style="
+                        margin-bottom: 0.85rem;
+                        text-transform: none;
+                        font-weight: normal;
+                        letter-spacing: normal;
+                      "
+                    >
+                      Recomendado: gestionarlo desde el panel admin de la tienda. Este bloque queda
+                      como configuración central inicial.
                     </p>
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Meta Título Principal</label>
-                        <input formControlName="metaTitle" type="text" class="form-control" [placeholder]="'Comprá Ropa Online | ' + (store()?.name || 'Mi Tienda')" />
+                        <input
+                          formControlName="metaTitle"
+                          type="text"
+                          class="form-control"
+                          [placeholder]="'Comprá Ropa Online | ' + (store()?.name || 'Mi Tienda')"
+                        />
                       </div>
                       <div class="form-group">
                         <label class="form-label">Meta Descripción Corta</label>
-                        <textarea formControlName="metaDescription" class="form-control" rows="3" placeholder="Encontrá los mejores calzados y remeras de algodón peinado con envíos a todo el país..."></textarea>
+                        <textarea
+                          formControlName="metaDescription"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Encontrá los mejores calzados y remeras de algodón peinado con envíos a todo el país..."
+                        ></textarea>
                       </div>
                     </div>
                   </div>
-
                 </div>
 
                 <div class="config-actions">
@@ -558,7 +765,6 @@
                     }
                   </button>
                 </div>
-
               </form>
             }
           </div>
@@ -573,7 +779,6 @@
                 <p>Conectando al GCP Identity Platform del subproyecto para leer el equipo...</p>
               </div>
             } @else {
-              
               @if (inviteError()) {
                 <div class="alert alert-error">{{ inviteError() }}</div>
               }
@@ -583,18 +788,33 @@
 
               <!-- Staff grid layout -->
               <div class="staff-grid">
-                
                 <!-- Invite new member card -->
                 <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-person-plus"></i> Invitar Staff</h2>
-                  <p class="form-hint" style="margin-bottom: 1rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
-                    La invitación inyecta Custom Claims en Firebase Auth del subproyecto y sincroniza el perfil del usuario.
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-person-plus"></i> Invitar Staff
+                  </h2>
+                  <p
+                    class="form-hint"
+                    style="
+                      margin-bottom: 1rem;
+                      text-transform: none;
+                      font-weight: normal;
+                      letter-spacing: normal;
+                    "
+                  >
+                    La invitación inyecta Custom Claims en Firebase Auth del subproyecto y
+                    sincroniza el perfil del usuario.
                   </p>
-                  
+
                   <form [formGroup]="inviteForm" (ngSubmit)="sendInvitation()" class="invite-form">
                     <div class="form-group">
                       <label class="form-label">Email de la cuenta Google *</label>
-                      <input formControlName="email" type="email" class="form-control" placeholder="operador@gmail.com" />
+                      <input
+                        formControlName="email"
+                        type="email"
+                        class="form-control"
+                        placeholder="operador@gmail.com"
+                      />
                       @if (inviteForm.get('email')?.invalid && inviteForm.get('email')?.touched) {
                         <span class="invalid-feedback">Email requerido.</span>
                       }
@@ -610,7 +830,12 @@
                       </select>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" [disabled]="isInvitingStaff()" style="margin-top: 1rem;">
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      [disabled]="isInvitingStaff()"
+                      style="margin-top: 1rem"
+                    >
                       @if (isInvitingStaff()) {
                         <span class="spinner-sm"></span> Enviando invitación…
                       } @else {
@@ -622,13 +847,18 @@
 
                 <!-- Current active team members -->
                 <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-shield-lock"></i> Miembros del Equipo</h2>
-                  
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-shield-lock"></i> Miembros del Equipo
+                  </h2>
+
                   <div class="staff-list">
                     @if (staff().length === 0) {
-                      <div class="deployment-empty" style="padding: 2rem 0;">
+                      <div class="deployment-empty" style="padding: 2rem 0">
                         <i class="bi bi-people-mute"></i>
-                        <p>No se encontraron miembros activos adicionales. Solo el dueño tiene acceso.</p>
+                        <p>
+                          No se encontraron miembros activos adicionales. Solo el dueño tiene
+                          acceso.
+                        </p>
                       </div>
                     } @else {
                       @for (member of staff(); track member.uid) {
@@ -637,19 +867,27 @@
                             {{ (member.displayName || member.email).charAt(0).toUpperCase() }}
                           </div>
                           <div class="staff-item__info">
-                            <span class="staff-item__name">{{ member.displayName || 'Operador Vertex' }}</span>
+                            <span class="staff-item__name">{{
+                              member.displayName || 'Operador Vertex'
+                            }}</span>
                             <span class="staff-item__email">{{ member.email }}</span>
                           </div>
-                          <div class="staff-item__role" style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span class="badge-role badge-role--{{ member.role }}">{{ member.role }}</span>
-                            <button 
-                              class="btn-action-small" 
+                          <div
+                            class="staff-item__role"
+                            style="display: flex; align-items: center; gap: 0.5rem"
+                          >
+                            <span class="badge-role badge-role--{{ member.role }}">{{
+                              member.role
+                            }}</span>
+                            <button
+                              class="btn-action-small"
                               type="button"
                               [disabled]="isGeneratingLink()"
                               (click)="generateAccessLink(member.email)"
-                              title="Obtener enlace manual de restablecimiento de contraseña">
+                              title="Obtener enlace manual de restablecimiento de contraseña"
+                            >
                               @if (isGeneratingLink()) {
-                                <span class="spinner-sm" style="margin-right: 0;"></span>
+                                <span class="spinner-sm" style="margin-right: 0"></span>
                               } @else {
                                 <i class="bi bi-key-fill"></i>
                               }
@@ -662,12 +900,16 @@
                 </div>
 
                 <!-- Pending Invitations Card -->
-                <div class="detail-card detail-card--full" style="margin-top: 1rem;">
-                  <h2 class="detail-card__title"><i class="bi bi-envelope-open"></i> Invitaciones Pendientes</h2>
-                  
+                <div class="detail-card detail-card--full" style="margin-top: 1rem">
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-envelope-open"></i> Invitaciones Pendientes
+                  </h2>
+
                   <div class="invitations-list">
                     @if (invitations().length === 0) {
-                      <p class="text-muted" style="font-size: 0.9rem; padding: 1rem 0;">No hay invitaciones pendientes de aceptación.</p>
+                      <p class="text-muted" style="font-size: 0.9rem; padding: 1rem 0">
+                        No hay invitaciones pendientes de aceptación.
+                      </p>
                     } @else {
                       <div class="table-responsive">
                         <table class="deployment-table">
@@ -682,25 +924,36 @@
                           <tbody>
                             @for (invite of invitations(); track invite.id) {
                               <tr class="deployment-row">
-                                <td class="deployment-title" style="font-weight: 500;">{{ invite.email }}</td>
+                                <td class="deployment-title" style="font-weight: 500">
+                                  {{ invite.email }}
+                                </td>
                                 <td>
-                                  <span class="badge-role badge-role--{{ invite.role }}">{{ invite.role }}</span>
+                                  <span class="badge-role badge-role--{{ invite.role }}">{{
+                                    invite.role
+                                  }}</span>
                                 </td>
                                 <td class="deployment-date">
-                                  {{ formatDate(invite.createdAt) | date:'dd/MM/yyyy HH:mm' }}
+                                  {{ formatDate(invite.createdAt) | date: 'dd/MM/yyyy HH:mm' }}
                                 </td>
                                 <td>
-                                  <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <span class="badge-invite-status badge-invite-status--{{ invite.status }}">
-                                      {{ invite.status === 'pending' ? 'Pendiente' : invite.status }}
+                                  <div style="display: flex; align-items: center; gap: 0.75rem">
+                                    <span
+                                      class="badge-invite-status badge-invite-status--{{
+                                        invite.status
+                                      }}"
+                                    >
+                                      {{
+                                        invite.status === 'pending' ? 'Pendiente' : invite.status
+                                      }}
                                     </span>
                                     @if (invite.status === 'pending') {
-                                      <button 
-                                        class="btn-action-small" 
+                                      <button
+                                        class="btn-action-small"
                                         type="button"
                                         [disabled]="isGeneratingLink()"
                                         (click)="generateAccessLink(invite.email)"
-                                        title="Obtener enlace manual de restablecimiento / invitación">
+                                        title="Obtener enlace manual de restablecimiento / invitación"
+                                      >
                                         <i class="bi bi-key-fill"></i> Link
                                       </button>
                                     }
@@ -714,9 +967,7 @@
                     }
                   </div>
                 </div>
-
               </div>
-
             }
           </div>
         }
@@ -724,7 +975,6 @@
         <!-- Tab 4: Dominios (DNS) -->
         @if (activeTab() === 'dominios') {
           <div class="dns-container">
-            
             @if (dnsVerificationError()) {
               <div class="alert alert-error">{{ dnsVerificationError() }}</div>
             }
@@ -733,19 +983,26 @@
             }
 
             <div class="dns-grid">
-              
               <!-- Connection info/setup card -->
               <div class="detail-card">
                 <h2 class="detail-card__title"><i class="bi bi-globe"></i> Conexión de Dominio</h2>
-                
+
                 @if (!store()!.customDomain) {
                   <!-- Non-connected state -->
                   <div class="dns-setup-flow">
-                    <p style="font-size: 0.9rem; color: var(--platform-text-secondary); margin-bottom: 1.5rem; line-height: 1.45;">
-                      Vertex Platform permite enrutar tus tiendas a dominios personalizados de forma automática mediante la infraestructura de Firebase Hosting.
+                    <p
+                      style="
+                        font-size: 0.9rem;
+                        color: var(--platform-text-secondary);
+                        margin-bottom: 1.5rem;
+                        line-height: 1.45;
+                      "
+                    >
+                      Vertex Platform permite enrutar tus tiendas a dominios personalizados de forma
+                      automática mediante la infraestructura de Firebase Hosting.
                     </p>
-                    
-                    <div class="form-group" style="max-width: 450px;">
+
+                    <div class="form-group" style="max-width: 450px">
                       <label class="form-label">Dominio Custom a conectar</label>
                       <div class="input-addon">
                         <span class="input-addon__pre">https://</span>
@@ -753,37 +1010,53 @@
                           class="form-control"
                           [(ngModel)]="domainInput"
                           placeholder="tienda.com o tienda.com.ar"
-                          type="text" />
+                          type="text"
+                        />
                       </div>
-                      <small class="form-hint" style="margin-top: 0.25rem;">
+                      <small class="form-hint" style="margin-top: 0.25rem">
                         No incluyas "www" ni barras finales ("/").
                       </small>
                     </div>
 
-                    <div class="form-group" style="margin-top: 1rem; max-width: 620px;">
+                    <div class="form-group" style="margin-top: 1rem; max-width: 620px">
                       <label class="form-label">Checklist previo obligatorio</label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem;">
-                        <input type="checkbox" [ngModel]="hasDomainOwnership()" (ngModelChange)="hasDomainOwnership.set(!!$event)" />
+                      <label class="checkbox-label" style="margin-top: 0.5rem">
+                        <input
+                          type="checkbox"
+                          [ngModel]="hasDomainOwnership()"
+                          (ngModelChange)="hasDomainOwnership.set(!!$event)"
+                        />
                         <span class="checkbox-custom"></span>
                         <div class="checkbox-text">
                           <strong>Tengo titularidad del dominio</strong>
                           <p>Puedo operar sobre el dominio en el registrador actual.</p>
                         </div>
                       </label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem;">
-                        <input type="checkbox" [ngModel]="hasDnsAccess()" (ngModelChange)="hasDnsAccess.set(!!$event)" />
+                      <label class="checkbox-label" style="margin-top: 0.5rem">
+                        <input
+                          type="checkbox"
+                          [ngModel]="hasDnsAccess()"
+                          (ngModelChange)="hasDnsAccess.set(!!$event)"
+                        />
                         <span class="checkbox-custom"></span>
                         <div class="checkbox-text">
                           <strong>Tengo acceso al panel DNS</strong>
                           <p>Puedo crear registros tipo A, TXT o CNAME en el proveedor DNS.</p>
                         </div>
                       </label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem;">
-                        <input type="checkbox" [ngModel]="wantsRootOrWwwReady()" (ngModelChange)="wantsRootOrWwwReady.set(!!$event)" />
+                      <label class="checkbox-label" style="margin-top: 0.5rem">
+                        <input
+                          type="checkbox"
+                          [ngModel]="wantsRootOrWwwReady()"
+                          (ngModelChange)="wantsRootOrWwwReady.set(!!$event)"
+                        />
                         <span class="checkbox-custom"></span>
                         <div class="checkbox-text">
                           <strong>Definí el dominio final</strong>
-                          <p>Ya validé si voy a usar dominio raíz (tienda.com) o subdominio (www.tienda.com).</p>
+                          <p>
+                            Ya validé si voy a usar dominio raíz (tienda.com) o subdominio
+                            (www.tienda.com).
+                          </p>
                         </div>
                       </label>
                     </div>
@@ -792,7 +1065,8 @@
                       class="btn btn-primary"
                       [disabled]="isConnectingDomain() || !canConnectDomain()"
                       (click)="connectDomain()"
-                      style="margin-top: 1.25rem;">
+                      style="margin-top: 1.25rem"
+                    >
                       @if (isConnectingDomain()) {
                         <span class="spinner-sm"></span> Vinculando proyecto Hosting…
                       } @else {
@@ -807,7 +1081,7 @@
                       <div class="dns-globe-icon"><i class="bi bi-globe-americas"></i></div>
                       <div class="dns-globe-details">
                         <span class="dns-domain-name">{{ store()!.customDomain }}</span>
-                        
+
                         @if (domainStatus() === 'live') {
                           <span class="badge-dns badge-dns--live">
                             <span class="pulse-dot-green"></span> Activo & Enrutado (SSL Listo)
@@ -820,14 +1094,30 @@
                       </div>
                     </div>
 
-                    <div class="dns-meta-info" style="margin-top: 1.5rem; border-top: 1px solid var(--platform-card-border); padding-top: 1rem;">
-                      <p style="font-size: 0.85rem; color: var(--platform-text-muted);">
-                        El enrutamiento está configurado en Vertex API. Recordá que la propagación del certificado SSL gratuito puede tardar entre 2 y 24 horas una vez creados los registros.
+                    <div
+                      class="dns-meta-info"
+                      style="
+                        margin-top: 1.5rem;
+                        border-top: 1px solid var(--platform-card-border);
+                        padding-top: 1rem;
+                      "
+                    >
+                      <p style="font-size: 0.85rem; color: var(--platform-text-muted)">
+                        El enrutamiento está configurado en Vertex API. Recordá que la propagación
+                        del certificado SSL gratuito puede tardar entre 2 y 24 horas una vez creados
+                        los registros.
                       </p>
                     </div>
 
-                    <div class="dns-actions-bar" style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
-                      <button class="btn btn-primary" [disabled]="isVerifyingDNS()" (click)="verifyDNS(false)">
+                    <div
+                      class="dns-actions-bar"
+                      style="margin-top: 1.5rem; display: flex; gap: 0.75rem"
+                    >
+                      <button
+                        class="btn btn-primary"
+                        [disabled]="isVerifyingDNS()"
+                        (click)="verifyDNS(false)"
+                      >
                         @if (isVerifyingDNS()) {
                           <span class="spinner-sm"></span> Consultando Name Servers…
                         } @else {
@@ -842,21 +1132,38 @@
               <!-- DNS Records Table / Copy Card -->
               @if (dnsRecords().length > 0 || store()!.customDomain) {
                 <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-server"></i> Registros DNS Requeridos</h2>
-                  <p class="form-hint" style="margin-bottom: 1.25rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
-                    Ingresá al panel de control de tu registrador de dominio (e.g. NIC.ar, GoDaddy, Cloudflare) y da de alta los siguientes registros.
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-server"></i> Registros DNS Requeridos
+                  </h2>
+                  <p
+                    class="form-hint"
+                    style="
+                      margin-bottom: 1.25rem;
+                      text-transform: none;
+                      font-weight: normal;
+                      letter-spacing: normal;
+                    "
+                  >
+                    Ingresá al panel de control de tu registrador de dominio (e.g. NIC.ar, GoDaddy,
+                    Cloudflare) y da de alta los siguientes registros.
                   </p>
-                  
+
                   <div class="dns-records-container">
                     @if (dnsRecords().length === 0) {
                       <div class="dns-loading-records">
-                        <span class="spinner-sm"></span> Recuperando registros del proyecto Firebase Hosting...
+                        <span class="spinner-sm"></span> Recuperando registros del proyecto Firebase
+                        Hosting...
                       </div>
                     } @else {
-                      @for (record of dnsRecords(); track record.host + '-' + record.type + '-' + record.value) {
+                      @for (
+                        record of dnsRecords();
+                        track record.host + '-' + record.type + '-' + record.value
+                      ) {
                         <div class="dns-record-block">
                           <div class="dns-record-block__type">
-                            <span class="badge-role badge-role--admin">{{ record.requiredAction }}</span>
+                            <span class="badge-role badge-role--admin">{{
+                              record.requiredAction
+                            }}</span>
                           </div>
                           <div class="dns-record-block__data">
                             <span class="dns-record-label">Tipo</span>
@@ -864,8 +1171,10 @@
 
                             <span class="dns-record-label">Host / Nombre</span>
                             <code>{{ record.host }}</code>
-                            
-                            <span class="dns-record-label" style="margin-top: 0.5rem;">Valor / IP</span>
+
+                            <span class="dns-record-label" style="margin-top: 0.5rem"
+                              >Valor / IP</span
+                            >
                             <div class="dns-value-copy">
                               <code>{{ record.value }}</code>
                             </div>
@@ -876,12 +1185,9 @@
                   </div>
                 </div>
               }
-
             </div>
-
           </div>
         }
-
       </div>
     }
   </div>
@@ -895,7 +1201,11 @@
           <div class="edit-grid">
             <div class="form-group">
               <label class="form-label">Nombre *</label>
-              <input class="form-control" formControlName="name" [placeholder]="store()?.name || 'Mi tienda'" />
+              <input
+                class="form-control"
+                formControlName="name"
+                [placeholder]="store()?.name || 'Mi tienda'"
+              />
               @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
                 <span class="invalid-feedback">Requerido</span>
               }
@@ -903,7 +1213,12 @@
 
             <div class="form-group">
               <label class="form-label">Email del cliente *</label>
-              <input class="form-control" formControlName="ownerEmail" type="email" placeholder="cliente@email.com" />
+              <input
+                class="form-control"
+                formControlName="ownerEmail"
+                type="email"
+                placeholder="cliente@email.com"
+              />
               @if (editForm.get('ownerEmail')?.invalid && editForm.get('ownerEmail')?.touched) {
                 <span class="invalid-feedback">Email válido requerido</span>
               }
@@ -921,7 +1236,11 @@
               Cancelar
             </button>
             <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
-              @if (isSaving()) { <span class="spinner-sm"></span> Guardando… } @else { Guardar }
+              @if (isSaving()) {
+                <span class="spinner-sm"></span> Guardando…
+              } @else {
+                Guardar
+              }
             </button>
           </div>
         </form>
@@ -946,18 +1265,26 @@
             class="form-control"
             [(ngModel)]="sleepConfirmInput"
             [placeholder]="store()!.firebaseProjectId"
-            autocomplete="off" />
+            autocomplete="off"
+          />
         </div>
         <div class="modal__actions">
-          <button class="btn btn-secondary" (click)="showSleepConfirm.set(false); sleepConfirmInput = ''">
+          <button
+            class="btn btn-secondary"
+            (click)="showSleepConfirm.set(false); sleepConfirmInput = ''"
+          >
             Cancelar
           </button>
           <button
             class="btn btn-warning"
             [disabled]="isSuspending() || sleepConfirmInput !== store()!.firebaseProjectId"
-            (click)="suspend()">
-            @if (isSuspending()) { <span class="spinner-sm"></span> Suspendiendo… }
-            @else { <i class="bi bi-moon"></i> Dormir tienda }
+            (click)="suspend()"
+          >
+            @if (isSuspending()) {
+              <span class="spinner-sm"></span> Suspendiendo…
+            } @else {
+              <i class="bi bi-moon"></i> Dormir tienda
+            }
           </button>
         </div>
       </div>
@@ -971,7 +1298,8 @@
         <h3 class="modal__title">Eliminar tienda</h3>
         <p class="modal__body">
           Vas a eliminar <strong>{{ store()!.name }}</strong> y su proyecto GCP/Firebase completo.
-          Esta acción <strong>no se puede deshacer</strong>: se borran Firestore, Auth, Storage y Hosting.
+          Esta acción <strong>no se puede deshacer</strong>: se borran Firestore, Auth, Storage y
+          Hosting.
         </p>
         <div class="form-group" style="margin: 1rem 0">
           <label class="form-label">
@@ -981,18 +1309,26 @@
             class="form-control"
             [(ngModel)]="deleteConfirmInput"
             [placeholder]="store()!.slug"
-            autocomplete="off" />
+            autocomplete="off"
+          />
         </div>
         <div class="modal__actions">
-          <button class="btn btn-secondary" (click)="showDeleteConfirm.set(false); deleteConfirmInput = ''">
+          <button
+            class="btn btn-secondary"
+            (click)="showDeleteConfirm.set(false); deleteConfirmInput = ''"
+          >
             Cancelar
           </button>
           <button
             class="btn btn-danger"
             [disabled]="isDeleting() || deleteConfirmInput !== store()!.slug"
-            (click)="deleteStore()">
-            @if (isDeleting()) { <span class="spinner-sm"></span> Eliminando… }
-            @else { <i class="bi bi-trash"></i> Eliminar definitivamente }
+            (click)="deleteStore()"
+          >
+            @if (isDeleting()) {
+              <span class="spinner-sm"></span> Eliminando…
+            } @else {
+              <i class="bi bi-trash"></i> Eliminar definitivamente
+            }
           </button>
         </div>
       </div>
@@ -1003,39 +1339,81 @@
   @if (showSeedConfirm()) {
     <div class="modal-overlay" (click)="showSeedConfirm.set(false)">
       <div class="modal glass-modal" (click)="$event.stopPropagation()">
-        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem;">
-          <i class="bi bi-database-fill-gear" style="color: #60a5fa;"></i> Semillar Datos de Prueba
+        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem">
+          <i class="bi bi-database-fill-gear" style="color: #60a5fa"></i> Semillar Datos de Prueba
         </h3>
-        <p class="modal__body" style="font-size: 0.875rem; line-height: 1.5; color: var(--platform-text-secondary); margin-bottom: 1rem;">
-          Esta operación cargará un catálogo de demostración (productos, variantes, imágenes y banners) en el Firestore de la tienda <strong>{{ store()!.name }}</strong>.
+        <p
+          class="modal__body"
+          style="
+            font-size: 0.875rem;
+            line-height: 1.5;
+            color: var(--platform-text-secondary);
+            margin-bottom: 1rem;
+          "
+        >
+          Esta operación cargará un catálogo de demostración (productos, variantes, imágenes y
+          banners) en el Firestore de la tienda <strong>{{ store()!.name }}</strong
+          >.
         </p>
 
-        <div class="form-group" style="margin: 1.25rem 0; display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+        <div
+          class="form-group"
+          style="
+            margin: 1.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 1rem;
+            border-radius: 8px;
+          "
+        >
           <input
             id="seedIncludeMock"
             type="checkbox"
-            style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+            style="width: 1.25rem; height: 1.25rem; cursor: pointer"
             [checked]="seedIncludeMock()"
-            (change)="seedIncludeMock.set($any($event.target).checked)" />
-          <label for="seedIncludeMock" style="color: var(--platform-text-primary); font-size: 0.9rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+            (change)="seedIncludeMock.set($any($event.target).checked)"
+          />
+          <label
+            for="seedIncludeMock"
+            style="
+              color: var(--platform-text-primary);
+              font-size: 0.9rem;
+              font-weight: 500;
+              cursor: pointer;
+              user-select: none;
+              margin: 0;
+            "
+          >
             Incluir 20 clientes y 20 pedidos simulados (de prueba)
           </label>
         </div>
 
-        <p class="modal__body" style="font-size: 0.8rem; line-height: 1.4; color: var(--platform-text-secondary); opacity: 0.75; margin-bottom: 1.25rem;">
-          ⚠️ <em>Nota:</em> Los clientes y los pedidos de prueba no se pueden eliminar ni editar fácilmente en la plantilla del ecommerce debido a políticas de seguridad transaccionales de Firestore. Desmarcalos si querés que la base de datos de transacciones comience vacía.
+        <p
+          class="modal__body"
+          style="
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--platform-text-secondary);
+            opacity: 0.75;
+            margin-bottom: 1.25rem;
+          "
+        >
+          ⚠️ <em>Nota:</em> Los clientes y los pedidos de prueba no se pueden eliminar ni editar
+          fácilmente en la plantilla del ecommerce debido a políticas de seguridad transaccionales
+          de Firestore. Desmarcalos si querés que la base de datos de transacciones comience vacía.
         </p>
 
         <div class="modal__actions">
-          <button class="btn btn-secondary" (click)="showSeedConfirm.set(false)">
-            Cancelar
-          </button>
-          <button
-            class="btn btn-primary"
-            [disabled]="isSeeding()"
-            (click)="seedStore()">
-            @if (isSeeding()) { <span class="spinner-sm"></span> Semillando… }
-            @else { <i class="bi bi-database"></i> Iniciar Semillado }
+          <button class="btn btn-secondary" (click)="showSeedConfirm.set(false)">Cancelar</button>
+          <button class="btn btn-primary" [disabled]="isSeeding()" (click)="seedStore()">
+            @if (isSeeding()) {
+              <span class="spinner-sm"></span> Semillando…
+            } @else {
+              <i class="bi bi-database"></i> Iniciar Semillado
+            }
           </button>
         </div>
       </div>
@@ -1046,31 +1424,57 @@
   @if (generatedResetLink()) {
     <div class="modal-overlay" (click)="generatedResetLink.set('')">
       <div class="modal glass-modal" (click)="$event.stopPropagation()">
-        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem;">
-          <i class="bi bi-key-fill" style="color: #c084fc;"></i> Enlace de Acceso Manual
+        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem">
+          <i class="bi bi-key-fill" style="color: #c084fc"></i> Enlace de Acceso Manual
         </h3>
-        <p class="modal__body" style="font-size: 0.85rem; line-height: 1.5; color: var(--platform-text-secondary); margin-bottom: 1rem;">
-          Debido a que el subproyecto no tiene SMTP real o el correo automático no llega, podés copiar este enlace manual y enviárselo directamente al usuario por WhatsApp, Slack o Email para que genere su contraseña:
+        <p
+          class="modal__body"
+          style="
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--platform-text-secondary);
+            margin-bottom: 1rem;
+          "
+        >
+          Debido a que el subproyecto no tiene SMTP real o el correo automático no llega, podés
+          copiar este enlace manual y enviárselo directamente al usuario por WhatsApp, Slack o Email
+          para que genere su contraseña:
         </p>
-        <div class="form-group" style="margin: 1rem 0;">
+        <div class="form-group" style="margin: 1rem 0">
           <textarea
             class="form-control"
             readonly
             rows="3"
-            style="font-family: monospace; font-size: 0.8rem; background: rgba(0, 0, 0, 0.25); border-color: rgba(255,255,255,0.06); resize: none; color: var(--platform-text-primary);"
-            [value]="generatedResetLink()"></textarea>
+            style="
+              font-family: monospace;
+              font-size: 0.8rem;
+              background: rgba(0, 0, 0, 0.25);
+              border-color: rgba(255, 255, 255, 0.06);
+              resize: none;
+              color: var(--platform-text-primary);
+            "
+            [value]="generatedResetLink()"
+          ></textarea>
         </div>
-        
+
         @if (copyFeedbackSuccess()) {
-          <p class="feedback feedback--success" style="font-size: 0.8rem; color: #34d399; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem;">
+          <p
+            class="feedback feedback--success"
+            style="
+              font-size: 0.8rem;
+              color: #34d399;
+              margin-bottom: 1rem;
+              display: flex;
+              align-items: center;
+              gap: 0.35rem;
+            "
+          >
             <i class="bi bi-check-circle-fill"></i> ¡Copiado al portapapeles!
           </p>
         }
 
-        <div class="modal__actions" style="margin-top: 1.25rem;">
-          <button class="btn btn-secondary" (click)="generatedResetLink.set('')">
-            Cerrar
-          </button>
+        <div class="modal__actions" style="margin-top: 1.25rem">
+          <button class="btn btn-secondary" (click)="generatedResetLink.set('')">Cerrar</button>
           <button class="btn btn-primary" (click)="copyToClipboard(generatedResetLink())">
             <i class="bi bi-clipboard"></i> Copiar Enlace
           </button>
@@ -1078,7 +1482,6 @@
       </div>
     </div>
   }
-
 } @else {
   <div class="loading-state">
     <span class="spinner"></span>

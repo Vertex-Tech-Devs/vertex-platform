@@ -15,26 +15,29 @@ Each store gets its own Firebase project provisioned automatically through Cloud
 
 ## Environments
 
-| Env | Firebase project | URL | Deploy |
-|-----|-----------------|-----|--------|
-| Production | `vertex-platform-app` | https://vertex-platform-app.web.app | `npm run deploy:prod` |
-| Development | `vertex-platform-dev` | https://vertex-platform-dev.web.app | `npm run deploy:dev` |
+| Env         | Firebase project      | URL                                 | Deploy                |
+| ----------- | --------------------- | ----------------------------------- | --------------------- |
+| Production  | `vertex-platform-app` | https://vertex-platform-app.web.app | `npm run deploy:prod` |
+| Development | `vertex-platform-dev` | https://vertex-platform-dev.web.app | `npm run deploy:dev`  |
 
-Owner account for prod: `vertex.tech.dev@gmail.com` (stored in Secret Manager as `platform-owner-credentials`).
+Owner account for prod: `vertex.tech.dev@gmail.com` (legacy single secret: `platform-owner-credentials`).
 Owner account for dev: `juan.l.espeche@gmail.com` (personal ADC).
+
+Provisioning owners can now be configured as a pool in Secret Manager under `platform-owner-credentials-pool`.
+`createProject` rotates across that pool when one owner reaches its project creation quota.
 
 ## Functions architecture
 
 Entry: `functions/src/index.ts` (re-exports only — no logic)
 
-| Module | Functions |
-|--------|-----------|
-| `admin.ts` | `manageAdmin`, `listAdmins` |
-| `provisioning.ts` | `provisionStore`, `runProvisioning` |
-| `stores.ts` | `redeployStore`, `deleteStore`, `connectDomain`, `getActiveStores` |
-| `billing.ts` | `listBillingAccounts`, `addBillingAccount`, `updateBillingAccount`, `removeBillingAccount` |
-| `helpers.ts` | `getOwnerOAuthClient`, `getGitHubPat`, `apiFetch`, `retry`, `pollOperation`, `pickBillingAccount` |
-| `types.ts` | All shared interfaces |
+| Module            | Functions                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `admin.ts`        | `manageAdmin`, `listAdmins`                                                                                                          |
+| `provisioning.ts` | `provisionStore`, `runProvisioning`                                                                                                  |
+| `stores.ts`       | `redeployStore`, `deleteStore`, `connectDomain`, `getActiveStores`                                                                   |
+| `billing.ts`      | `listBillingAccounts`, `addBillingAccount`, `updateBillingAccount`, `removeBillingAccount`                                           |
+| `helpers.ts`      | `getOwnerOAuthClient`, `listProvisioningOwnerCandidates`, `getGitHubPat`, `apiFetch`, `retry`, `pollOperation`, `pickBillingAccount` |
+| `types.ts`        | All shared interfaces                                                                                                                |
 
 ## Provisioning flow
 
@@ -48,7 +51,8 @@ Steps are idempotent: each step checks its current status (`done`) before execut
 
 ## Key secrets (Secret Manager — vertex-platform-app)
 
-- `platform-owner-credentials`: OAuth2 ADC JSON for `vertex.tech.dev@gmail.com` — used to create GCP projects
+- `platform-owner-credentials`: OAuth2 ADC JSON kept as backward-compatible fallback for single-owner provisioning
+- `platform-owner-credentials-pool`: array of provisioning owner credentials used to create GCP projects without depending on a single quota bucket
 - `github-pat`: GitHub PAT with `repo` scope — used to dispatch `repository_dispatch` events
 - `deploy-token`: Shared token for machine-to-machine auth on `getActiveStores`
 
@@ -60,6 +64,7 @@ stores/{storeId}
   slug: string (unique, 3-20 chars, [a-z0-9-])
   firebaseProjectId: 'vtx-{slug}'
   billingAccountId: string
+   provisioningOwnerId?: string
   provisioningSteps: Record<stepId, { status, label, error? }>
   /private/firebaseConfig: { apiKey, authDomain, projectId, ... }
 
@@ -102,6 +107,7 @@ Firebase CLI uses the currently active gcloud account for ADC — switching conf
 ## Cumulative Knowledge / Memory & Guidelines
 
 To ensure continuous, automated learning and smooth collaboration:
+
 1. **Always update this CLAUDE.md**: At the end of any significant coding session or bug resolution, update this section with your findings. This guarantees that future agents or sessions build on top of verified knowledge immediately.
 2. **Identity Platform (Firebase Auth) Provisioning Flow**:
    - **Initialization Handshake Required**: In newly provisioned GCP projects, you cannot call Identity Toolkit endpoints (like creating or configuring accounts) without first triggering an explicit initialization. You must send a `POST` request to `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth` with an empty body `{}` to create the auth configuration resource.
@@ -119,7 +125,7 @@ To ensure continuous, automated learning and smooth collaboration:
    - The platform operates purely on direct Firebase SDKs. Angular's `HttpClient` is completely unused and should not be imported or provided.
    - To comply with strict quality gates and avoid `no-explicit-any` errors, always type records using descriptive interfaces like `RawDnsRecord`, and handle caught exceptions using safe `unknown` catches with `err instanceof Error` type guards.
 7. Seeding & Mock Data Seeding Configurator (v1.5.0):
-   - **`includeMockData` Payload Integration**: The store seeding process accepts an optional `includeMockData` boolean flag (defaults to `true`). 
+   - **`includeMockData` Payload Integration**: The store seeding process accepts an optional `includeMockData` boolean flag (defaults to `true`).
    - **Backend Handling**: In `seeds.ts`, when `includeMockData` is set to `false`, the seeding engine skips the loops that inject 20 mock clients and 20 mock orders. This is crucial because Firestore security rules restrict clients as read-only (`allow write: if false`), and orders represent non-deletable historical transactions. Skipping them provides a pristine store environment.
    - **Frontend UI Toggles**: Toggle options are available both globally in the `store-create` form and manually through a glass-blur confirmation modal (`showSeedConfirm`) in the `store-detail` Orchestration panel.
 8. Firebase Auth Domain Security Policies:
