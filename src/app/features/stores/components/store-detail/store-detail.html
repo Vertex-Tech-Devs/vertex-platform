@@ -80,14 +80,7 @@
             @if (actionError()) {
               <p class="action-error">{{ actionError() }}</p>
             }
-            @if (retryBlockReason()) {
-              <p class="action-error">{{ retryBlockReason() }}</p>
-            }
-            <button
-              class="btn btn-primary"
-              [disabled]="isRetrying() || isRetryBlocked()"
-              (click)="retry()"
-            >
+            <button class="btn btn-primary" [disabled]="isRetrying()" (click)="retry()">
               @if (isRetrying()) {
                 <span class="spinner-sm"></span> Reintentando…
               } @else {

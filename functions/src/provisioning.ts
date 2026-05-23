@@ -13,6 +13,7 @@ import {
   retry,
   pollOperation,
   pickBillingAccount,
+  listProvisioningOwnerCandidates,
 } from './helpers';
 import { seedStoreData } from './seeds';
 
@@ -126,6 +127,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     verticalId?: string;
     includeMockData?: boolean;
   };
+  let provisioningOwnerId =
+    typeof currentData['provisioningOwnerId'] === 'string'
+      ? (currentData['provisioningOwnerId'] as string)
+      : undefined;
 
   const currentSteps = (currentData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
   const isDone = (stepId: string): boolean => currentSteps[stepId]?.status === 'done';
@@ -143,16 +148,30 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     return (
       normalized.includes('exceeded your allotted project quota') ||
       normalized.includes('project quota') ||
-      normalized.includes('quota exceeded for projects')
+      normalized.includes('quota exceeded for projects') ||
+      normalized.includes('cuota de creación de proyectos')
     );
+  };
+
+  const assignProvisioningOwner = async (ownerId: string): Promise<OAuth2Client> => {
+    const nextAuth = await getOwnerOAuthClient(ownerId);
+    if (provisioningOwnerId !== ownerId) {
+      provisioningOwnerId = ownerId;
+      await storeRef.update({ provisioningOwnerId: ownerId, updatedAt: new Date() });
+    }
+    return nextAuth;
   };
 
   const formatProvisioningError = (stepId: string, err: unknown): string => {
     const raw = err instanceof Error ? err.message : String(err);
     const normalized = raw.toLowerCase();
 
-    if (stepId === 'createProject' && isProjectQuotaExceeded(raw)) {
-      return 'No se pudo crear el proyecto GCP porque se agotó la cuota de creación de proyectos de la cuenta/organización actual. Liberá cupo o pedí aumento de cuota en Google Cloud y luego reintentá.';
+    if (
+      stepId === 'createProject' &&
+      (isProjectQuotaExceeded(raw) ||
+        normalized.includes('all provisioning owner accounts are at capacity'))
+    ) {
+      return 'No se pudo crear el proyecto GCP porque las credenciales de aprovisionamiento agotaron su capacidad de alta de proyectos. Agregá otra cuenta en platform-owner-credentials-pool o aumentá la cuota de Google Cloud y luego reintentá.';
     }
 
     if (
@@ -180,7 +199,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   let auth: OAuth2Client;
   try {
-    auth = await getOwnerOAuthClient();
+    auth = provisioningOwnerId
+      ? await getOwnerOAuthClient(provisioningOwnerId)
+      : await getOwnerOAuthClient();
   } catch {
     await storeRef.update({ status: 'error', updatedAt: new Date() });
     return;
@@ -240,11 +261,40 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('createProject')) {
     await setStep('createProject', 'running');
     try {
-      const op = (await apiFetch(auth, 'https://cloudresourcemanager.googleapis.com/v3/projects', {
-        method: 'POST',
-        body: { projectId, displayName: name },
-      })) as { name: string };
-      await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
+      const ownerCandidates = await listProvisioningOwnerCandidates(db, provisioningOwnerId);
+      let createProjectError: unknown = null;
+
+      for (const candidate of ownerCandidates) {
+        try {
+          auth = await assignProvisioningOwner(candidate.id);
+          const op = (await apiFetch(
+            auth,
+            'https://cloudresourcemanager.googleapis.com/v3/projects',
+            {
+              method: 'POST',
+              body: { projectId, displayName: name },
+            },
+          )) as { name: string };
+          await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
+          createProjectError = null;
+          break;
+        } catch (err) {
+          createProjectError = err;
+          const raw = err instanceof Error ? err.message : String(err);
+          const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
+          if (!isProjectQuotaExceeded(raw) || isLastCandidate) {
+            throw err;
+          }
+          console.warn(
+            `[provisioning:createProject] El owner ${candidate.id} agotó su cuota de proyectos. Reintentando con otra credencial.`,
+          );
+        }
+      }
+
+      if (createProjectError) {
+        throw createProjectError;
+      }
+
       await setStep('createProject', 'done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -881,27 +931,15 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
 
     const steps = (storeData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
-    const createProjectError = steps['createProject']?.error ?? '';
-    if (typeof createProjectError === 'string') {
-      const normalized = createProjectError.toLowerCase();
-      if (
-        normalized.includes('cuota de creación de proyectos') ||
-        normalized.includes('allotted project quota') ||
-        normalized.includes('project quota')
-      ) {
-        throw new HttpsError(
-          'failed-precondition',
-          'No se puede reintentar el aprovisionamiento hasta liberar o ampliar la cuota de creación de proyectos en Google Cloud.',
-        );
-      }
-    }
-
     const updates: Record<string, unknown> = { status: 'provisioning', updatedAt: new Date() };
     for (const [id, step] of Object.entries(steps)) {
       if (step.status === 'error') {
         updates[`provisioningSteps.${id}.status`] = 'pending';
         updates[`provisioningSteps.${id}.error`] = null;
       }
+    }
+    if (steps['createProject']?.status === 'error') {
+      updates['provisioningOwnerId'] = null;
     }
     await storeRef.update(updates);
 

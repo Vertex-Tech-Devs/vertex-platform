@@ -54,23 +54,6 @@ export class StoreDetail implements OnInit, OnDestroy {
     return STEP_ORDER.filter((id) => id in steps);
   });
 
-  readonly isRetryBlocked = computed(() => {
-    const error = this.store()?.provisioningSteps?.['createProject']?.error ?? '';
-    const normalized = error.toLowerCase();
-    return (
-      this.store()?.status === 'error' &&
-      (normalized.includes('cuota de creación de proyectos') ||
-        normalized.includes('allotted project quota') ||
-        normalized.includes('project quota'))
-    );
-  });
-
-  readonly retryBlockReason = computed(() =>
-    this.isRetryBlocked()
-      ? 'Reintentar no va a funcionar hasta liberar o ampliar la cuota de creación de proyectos en Google Cloud.'
-      : '',
-  );
-
   readonly progressPercent = computed(() => {
     const steps = this.store()?.provisioningSteps ?? {};
     const done = Object.values(steps).filter((s) => s.status === 'done').length;
@@ -693,10 +676,6 @@ export class StoreDetail implements OnInit, OnDestroy {
   async retry(): Promise<void> {
     const id = this.store()?.id;
     if (!id) return;
-    if (this.isRetryBlocked()) {
-      this.actionError.set(this.retryBlockReason());
-      return;
-    }
     this.isRetrying.set(true);
     this.actionError.set('');
     try {
