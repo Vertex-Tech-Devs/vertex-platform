@@ -481,7 +481,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       if (verticalId) {
-        await seedStoreData(auth, projectId, verticalId);
+        await seedStoreData(auth, projectId, verticalId, name);
       }
 
       await setStep('initFirestore', 'done');

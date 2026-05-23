@@ -792,7 +792,7 @@ export const seedStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string; verticalId?: string };
+    const store = storeSnap.data() as { name: string; firebaseProjectId: string; verticalId?: string };
     const projectId = store.firebaseProjectId;
     const verticalId = store.verticalId || 'retail';
 
@@ -800,7 +800,7 @@ export const seedStore = onCall<{ storeId: string }>(
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, verticalId);
+      await seedStoreData(auth, projectId, verticalId, store.name);
       return { success: true };
     } catch (err: any) {
       console.error(`Error seeding store ${storeId} (project: ${projectId}):`, err);

@@ -398,7 +398,7 @@
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Nombre Comercial *</label>
-                        <input formControlName="storeName" type="text" class="form-control" placeholder="Mi Tienda Online" />
+                        <input formControlName="storeName" type="text" class="form-control" [placeholder]="store()?.name || 'Mi Tienda Online'" />
                         @if (configForm.get('storeName')?.invalid && configForm.get('storeName')?.touched) {
                           <span class="invalid-feedback">El nombre es obligatorio.</span>
                         }
@@ -538,7 +538,7 @@
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Meta Título Principal</label>
-                        <input formControlName="metaTitle" type="text" class="form-control" placeholder="Comprá Ropa Online | Mi Tienda" />
+                        <input formControlName="metaTitle" type="text" class="form-control" [placeholder]="'Comprá Ropa Online | ' + (store()?.name || 'Mi Tienda')" />
                       </div>
                       <div class="form-group">
                         <label class="form-label">Meta Descripción Corta</label>
@@ -891,7 +891,7 @@
           <div class="edit-grid">
             <div class="form-group">
               <label class="form-label">Nombre *</label>
-              <input class="form-control" formControlName="name" placeholder="Mi tienda" />
+              <input class="form-control" formControlName="name" [placeholder]="store()?.name || 'Mi tienda'" />
               @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
                 <span class="invalid-feedback">Requerido</span>
               }

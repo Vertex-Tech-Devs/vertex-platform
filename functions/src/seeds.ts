@@ -979,14 +979,35 @@ function generateVariantCombinations(
 /**
  * Seeds isolated child project database with category trees, attributes, and products with variants.
  */
-export async function seedStoreData(auth: OAuth2Client, projectId: string, verticalId: string): Promise<void> {
-  let seed = VERTICAL_SEEDS[verticalId];
+export async function seedStoreData(auth: OAuth2Client, projectId: string, verticalId: string, storeName?: string): Promise<void> {
+  const sName = storeName ? storeName.trim() : 'Vertex';
+  let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
-  if (!seed) {
+  if (!rawSeed) {
     console.log(`[SeedEngine] No seeds defined for vertical: ${verticalId}. Falling back gracefully to "retail" seed.`);
-    seed = VERTICAL_SEEDS['retail'];
+    rawSeed = VERTICAL_SEEDS['retail'];
     targetVertical = 'retail';
   }
+
+  // Helper to customize dynamic seed values
+  function customizeSeed(obj: any, val: string): any {
+    if (typeof obj === 'string') {
+      return obj.replace(/Vertex/g, val);
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((x) => customizeSeed(x, val));
+    }
+    if (obj !== null && typeof obj === 'object') {
+      const res: Record<string, any> = {};
+      for (const [k, v] of Object.entries(obj)) {
+        res[k] = customizeSeed(v, val);
+      }
+      return res;
+    }
+    return obj;
+  }
+
+  const seed = customizeSeed(rawSeed, sName);
 
   // 1. Run Safety Check
   await checkStoreSafety(auth, projectId);
@@ -1342,7 +1363,7 @@ export async function seedStoreData(auth: OAuth2Client, projectId: string, verti
   const bannerTitle = isIndumentaria
     ? 'Nueva Colección 2026'
     : isGastronomia
-    ? 'Sabores Únicos Vertex'
+    ? `Sabores Únicos ${sName}`
     : 'Espacios con Identidad';
 
   const featuredCategories = isIndumentaria
@@ -1396,17 +1417,17 @@ export async function seedStoreData(auth: OAuth2Client, projectId: string, verti
     : 'Diseño minimalista y calidad para tu vida diaria desde 2016.';
 
   const centralDescription = isIndumentaria
-    ? 'Vertex nació en 2015 en el barrio de Palermo (Buenos Aires) con un objetivo claro: ' +
+    ? `${sName} nació en 2015 en el barrio de Palermo (Buenos Aires) con un objetivo claro: ` +
       'democratizar la moda de calidad. Trabajamos exclusivamente con proveedores certificados, ' +
       'materiales de primera línea y diseños propios que reflejan la identidad urbana argentina.\n\n' +
       'Hoy somos un equipo de 30 personas, despachamos a todo el país y contamos con más de 50.000 ' +
       'clientes activos que nos eligen por la calidad, el servicio y los precios justos.'
     : isGastronomia
-    ? 'Vertex Gastronomía comenzó como un pequeño bistró en San Telmo y se convirtió en el ' +
+    ? `${sName} comenzó como un pequeño bistró en San Telmo y se convirtió en el ` +
       'punto de encuentro de los amantes de la comida real. Seleccionamos ingredientes locales frescos ' +
       'y preparamos cada plato con técnicas artesanales y un toque de innovación constante.\n\n' +
       'Servicio impecable, un ambiente cálido y la obsesión por el sabor definen nuestra filosofía diaria.'
-    : 'Vertex Hogar nació para ayudarte a construir espacios que inspiren paz, productividad y bienestar. ' +
+    : `${sName} nació para ayudarte a construir espacios que inspiren paz, productividad y bienestar. ` +
       'Curamos minuciosamente cada producto combinando estética minimalista y funcionalidad atemporal.\n\n' +
       'Creemos en el consumo consciente y en que cada objeto de tu entorno debe sumar valor real y durabilidad.';
 
@@ -1466,13 +1487,14 @@ export async function seedStoreData(auth: OAuth2Client, projectId: string, verti
   console.log(`[SeedEngine] Seeded pages/aboutUs successfully.`);
 
   // 10. Seed Footer (configuracion/footer)
+  const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const footerPayload = {
     contactPhone: '+54 11 4567-8900',
-    contactEmail: 'hola@vertex.com.ar',
-    socialInstagramUrl: `https://instagram.com/vertex.${targetVertical}`,
-    socialFacebookUrl: `https://facebook.com/vertex${targetVertical}`,
+    contactEmail: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    socialInstagramUrl: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
+    socialFacebookUrl: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
     socialWhatsAppUrl: 'https://wa.me/5491145678900',
-    copyrightText: '© 2026 Vertex. Todos los derechos reservados.'
+    copyrightText: `© 2026 ${sName}. Todos los derechos reservados.`
   };
 
   await retry(
