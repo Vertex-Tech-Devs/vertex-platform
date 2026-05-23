@@ -390,6 +390,13 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       throw new HttpsError('invalid-argument', 'storeId, email, and role are required.');
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedRole = role.trim().toLowerCase();
+    const allowedRoles = new Set(['admin', 'warehouse', 'fulfillment', 'analyst']);
+    if (!allowedRoles.has(normalizedRole)) {
+      throw new HttpsError('invalid-argument', 'Invalid role for staff invitation.');
+    }
+
     const db = getFirestore();
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
@@ -397,13 +404,12 @@ export const inviteStaff = onCall<InviteStaffPayload>(
     const store = storeSnap.data() as { firebaseProjectId: string };
     const projectId = store.firebaseProjectId;
 
-    const normalizedEmail = email.trim().toLowerCase();
     const token = crypto.randomUUID();
     const invitationId = crypto.randomUUID();
     await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).set({
       id: invitationId,
       email: normalizedEmail,
-      role,
+      role: normalizedRole,
       token,
       status: 'pending',
       createdAt: new Date(),
@@ -422,6 +428,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     await ensureEmailPasswordSignInEnabled(auth, projectId);
 
+    let uid: string;
     try {
       const createRes = await apiFetch(
         auth,
@@ -429,12 +436,31 @@ export const inviteStaff = onCall<InviteStaffPayload>(
         {
           method: 'POST',
           body: { email: normalizedEmail, emailVerified: false },
-          quotaProject: projectId
+          quotaProject: projectId,
         }
       ) as { localId: string };
+      uid = createRes.localId;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('EMAIL_EXISTS')) {
+        console.error(`[inviteStaff] Failed to create auth user in ${projectId}:`, err);
+        throw new HttpsError('internal', 'No se pudo crear el usuario en Firebase Auth del subproyecto.');
+      }
 
-      const uid = createRes.localId;
+      const lookup = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+        { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId }
+      )) as { users?: Array<{ localId: string }> };
 
+      const existing = lookup.users?.[0]?.localId;
+      if (!existing) {
+        throw new HttpsError('internal', 'No se encontró el usuario existente para completar la invitación.');
+      }
+      uid = existing;
+    }
+
+    try {
       await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
@@ -442,16 +468,16 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           method: 'POST',
           body: {
             localId: uid,
-            customAttributes: JSON.stringify({ role, storeId })
+            customAttributes: JSON.stringify({ role: normalizedRole, storeId }),
           },
-          quotaProject: projectId
+          quotaProject: projectId,
         }
       );
 
       const { toFirestoreFields } = require('./seeds');
       const userDoc = {
         email: normalizedEmail,
-        role,
+        role: normalizedRole,
         displayName: '',
         joinedAt: new Date(),
       };
@@ -462,60 +488,15 @@ export const inviteStaff = onCall<InviteStaffPayload>(
         {
           method: 'PATCH',
           body: toFirestoreFields(userDoc),
-          quotaProject: projectId
+          quotaProject: projectId,
         }
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[inviteStaff] Inner API call failed for project ${projectId}:`, err);
-      
-      if (msg.includes('EMAIL_EXISTS')) {
-        try {
-          const lookup = (await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId }
-          )) as { users: Array<{ localId: string }> };
-
-          if (lookup.users?.length) {
-            const uid = lookup.users[0].localId;
-            await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
-              {
-                method: 'POST',
-                body: {
-                  localId: uid,
-                  customAttributes: JSON.stringify({ role, storeId })
-                },
-                quotaProject: projectId
-              }
-            );
-
-            const { toFirestoreFields } = require('./seeds');
-            const userDoc = {
-              email: normalizedEmail,
-              role,
-              displayName: '',
-              joinedAt: new Date(),
-            };
-
-            await apiFetch(
-              auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`,
-              {
-                method: 'PATCH',
-                body: toFirestoreFields(userDoc),
-                quotaProject: projectId
-              }
-            );
-          }
-        } catch (nestedErr) {
-          console.warn(`[inviteStaff] Nested lookup/update failed for existing user:`, nestedErr);
-        }
-      }
+      console.error(`[inviteStaff] Failed to sync claims/profile in ${projectId}:`, err);
+      throw new HttpsError('internal', 'No se pudo asignar rol y perfil al usuario invitado.');
     }
 
+    let inviteEmailSent = true;
     try {
       await apiFetch(
         auth,
@@ -532,11 +513,15 @@ export const inviteStaff = onCall<InviteStaffPayload>(
         updatedAt: new Date(),
       });
     } catch (err) {
+      inviteEmailSent = false;
       console.error('[inviteStaff] Failed to dispatch invitation email.', err);
-      throw new HttpsError('internal', 'La invitación se registró, pero falló el envío del email de acceso.');
+      await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).update({
+        inviteEmailErrorAt: new Date(),
+        updatedAt: new Date(),
+      });
     }
 
-    return { success: true, token };
+    return { success: true, token, inviteEmailSent };
   }
 );
 
