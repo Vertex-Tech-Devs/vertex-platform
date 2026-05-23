@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
+import type { DnsRecord } from '@core/services/stores';
 import type { DeploymentHistoryItem } from '@core/services/stores';
 import type { ProvisioningStep, StoreConfig, StaffMember, PendingInvitation, Store } from '@core/models/store';
 
@@ -72,7 +73,7 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly actionError = signal('');
   readonly actionSuccess = signal('');
   readonly saveError = signal('');
-  readonly dnsRecords = signal<Array<{ rdata: string; requiredAction: string }>>([]);
+  readonly dnsRecords = signal<DnsRecord[]>([]);
   readonly deploymentHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(false);
 
@@ -81,6 +82,7 @@ export class StoreDetail implements OnInit, OnDestroy {
   domainInput = '';
   deleteConfirmInput = '';
   sleepConfirmInput = '';
+  private readonly optionalUrlRegex = /^(|https?:\/\/[^\s$.?#].[^\s]*)$/i;
 
   // Edit general store form
   readonly editForm = this.fb.group({
@@ -98,18 +100,18 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly configForm = this.fb.group({
     storeName: ['', Validators.required],
     strapline: [''],
-    logoUrl: [''],
-    faviconUrl: [''],
-    currency: ['ARS'],
-    currencySymbol: ['$'],
-    country: ['Argentina'],
+    logoUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
+    faviconUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
+    currency: ['ARS', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
+    currencySymbol: ['$', [Validators.required, Validators.maxLength(5)]],
+    country: ['Argentina', Validators.required],
     contact: this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       phone: [''],
       whatsapp: [''],
       address: [''],
       instagram: [''],
-      facebook: ['']
+      facebook: ['', [Validators.pattern(this.optionalUrlRegex)]]
     }),
     seo: this.fb.group({
       metaTitle: [''],
@@ -140,6 +142,12 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly isVerifyingDNS = signal(false);
   readonly dnsVerificationError = signal('');
   readonly dnsVerificationSuccess = signal('');
+  readonly hasDomainOwnership = signal(false);
+  readonly hasDnsAccess = signal(false);
+  readonly wantsRootOrWwwReady = signal(false);
+  readonly canConnectDomain = computed(
+    () => !!this.domainInput.trim() && this.hasDomainOwnership() && this.hasDnsAccess() && this.wantsRootOrWwwReady()
+  );
 
   ngOnInit(): void {
     void this.loadHistory();
@@ -272,6 +280,18 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.configSuccess.set('');
     try {
       const formValue = this.configForm.value as StoreConfig;
+      formValue.storeName = formValue.storeName?.trim();
+      formValue.strapline = formValue.strapline?.trim();
+      formValue.logoUrl = formValue.logoUrl?.trim();
+      formValue.faviconUrl = formValue.faviconUrl?.trim();
+      formValue.currency = (formValue.currency || '').trim().toUpperCase();
+      formValue.currencySymbol = (formValue.currencySymbol || '').trim();
+      formValue.country = (formValue.country || '').trim();
+      formValue.contact.email = formValue.contact.email?.trim().toLowerCase();
+      formValue.contact.facebook = formValue.contact.facebook?.trim();
+      formValue.seo.metaTitle = formValue.seo.metaTitle?.trim();
+      formValue.seo.metaDescription = formValue.seo.metaDescription?.trim();
+
       await this.storesService.updateStoreConfig(s.id, formValue);
       this.configSuccess.set('Configuración actualizada con éxito. Los cambios se aplicarán en tiempo real.');
 
@@ -323,7 +343,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     try {
       const { email, role } = this.inviteForm.value;
       await this.storesService.inviteStaff(s.id, email!, role!);
-      this.inviteSuccess.set(`Invitación enviada con éxito a ${email}.`);
+      this.inviteSuccess.set(`Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`);
       this.inviteForm.reset({ email: '', role: 'admin' });
       await this.loadStaff();
     } catch (err) {
@@ -394,10 +414,11 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.saveError.set('');
     try {
       const { name, ownerEmail, logoUrl } = this.editForm.value;
+      const normalizedLogo = (logoUrl ?? '').trim();
       await this.storesService.updateStore(id, {
-        name: name!,
-        ownerEmail: ownerEmail!,
-        ...(logoUrl ? { logoUrl } : {}),
+        name: name!.trim(),
+        ownerEmail: ownerEmail!.trim(),
+        logoUrl: normalizedLogo || null,
       });
       this.showEditModal.set(false);
     } catch {

@@ -397,6 +397,9 @@
                   <!-- SEO settings card -->
                   <div class="config-card" formGroupName="seo">
                     <h3 class="config-card__title"><i class="bi bi-search"></i> Posicionamiento SEO</h3>
+                    <p class="form-hint" style="margin-bottom: 0.85rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+                      Recomendado: gestionarlo desde el panel admin de la tienda. Este bloque queda como configuración central inicial.
+                    </p>
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Meta Título Principal</label>
@@ -631,9 +634,37 @@
                       </small>
                     </div>
 
+                    <div class="form-group" style="margin-top: 1rem; max-width: 620px;">
+                      <label class="form-label">Checklist previo obligatorio</label>
+                      <label class="checkbox-label" style="margin-top: 0.5rem;">
+                        <input type="checkbox" [ngModel]="hasDomainOwnership()" (ngModelChange)="hasDomainOwnership.set(!!$event)" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Tengo titularidad del dominio</strong>
+                          <p>Puedo operar sobre el dominio en el registrador actual.</p>
+                        </div>
+                      </label>
+                      <label class="checkbox-label" style="margin-top: 0.5rem;">
+                        <input type="checkbox" [ngModel]="hasDnsAccess()" (ngModelChange)="hasDnsAccess.set(!!$event)" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Tengo acceso al panel DNS</strong>
+                          <p>Puedo crear registros tipo A, TXT o CNAME en el proveedor DNS.</p>
+                        </div>
+                      </label>
+                      <label class="checkbox-label" style="margin-top: 0.5rem;">
+                        <input type="checkbox" [ngModel]="wantsRootOrWwwReady()" (ngModelChange)="wantsRootOrWwwReady.set(!!$event)" />
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                          <strong>Definí el dominio final</strong>
+                          <p>Ya validé si voy a usar dominio raíz (tienda.com) o subdominio (www.tienda.com).</p>
+                        </div>
+                      </label>
+                    </div>
+
                     <button
                       class="btn btn-primary"
-                      [disabled]="isConnectingDomain() || !domainInput"
+                      [disabled]="isConnectingDomain() || !canConnectDomain()"
                       (click)="connectDomain()"
                       style="margin-top: 1.25rem;">
                       @if (isConnectingDomain()) {
@@ -696,18 +727,21 @@
                         <span class="spinner-sm"></span> Recuperando registros del proyecto Firebase Hosting...
                       </div>
                     } @else {
-                      @for (record of dnsRecords(); track record.rdata) {
+                      @for (record of dnsRecords(); track record.host + '-' + record.type + '-' + record.value) {
                         <div class="dns-record-block">
                           <div class="dns-record-block__type">
                             <span class="badge-role badge-role--admin">{{ record.requiredAction }}</span>
                           </div>
                           <div class="dns-record-block__data">
+                            <span class="dns-record-label">Tipo</span>
+                            <code>{{ record.type }}</code>
+
                             <span class="dns-record-label">Host / Nombre</span>
-                            <code>@ (o vacío)</code>
+                            <code>{{ record.host }}</code>
                             
                             <span class="dns-record-label" style="margin-top: 0.5rem;">Valor / IP</span>
                             <div class="dns-value-copy">
-                              <code>{{ record.rdata }}</code>
+                              <code>{{ record.value }}</code>
                             </div>
                           </div>
                         </div>

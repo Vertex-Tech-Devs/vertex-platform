@@ -4,6 +4,45 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, getGitHubPat, apiFetch, retry } from './helpers';
 import type { InviteStaffPayload, UpdateStoreConfigPayload } from './types';
 
+async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>, projectId: string): Promise<void> {
+  const initIdentityPlatform = async (): Promise<void> => {
+    try {
+      await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
+        {
+          method: 'POST',
+          body: {},
+          quotaProject: projectId,
+        }
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+        throw err;
+      }
+    }
+
+    await apiFetch(
+      auth,
+      `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
+      {
+        method: 'PATCH',
+        body: {
+          signIn: {
+            email: {
+              enabled: true,
+            },
+          },
+        },
+        quotaProject: projectId,
+      }
+    );
+  };
+
+  await retry(initIdentityPlatform, 5, 8000);
+}
+
 export const redeployStore = onCall<{ storeId: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -144,7 +183,14 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     }
 
     const result = (await res.json()) as {
-      requiredDnsUpdates?: { discovered?: Array<{ rdata: string; requiredAction: string }> };
+      requiredDnsUpdates?: {
+        discovered?: Array<{
+          domainName?: string;
+          type?: string;
+          rdata?: string;
+          requiredAction?: string;
+        }>;
+      };
     };
 
     await db.collection('stores').doc(storeId).update({
@@ -152,7 +198,12 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       updatedAt: new Date(),
     });
 
-    const dnsRecords = result.requiredDnsUpdates?.discovered ?? [];
+    const dnsRecords = (result.requiredDnsUpdates?.discovered ?? []).map((record) => ({
+      domainName: record.domainName || '@',
+      type: record.type || 'A',
+      rdata: record.rdata || '',
+      requiredAction: record.requiredAction || 'ADD',
+    }));
     return { success: true, dnsRecords };
   }
 );
@@ -346,11 +397,12 @@ export const inviteStaff = onCall<InviteStaffPayload>(
     const store = storeSnap.data() as { firebaseProjectId: string };
     const projectId = store.firebaseProjectId;
 
+    const normalizedEmail = email.trim().toLowerCase();
     const token = crypto.randomUUID();
     const invitationId = crypto.randomUUID();
     await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).set({
       id: invitationId,
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       role,
       token,
       status: 'pending',
@@ -361,9 +413,14 @@ export const inviteStaff = onCall<InviteStaffPayload>(
     try {
       auth = await getOwnerOAuthClient();
     } catch (err) {
-      console.warn(`[inviteStaff] Failed to load GCP owner credentials. Skipping physical tenant provisioning but local invitation was registered.`, err);
-      return { success: true, token };
+      console.error('[inviteStaff] Failed to load GCP owner credentials.', err);
+      throw new HttpsError(
+        'failed-precondition',
+        'No se pudo enviar la invitación real porque faltan credenciales de aprovisionamiento.'
+      );
     }
+
+    await ensureEmailPasswordSignInEnabled(auth, projectId);
 
     try {
       const createRes = await apiFetch(
@@ -371,7 +428,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
         {
           method: 'POST',
-          body: { email: email.trim().toLowerCase(), emailVerified: false },
+          body: { email: normalizedEmail, emailVerified: false },
           quotaProject: projectId
         }
       ) as { localId: string };
@@ -393,7 +450,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
       const { toFirestoreFields } = require('./seeds');
       const userDoc = {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         role,
         displayName: '',
         joinedAt: new Date(),
@@ -417,7 +474,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           const lookup = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            { method: 'POST', body: { email: [email.trim().toLowerCase()] }, quotaProject: projectId }
+            { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId }
           )) as { users: Array<{ localId: string }> };
 
           if (lookup.users?.length) {
@@ -437,7 +494,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
             const { toFirestoreFields } = require('./seeds');
             const userDoc = {
-              email: email.trim().toLowerCase(),
+              email: normalizedEmail,
               role,
               displayName: '',
               joinedAt: new Date(),
@@ -457,6 +514,26 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           console.warn(`[inviteStaff] Nested lookup/update failed for existing user:`, nestedErr);
         }
       }
+    }
+
+    try {
+      await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email: normalizedEmail },
+          quotaProject: projectId,
+        }
+      );
+
+      await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).update({
+        inviteEmailSentAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      console.error('[inviteStaff] Failed to dispatch invitation email.', err);
+      throw new HttpsError('internal', 'La invitación se registró, pero falló el envío del email de acceso.');
     }
 
     return { success: true, token };
@@ -571,13 +648,26 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
 
     const result = (await res.json()) as {
       status?: string;
-      requiredDnsUpdates?: { discovered?: Array<{ rdata: string; requiredAction: string }> };
+      requiredDnsUpdates?: {
+        discovered?: Array<{
+          domainName?: string;
+          type?: string;
+          rdata?: string;
+          requiredAction?: string;
+        }>;
+      };
     };
 
-    const status = result.status || 'PENDING';
-    const dnsRecords = result.requiredDnsUpdates?.discovered ?? [];
+    const rawStatus = result.status || 'PENDING';
+    const normalizedStatus = rawStatus === 'ACTIVE' || rawStatus === 'LIVE' ? 'live' : 'pending';
+    const dnsRecords = (result.requiredDnsUpdates?.discovered ?? []).map((record) => ({
+      domainName: record.domainName || '@',
+      type: record.type || 'A',
+      rdata: record.rdata || '',
+      requiredAction: record.requiredAction || 'ADD',
+    }));
 
-    return { success: true, status, dnsRecords };
+    return { success: true, status: normalizedStatus, rawStatus, dnsRecords };
   }
 );
 

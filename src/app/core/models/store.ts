@@ -15,7 +15,7 @@ export interface Store {
   defaultUrl: string;
   customDomain?: string;
   status: StoreStatus;
-  logoUrl?: string;
+  logoUrl?: string | null;
   ownerEmail: string;
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +31,7 @@ export interface CreateStorePayload {
   name: string;
   slug: string;
   ownerEmail: string;
-  logoUrl?: string;
+  logoUrl?: string | null;
   customDomain?: string;
   verticalId?: string;
 }

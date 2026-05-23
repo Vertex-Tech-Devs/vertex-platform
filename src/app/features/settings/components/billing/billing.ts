@@ -49,7 +49,13 @@ export class Billing implements OnInit {
   nextAccountName(): string {
     const count = this.svc.accounts().length + 1;
     const names = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-    return `Vertex Billing Account ${names[count - 1] ?? count}`;
+    return `Billing Account ${names[count - 1] ?? count}`;
+  }
+
+  normalizeBillingId(raw: string): string {
+    const value = raw.trim();
+    if (!value) return '';
+    return value.startsWith('billingAccounts/') ? value.slice('billingAccounts/'.length) : value;
   }
 
   startAdd(): void {
@@ -60,7 +66,7 @@ export class Billing implements OnInit {
   }
 
   async addAccount(): Promise<void> {
-    const id = this.addId().trim();
+    const id = this.normalizeBillingId(this.addId());
     const name = this.addName().trim();
     if (!id || !name) { this.addError.set('ID y nombre son requeridos.'); return; }
     this.isAdding.set(true);

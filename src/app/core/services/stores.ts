@@ -13,6 +13,13 @@ import { Observable } from 'rxjs';
 
 import type { Store, CreateStorePayload, StoreConfig, StaffMember, PendingInvitation } from '../models/store';
 
+export interface DnsRecord {
+  host: string;
+  type: string;
+  value: string;
+  requiredAction: string;
+}
+
 export interface DeploymentHistoryItem {
   id: number;
   runNumber: number;
@@ -59,13 +66,13 @@ export class StoresService {
   async connectDomain(
     storeId: string,
     domain: string
-  ): Promise<{ dnsRecords: Array<{ rdata: string; requiredAction: string }> }> {
+  ): Promise<{ dnsRecords: DnsRecord[] }> {
     const fn = httpsCallable<
       { storeId: string; domain: string },
-      { success: boolean; dnsRecords: Array<{ rdata: string; requiredAction: string }> }
+      { success: boolean; dnsRecords: RawDnsRecord[] }
     >(this.fns, 'connectDomain');
     const result = await fn({ storeId, domain });
-    return { dnsRecords: result.data.dnsRecords };
+    return { dnsRecords: mapDnsRecords(result.data.dnsRecords) };
   }
 
   async updateStore(
@@ -121,15 +128,16 @@ export class StoresService {
   async verifyDomain(
     storeId: string,
     domain: string
-  ): Promise<{ status: 'live' | 'pending'; dnsRecords: Array<{ rdata: string; requiredAction: string }> }> {
+  ): Promise<{ status: 'live' | 'pending'; dnsRecords: DnsRecord[] }> {
     const fn = httpsCallable<
       { storeId: string; domain: string },
-      { success: boolean; status: 'live' | 'pending'; dnsRecords: Array<{ rdata: string; requiredAction: string }> }
+      { success: boolean; status: string; dnsRecords: RawDnsRecord[] }
     >(this.fns, 'verifyDomainDNSStatus');
     const result = await fn({ storeId, domain });
+    const normalizedStatus = normalizeDomainStatus(result.data.status);
     return {
-      status: result.data.status,
-      dnsRecords: blockDnsRecords(result.data.dnsRecords),
+      status: normalizedStatus,
+      dnsRecords: mapDnsRecords(result.data.dnsRecords),
     };
   }
 
@@ -146,14 +154,31 @@ export class StoresService {
 }
 
 interface RawDnsRecord {
-  rdata?: string;
-  requiredAction?: string;
+  domainName?: string;
   type?: string;
+  rdata?: string;
+  value?: string;
+  requiredAction?: string;
 }
 
-function blockDnsRecords(records: RawDnsRecord[]): Array<{ rdata: string; requiredAction: string }> {
-  return (records ?? []).map(r => ({
-    rdata: r.rdata ?? '',
-    requiredAction: r.requiredAction ?? r.type ?? 'TXT'
+function normalizeDomainStatus(status: string | undefined): 'live' | 'pending' {
+  const normalized = (status || '').trim().toUpperCase();
+  return normalized === 'LIVE' || normalized === 'ACTIVE' ? 'live' : 'pending';
+}
+
+function mapDnsRecords(records: RawDnsRecord[] | undefined): DnsRecord[] {
+  return (records ?? []).map((record) => ({
+    host: record.domainName || '@',
+    type: record.type || inferDnsType(record.requiredAction),
+    value: record.rdata || record.value || '',
+    requiredAction: record.requiredAction || 'ADD',
   }));
+}
+
+function inferDnsType(requiredAction?: string): string {
+  const action = (requiredAction || '').toUpperCase();
+  if (action.includes('TXT')) return 'TXT';
+  if (action.includes('AAAA')) return 'AAAA';
+  if (action.includes('CNAME')) return 'CNAME';
+  return 'A';
 }

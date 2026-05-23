@@ -3,6 +3,11 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { AddBillingAccountPayload, UpdateBillingAccountPayload } from './types';
 import { ALLOWED_ORIGINS, getOwnerOAuthClient, apiFetch } from './helpers';
 
+function normalizeBillingAccountId(rawId: string): string {
+  const id = rawId.trim();
+  return id.startsWith('billingAccounts/') ? id.slice('billingAccounts/'.length) : id;
+}
+
 export const listBillingAccounts = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -42,32 +47,33 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can add billing accounts.');
     }
 
-    const { id, name, maxProjects = 15 } = request.data;
-    if (!id || !name) throw new HttpsError('invalid-argument', 'id and name are required.');
+    const normalizedId = normalizeBillingAccountId(request.data.id || '');
+    const { name, maxProjects = 15 } = request.data;
+    if (!normalizedId || !name) throw new HttpsError('invalid-argument', 'id and name are required.');
 
     const db = getFirestore();
-    const existing = await db.collection('billingAccounts').doc(id).get();
+    const existing = await db.collection('billingAccounts').doc(normalizedId).get();
     if (existing.exists) {
-      throw new HttpsError('already-exists', `Billing account ${id} is already registered.`);
+      throw new HttpsError('already-exists', `Billing account ${normalizedId} is already registered.`);
     }
 
     const auth = await getOwnerOAuthClient();
     try {
-      await apiFetch(auth, `https://cloudbilling.googleapis.com/v1/billingAccounts/${id}`);
+      await apiFetch(auth, `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}`);
     } catch (err) {
       console.error('addBillingAccount verification error:', err);
-      throw new HttpsError('not-found', `Billing account ${id} not found or not accessible.`);
+      throw new HttpsError('not-found', `Billing account ${normalizedId} not found or not accessible.`);
     }
 
     try {
       await apiFetch(
         auth,
-        `https://cloudbilling.googleapis.com/v1/billingAccounts/${id}?updateMask=displayName`,
+        `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
         { method: 'PATCH', body: { displayName: name } }
       );
     } catch { /* silently skip if user lacks billing.accounts.update */ }
 
-    await db.collection('billingAccounts').doc(id).set({
+    await db.collection('billingAccounts').doc(normalizedId).set({
       name,
       maxProjects,
       active: true,
@@ -85,13 +91,14 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can update billing accounts.');
     }
 
-    const { id, name, maxProjects, active } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'id is required.');
+    const normalizedId = normalizeBillingAccountId(request.data.id || '');
+    const { name, maxProjects, active } = request.data;
+    if (!normalizedId) throw new HttpsError('invalid-argument', 'id is required.');
 
     const db = getFirestore();
-    const docRef = db.collection('billingAccounts').doc(id);
+    const docRef = db.collection('billingAccounts').doc(normalizedId);
     const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${id} not found.`);
+    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates['name'] = name;
@@ -105,7 +112,7 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
         const auth = await getOwnerOAuthClient();
         await apiFetch(
           auth,
-          `https://cloudbilling.googleapis.com/v1/billingAccounts/${id}?updateMask=displayName`,
+          `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
           { method: 'PATCH', body: { displayName: name } }
         );
       } catch { /* silently skip if user lacks billing.accounts.update */ }
@@ -122,17 +129,17 @@ export const removeBillingAccount = onCall<{ id: string }>(
       throw new HttpsError('permission-denied', 'Only platform admins can remove billing accounts.');
     }
 
-    const { id } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'id is required.');
+    const normalizedId = normalizeBillingAccountId(request.data.id || '');
+    if (!normalizedId) throw new HttpsError('invalid-argument', 'id is required.');
 
     const db = getFirestore();
-    const docRef = db.collection('billingAccounts').doc(id);
+    const docRef = db.collection('billingAccounts').doc(normalizedId);
     const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${id} not found.`);
+    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
 
     const activeStores = await db
       .collection('stores')
-      .where('billingAccountId', '==', id)
+      .where('billingAccountId', '==', normalizedId)
       .where('status', 'in', ['provisioning', 'active', 'suspended'])
       .get();
 
