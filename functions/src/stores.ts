@@ -142,7 +142,8 @@ export const redeployStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string; name: string };
+    const store = storeSnap.data() as { firebaseProjectId: string; name: string; templateVersion?: string };
+    const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : undefined;
 
     const configSnap = await db
       .collection('stores')
@@ -172,6 +173,7 @@ export const redeployStore = onCall<{ storeId: string }>(
             project_id: store.firebaseProjectId,
             firebase_config: JSON.stringify(firebaseConfig),
             store_name: store.name,
+            ref: ref,
           },
         }),
       }
@@ -204,27 +206,33 @@ export const deleteStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string };
+    const store = storeSnap.data() as { firebaseProjectId?: string };
     const auth = await getOwnerOAuthClient();
 
-    try {
-      await apiFetch(
-        auth,
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${store.firebaseProjectId}`,
-        { method: 'DELETE' }
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('404') && !msg.includes('not found')) {
-        console.error('deleteStore GCP project deletion error:', err);
-        throw new HttpsError('internal', 'Failed to delete GCP project. Please try again.');
+    if (store.firebaseProjectId) {
+      try {
+        await apiFetch(
+          auth,
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${store.firebaseProjectId}`,
+          { method: 'DELETE' }
+        );
+      } catch (err) {
+        console.error(`[deleteStore] GCP project deletion error for ${store.firebaseProjectId}:`, err);
+        // Log the error but do not block Firestore cleanup, allowing the user to unblock themselves
       }
     }
 
+    // Delete 'private' subcollection
     const privateRef = db.collection('stores').doc(storeId).collection('private');
     const privateDocs = await privateRef.listDocuments();
     await Promise.all(privateDocs.map((d) => d.delete()));
 
+    // Delete 'invitations' subcollection
+    const invitationsRef = db.collection('stores').doc(storeId).collection('invitations');
+    const invitationsDocs = await invitationsRef.listDocuments();
+    await Promise.all(invitationsDocs.map((d) => d.delete()));
+
+    // Delete store document
     await db.collection('stores').doc(storeId).delete();
 
     return { success: true };
@@ -774,14 +782,14 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
   }
 );
 
-export const seedStore = onCall<{ storeId: string }>(
+export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can seed store data.');
     }
 
-    const { storeId } = request.data;
+    const { storeId, includeMockData = true } = request.data;
     if (!storeId) {
       throw new HttpsError('invalid-argument', 'storeId is required.');
     }
@@ -790,7 +798,7 @@ export const seedStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId: string; verticalId?: string };
+    const store = storeSnap.data() as { name: string; firebaseProjectId: string; verticalId?: string };
     const projectId = store.firebaseProjectId;
     const verticalId = store.verticalId || 'retail';
 
@@ -798,12 +806,53 @@ export const seedStore = onCall<{ storeId: string }>(
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, verticalId);
+      await seedStoreData(auth, projectId, verticalId, store.name, includeMockData !== false);
       return { success: true };
     } catch (err: any) {
       console.error(`Error seeding store ${storeId} (project: ${projectId}):`, err);
       const msg = err instanceof Error ? err.message : String(err);
       throw new HttpsError('internal', `Failed to seed store data: ${msg}`);
+    }
+  }
+);
+
+export const generatePasswordResetLink = onCall<{ storeId: string; email: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can generate reset links.');
+    }
+
+    const { storeId, email } = request.data;
+    if (!storeId || !email) {
+      throw new HttpsError('invalid-argument', 'storeId and email are required.');
+    }
+
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+
+    const store = storeSnap.data() as { firebaseProjectId: string };
+    const projectId = store.firebaseProjectId;
+    const auth = await getOwnerOAuthClient();
+
+    try {
+      const oobRes = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email },
+          quotaProject: projectId,
+        }
+      )) as { oobCode: string };
+
+      const actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
+      return { success: true, actionLink };
+    } catch (err: any) {
+      console.error(`[generatePasswordResetLink] Failed for ${email} in ${projectId}:`, err);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new HttpsError('internal', `Failed to generate link: ${msg}`);
     }
   }
 );

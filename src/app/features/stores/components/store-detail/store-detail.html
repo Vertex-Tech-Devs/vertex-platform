@@ -123,7 +123,18 @@
               <h2 class="detail-card__title">Información general</h2>
               <dl class="detail-dl">
                 <dt>Slug</dt><dd>{{ store()!.slug }}</dd>
-                <dt>Cliente (Dueño)</dt><dd>{{ store()!.ownerEmail }}</dd>
+                <dt>Cliente (Dueño)</dt>
+                <dd style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span>{{ store()!.ownerEmail }}</span>
+                  <button 
+                    class="btn-action-small" 
+                    type="button"
+                    [disabled]="isGeneratingLink()"
+                    (click)="generateAccessLink(store()!.ownerEmail)"
+                    title="Obtener enlace manual de restablecimiento / invitación">
+                    <i class="bi bi-key-fill"></i> Obtener Enlace
+                  </button>
+                </dd>
                 <dt>Firebase Project</dt>
                 <dd>
                   <a href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}" target="_blank">
@@ -232,12 +243,12 @@
                 <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
                   @if (isRedeploying()) { <span class="spinner-sm"></span> Desplegando… }
                   @else { <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual }
-                  <small>Actualiza la infraestructura y código de la tienda con la última versión v1.1.0+</small>
+                  <small>Re-despliega la infraestructura y el código de la tienda utilizando su versión activa (v{{ store()!.templateVersion || 'asignada' }}).</small>
                 </button>
 
                 <!-- Seed Mock Data -->
                 @if (store()!.status === 'active') {
-                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="seedStore()">
+                  <button class="action-btn action-btn--info" [disabled]="isSeeding()" (click)="openSeedConfirm()">
                     @if (isSeeding()) { <span class="spinner-sm"></span> Semillando datos… }
                     @else { <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba }
                     <small>Carga un catálogo completo de productos, categorías e imágenes de demostración en el Firestore de la tienda</small>
@@ -387,7 +398,7 @@
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Nombre Comercial *</label>
-                        <input formControlName="storeName" type="text" class="form-control" placeholder="Mi Tienda Online" />
+                        <input formControlName="storeName" type="text" class="form-control" [placeholder]="store()?.name || 'Mi Tienda Online'" />
                         @if (configForm.get('storeName')?.invalid && configForm.get('storeName')?.touched) {
                           <span class="invalid-feedback">El nombre es obligatorio.</span>
                         }
@@ -527,45 +538,12 @@
                     <div class="config-fields">
                       <div class="form-group">
                         <label class="form-label">Meta Título Principal</label>
-                        <input formControlName="metaTitle" type="text" class="form-control" placeholder="Comprá Ropa Online | Mi Tienda" />
+                        <input formControlName="metaTitle" type="text" class="form-control" [placeholder]="'Comprá Ropa Online | ' + (store()?.name || 'Mi Tienda')" />
                       </div>
                       <div class="form-group">
                         <label class="form-label">Meta Descripción Corta</label>
                         <textarea formControlName="metaDescription" class="form-control" rows="3" placeholder="Encontrá los mejores calzados y remeras de algodón peinado con envíos a todo el país..."></textarea>
                       </div>
-                    </div>
-                  </div>
-
-                  <!-- Feature Flags settings card -->
-                  <div class="config-card" formGroupName="features">
-                    <h3 class="config-card__title"><i class="bi bi-toggle-on"></i> Módulos Especiales</h3>
-                    <div class="config-features-list">
-                      <label class="checkbox-label">
-                        <input type="checkbox" formControlName="reviewsEnabled" />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Reseñas de Clientes (Reviews)</strong>
-                          <p>Habilita la caja de comentarios y valoración con estrellas en productos.</p>
-                        </div>
-                      </label>
-
-                      <label class="checkbox-label">
-                        <input type="checkbox" formControlName="wishlistEnabled" />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Lista de Favoritos (Wishlist)</strong>
-                          <p>Habilita el botón de corazón para guardar productos en favoritos.</p>
-                        </div>
-                      </label>
-
-                      <label class="checkbox-label">
-                        <input type="checkbox" formControlName="blogEnabled" />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Módulo de Blog de Novedades</strong>
-                          <p>Permite escribir artículos informativos y publicarlos en la tienda.</p>
-                        </div>
-                      </label>
                     </div>
                   </div>
 
@@ -662,8 +640,20 @@
                             <span class="staff-item__name">{{ member.displayName || 'Operador Vertex' }}</span>
                             <span class="staff-item__email">{{ member.email }}</span>
                           </div>
-                          <div class="staff-item__role">
+                          <div class="staff-item__role" style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="badge-role badge-role--{{ member.role }}">{{ member.role }}</span>
+                            <button 
+                              class="btn-action-small" 
+                              type="button"
+                              [disabled]="isGeneratingLink()"
+                              (click)="generateAccessLink(member.email)"
+                              title="Obtener enlace manual de restablecimiento de contraseña">
+                              @if (isGeneratingLink()) {
+                                <span class="spinner-sm" style="margin-right: 0;"></span>
+                              } @else {
+                                <i class="bi bi-key-fill"></i>
+                              }
+                            </button>
                           </div>
                         </div>
                       }
@@ -700,9 +690,21 @@
                                   {{ formatDate(invite.createdAt) | date:'dd/MM/yyyy HH:mm' }}
                                 </td>
                                 <td>
-                                  <span class="badge-invite-status badge-invite-status--{{ invite.status }}">
-                                    {{ invite.status === 'pending' ? 'Pendiente aceptación' : invite.status }}
-                                  </span>
+                                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="badge-invite-status badge-invite-status--{{ invite.status }}">
+                                      {{ invite.status === 'pending' ? 'Pendiente' : invite.status }}
+                                    </span>
+                                    @if (invite.status === 'pending') {
+                                      <button 
+                                        class="btn-action-small" 
+                                        type="button"
+                                        [disabled]="isGeneratingLink()"
+                                        (click)="generateAccessLink(invite.email)"
+                                        title="Obtener enlace manual de restablecimiento / invitación">
+                                        <i class="bi bi-key-fill"></i> Link
+                                      </button>
+                                    }
+                                  </div>
                                 </td>
                               </tr>
                             }
@@ -893,7 +895,7 @@
           <div class="edit-grid">
             <div class="form-group">
               <label class="form-label">Nombre *</label>
-              <input class="form-control" formControlName="name" placeholder="Mi tienda" />
+              <input class="form-control" formControlName="name" [placeholder]="store()?.name || 'Mi tienda'" />
               @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
                 <span class="invalid-feedback">Requerido</span>
               }
@@ -973,12 +975,12 @@
         </p>
         <div class="form-group" style="margin: 1rem 0">
           <label class="form-label">
-            Escribí <code>{{ store()!.firebaseProjectId }}</code> para confirmar:
+            Escribí <code>{{ store()!.slug }}</code> para confirmar:
           </label>
           <input
             class="form-control"
             [(ngModel)]="deleteConfirmInput"
-            [placeholder]="store()!.firebaseProjectId"
+            [placeholder]="store()!.slug"
             autocomplete="off" />
         </div>
         <div class="modal__actions">
@@ -987,10 +989,90 @@
           </button>
           <button
             class="btn btn-danger"
-            [disabled]="isDeleting() || deleteConfirmInput !== store()!.firebaseProjectId"
+            [disabled]="isDeleting() || deleteConfirmInput !== store()!.slug"
             (click)="deleteStore()">
             @if (isDeleting()) { <span class="spinner-sm"></span> Eliminando… }
             @else { <i class="bi bi-trash"></i> Eliminar definitivamente }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Seed confirmation modal -->
+  @if (showSeedConfirm()) {
+    <div class="modal-overlay" (click)="showSeedConfirm.set(false)">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-database-fill-gear" style="color: #60a5fa;"></i> Semillar Datos de Prueba
+        </h3>
+        <p class="modal__body" style="font-size: 0.875rem; line-height: 1.5; color: var(--platform-text-secondary); margin-bottom: 1rem;">
+          Esta operación cargará un catálogo de demostración (productos, variantes, imágenes y banners) en el Firestore de la tienda <strong>{{ store()!.name }}</strong>.
+        </p>
+
+        <div class="form-group" style="margin: 1.25rem 0; display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+          <input
+            id="seedIncludeMock"
+            type="checkbox"
+            style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+            [checked]="seedIncludeMock()"
+            (change)="seedIncludeMock.set($any($event.target).checked)" />
+          <label for="seedIncludeMock" style="color: var(--platform-text-primary); font-size: 0.9rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+            Incluir 20 clientes y 20 pedidos simulados (de prueba)
+          </label>
+        </div>
+
+        <p class="modal__body" style="font-size: 0.8rem; line-height: 1.4; color: var(--platform-text-secondary); opacity: 0.75; margin-bottom: 1.25rem;">
+          ⚠️ <em>Nota:</em> Los clientes y los pedidos de prueba no se pueden eliminar ni editar fácilmente en la plantilla del ecommerce debido a políticas de seguridad transaccionales de Firestore. Desmarcalos si querés que la base de datos de transacciones comience vacía.
+        </p>
+
+        <div class="modal__actions">
+          <button class="btn btn-secondary" (click)="showSeedConfirm.set(false)">
+            Cancelar
+          </button>
+          <button
+            class="btn btn-primary"
+            [disabled]="isSeeding()"
+            (click)="seedStore()">
+            @if (isSeeding()) { <span class="spinner-sm"></span> Semillando… }
+            @else { <i class="bi bi-database"></i> Iniciar Semillado }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal de Enlace Generado -->
+  @if (generatedResetLink()) {
+    <div class="modal-overlay" (click)="generatedResetLink.set('')">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-key-fill" style="color: #c084fc;"></i> Enlace de Acceso Manual
+        </h3>
+        <p class="modal__body" style="font-size: 0.85rem; line-height: 1.5; color: var(--platform-text-secondary); margin-bottom: 1rem;">
+          Debido a que el subproyecto no tiene SMTP real o el correo automático no llega, podés copiar este enlace manual y enviárselo directamente al usuario por WhatsApp, Slack o Email para que genere su contraseña:
+        </p>
+        <div class="form-group" style="margin: 1rem 0;">
+          <textarea
+            class="form-control"
+            readonly
+            rows="3"
+            style="font-family: monospace; font-size: 0.8rem; background: rgba(0, 0, 0, 0.25); border-color: rgba(255,255,255,0.06); resize: none; color: var(--platform-text-primary);"
+            [value]="generatedResetLink()"></textarea>
+        </div>
+        
+        @if (copyFeedbackSuccess()) {
+          <p class="feedback feedback--success" style="font-size: 0.8rem; color: #34d399; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem;">
+            <i class="bi bi-check-circle-fill"></i> ¡Copiado al portapapeles!
+          </p>
+        }
+
+        <div class="modal__actions" style="margin-top: 1.25rem;">
+          <button class="btn btn-secondary" (click)="generatedResetLink.set('')">
+            Cerrar
+          </button>
+          <button class="btn btn-primary" (click)="copyToClipboard(generatedResetLink())">
+            <i class="bi bi-clipboard"></i> Copiar Enlace
           </button>
         </div>
       </div>

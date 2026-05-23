@@ -129,6 +129,18 @@ export class StoresService {
     return { inviteEmailSent: result.data.inviteEmailSent !== false };
   }
 
+  async generatePasswordResetLink(
+    storeId: string,
+    email: string
+  ): Promise<{ success: boolean; actionLink: string }> {
+    const fn = httpsCallable<
+      { storeId: string; email: string },
+      { success: boolean; actionLink: string }
+    >(this.fns, 'generatePasswordResetLink');
+    const result = await fn({ storeId, email });
+    return result.data;
+  }
+
   async verifyDomain(
     storeId: string,
     domain: string
@@ -151,9 +163,9 @@ export class StoresService {
     return result.data.config;
   }
 
-  async seedStore(storeId: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'seedStore');
-    await fn({ storeId });
+  async seedStore(storeId: string, includeMockData = true): Promise<void> {
+    const fn = httpsCallable<{ storeId: string; includeMockData: boolean }, { success: boolean }>(this.fns, 'seedStore');
+    await fn({ storeId, includeMockData });
   }
 
   async listTemplateVersions(): Promise<TemplateVersion[]> {

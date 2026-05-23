@@ -118,5 +118,13 @@ To ensure continuous, automated learning and smooth collaboration:
 6. **Removal of HttpClient and ESLint Safe-Typing (v1.4.0)**:
    - The platform operates purely on direct Firebase SDKs. Angular's `HttpClient` is completely unused and should not be imported or provided.
    - To comply with strict quality gates and avoid `no-explicit-any` errors, always type records using descriptive interfaces like `RawDnsRecord`, and handle caught exceptions using safe `unknown` catches with `err instanceof Error` type guards.
-
-
+7. Seeding & Mock Data Seeding Configurator (v1.5.0):
+   - **`includeMockData` Payload Integration**: The store seeding process accepts an optional `includeMockData` boolean flag (defaults to `true`). 
+   - **Backend Handling**: In `seeds.ts`, when `includeMockData` is set to `false`, the seeding engine skips the loops that inject 20 mock clients and 20 mock orders. This is crucial because Firestore security rules restrict clients as read-only (`allow write: if false`), and orders represent non-deletable historical transactions. Skipping them provides a pristine store environment.
+   - **Frontend UI Toggles**: Toggle options are available both globally in the `store-create` form and manually through a glass-blur confirmation modal (`showSeedConfirm`) in the `store-detail` Orchestration panel.
+8. Firebase Auth Domain Security Policies:
+   - **Authorized Domains (Dev/Local)**: Running local instances on `http://localhost:4200` with dev environment settings will cause `auth/unauthorized-domain` errors if `localhost` is not added to Firebase Auth -> Settings -> Authorized Domains. Adding `localhost` is 100% secure for Dev/Staging environments.
+   - **Production Isolation Rule**: Never add `localhost` to the authorized domains of the production project (`vertex-platform-app` / `vertex-prod`) to prevent phishing and session hijacking vulnerabilities.
+9. Global UX Loading Spinners:
+   - **Unified Spinner Styling**: Spinner classes (`.spinner`, `.spinner-sm` and `@keyframes spin`) are declared globally in `src/styles.scss`.
+   - **Usage Standard**: Every asynchronous action button (such as store creation submit or generating a manual password reset key) must show a spinning `.spinner-sm` loader inside the button state while loading is active (e.g. `isSubmitting()`, `isGeneratingLink()`) to provide smooth visual feedback and disable duplicate submissions.

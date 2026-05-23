@@ -68,6 +68,8 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly showSleepConfirm = signal(false);
   readonly showDomainForm = signal(false);
   readonly showEditModal = signal(false);
+  readonly showSeedConfirm = signal(false);
+  readonly seedIncludeMock = signal(true);
 
   // Error/Success state signals
   readonly actionError = signal('');
@@ -117,11 +119,6 @@ export class StoreDetail implements OnInit, OnDestroy {
       metaTitle: [''],
       metaDescription: ['']
     }),
-    features: this.fb.group({
-      reviewsEnabled: [false],
-      wishlistEnabled: [false],
-      blogEnabled: [false]
-    }),
     payments: this.fb.group({
       mercadoPago: this.fb.group({
         publicKey: [''],
@@ -144,6 +141,10 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly isInvitingStaff = signal(false);
   readonly inviteError = signal('');
   readonly inviteSuccess = signal('');
+
+  readonly generatedResetLink = signal('');
+  readonly isGeneratingLink = signal(false);
+  readonly copyFeedbackSuccess = signal(false);
 
   readonly inviteForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -236,10 +237,12 @@ export class StoreDetail implements OnInit, OnDestroy {
   startPolling(): void {
     this.stopPolling();
     this.pollIntervalId = setInterval(() => {
+      if (this.activeTab() !== 'orquestacion') return;
+      if (document.hidden) return;
       const s = this.store();
       if (!s) return;
       void this.loadHistory();
-    }, 6000);
+    }, 15000);
   }
 
   stopPolling(): void {
@@ -255,7 +258,9 @@ export class StoreDetail implements OnInit, OnDestroy {
     const s = this.store();
     if (!s) return;
 
-    if (tab === 'config') {
+    if (tab === 'orquestacion') {
+      void this.loadHistory();
+    } else if (tab === 'config') {
       await this.loadConfig();
     } else if (tab === 'equipo') {
       await this.loadStaff();
@@ -296,11 +301,6 @@ export class StoreDetail implements OnInit, OnDestroy {
           seo: {
             metaTitle: config.seo?.metaTitle || '',
             metaDescription: config.seo?.metaDescription || ''
-          },
-          features: {
-            reviewsEnabled: !!config.features?.reviewsEnabled,
-            wishlistEnabled: !!config.features?.wishlistEnabled,
-            blogEnabled: !!config.features?.blogEnabled
           },
           payments: {
             mercadoPago: {
@@ -450,6 +450,41 @@ export class StoreDetail implements OnInit, OnDestroy {
     }
   }
 
+  async generateAccessLink(email: string): Promise<void> {
+    const s = this.store();
+    if (!s) return;
+    this.isGeneratingLink.set(true);
+    this.generatedResetLink.set('');
+    this.copyFeedbackSuccess.set(false);
+    this.actionError.set('');
+    this.inviteError.set('');
+    try {
+      const res = await this.storesService.generatePasswordResetLink(s.id, email);
+      if (res.success && res.actionLink) {
+        this.generatedResetLink.set(res.actionLink);
+      } else {
+        this.actionError.set('No se pudo obtener el enlace de acceso manual.');
+        this.inviteError.set('No se pudo obtener el enlace de acceso manual.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al generar link de acceso.';
+      this.actionError.set(msg);
+      this.inviteError.set(msg);
+    } finally {
+      this.isGeneratingLink.set(false);
+    }
+  }
+
+  async copyToClipboard(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copyFeedbackSuccess.set(true);
+      setTimeout(() => this.copyFeedbackSuccess.set(false), 3000);
+    } catch {
+      console.error('Failed to copy to clipboard automatically.');
+    }
+  }
+
   // DNS & Domain verification
   async verifyDNS(silent = false): Promise<void> {
     const s = this.store();
@@ -582,14 +617,20 @@ export class StoreDetail implements OnInit, OnDestroy {
     }
   }
 
+  openSeedConfirm(): void {
+    this.seedIncludeMock.set(true);
+    this.showSeedConfirm.set(true);
+  }
+
   async seedStore(): Promise<void> {
     const id = this.store()?.id;
     if (!id) return;
+    this.showSeedConfirm.set(false);
     this.isSeeding.set(true);
     this.actionError.set('');
     this.actionSuccess.set('');
     try {
-      await this.storesService.seedStore(id);
+      await this.storesService.seedStore(id, this.seedIncludeMock());
       this.actionSuccess.set('¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -652,12 +693,12 @@ export class StoreDetail implements OnInit, OnDestroy {
   }
 
   async deleteStore(): Promise<void> {
-    const id = this.store()?.id;
-    if (!id) return;
+    const s = this.store();
+    if (!s || this.deleteConfirmInput !== s.slug) return;
     this.isDeleting.set(true);
     this.actionError.set('');
     try {
-      await this.storesService.deleteStore(id);
+      await this.storesService.deleteStore(s.id);
       void this.router.navigate(['/stores']);
     } catch {
       this.actionError.set('No se pudo eliminar la tienda. Intentá de nuevo.');

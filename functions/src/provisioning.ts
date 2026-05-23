@@ -26,7 +26,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
 
-    const { name, slug, ownerEmail, logoUrl, customDomain, verticalId } = request.data;
+    const { name, slug, ownerEmail, logoUrl, customDomain, verticalId, includeMockData = true } = request.data;
 
     if (!name?.trim() || !ownerEmail?.trim()) {
       throw new HttpsError('invalid-argument', 'name and ownerEmail are required.');
@@ -79,6 +79,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       firebaseProjectId: projectId,
       defaultUrl: `https://${projectId}.web.app`,
       billingAccountId,
+      includeMockData: includeMockData !== false,
       status: 'provisioning',
       provisioningSteps: steps,
       createdAt: new Date(),
@@ -97,13 +98,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentData = currentSnap.data();
   if (!currentData || !['provisioning', 'error'].includes(currentData['status'])) return;
 
-  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId, verticalId } = currentData as {
+  const { name, logoUrl, ownerEmail, firebaseProjectId: projectId, billingAccountId, verticalId, includeMockData } = currentData as {
     name: string;
     logoUrl: string | null;
     ownerEmail: string;
     firebaseProjectId: string;
     billingAccountId: string;
     verticalId?: string;
+    includeMockData?: boolean;
   };
 
   const currentSteps = (currentData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
@@ -481,7 +483,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       if (verticalId) {
-        await seedStoreData(auth, projectId, verticalId);
+        await seedStoreData(auth, projectId, verticalId, name, includeMockData !== false);
       }
 
       await setStep('initFirestore', 'done');

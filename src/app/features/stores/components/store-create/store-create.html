@@ -106,6 +106,19 @@
     </section>
 
     <section class="form-section">
+      <h2 class="form-section__title">Datos de Demostración</h2>
+      <p class="form-hint" style="margin-bottom: 1rem; margin-top: -0.5rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+        Los clientes y pedidos simulados de prueba se cargan para poder visualizar métricas y órdenes en el dashboard. Desmarcalo si querés iniciar la tienda totalmente vacía y limpia.
+      </p>
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+        <input id="includeMockData" formControlName="includeMockData" type="checkbox" style="width: 1.25rem; height: 1.25rem; cursor: pointer;" />
+        <label for="includeMockData" style="color: var(--platform-text-primary); font-size: 0.95rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+          Cargar 20 clientes y 20 pedidos simulados iniciales
+        </label>
+      </div>
+    </section>
+
+    <section class="form-section">
       <h2 class="form-section__title">Marca</h2>
       <div class="form-grid">
 
@@ -132,7 +145,11 @@
     <div class="form-actions">
       <a routerLink="/stores" class="btn btn-secondary">Cancelar</a>
       <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
-        {{ isSubmitting() ? 'Creando tienda…' : 'Crear tienda' }}
+        @if (isSubmitting()) {
+          <span class="spinner-sm"></span> Creando tienda…
+        } @else {
+          Crear tienda
+        }
       </button>
     </div>
 

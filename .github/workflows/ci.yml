@@ -127,10 +127,45 @@ jobs:
         working-directory: functions
         continue-on-error: true
 
+  preview:
+    name: Hosting Preview
+    runs-on: ubuntu-latest
+    needs: [unit-tests, build]
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/vertex-platform/browser
+
+      - name: Check secret availability
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          [ -n "$SA" ] && echo "available=true" >> "$GITHUB_OUTPUT" || echo "available=false" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview channel
+        if: steps.check.outputs.available == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          projectId: vertex-platform-dev
+          target: dev
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
+
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [validate, unit-tests, build, functions-build, security-audit]
+    needs: [validate, unit-tests, build, functions-build, security-audit, preview]
     if: always()
     steps:
       - name: Report and evaluate
@@ -149,6 +184,7 @@ jobs:
           echo "| Build Frontend | ${{ needs.build.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Functions | ${{ needs.functions-build.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Audit | ${{ needs.security-audit.result == 'success' && '✅ Pass' || '⚠️ See logs' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Hosting Preview | ${{ needs.preview.result == 'success' && '✅ Pass' || needs.preview.result == 'skipped' && '⏭ Skipped' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.validate.result }}"        != "success" || \
                 "${{ needs.unit-tests.result }}"      != "success" || \
