@@ -1,27 +1,18 @@
-# 🛡️ Guía de Configuración de GitHub Branch Rulesets
+# 🛡️ Registro y Configuración de GitHub Branch Rulesets (¡Programáticamente Activos!)
 
-Esta guía técnica proporciona el plano detallado y las instrucciones paso a paso para configurar los **Rulesets de GitHub (Reglas de Rama)** en el repositorio de `vertex-platform`. Los Rulesets representan el estándar moderno de GitHub para proteger el flujo de trabajo, reemplazar las antiguas branch protections y asegurar que ningún código llegue a producción sin auditoría previa.
+Esta guía técnica detalla y documenta los **Rulesets de GitHub (Reglas de Rama)** que han sido **configurados y aplicados programáticamente** en el repositorio de `vertex-platform` utilizando el CLI de GitHub (`gh api`). 
 
----
-
-## 📋 Reglas Generales de la Rama Protegida
-
-Definiremos dos rulesets clave para proteger las dos ramas principales de integración y despliegue continuo:
-1. **`main`**: Despliegues automatizados a Producción (`vertex-platform-app`).
-2. **`develop`**: Despliegues automatizados a Desarrollo / Staging (`vertex-platform-dev`).
+Los Rulesets se encuentran completamente **activos y operativos** del lado del servidor de GitHub, asegurando que ningún código pueda ser empujado directamente a las ramas protegidas (`develop` y `main`) sin pasar por auditorías automatizadas y aprobaciones previas.
 
 ---
 
-## 🔧 Paso a Paso: Configuración en GitHub
+## 🔧 Estado de Despliegue Programático
 
-Para configurar estas reglas en la interfaz web de GitHub:
+Los siguientes Rulesets fueron creados e inyectados directamente mediante la API de GitHub REST:
+1.  **`Integration Protection (develop)`** (ID: `16782148`): Protege la rama `develop`.
+2.  **`Production Protection (main)`** (ID: `16782160`): Protege la rama `main`.
 
-1. Ve a la página principal del repositorio en GitHub.
-2. Haz clic en la pestaña **Settings** (Ajustes) en la barra superior.
-3. En el menú lateral izquierdo, bajo la sección **Code and automation**, haz clic en **Rules** -> **Rulesets**.
-4. Haz clic en el botón verde **New ruleset** en la esquina superior derecha y selecciona **New branch ruleset**.
-
-Sigue las configuraciones detalladas a continuación para cada uno de los dos Rulesets requeridos.
+A partir de este momento, cualquier intento de realizar un push directo (`git push` clásico) a estas ramas será rechazado por GitHub, obligando a usar el flujo de Pull Requests y validación del check obligatorio **`Quality Gate`**.
 
 ---
 
