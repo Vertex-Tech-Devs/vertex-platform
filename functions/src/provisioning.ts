@@ -225,19 +225,69 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   // ── Step 2: Link billing ───────────────────────────────────────────────
   if (!isDone('linkBilling')) {
     await setStep('linkBilling', 'running');
-    try {
-      await retry(
-        () => apiFetch(
-          auth,
-          `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
-          { method: 'PUT', body: { billingAccountName: `billingAccounts/${billingAccountId}` } }
-        ),
-        5,
-        6000
-      );
+    let activeBillingAccountId = billingAccountId;
+    let success = false;
+    let attemptsLeft = 3; // Permitir reintentar con hasta 3 cuentas de facturación distintas
+    let lastError: unknown;
+
+    while (attemptsLeft > 0 && !success) {
+      try {
+        await retry(
+          () => apiFetch(
+            auth,
+            `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
+            { method: 'PUT', body: { billingAccountName: `billingAccounts/${activeBillingAccountId}` } }
+          ),
+          3,
+          4000
+        );
+        success = true;
+      } catch (err) {
+        lastError = err;
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const normalized = errMsg.toLowerCase();
+
+        // Si es un error de cuota/límite de facturación en GCP, desactivamos la cuenta en BD y buscamos otra
+        if (
+          normalized.includes('cloud billing quota exceeded') ||
+          normalized.includes('failed_precondition') ||
+          normalized.includes('quota') ||
+          normalized.includes('billing quota') ||
+          normalized.includes('limit exceeded')
+        ) {
+          console.warn(`[provisioning:linkBilling] La cuenta de facturación ${activeBillingAccountId} falló por cuota excedida. Desactivándola y reintentando con otra.`);
+          
+          try {
+            // Desactivar la cuenta fallida para que el motor no la vuelva a seleccionar
+            await db.collection('billingAccounts').doc(activeBillingAccountId).update({
+              active: false,
+              deactivatedReason: 'Cuota de proyectos excedida en GCP',
+              deactivatedAt: new Date()
+            });
+
+            // Buscar y seleccionar una nueva cuenta de facturación activa
+            const newAccountId = await pickBillingAccount(db);
+            console.info(`[provisioning:linkBilling] Nueva cuenta de facturación seleccionada: ${newAccountId}`);
+            
+            // Actualizar el ID en la variable local y en el documento de la tienda en Firestore
+            activeBillingAccountId = newAccountId;
+            await storeRef.update({ billingAccountId: newAccountId });
+            attemptsLeft--;
+          } catch (selectErr) {
+            console.error('[provisioning:linkBilling] No se pudo encontrar otra cuenta de facturación de reemplazo activa:', selectErr);
+            throw err; // Relanzar el error original de facturación si no hay reemplazo
+          }
+        } else {
+          throw err; // Relanzar si es otro tipo de error de red o API
+        }
+      }
+    }
+
+    if (success) {
       await setStep('linkBilling', 'done');
-    } catch (err) {
-      await fail('linkBilling', err); return;
+    } else {
+      await fail('linkBilling', lastError);
+      return;
     }
   }
 
