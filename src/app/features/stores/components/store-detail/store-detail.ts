@@ -140,6 +140,10 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly inviteError = signal('');
   readonly inviteSuccess = signal('');
 
+  readonly generatedResetLink = signal('');
+  readonly isGeneratingLink = signal(false);
+  readonly copyFeedbackSuccess = signal(false);
+
   readonly inviteForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     role: ['admin', Validators.required]
@@ -441,6 +445,41 @@ export class StoreDetail implements OnInit, OnDestroy {
       this.inviteError.set(msg || 'No se pudo enviar la invitación. Intentá de nuevo.');
     } finally {
       this.isInvitingStaff.set(false);
+    }
+  }
+
+  async generateAccessLink(email: string): Promise<void> {
+    const s = this.store();
+    if (!s) return;
+    this.isGeneratingLink.set(true);
+    this.generatedResetLink.set('');
+    this.copyFeedbackSuccess.set(false);
+    this.actionError.set('');
+    this.inviteError.set('');
+    try {
+      const res = await this.storesService.generatePasswordResetLink(s.id, email);
+      if (res.success && res.actionLink) {
+        this.generatedResetLink.set(res.actionLink);
+      } else {
+        this.actionError.set('No se pudo obtener el enlace de acceso manual.');
+        this.inviteError.set('No se pudo obtener el enlace de acceso manual.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al generar link de acceso.';
+      this.actionError.set(msg);
+      this.inviteError.set(msg);
+    } finally {
+      this.isGeneratingLink.set(false);
+    }
+  }
+
+  async copyToClipboard(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copyFeedbackSuccess.set(true);
+      setTimeout(() => this.copyFeedbackSuccess.set(false), 3000);
+    } catch {
+      console.error('Failed to copy to clipboard automatically.');
     }
   }
 

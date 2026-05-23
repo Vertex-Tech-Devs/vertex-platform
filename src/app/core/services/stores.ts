@@ -129,6 +129,18 @@ export class StoresService {
     return { inviteEmailSent: result.data.inviteEmailSent !== false };
   }
 
+  async generatePasswordResetLink(
+    storeId: string,
+    email: string
+  ): Promise<{ success: boolean; actionLink: string }> {
+    const fn = httpsCallable<
+      { storeId: string; email: string },
+      { success: boolean; actionLink: string }
+    >(this.fns, 'generatePasswordResetLink');
+    const result = await fn({ storeId, email });
+    return result.data;
+  }
+
   async verifyDomain(
     storeId: string,
     domain: string

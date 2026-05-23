@@ -810,3 +810,44 @@ export const seedStore = onCall<{ storeId: string }>(
   }
 );
 
+export const generatePasswordResetLink = onCall<{ storeId: string; email: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can generate reset links.');
+    }
+
+    const { storeId, email } = request.data;
+    if (!storeId || !email) {
+      throw new HttpsError('invalid-argument', 'storeId and email are required.');
+    }
+
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+
+    const store = storeSnap.data() as { firebaseProjectId: string };
+    const projectId = store.firebaseProjectId;
+    const auth = await getOwnerOAuthClient();
+
+    try {
+      const oobRes = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email },
+          quotaProject: projectId,
+        }
+      )) as { oobCode: string };
+
+      const actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
+      return { success: true, actionLink };
+    } catch (err: any) {
+      console.error(`[generatePasswordResetLink] Failed for ${email} in ${projectId}:`, err);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new HttpsError('internal', `Failed to generate link: ${msg}`);
+    }
+  }
+);
+
