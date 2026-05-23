@@ -116,8 +116,29 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     });
   };
 
+  const formatProvisioningError = (stepId: string, err: unknown): string => {
+    const raw = err instanceof Error ? err.message : String(err);
+    const normalized = raw.toLowerCase();
+
+    if (
+      stepId === 'linkBilling' &&
+      (normalized.includes('cloud billing quota exceeded') ||
+        normalized.includes('failed_precondition') ||
+        normalized.includes('billing quota'))
+    ) {
+      return 'No se pudo vincular la facturacion porque la cuota de Cloud Billing fue excedida para la cuenta seleccionada. Aumenta la cuota o usa otra cuenta de facturacion: https://support.google.com/code/contact/billing_quota_increase';
+    }
+
+    if (raw.length > 800) {
+      return `${raw.slice(0, 800)}...`;
+    }
+
+    return raw;
+  };
+
   const fail = async (stepId: string, err: unknown): Promise<void> => {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = formatProvisioningError(stepId, err);
+    console.error(`[provisioning:${stepId}]`, err);
     await setStep(stepId, 'error', msg);
     await storeRef.update({ status: 'error', updatedAt: new Date() });
   };
