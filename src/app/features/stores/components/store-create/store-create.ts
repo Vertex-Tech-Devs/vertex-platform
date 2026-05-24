@@ -34,6 +34,7 @@ export class StoreCreate implements OnInit {
     customDomain: [''],
     verticalId: ['indumentaria' as string, Validators.required],
     includeMockData: [true],
+    dedicatedProject: [false],
   });
 
   async ngOnInit(): Promise<void> {

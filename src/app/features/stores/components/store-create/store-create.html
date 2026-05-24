@@ -143,6 +143,19 @@
     </section>
 
     <section class="form-section">
+      <h2 class="form-section__title">Alojamiento e Infraestructura</h2>
+      <p class="form-hint" style="margin-bottom: 1rem; margin-top: -0.5rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+        De forma predeterminada, la tienda se alojará en un shard compartido (shared-shard) para optimizar costos de Google Cloud. Marcá la opción de abajo si necesitás un proyecto de Google Cloud totalmente aislado y dedicado para este cliente.
+      </p>
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+        <input id="dedicatedProject" formControlName="dedicatedProject" type="checkbox" style="width: 1.25rem; height: 1.25rem; cursor: pointer;" />
+        <label for="dedicatedProject" style="color: var(--platform-text-primary); font-size: 0.95rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+          Crear proyecto de Google Cloud dedicado (Premium)
+        </label>
+      </div>
+    </section>
+
+    <section class="form-section">
       <h2 class="form-section__title">Marca</h2>
       <div class="form-grid">
 
