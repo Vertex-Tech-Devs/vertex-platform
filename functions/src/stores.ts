@@ -710,12 +710,53 @@ export const processRuntimeCleanupTask = onDocumentCreated(
           }
         }
       } else {
+        // shared-shard: tombstone first to deactivate the store immediately,
+        // then clean up the custom hosting site (non-blocking if already gone).
         for (const projectId of projectIds) {
-          await withAnyProvisioningOwner(
-            db,
-            task.preferredOwnerId ?? undefined,
-            async (auth) => deleteHostingSite(auth, projectId, siteId),
-          );
+          const candidateSiteIds = getCandidateSiteIds(siteId, projectId);
+
+          // 1. Deploy tombstone first so the store goes dark instantly
+          for (const candidateSiteId of candidateSiteIds) {
+            try {
+              await withAnyProvisioningOwner(
+                db,
+                task.preferredOwnerId ?? undefined,
+                async (auth) => deployHostingTombstone(auth, projectId, candidateSiteId),
+              );
+              break;
+            } catch (err) {
+              if (isHostingAlreadyGoneOrInactiveError(err)) {
+                continue;
+              }
+              console.warn(`[runtimeCleanup] Tombstone deploy failed for shared-shard candidate ${candidateSiteId}:`, err);
+            }
+          }
+
+          // 2. Delete the custom hosting site (skip if it's the project default site)
+          let hostingDeleted = false;
+          let hostingAlreadyGone = false;
+          let lastHostingError: unknown = null;
+          for (const candidateSiteId of candidateSiteIds) {
+            try {
+              await withAnyProvisioningOwner(
+                db,
+                task.preferredOwnerId ?? undefined,
+                async (auth) => deleteHostingSite(auth, projectId, candidateSiteId),
+              );
+              hostingDeleted = true;
+              break;
+            } catch (err) {
+              if (isHostingAlreadyGoneOrInactiveError(err)) {
+                hostingAlreadyGone = true;
+                continue;
+              }
+              lastHostingError = err;
+            }
+          }
+
+          if (!hostingDeleted && !hostingAlreadyGone && lastHostingError) {
+            throw lastHostingError;
+          }
         }
       }
 
