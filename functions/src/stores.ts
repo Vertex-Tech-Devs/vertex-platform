@@ -383,27 +383,36 @@ export const deleteStore = onCall<{ storeId: string }>(
     );
 
     if (candidateProjectIds.length > 0) {
-      for (const projectId of candidateProjectIds) {
-        try {
-          await deleteHostingSite(auth, projectId, siteId);
-        } catch (err) {
-          console.error(`[deleteStore] Hosting cleanup error for ${projectId}/${siteId}:`, err);
-          throw new HttpsError(
-            'internal',
-            'No se pudo limpiar Firebase Hosting de la tienda. No se eliminaron datos locales para evitar estado inconsistente.',
-          );
-        }
-      }
-
       if (runtimeMode === 'dedicated-project') {
+        let deletedProject = false;
+        let lastProjectError: unknown = null;
+
         for (const projectId of candidateProjectIds) {
           try {
             await deleteProjectAndWait(auth, projectId);
+            deletedProject = true;
+            break;
           } catch (err) {
+            lastProjectError = err;
             console.error(`[deleteStore] GCP project deletion error for ${projectId}:`, err);
+          }
+        }
+
+        if (!deletedProject) {
+          throw new HttpsError(
+            'internal',
+            `No se pudo eliminar el proyecto GCP asociado. No se eliminaron datos locales para evitar recursos huérfanos. ${lastProjectError instanceof Error ? lastProjectError.message : ''}`.trim(),
+          );
+        }
+      } else {
+        for (const projectId of candidateProjectIds) {
+          try {
+            await deleteHostingSite(auth, projectId, siteId);
+          } catch (err) {
+            console.error(`[deleteStore] Hosting cleanup error for ${projectId}/${siteId}:`, err);
             throw new HttpsError(
               'internal',
-              'No se pudo eliminar el proyecto GCP asociado. No se eliminaron datos locales para evitar recursos huérfanos.',
+              'No se pudo limpiar Firebase Hosting de la tienda. No se eliminaron datos locales para evitar estado inconsistente.',
             );
           }
         }
