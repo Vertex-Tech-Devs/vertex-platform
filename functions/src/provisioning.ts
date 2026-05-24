@@ -252,6 +252,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
     await storeRef.update({
       firebaseProjectId: newProjectId,
+      runtimeProjectId: newProjectId,
       defaultUrl: `https://${newProjectId}.web.app`,
       'provisioningSteps.createProject.status': 'pending',
       'provisioningSteps.createProject.error': null,
@@ -632,8 +633,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      if (verticalId) {
-        await seedStoreData(auth, projectId, verticalId, name, includeMockData !== false);
+      if (includeMockData !== false) {
+        const effectiveVerticalId = verticalId || 'retail';
+        await seedStoreData(auth, projectId, effectiveVerticalId, name, true);
       }
 
       await setStep('initFirestore', 'done');
@@ -834,6 +836,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           quotaProject: projectId,
         },
       );
+
+      const oobRes = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email: ownerEmail, returnOobLink: true },
+          quotaProject: projectId,
+        },
+      )) as { oobCode?: string; oobLink?: string };
+
+      const actionLink =
+        oobRes.oobLink ||
+        (oobRes.oobCode
+          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
+          : '');
+
+      if (actionLink) {
+        await storeRef.collection('private').doc('ownerAccess').set(
+          {
+            email: ownerEmail,
+            actionLink,
+            generatedAt: new Date(),
+          },
+          { merge: true },
+        );
+      }
 
       await setStep('initAdmin', 'done');
     } catch (err) {

@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, getGitHubPat, apiFetch, retry } from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
-import type { InviteStaffPayload, StoreShard, UpdateStoreConfigPayload } from './types';
+import type { InviteStaffPayload, StoreRuntimeMode, StoreShard, UpdateStoreConfigPayload } from './types';
 
 function resolveRuntimeProjectId(store: {
   runtimeProjectId?: string;
@@ -18,6 +18,120 @@ function resolveRuntimeProjectId(store: {
 
 function resolveRuntimeSiteId(store: { runtimeSiteId?: string }): string {
   return store.runtimeSiteId ?? 'default';
+}
+
+function inferProjectIdFromDefaultUrl(defaultUrl?: string): string | null {
+  const raw = (defaultUrl ?? '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const url = new URL(raw);
+    const host = (url.hostname || '').toLowerCase();
+    const webAppSuffix = '.web.app';
+    if (!host.endsWith(webAppSuffix)) {
+      return null;
+    }
+
+    const projectId = host.slice(0, -webAppSuffix.length).trim();
+    return projectId || null;
+  } catch {
+    return null;
+  }
+}
+
+async function deleteHostingSite(
+  auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
+  projectId: string,
+  siteId: string,
+): Promise<void> {
+  const tokenRes = await auth.getAccessToken();
+  const headers = {
+    Authorization: `Bearer ${tokenRes.token}`,
+    'Content-Type': 'application/json',
+  };
+
+  const domainsRes = await fetch(
+    `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains`,
+    { method: 'GET', headers },
+  );
+
+  if (domainsRes.ok) {
+    const domainsData = (await domainsRes.json()) as { domains?: Array<{ domainName?: string }> };
+    const domains = (domainsData.domains ?? [])
+      .map((domain) => domain.domainName?.trim())
+      .filter((domain): domain is string => !!domain);
+
+    for (const domainName of domains) {
+      if (domainName.endsWith('.web.app') || domainName.endsWith('.firebaseapp.com')) {
+        continue;
+      }
+
+      const deleteDomainRes = await fetch(
+        `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${encodeURIComponent(domainName)}`,
+        { method: 'DELETE', headers },
+      );
+
+      if (!deleteDomainRes.ok && deleteDomainRes.status !== 404) {
+        const body = await deleteDomainRes.text();
+        throw new Error(
+          `[deleteStore] Failed deleting custom domain ${domainName} from ${projectId}/${siteId}: ${deleteDomainRes.status} ${body}`,
+        );
+      }
+    }
+  } else if (domainsRes.status !== 404) {
+    const body = await domainsRes.text();
+    throw new Error(
+      `[deleteStore] Failed listing Hosting domains for ${projectId}/${siteId}: ${domainsRes.status} ${body}`,
+    );
+  }
+
+  const deleteSiteRes = await fetch(
+    `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}`,
+    { method: 'DELETE', headers },
+  );
+
+  if (!deleteSiteRes.ok && deleteSiteRes.status !== 404) {
+    const body = await deleteSiteRes.text();
+    throw new Error(
+      `[deleteStore] Failed deleting Hosting site ${projectId}/${siteId}: ${deleteSiteRes.status} ${body}`,
+    );
+  }
+}
+
+async function deleteProjectAndWait(
+  auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
+  projectId: string,
+): Promise<void> {
+  const deletion = (await apiFetch(
+    auth,
+    `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`,
+    { method: 'DELETE' },
+  )) as { name?: string; done?: boolean; error?: { message?: string } };
+
+  if (!deletion.name) {
+    return;
+  }
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const operation = (await apiFetch(
+      auth,
+      `https://cloudresourcemanager.googleapis.com/v3/${deletion.name}`,
+      { method: 'GET' },
+    )) as { done?: boolean; error?: { message?: string } };
+
+    if (operation.done) {
+      if (operation.error?.message) {
+        throw new Error(`[deleteStore] Project deletion failed for ${projectId}: ${operation.error.message}`);
+      }
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  throw new Error(`[deleteStore] Project deletion operation timed out for ${projectId}`);
 }
 
 export const getRuntimeCapacitySummary = onCall(
@@ -237,7 +351,7 @@ export const redeployStore = onCall<{ storeId: string }>(
 );
 
 export const deleteStore = onCall<{ storeId: string }>(
-  { timeoutSeconds: 120, cors: ALLOWED_ORIGINS, invoker: 'public' },
+  { timeoutSeconds: 300, cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can delete stores.');
@@ -248,20 +362,51 @@ export const deleteStore = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+      runtimeMode?: StoreRuntimeMode;
+      defaultUrl?: string;
+    };
     const auth = await getOwnerOAuthClient();
 
-    const projectId = store.runtimeProjectId ?? store.firebaseProjectId;
-    if (projectId) {
-      try {
-        await apiFetch(
-          auth,
-          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`,
-          { method: 'DELETE' }
-        );
-      } catch (err) {
-        console.error(`[deleteStore] GCP project deletion error for ${projectId}:`, err);
-        // Log the error but do not block Firestore cleanup, allowing the user to unblock themselves
+    const siteId = resolveRuntimeSiteId(store);
+    const runtimeMode = store.runtimeMode ?? 'dedicated-project';
+    const inferredProjectId = inferProjectIdFromDefaultUrl(store.defaultUrl);
+    const candidateProjectIds = Array.from(
+      new Set(
+        [store.runtimeProjectId, store.firebaseProjectId, inferredProjectId]
+          .map((value) => (value || '').trim())
+          .filter((value) => value.length > 0),
+      ),
+    );
+
+    if (candidateProjectIds.length > 0) {
+      for (const projectId of candidateProjectIds) {
+        try {
+          await deleteHostingSite(auth, projectId, siteId);
+        } catch (err) {
+          console.error(`[deleteStore] Hosting cleanup error for ${projectId}/${siteId}:`, err);
+          throw new HttpsError(
+            'internal',
+            'No se pudo limpiar Firebase Hosting de la tienda. No se eliminaron datos locales para evitar estado inconsistente.',
+          );
+        }
+      }
+
+      if (runtimeMode === 'dedicated-project') {
+        for (const projectId of candidateProjectIds) {
+          try {
+            await deleteProjectAndWait(auth, projectId);
+          } catch (err) {
+            console.error(`[deleteStore] GCP project deletion error for ${projectId}:`, err);
+            throw new HttpsError(
+              'internal',
+              'No se pudo eliminar el proyecto GCP asociado. No se eliminaron datos locales para evitar recursos huérfanos.',
+            );
+          }
+        }
       }
     }
 
@@ -865,6 +1010,8 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       verticalId?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
+    const fallbackProjectId =
+      store.firebaseProjectId && store.firebaseProjectId !== projectId ? store.firebaseProjectId : null;
     const verticalId = store.verticalId || 'retail';
 
     const auth = await getOwnerOAuthClient();
@@ -874,6 +1021,29 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       await seedStoreData(auth, projectId, verticalId, store.name, includeMockData !== false);
       return { success: true };
     } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err);
+      const shouldRetryWithFallback =
+        !!fallbackProjectId &&
+        (message.toLowerCase().includes('permission denied') ||
+          message.toLowerCase().includes('service_disabled') ||
+          message.toLowerCase().includes('consumer_invalid'));
+
+      if (shouldRetryWithFallback) {
+        try {
+          await seedStoreData(auth, fallbackProjectId, verticalId, store.name, includeMockData !== false);
+          await db.collection('stores').doc(storeId).update({
+            runtimeProjectId: fallbackProjectId,
+            updatedAt: new Date(),
+          });
+          return { success: true, warning: `runtimeProjectId updated to ${fallbackProjectId}` };
+        } catch (fallbackErr) {
+          console.error(
+            `Error seeding store ${storeId} (fallback project: ${fallbackProjectId}):`,
+            fallbackErr,
+          );
+        }
+      }
+
       console.error(`Error seeding store ${storeId} (project: ${projectId}):`, err);
       const msg = err instanceof Error ? err.message : String(err);
       throw new HttpsError('internal', `Failed to seed store data: ${msg}`);
@@ -907,12 +1077,20 @@ export const generatePasswordResetLink = onCall<{ storeId: string; email: string
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
         {
           method: 'POST',
-          body: { requestType: 'PASSWORD_RESET', email },
+          body: { requestType: 'PASSWORD_RESET', email, returnOobLink: true },
           quotaProject: projectId,
         }
-      )) as { oobCode: string };
+      )) as { oobCode?: string; oobLink?: string };
 
-      const actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
+      const actionLink =
+        oobRes.oobLink ||
+        (oobRes.oobCode
+          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
+          : '');
+
+      if (!actionLink) {
+        throw new Error('No reset link was returned by Identity Toolkit.');
+      }
       return { success: true, actionLink };
     } catch (err: any) {
       console.error(`[generatePasswordResetLink] Failed for ${email} in ${projectId}:`, err);
