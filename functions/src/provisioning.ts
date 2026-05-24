@@ -862,12 +862,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
-          // If Identity Platform is already enabled or initialized, it might throw a 409 or ALREADY_EXISTS.
+          // If Identity Platform is already enabled or initialized, it might throw a 409, ALREADY_EXISTS, or a 400 stating it is already enabled.
           // We can safely ignore this and proceed to configuration.
           if (
             !msg.includes('ALREADY_EXISTS') &&
             !msg.includes('already exists') &&
-            !msg.includes('409')
+            !msg.includes('409') &&
+            !msg.includes('Identity Platform has already been enabled')
           ) {
             throw err;
           }
