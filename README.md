@@ -64,6 +64,9 @@ npm run typecheck   # tsc --noEmit (no emit, just type checking)
 # Angular unit tests (Vitest via @angular/build:unit-test)
 npm test
 
+# E2E tests (Cypress)
+npm run e2e:ci
+
 # Functions unit tests (Vitest, node environment)
 cd functions && npm test
 ```
@@ -102,6 +105,9 @@ npm run seed:stores
 
 # Set up provisioning prerequisites
 npm run setup-provisioning
+
+# Register or update shared-shard capacity metadata
+npm run register-shard -- --shard-id=prod-shard-01 --project-id=vertex-shared-prod --site-id=vertex-shared-prod --environment=production --max-stores=100
 ```
 
 ## Development Workflow

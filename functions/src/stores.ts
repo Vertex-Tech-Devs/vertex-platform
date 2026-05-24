@@ -2,7 +2,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, getGitHubPat, apiFetch, retry } from './helpers';
-import type { InviteStaffPayload, UpdateStoreConfigPayload } from './types';
+import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
+import type { InviteStaffPayload, StoreShard, UpdateStoreConfigPayload } from './types';
 
 function resolveRuntimeProjectId(store: {
   runtimeProjectId?: string;
@@ -18,6 +19,26 @@ function resolveRuntimeProjectId(store: {
 function resolveRuntimeSiteId(store: { runtimeSiteId?: string }): string {
   return store.runtimeSiteId ?? 'default';
 }
+
+export const getRuntimeCapacitySummary = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can inspect runtime capacity.');
+    }
+
+    const db = getFirestore();
+    const environment = resolvePlatformEnvironment();
+    const shardsSnap = await db.collection('shards').where('environment', '==', environment).get();
+    const shards = shardsSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as StoreShard)
+      .filter((shard) => shard.runtimeMode === 'shared-shard');
+
+    return {
+      summary: summarizeShardCapacity(shards, environment),
+    };
+  },
+);
 
 async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>, projectId: string): Promise<void> {
   const initIdentityPlatform = async (): Promise<void> => {
