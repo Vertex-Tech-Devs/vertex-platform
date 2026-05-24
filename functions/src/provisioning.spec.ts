@@ -17,6 +17,7 @@ vi.mock('firebase-functions/v2/firestore', () => ({
 }));
 vi.mock('./helpers', () => ({
   ALLOWED_ORIGINS: [],
+  PLATFORM_PROJECT: 'vertex-platform-dev',
   pickBillingAccount: vi.fn().mockResolvedValue('billing-1'),
   listProvisioningOwnerCandidates: vi.fn().mockResolvedValue([
     {
