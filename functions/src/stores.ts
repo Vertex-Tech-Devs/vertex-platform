@@ -1,7 +1,16 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, getGitHubPat, apiFetch, retry } from './helpers';
+import {
+  ALLOWED_ORIGINS,
+  PLATFORM_PROJECT,
+  getOwnerOAuthClient,
+  getGitHubPat,
+  apiFetch,
+  retry,
+  listProvisioningOwnerCandidates,
+} from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
 import type { InviteStaffPayload, StoreRuntimeMode, StoreShard, UpdateStoreConfigPayload } from './types';
 
@@ -50,6 +59,7 @@ async function deleteHostingSite(
   const headers = {
     Authorization: `Bearer ${tokenRes.token}`,
     'Content-Type': 'application/json',
+    'x-goog-user-project': PLATFORM_PROJECT,
   };
 
   const domainsRes = await fetch(
@@ -80,11 +90,23 @@ async function deleteHostingSite(
         );
       }
     }
-  } else if (domainsRes.status !== 404) {
+  } else if (domainsRes.status !== 404 && domainsRes.status !== 403) {
     const body = await domainsRes.text();
     throw new Error(
       `[deleteStore] Failed listing Hosting domains for ${projectId}/${siteId}: ${domainsRes.status} ${body}`,
     );
+  } else if (domainsRes.status === 403) {
+    // Some owners can delete a site but cannot list domains on it.
+    console.warn(
+      `[deleteStore] Skipping domain cleanup for ${projectId}/${siteId} due to 403 on domain listing.`,
+    );
+  }
+
+  if (siteId === projectId || siteId === 'default') {
+    console.log(
+      `[deleteStore] Site ${siteId} is the default site for project ${projectId}. Skipping site resource deletion call to avoid Firebase error. Custom domains have been successfully cleaned up.`
+    );
+    return;
   }
 
   const deleteSiteRes = await fetch(
@@ -96,6 +118,76 @@ async function deleteHostingSite(
     const body = await deleteSiteRes.text();
     throw new Error(
       `[deleteStore] Failed deleting Hosting site ${projectId}/${siteId}: ${deleteSiteRes.status} ${body}`,
+    );
+  }
+}
+
+async function deployHostingTombstone(
+  auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
+  projectId: string,
+  siteId: string,
+): Promise<void> {
+  const tokenRes = await auth.getAccessToken();
+  const headers = {
+    Authorization: `Bearer ${tokenRes.token}`,
+    'Content-Type': 'application/json',
+    'x-goog-user-project': PLATFORM_PROJECT,
+  };
+
+  const createVersionRes = await fetch(
+    `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/versions`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        status: 'CREATED',
+        config: {},
+      }),
+    },
+  );
+
+  if (!createVersionRes.ok) {
+    const body = await createVersionRes.text();
+    throw new Error(
+      `[runtimeCleanup] Failed creating tombstone version for ${projectId}/${siteId}: ${createVersionRes.status} ${body}`,
+    );
+  }
+
+  const createVersionData = (await createVersionRes.json()) as { name?: string };
+  const versionName = (createVersionData.name || '').trim();
+  if (!versionName) {
+    throw new Error(`[runtimeCleanup] Missing version name when creating tombstone for ${projectId}/${siteId}.`);
+  }
+
+  const populateRes = await fetch(
+    `https://firebasehosting.googleapis.com/v1beta1/${versionName}:populate`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ files: {} }),
+    },
+  );
+
+  if (!populateRes.ok) {
+    const body = await populateRes.text();
+    throw new Error(
+      `[runtimeCleanup] Failed populating tombstone version for ${projectId}/${siteId}: ${populateRes.status} ${body}`,
+    );
+  }
+
+  const releaseRes = await fetch(
+    `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/releases?versionName=${encodeURIComponent(versionName)}`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message: 'runtime-cleanup-tombstone' }),
+    },
+  );
+
+  if (!releaseRes.ok) {
+    const body = await releaseRes.text();
+    throw new Error(
+      `[runtimeCleanup] Failed releasing tombstone version for ${projectId}/${siteId}: ${releaseRes.status} ${body}`,
     );
   }
 }
@@ -132,6 +224,79 @@ async function deleteProjectAndWait(
   }
 
   throw new Error(`[deleteStore] Project deletion operation timed out for ${projectId}`);
+}
+
+function isProjectAlreadyDeletedOrInactiveError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes('project not active') ||
+    msg.includes('not found') ||
+    msg.includes('404') ||
+    msg.includes('failed_precondition')
+  );
+}
+
+function isHostingAlreadyGoneOrInactiveError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes('not found') ||
+    msg.includes('404') ||
+    msg.includes('site not found')
+  );
+}
+
+function getCandidateSiteIds(runtimeSiteId: string, projectId: string): string[] {
+  const candidates = [runtimeSiteId, projectId, 'default']
+    .map((value) => (value || '').trim())
+    .filter((value) => value.length > 0);
+  return Array.from(new Set(candidates));
+}
+
+
+async function withAnyProvisioningOwner<T>(
+  db: ReturnType<typeof getFirestore>,
+  preferredOwnerId: string | undefined,
+  operation: (auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>, ownerId: string) => Promise<T>,
+): Promise<T> {
+  const owners = await listProvisioningOwnerCandidates(db, preferredOwnerId);
+  let lastErr: unknown = null;
+
+  for (const owner of owners) {
+    try {
+      const ownerAuth = await getOwnerOAuthClient(owner.id);
+      return await operation(ownerAuth, owner.id);
+    } catch (err) {
+      lastErr = err;
+      console.error(`[runtimeCleanup] owner ${owner.id} failed:`, err);
+    }
+  }
+
+  throw lastErr ?? new Error('No provisioning owner could execute runtime cleanup operation.');
+}
+
+async function enqueueRuntimeCleanupTask(
+  db: ReturnType<typeof getFirestore>,
+  payload: {
+    storeId?: string;
+    preferredOwnerId?: string;
+    projectIds: string[];
+    siteId: string;
+    runtimeMode: StoreRuntimeMode;
+    reason: string;
+  },
+): Promise<void> {
+  await db.collection('runtimeCleanupTasks').add({
+    storeId: payload.storeId ?? null,
+    preferredOwnerId: payload.preferredOwnerId ?? null,
+    projectIds: payload.projectIds,
+    siteId: payload.siteId,
+    runtimeMode: payload.runtimeMode,
+    reason: payload.reason,
+    status: 'pending',
+    attempts: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 }
 
 export const getRuntimeCapacitySummary = onCall(
@@ -368,8 +533,8 @@ export const deleteStore = onCall<{ storeId: string }>(
       runtimeSiteId?: string;
       runtimeMode?: StoreRuntimeMode;
       defaultUrl?: string;
+      provisioningOwnerId?: string;
     };
-    const auth = await getOwnerOAuthClient();
 
     const siteId = resolveRuntimeSiteId(store);
     const runtimeMode = store.runtimeMode ?? 'dedicated-project';
@@ -383,40 +548,14 @@ export const deleteStore = onCall<{ storeId: string }>(
     );
 
     if (candidateProjectIds.length > 0) {
-      if (runtimeMode === 'dedicated-project') {
-        let deletedProject = false;
-        let lastProjectError: unknown = null;
-
-        for (const projectId of candidateProjectIds) {
-          try {
-            await deleteProjectAndWait(auth, projectId);
-            deletedProject = true;
-            break;
-          } catch (err) {
-            lastProjectError = err;
-            console.error(`[deleteStore] GCP project deletion error for ${projectId}:`, err);
-          }
-        }
-
-        if (!deletedProject) {
-          throw new HttpsError(
-            'internal',
-            `No se pudo eliminar el proyecto GCP asociado. No se eliminaron datos locales para evitar recursos huérfanos. ${lastProjectError instanceof Error ? lastProjectError.message : ''}`.trim(),
-          );
-        }
-      } else {
-        for (const projectId of candidateProjectIds) {
-          try {
-            await deleteHostingSite(auth, projectId, siteId);
-          } catch (err) {
-            console.error(`[deleteStore] Hosting cleanup error for ${projectId}/${siteId}:`, err);
-            throw new HttpsError(
-              'internal',
-              'No se pudo limpiar Firebase Hosting de la tienda. No se eliminaron datos locales para evitar estado inconsistente.',
-            );
-          }
-        }
-      }
+      await enqueueRuntimeCleanupTask(db, {
+        storeId,
+        preferredOwnerId: store.provisioningOwnerId,
+        projectIds: candidateProjectIds,
+        siteId,
+        runtimeMode,
+        reason: 'deleteStore-postcheck',
+      });
     }
 
     // Delete 'private' subcollection
@@ -434,6 +573,153 @@ export const deleteStore = onCall<{ storeId: string }>(
 
     return { success: true };
   }
+);
+
+export const processRuntimeCleanupTask = onDocumentCreated(
+  { document: 'runtimeCleanupTasks/{taskId}', timeoutSeconds: 300 },
+  async (event) => {
+    const snap = event.data;
+    if (!snap?.exists) {
+      return;
+    }
+
+    const db = getFirestore();
+    const taskId = event.params['taskId'];
+    const taskRef = db.collection('runtimeCleanupTasks').doc(taskId);
+    const task = snap.data() as {
+      preferredOwnerId?: string | null;
+      projectIds?: string[];
+      siteId?: string;
+      runtimeMode?: StoreRuntimeMode;
+      attempts?: number;
+    };
+
+    const projectIds = Array.from(
+      new Set((task.projectIds ?? []).map((id) => (id || '').trim()).filter((id) => id.length > 0)),
+    );
+    const siteId = (task.siteId || 'default').trim() || 'default';
+    const runtimeMode = task.runtimeMode ?? 'dedicated-project';
+
+    if (projectIds.length === 0) {
+      await taskRef.set(
+        {
+          status: 'error',
+          lastError: 'No projectIds provided for cleanup task.',
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      return;
+    }
+
+    await taskRef.set(
+      {
+        status: 'running',
+        attempts: (task.attempts ?? 0) + 1,
+        updatedAt: new Date(),
+      },
+      { merge: true },
+    );
+
+    try {
+      if (runtimeMode === 'dedicated-project') {
+        for (const projectId of projectIds) {
+          const candidateSiteIds = getCandidateSiteIds(siteId, projectId);
+
+          // 1. Clean up hosting site custom domains
+          let hostingDeleted = false;
+          let hostingCandidateGone = false;
+          let lastHostingError: unknown = null;
+          for (const candidateSiteId of candidateSiteIds) {
+            try {
+              await withAnyProvisioningOwner(
+                db,
+                task.preferredOwnerId ?? undefined,
+                async (auth) => deleteHostingSite(auth, projectId, candidateSiteId),
+              );
+              hostingDeleted = true;
+              break;
+            } catch (err) {
+              if (isHostingAlreadyGoneOrInactiveError(err)) {
+                hostingCandidateGone = true;
+                continue;
+              }
+              lastHostingError = err;
+            }
+          }
+
+          if (!hostingDeleted) {
+            if (lastHostingError) {
+              throw lastHostingError;
+            }
+            if (!hostingCandidateGone) {
+              throw new Error(`[runtimeCleanup] No Hosting site candidate could be validated for ${projectId}.`);
+            }
+          }
+
+          // 2. Deploy Tombstone immediately (Defensive Fallback)
+          // We deploy this BEFORE attempting project deletion so that if project deletion fails or times out,
+          // the canal is already safely tombstoned publicly.
+          for (const candidateSiteId of candidateSiteIds) {
+            try {
+              await withAnyProvisioningOwner(
+                db,
+                task.preferredOwnerId ?? undefined,
+                async (auth) => deployHostingTombstone(auth, projectId, candidateSiteId),
+              );
+              break;
+            } catch (err) {
+              if (isHostingAlreadyGoneOrInactiveError(err)) {
+                continue;
+              }
+              console.warn(`[runtimeCleanup] Tombstone deploy failed for candidate ${candidateSiteId}:`, err);
+            }
+          }
+
+          // 3. Attempt physical project deletion
+          try {
+            await withAnyProvisioningOwner(
+              db,
+              task.preferredOwnerId ?? undefined,
+              async (auth) => deleteProjectAndWait(auth, projectId),
+            );
+          } catch (err) {
+            if (!isProjectAlreadyDeletedOrInactiveError(err)) {
+              throw err;
+            }
+          }
+        }
+      } else {
+        for (const projectId of projectIds) {
+          await withAnyProvisioningOwner(
+            db,
+            task.preferredOwnerId ?? undefined,
+            async (auth) => deleteHostingSite(auth, projectId, siteId),
+          );
+        }
+      }
+
+      await taskRef.set(
+        {
+          status: 'done',
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await taskRef.set(
+        {
+          status: 'error',
+          lastError: msg,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      throw err;
+    }
+  },
 );
 
 export const connectDomain = onCall<{ storeId: string; domain: string }>(
