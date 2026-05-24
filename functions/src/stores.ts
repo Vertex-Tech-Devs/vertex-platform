@@ -534,6 +534,7 @@ export const deleteStore = onCall<{ storeId: string }>(
       runtimeMode?: StoreRuntimeMode;
       defaultUrl?: string;
       provisioningOwnerId?: string;
+      shardId?: string;
     };
 
     const siteId = resolveRuntimeSiteId(store);
@@ -567,6 +568,25 @@ export const deleteStore = onCall<{ storeId: string }>(
     const invitationsRef = db.collection('stores').doc(storeId).collection('invitations');
     const invitationsDocs = await invitationsRef.listDocuments();
     await Promise.all(invitationsDocs.map((d) => d.delete()));
+
+    // Decrement the activeStores count on the shard if this store was hosted on a shared-shard
+    if (store.runtimeMode === 'shared-shard' && store.shardId) {
+      const shardRef = db.collection('shards').doc(store.shardId);
+      try {
+        await db.runTransaction(async (transaction) => {
+          const shardSnap = await transaction.get(shardRef);
+          if (shardSnap.exists) {
+            const currentActive = shardSnap.data()?.activeStores || 0;
+            transaction.update(shardRef, {
+              activeStores: Math.max(0, currentActive - 1),
+              updatedAt: new Date(),
+            });
+          }
+        });
+      } catch (err) {
+        console.error(`[deleteStore] Failed to decrement activeStores on shard ${store.shardId}:`, err);
+      }
+    }
 
     // Delete store document
     await db.collection('stores').doc(storeId).delete();

@@ -36,6 +36,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       customDomain,
       verticalId,
       includeMockData = true,
+      dedicatedProject,
     } = request.data;
 
     if (!name?.trim() || !ownerEmail?.trim()) {
@@ -74,23 +75,40 @@ export const provisionStore = onCall<CreateStorePayload>(
       }
     });
 
-    let runtimeMode: StoreRuntimeMode = 'dedicated-project';
+    let runtimeMode: StoreRuntimeMode = 'shared-shard';
     let shardId: string | null = null;
     let projectId = `vtx-${slug}`.slice(0, 30);
     let runtimeSiteId = 'default';
+    let isNewShard = false;
 
-    if (selectedShard) {
-      runtimeMode = 'shared-shard';
-      shardId = (selectedShard as StoreShard).id;
-      projectId = (selectedShard as StoreShard).projectId;
-      runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+    if (dedicatedProject === true) {
+      runtimeMode = 'dedicated-project';
+      projectId = `vtx-${slug}`.slice(0, 30);
+      runtimeSiteId = 'default';
+    } else {
+      if (selectedShard) {
+        runtimeMode = 'shared-shard';
+        shardId = (selectedShard as StoreShard).id;
+        projectId = (selectedShard as StoreShard).projectId;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        isNewShard = false;
+      } else {
+        // Generate a new shared-shard project autonomously!
+        runtimeMode = 'shared-shard';
+        isNewShard = true;
+        const randomId = crypto.randomUUID().slice(0, 8);
+        shardId = `shard-${env}-${randomId}`;
+        projectId = `vtx-sd-${randomId}`;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+      }
     }
 
     const storeId = crypto.randomUUID();
     const tenantId = slug;
 
+    const needsNewGcpProject = runtimeMode === 'dedicated-project' || isNewShard;
     let billingAccountId: string | null = null;
-    if (runtimeMode === 'dedicated-project') {
+    if (needsNewGcpProject) {
       try {
         billingAccountId = await pickBillingAccount(db);
       } catch (err) {
@@ -106,12 +124,12 @@ export const provisionStore = onCall<CreateStorePayload>(
       }
     }
 
-    const isShared = runtimeMode === 'shared-shard';
+    const skipGcpSteps = runtimeMode === 'shared-shard' && !isNewShard;
     const steps: Record<string, ProvisioningStep> = {
-      createProject: { status: isShared ? 'done' : 'pending', label: 'Crear proyecto GCP' },
-      linkBilling: { status: isShared ? 'done' : 'pending', label: 'Vincular facturación' },
-      addFirebase: { status: isShared ? 'done' : 'pending', label: 'Activar Firebase' },
-      enableApis: { status: isShared ? 'done' : 'pending', label: 'Habilitar APIs' },
+      createProject: { status: skipGcpSteps ? 'done' : 'pending', label: 'Crear proyecto GCP' },
+      linkBilling: { status: skipGcpSteps ? 'done' : 'pending', label: 'Vincular facturación' },
+      addFirebase: { status: skipGcpSteps ? 'done' : 'pending', label: 'Activar Firebase' },
+      enableApis: { status: skipGcpSteps ? 'done' : 'pending', label: 'Habilitar APIs' },
       createWebApp: { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
       configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
@@ -137,8 +155,9 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeProjectId: projectId,
         runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl: isShared ? `https://${runtimeSiteId}.web.app` : `https://${projectId}.web.app`,
+        defaultUrl: (runtimeMode === 'shared-shard') ? `https://${runtimeSiteId}.web.app` : `https://${projectId}.web.app`,
         billingAccountId,
+        isNewShard,
         includeMockData: includeMockData !== false,
         status: 'provisioning',
         provisioningSteps: steps,
@@ -168,6 +187,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     includeMockData,
     runtimeMode,
     runtimeSiteId,
+    isNewShard,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -178,6 +198,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     includeMockData?: boolean;
     runtimeMode?: StoreRuntimeMode;
     runtimeSiteId?: string;
+    isNewShard?: boolean;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -529,6 +550,32 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         return;
       }
       await setStep('enableApis', 'done');
+    }
+  }
+
+  // If this store provisioning was marked as creating a new shard, register it in the 'shards' collection!
+  if (isDone('enableApis') && isNewShard === true) {
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const shardId = currentData['shardId'] || `shard-${env}-${projectId}`;
+    const shardRef = db.collection('shards').doc(shardId);
+    
+    const shardSnap = await shardRef.get();
+    if (!shardSnap.exists) {
+      await shardRef.set({
+        id: shardId,
+        environment: env,
+        runtimeMode: 'shared-shard',
+        projectId: projectId,
+        siteId: 'default',
+        region: 'us-central1',
+        status: 'active',
+        maxStores: 100, // Capacity for the new shard
+        activeStores: 0,
+        reservedStores: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.info(`[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`);
     }
   }
 
@@ -1156,6 +1203,25 @@ export const completeStoreDeployment = onCall<{
       schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
       updatedAt: new Date(),
     });
+
+    if (storeData['runtimeMode'] === 'shared-shard' && storeData['shardId']) {
+      const shardRef = db.collection('shards').doc(storeData['shardId']);
+      try {
+        await db.runTransaction(async (transaction) => {
+          const shardSnap = await transaction.get(shardRef);
+          if (shardSnap.exists) {
+            const currentActive = shardSnap.data()?.activeStores || 0;
+            transaction.update(shardRef, {
+              activeStores: currentActive + 1,
+              updatedAt: new Date(),
+            });
+          }
+        });
+        console.info(`[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`);
+      } catch (err) {
+        console.error(`[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`, err);
+      }
+    }
   } else {
     await storeRef.update({
       'provisioningSteps.triggerDeploy.status': 'error',
