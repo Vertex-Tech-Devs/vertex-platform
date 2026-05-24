@@ -767,6 +767,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 fields: {
                   storeOwnerEmail: { stringValue: ownerEmail },
                   storeWhatsappNumber: { stringValue: '' },
+                  storeName: { stringValue: name },
                   adminNotification: {
                     mapValue: {
                       fields: {
