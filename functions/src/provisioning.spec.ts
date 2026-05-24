@@ -17,6 +17,7 @@ vi.mock('firebase-functions/v2/firestore', () => ({
 }));
 vi.mock('./helpers', () => ({
   ALLOWED_ORIGINS: [],
+  PLATFORM_PROJECT: 'vertex-platform-dev',
   pickBillingAccount: vi.fn().mockResolvedValue('billing-1'),
   listProvisioningOwnerCandidates: vi.fn().mockResolvedValue([
     {
@@ -49,20 +50,42 @@ function makeRequest(data: Record<string, unknown>, isAdmin = true) {
   };
 }
 
-function makeDb(slugExists = false) {
-  const queryMock = {
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    get: vi.fn().mockResolvedValue({ empty: !slugExists }),
-  };
+function makeDb(slugExists = false, mockShards: any[] = []) {
   const docMock = {
     set: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue({ exists: false }),
   };
   return {
-    collection: vi.fn(() => ({
-      ...queryMock,
-      doc: vi.fn(() => docMock),
-    })),
+    collection: vi.fn((colName) => {
+      if (colName === 'stores') {
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: !slugExists }),
+          doc: vi.fn(() => docMock),
+        };
+      }
+      if (colName === 'shards') {
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({
+            empty: mockShards.length === 0,
+            docs: mockShards.map(s => ({
+              id: s.id,
+              data: () => s
+            }))
+          }),
+          doc: vi.fn(() => docMock),
+        };
+      }
+      return {
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue({ empty: true }),
+        doc: vi.fn(() => docMock),
+      };
+    }),
   };
 }
 
@@ -127,9 +150,141 @@ describe('provisionStore handler', () => {
     expect(result).toHaveProperty('storeId');
   });
 
-  it('sets projectId as vtx-{slug}', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
-    const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
+  it('sets dedicated projectId as vtx-{slug} when dedicatedProject is true', async () => {
+    const docMock = {
+      set: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({ exists: false }),
+    };
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'stores') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({ empty: true }),
+            doc: vi.fn(() => docMock),
+          };
+        }
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: true }),
+          doc: vi.fn(() => docMock),
+        };
+      })
+    };
+    vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
+    
+    const result = (await handler(makeRequest({ ...VALID_PAYLOAD, dedicatedProject: true }))) as { projectId: string };
     expect(result.projectId).toBe('vtx-my-store');
+    
+    expect(docMock.set).toHaveBeenCalled();
+    const savedData = docMock.set.mock.calls[0][0] as any;
+    expect(savedData.runtimeMode).toBe('dedicated-project');
+    expect(savedData.runtimeProjectId).toBe('vtx-my-store');
+  });
+
+  it('selects an active shard with available capacity if available', async () => {
+    const docMock = {
+      set: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({ exists: false }),
+    };
+    const mockShards = [
+      {
+        id: 'shard-dev-1',
+        environment: 'development',
+        runtimeMode: 'shared-shard',
+        projectId: 'vtx-shard-project-1',
+        siteId: 'default',
+        status: 'active',
+        maxStores: 100,
+        activeStores: 10,
+        reservedStores: 2,
+      }
+    ];
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'stores') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({ empty: true }),
+            doc: vi.fn(() => docMock),
+          };
+        }
+        if (colName === 'shards') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({
+              empty: false,
+              docs: mockShards.map(s => ({
+                id: s.id,
+                data: () => s
+              }))
+            }),
+            doc: vi.fn(() => docMock),
+          };
+        }
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: true }),
+          doc: vi.fn(() => docMock),
+        };
+      })
+    };
+    vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
+    
+    const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
+    expect(result.projectId).toBe('vtx-shard-project-1');
+    
+    expect(docMock.set).toHaveBeenCalled();
+    const savedData = docMock.set.mock.calls[0][0] as any;
+    expect(savedData.runtimeMode).toBe('shared-shard');
+    expect(savedData.shardId).toBe('shard-dev-1');
+  });
+
+  it('autonomously generates a new shard if no active shards are available', async () => {
+    const docMock = {
+      set: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({ exists: false }),
+    };
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'stores') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({ empty: true }),
+            doc: vi.fn(() => docMock),
+          };
+        }
+        if (colName === 'shards') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+            doc: vi.fn(() => docMock),
+          };
+        }
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: true }),
+          doc: vi.fn(() => docMock),
+        };
+      })
+    };
+    vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
+    
+    const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
+    expect(result.projectId).toContain('vtx-sd-');
+    
+    expect(docMock.set).toHaveBeenCalled();
+    const savedData = docMock.set.mock.calls[0][0] as any;
+    expect(savedData.runtimeMode).toBe('shared-shard');
+    expect(savedData.shardId).toContain('shard-development-');
+    expect(savedData.isNewShard).toBe(true);
   });
 });

@@ -18,6 +18,7 @@ export interface CreateStorePayload {
   customDomain?: string;
   verticalId?: string;
   includeMockData?: boolean;
+  dedicatedProject?: boolean;
 }
 
 export type StoreRuntimeMode = 'shared-shard' | 'dedicated-project';

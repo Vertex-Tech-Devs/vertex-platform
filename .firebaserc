@@ -7,12 +7,28 @@
   "targets": {
     "vertex-platform-app": {
       "hosting": {
-        "prod": ["vertex-platform-app"]
+        "prod": [
+          "vertex-platform-app"
+        ]
       }
     },
     "vertex-platform-dev": {
       "hosting": {
-        "dev": ["vertex-platform-dev"]
+        "dev": [
+          "vertex-platform-dev"
+        ]
+      }
+    }
+  },
+  "etags": {
+    "vertex-platform-dev": {
+      "extensionInstances": {
+        "firestore-send-email": "2bb15ab1ab95cecac37ce125789cba1084dd7a4c273d88f5880aa1005682751f"
+      }
+    },
+    "vertex-platform-app": {
+      "extensionInstances": {
+        "firestore-send-email": "ba990743b8e357d60438a20b1053bed98398e9ade0b92beab7b70ca7fb18669e"
       }
     }
   }

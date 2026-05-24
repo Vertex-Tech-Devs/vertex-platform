@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
-import type { CreateStorePayload, StepStatus, ProvisioningStep, StoreRuntimeMode } from './types';
+import type { CreateStorePayload, StepStatus, ProvisioningStep, StoreRuntimeMode, StoreShard } from './types';
 import {
   ALLOWED_ORIGINS,
   PLATFORM_PROJECT,
@@ -16,6 +16,7 @@ import {
   listProvisioningOwnerCandidates,
 } from './helpers';
 import { seedStoreData } from './seeds';
+import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
 
 const CURRENT_TEMPLATE_VERSION = '1.0.0';
 const CURRENT_STORE_SCHEMA_VERSION = 1;
@@ -35,6 +36,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       customDomain,
       verticalId,
       includeMockData = true,
+      dedicatedProject,
     } = request.data;
 
     if (!name?.trim() || !ownerEmail?.trim()) {
@@ -53,31 +55,81 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('already-exists', `A store with slug "${slug}" already exists.`);
     }
 
-    const projectId = `vtx-${slug}`.slice(0, 30);
+    // Dynamic Shard Selection logic: Recommend and use shared-shard by default if active shard capacity is available
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const shardsSnap = await db
+      .collection('shards')
+      .where('environment', '==', env)
+      .where('status', '==', 'active')
+      .get();
+
+    let selectedShard: StoreShard | null = null;
+    let maxAvailableSlots = 0;
+
+    (shardsSnap?.docs || []).forEach((doc) => {
+      const shard = { id: doc.id, ...doc.data() } as StoreShard;
+      const availableSlots = getAvailableShardSlots(shard);
+      if (availableSlots > maxAvailableSlots) {
+        maxAvailableSlots = availableSlots;
+        selectedShard = shard;
+      }
+    });
+
+    let runtimeMode: StoreRuntimeMode = 'shared-shard';
+    let shardId: string | null = null;
+    let projectId = `vtx-${slug}`.slice(0, 30);
+    let runtimeSiteId = 'default';
+    let isNewShard = false;
+
+    if (dedicatedProject === true) {
+      runtimeMode = 'dedicated-project';
+      projectId = `vtx-${slug}`.slice(0, 30);
+      runtimeSiteId = 'default';
+    } else {
+      if (selectedShard) {
+        runtimeMode = 'shared-shard';
+        shardId = (selectedShard as StoreShard).id;
+        projectId = (selectedShard as StoreShard).projectId;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        isNewShard = false;
+      } else {
+        // Generate a new shared-shard project autonomously!
+        runtimeMode = 'shared-shard';
+        isNewShard = true;
+        const randomId = crypto.randomUUID().slice(0, 8);
+        shardId = `shard-${env}-${randomId}`;
+        projectId = `vtx-sd-${randomId}`;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+      }
+    }
+
     const storeId = crypto.randomUUID();
-    const runtimeMode: StoreRuntimeMode = 'dedicated-project';
     const tenantId = slug;
 
-    let billingAccountId: string;
-    try {
-      billingAccountId = await pickBillingAccount(db);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpsError('resource-exhausted', msg);
+    const needsNewGcpProject = runtimeMode === 'dedicated-project' || isNewShard;
+    let billingAccountId: string | null = null;
+    if (needsNewGcpProject) {
+      try {
+        billingAccountId = await pickBillingAccount(db);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new HttpsError('resource-exhausted', msg);
+      }
+
+      try {
+        await listProvisioningOwnerCandidates(db);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new HttpsError('resource-exhausted', msg);
+      }
     }
 
-    try {
-      await listProvisioningOwnerCandidates(db);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpsError('resource-exhausted', msg);
-    }
-
+    const skipGcpSteps = runtimeMode === 'shared-shard' && !isNewShard;
     const steps: Record<string, ProvisioningStep> = {
-      createProject: { status: 'pending', label: 'Crear proyecto GCP' },
-      linkBilling: { status: 'pending', label: 'Vincular facturación' },
-      addFirebase: { status: 'pending', label: 'Activar Firebase' },
-      enableApis: { status: 'pending', label: 'Habilitar APIs' },
+      createProject: { status: skipGcpSteps ? 'done' : 'pending', label: 'Crear proyecto GCP' },
+      linkBilling: { status: skipGcpSteps ? 'done' : 'pending', label: 'Vincular facturación' },
+      addFirebase: { status: skipGcpSteps ? 'done' : 'pending', label: 'Activar Firebase' },
+      enableApis: { status: skipGcpSteps ? 'done' : 'pending', label: 'Habilitar APIs' },
       createWebApp: { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
       configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
@@ -99,12 +151,13 @@ export const provisionStore = onCall<CreateStorePayload>(
         verticalId: verticalId ?? null,
         runtimeMode,
         tenantId,
-        shardId: null,
+        shardId,
         runtimeProjectId: projectId,
-        runtimeSiteId: 'default',
+        runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl: `https://${projectId}.web.app`,
+        defaultUrl: (runtimeMode === 'shared-shard') ? `https://${runtimeSiteId}.web.app` : `https://${projectId}.web.app`,
         billingAccountId,
+        isNewShard,
         includeMockData: includeMockData !== false,
         status: 'provisioning',
         provisioningSteps: steps,
@@ -132,6 +185,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     billingAccountId,
     verticalId,
     includeMockData,
+    runtimeMode,
+    runtimeSiteId,
+    isNewShard,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -140,6 +196,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     billingAccountId: string;
     verticalId?: string;
     includeMockData?: boolean;
+    runtimeMode?: StoreRuntimeMode;
+    runtimeSiteId?: string;
+    isNewShard?: boolean;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -252,6 +311,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
     await storeRef.update({
       firebaseProjectId: newProjectId,
+      runtimeProjectId: newProjectId,
       defaultUrl: `https://${newProjectId}.web.app`,
       'provisioningSteps.createProject.status': 'pending',
       'provisioningSteps.createProject.error': null,
@@ -493,6 +553,32 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
+  // If this store provisioning was marked as creating a new shard, register it in the 'shards' collection!
+  if (isDone('enableApis') && isNewShard === true) {
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const shardId = currentData['shardId'] || `shard-${env}-${projectId}`;
+    const shardRef = db.collection('shards').doc(shardId);
+    
+    const shardSnap = await shardRef.get();
+    if (!shardSnap.exists) {
+      await shardRef.set({
+        id: shardId,
+        environment: env,
+        runtimeMode: 'shared-shard',
+        projectId: projectId,
+        siteId: 'default',
+        region: 'us-central1',
+        status: 'active',
+        maxStores: 100, // Capacity for the new shard
+        activeStores: 0,
+        reservedStores: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.info(`[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`);
+    }
+  }
+
   // ── Step 5: Create web app and get config ──────────────────────────────
   let firebaseConfig: Record<string, string>;
   if (isDone('createWebApp')) {
@@ -506,6 +592,26 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
+      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
+        try {
+          await apiFetch(
+            auth,
+            `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+            {
+              method: 'POST',
+              body: { type: 'USER_SITE' },
+            },
+          );
+          console.info(`[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`);
+        } catch (err: any) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('already exists') && !msg.includes('409')) {
+            throw err;
+          }
+          console.info(`[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`);
+        }
+      }
+
       const appOp = (await apiFetch(
         auth,
         `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
@@ -632,8 +738,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      if (verticalId) {
-        await seedStoreData(auth, projectId, verticalId, name, includeMockData !== false);
+      if (includeMockData !== false) {
+        const effectiveVerticalId = verticalId || 'retail';
+        await seedStoreData(auth, projectId, effectiveVerticalId, name, true);
       }
 
       await setStep('initFirestore', 'done');
@@ -660,6 +767,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 fields: {
                   storeOwnerEmail: { stringValue: ownerEmail },
                   storeWhatsappNumber: { stringValue: '' },
+                  storeName: { stringValue: name },
                   adminNotification: {
                     mapValue: {
                       fields: {
@@ -755,12 +863,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
-          // If Identity Platform is already enabled or initialized, it might throw a 409 or ALREADY_EXISTS.
+          // If Identity Platform is already enabled or initialized, it might throw a 409, ALREADY_EXISTS, or a 400 stating it is already enabled.
           // We can safely ignore this and proceed to configuration.
           if (
             !msg.includes('ALREADY_EXISTS') &&
             !msg.includes('already exists') &&
-            !msg.includes('409')
+            !msg.includes('409') &&
+            !msg.includes('Identity Platform has already been enabled')
           ) {
             throw err;
           }
@@ -834,6 +943,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           quotaProject: projectId,
         },
       );
+
+      const oobRes = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
+        {
+          method: 'POST',
+          body: { requestType: 'PASSWORD_RESET', email: ownerEmail, returnOobLink: true },
+          quotaProject: projectId,
+        },
+      )) as { oobCode?: string; oobLink?: string };
+
+      const actionLink =
+        oobRes.oobLink ||
+        (oobRes.oobCode
+          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
+          : '');
+
+      if (actionLink) {
+        await storeRef.collection('private').doc('ownerAccess').set(
+          {
+            email: ownerEmail,
+            actionLink,
+            generatedAt: new Date(),
+          },
+          { merge: true },
+        );
+      }
 
       await setStep('initAdmin', 'done');
     } catch (err) {
@@ -932,10 +1068,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             client_payload: {
               store_id: storeId,
               project_id: projectId,
+              site_id: runtimeSiteId || 'default',
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
+              ref: PLATFORM_PROJECT === 'vertex-platform-dev' ? 'feature/dynamic-site-tombstone-deploy' : undefined,
             },
           }),
         },
@@ -1068,6 +1206,25 @@ export const completeStoreDeployment = onCall<{
       schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
       updatedAt: new Date(),
     });
+
+    if (storeData['runtimeMode'] === 'shared-shard' && storeData['shardId']) {
+      const shardRef = db.collection('shards').doc(storeData['shardId']);
+      try {
+        await db.runTransaction(async (transaction) => {
+          const shardSnap = await transaction.get(shardRef);
+          if (shardSnap.exists) {
+            const currentActive = shardSnap.data()?.activeStores || 0;
+            transaction.update(shardRef, {
+              activeStores: currentActive + 1,
+              updatedAt: new Date(),
+            });
+          }
+        });
+        console.info(`[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`);
+      } catch (err) {
+        console.error(`[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`, err);
+      }
+    }
   } else {
     await storeRef.update({
       'provisioningSteps.triggerDeploy.status': 'error',

@@ -63,3 +63,13 @@ functions/.env.*
 functions/lib/
 firebase-debug.log
 .runtimeconfig.json
+
+# Extension environment files (contain SMTP URIs, keep local only)
+extensions/
+
+# One-off utility scripts (operational, not for CI)
+scripts/check-owner-access.ts
+scripts/check-root-collections.ts
+scripts/inspect-prueba-tres.ts
+scripts/delete-prueba-tres.ts
+ext-params.env

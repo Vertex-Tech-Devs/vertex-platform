@@ -53,6 +53,7 @@ export interface CreateStorePayload {
   customDomain?: string;
   verticalId?: string;
   includeMockData?: boolean;
+  dedicatedProject?: boolean;
 }
 
 export interface StoreShard {
