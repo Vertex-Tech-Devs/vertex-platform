@@ -18,6 +18,14 @@ vi.mock('firebase-functions/v2/firestore', () => ({
 vi.mock('./helpers', () => ({
   ALLOWED_ORIGINS: [],
   pickBillingAccount: vi.fn().mockResolvedValue('billing-1'),
+  listProvisioningOwnerCandidates: vi.fn().mockResolvedValue([
+    {
+      id: 'owner-1',
+      client_id: 'client',
+      client_secret: 'secret',
+      refresh_token: 'refresh',
+    },
+  ]),
   getOwnerOAuthClient: vi.fn(),
   getGitHubPat: vi.fn(),
   apiFetch: vi.fn(),

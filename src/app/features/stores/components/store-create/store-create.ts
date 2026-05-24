@@ -76,8 +76,9 @@ export class StoreCreate implements OnInit {
     try {
       const id = await this.storesService.createStore(this.form.value as Parameters<typeof this.storesService.createStore>[0]);
       void this.router.navigate(['/stores', id]);
-    } catch {
-      this.errorMessage.set('No se pudo crear la tienda. Intentá de nuevo.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      this.errorMessage.set(message || 'No se pudo crear la tienda. Intentá de nuevo.');
       this.isSubmitting.set(false);
     }
   }

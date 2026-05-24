@@ -66,6 +66,13 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('resource-exhausted', msg);
     }
 
+    try {
+      await listProvisioningOwnerCandidates(db);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new HttpsError('resource-exhausted', msg);
+    }
+
     const steps: Record<string, ProvisioningStep> = {
       createProject: { status: 'pending', label: 'Crear proyecto GCP' },
       linkBilling: { status: 'pending', label: 'Vincular facturación' },
@@ -188,6 +195,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         normalized.includes('billing quota'))
     ) {
       return 'No se pudo vincular la facturacion porque la cuota de Cloud Billing fue excedida para la cuenta seleccionada. Aumenta la cuota o usa otra cuenta de facturacion: https://support.google.com/code/contact/billing_quota_increase';
+    }
+
+    if (
+      stepId === 'linkBilling' &&
+      (normalized.includes('permission_denied') ||
+        normalized.includes('does not have permission') ||
+        normalized.includes('403 forbidden'))
+    ) {
+      return 'No se pudo vincular la facturacion porque las credenciales de aprovisionamiento no tienen permisos suficientes sobre la cuenta de facturacion. Otorga roles billing.user / billing.projectManager a la cuenta de aprovisionamiento y reintenta.';
     }
 
     if (raw.length > 800) {
@@ -342,79 +358,83 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   // ── Step 2: Link billing ───────────────────────────────────────────────
   if (!isDone('linkBilling')) {
     await setStep('linkBilling', 'running');
-    let activeBillingAccountId = billingAccountId;
-    let success = false;
-    let attemptsLeft = 3; // Permitir reintentar con hasta 3 cuentas de facturación distintas
-    let lastError: unknown;
+    try {
+      let activeBillingAccountId = billingAccountId;
+      let success = false;
+      let attemptsLeft = 3; // Permitir reintentar con hasta 3 cuentas de facturación distintas
+      let lastError: unknown;
 
-    while (attemptsLeft > 0 && !success) {
-      try {
-        await retry(
-          () =>
-            apiFetch(
-              auth,
-              `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
-              {
-                method: 'PUT',
-                body: { billingAccountName: `billingAccounts/${activeBillingAccountId}` },
-              },
-            ),
-          3,
-          4000,
-        );
-        success = true;
-      } catch (err) {
-        lastError = err;
-        const errMsg = err instanceof Error ? err.message : String(err);
-        const normalized = errMsg.toLowerCase();
-
-        // Si es un error de cuota/límite de facturación en GCP, desactivamos la cuenta en BD y buscamos otra
-        if (
-          normalized.includes('cloud billing quota exceeded') ||
-          normalized.includes('failed_precondition') ||
-          normalized.includes('quota') ||
-          normalized.includes('billing quota') ||
-          normalized.includes('limit exceeded')
-        ) {
-          console.warn(
-            `[provisioning:linkBilling] La cuenta de facturación ${activeBillingAccountId} falló por cuota excedida. Desactivándola y reintentando con otra.`,
+      while (attemptsLeft > 0 && !success) {
+        try {
+          await retry(
+            () =>
+              apiFetch(
+                auth,
+                `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
+                {
+                  method: 'PUT',
+                  body: { billingAccountName: `billingAccounts/${activeBillingAccountId}` },
+                },
+              ),
+            3,
+            4000,
           );
+          success = true;
+        } catch (err) {
+          lastError = err;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const normalized = errMsg.toLowerCase();
 
-          try {
-            // Desactivar la cuenta fallida para que el motor no la vuelva a seleccionar
-            await db.collection('billingAccounts').doc(activeBillingAccountId).update({
-              active: false,
-              deactivatedReason: 'Cuota de proyectos excedida en GCP',
-              deactivatedAt: new Date(),
-            });
-
-            // Buscar y seleccionar una nueva cuenta de facturación activa
-            const newAccountId = await pickBillingAccount(db);
-            console.info(
-              `[provisioning:linkBilling] Nueva cuenta de facturación seleccionada: ${newAccountId}`,
+          // Si es un error de cuota/límite de facturación en GCP, desactivamos la cuenta en BD y buscamos otra
+          if (
+            normalized.includes('cloud billing quota exceeded') ||
+            normalized.includes('failed_precondition') ||
+            normalized.includes('quota') ||
+            normalized.includes('billing quota') ||
+            normalized.includes('limit exceeded')
+          ) {
+            console.warn(
+              `[provisioning:linkBilling] La cuenta de facturación ${activeBillingAccountId} falló por cuota excedida. Desactivándola y reintentando con otra.`,
             );
 
-            // Actualizar el ID en la variable local y en el documento de la tienda en Firestore
-            activeBillingAccountId = newAccountId;
-            await storeRef.update({ billingAccountId: newAccountId });
-            attemptsLeft--;
-          } catch (selectErr) {
-            console.error(
-              '[provisioning:linkBilling] No se pudo encontrar otra cuenta de facturación de reemplazo activa:',
-              selectErr,
-            );
-            throw err; // Relanzar el error original de facturación si no hay reemplazo
+            try {
+              // Desactivar la cuenta fallida para que el motor no la vuelva a seleccionar
+              await db.collection('billingAccounts').doc(activeBillingAccountId).update({
+                active: false,
+                deactivatedReason: 'Cuota de proyectos excedida en GCP',
+                deactivatedAt: new Date(),
+              });
+
+              // Buscar y seleccionar una nueva cuenta de facturación activa
+              const newAccountId = await pickBillingAccount(db);
+              console.info(
+                `[provisioning:linkBilling] Nueva cuenta de facturación seleccionada: ${newAccountId}`,
+              );
+
+              // Actualizar el ID en la variable local y en el documento de la tienda en Firestore
+              activeBillingAccountId = newAccountId;
+              await storeRef.update({ billingAccountId: newAccountId });
+              attemptsLeft--;
+            } catch (selectErr) {
+              console.error(
+                '[provisioning:linkBilling] No se pudo encontrar otra cuenta de facturación de reemplazo activa:',
+                selectErr,
+              );
+              throw err; // Relanzar el error original de facturación si no hay reemplazo
+            }
+          } else {
+            throw err; // Relanzar si es otro tipo de error de red o API
           }
-        } else {
-          throw err; // Relanzar si es otro tipo de error de red o API
         }
       }
-    }
 
-    if (success) {
-      await setStep('linkBilling', 'done');
-    } else {
-      await fail('linkBilling', lastError);
+      if (success) {
+        await setStep('linkBilling', 'done');
+      } else {
+        throw lastError ?? new Error('Failed to link billing account after retries.');
+      }
+    } catch (err) {
+      await fail('linkBilling', err);
       return;
     }
   }
@@ -934,7 +954,17 @@ export const runProvisioning = onDocumentCreated(
   async (event) => {
     const data = event.data?.data();
     if (!data || data['status'] !== 'provisioning') return;
-    await executeProvisioningSteps(event.params.storeId);
+    try {
+      await executeProvisioningSteps(event.params.storeId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[runProvisioning] Unhandled provisioning error for store ${event.params.storeId}:`, err);
+      await getFirestore().collection('stores').doc(event.params.storeId).update({
+        status: 'error',
+        updatedAt: new Date(),
+        unhandledProvisioningError: message.slice(0, 800),
+      });
+    }
   },
 );
 
@@ -976,7 +1006,17 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
     await storeRef.update(updates);
 
-    await executeProvisioningSteps(storeId);
+    try {
+      await executeProvisioningSteps(storeId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await storeRef.update({
+        status: 'error',
+        updatedAt: new Date(),
+        unhandledProvisioningError: message.slice(0, 800),
+      });
+      throw new HttpsError('internal', 'Provisioning retry failed unexpectedly. Review provisioning error details and try again.');
+    }
     return { success: true };
   },
 );
