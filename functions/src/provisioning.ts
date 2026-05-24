@@ -66,6 +66,13 @@ export const provisionStore = onCall<CreateStorePayload>(
       throw new HttpsError('resource-exhausted', msg);
     }
 
+    try {
+      await listProvisioningOwnerCandidates(db);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new HttpsError('resource-exhausted', msg);
+    }
+
     const steps: Record<string, ProvisioningStep> = {
       createProject: { status: 'pending', label: 'Crear proyecto GCP' },
       linkBilling: { status: 'pending', label: 'Vincular facturación' },
