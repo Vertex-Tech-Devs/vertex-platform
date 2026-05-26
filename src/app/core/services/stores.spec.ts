@@ -92,4 +92,29 @@ describe('StoresService', () => {
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'provisionStore');
     expect(result).toBe('abc123');
   });
+
+  it('getRuntimeCapacitySummary calls the matching cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        summary: {
+          environment: 'production',
+          sharedShardCount: 1,
+          activeSharedShardCount: 1,
+          availableSharedSlots: 48,
+          recommendedRuntimeMode: 'shared-shard',
+          shards: [],
+        },
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.getRuntimeCapacitySummary();
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getRuntimeCapacitySummary');
+    expect(result.availableSharedSlots).toBe(48);
+  });
 });

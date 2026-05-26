@@ -1,7 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
+import type { OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { StoresService } from '@core/services/stores';
+import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 
 const SLUG_RE = /^[a-z0-9-]+$/;
 
@@ -12,13 +13,15 @@ const SLUG_RE = /^[a-z0-9-]+$/;
   templateUrl: './store-create.html',
   styleUrls: ['./store-create.scss'],
 })
-export class StoreCreate {
+export class StoreCreate implements OnInit {
   private fb = inject(FormBuilder);
   private storesService = inject(StoresService);
   private router = inject(Router);
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
+  readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
+  readonly runtimeSummaryError = signal('');
 
   readonly selectedVerticalType = signal<'indumentaria' | 'gastronomia' | 'retail' | 'custom'>('indumentaria');
   readonly customVerticalName = signal('');
@@ -31,7 +34,16 @@ export class StoreCreate {
     customDomain: [''],
     verticalId: ['indumentaria' as string, Validators.required],
     includeMockData: [true],
+    dedicatedProject: [false],
   });
+
+  async ngOnInit(): Promise<void> {
+    try {
+      this.runtimeSummary.set(await this.storesService.getRuntimeCapacitySummary());
+    } catch {
+      this.runtimeSummaryError.set('No se pudo cargar la capacidad actual de shared-shards.');
+    }
+  }
 
   autoSlug(): void {
     const name = this.form.get('name')?.value ?? '';
@@ -65,8 +77,9 @@ export class StoreCreate {
     try {
       const id = await this.storesService.createStore(this.form.value as Parameters<typeof this.storesService.createStore>[0]);
       void this.router.navigate(['/stores', id]);
-    } catch {
-      this.errorMessage.set('No se pudo crear la tienda. Intentá de nuevo.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      this.errorMessage.set(message || 'No se pudo crear la tienda. Intentá de nuevo.');
       this.isSubmitting.set(false);
     }
   }

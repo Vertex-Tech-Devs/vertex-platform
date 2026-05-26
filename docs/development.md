@@ -26,6 +26,21 @@ Owner account for dev: `juan.l.espeche@gmail.com` (personal ADC).
 Provisioning owners can now be configured as a pool in Secret Manager under `platform-owner-credentials-pool`.
 `createProject` rotates across that pool when one owner reaches its project creation quota.
 
+## Project Quota Incident Notes
+
+- Google Cloud project quota is currently a real operational constraint for the dedicated-project provisioning model.
+- Projects in `DELETE_REQUESTED` still count against quota until permanently deleted.
+- Billing account rotation does **not** solve `projects_count` exhaustion.
+- Treat `1 store = 1 project` as a temporary compatibility path, not the scalable target architecture.
+
+The long-term solution is documented in [docs/scalability-roadmap.md](docs/scalability-roadmap.md).
+
+Current architectural direction:
+
+- `shared-shard` runtime for standard stores
+- `dedicated-project` runtime only for premium exceptions
+- shard capacity target: `100` stores initially
+
 ## Functions architecture
 
 Entry: `functions/src/index.ts` (re-exports only — no logic)
@@ -89,10 +104,12 @@ npm ci --legacy-peer-deps   # legacy needed: @angular/fire@20 peer conflict with
 npm run start               # serve Angular app
 npm run lint                # ESLint (ng lint)
 npm run typecheck           # tsc --noEmit
+npm run e2e:ci              # Cypress e2e suite
 
 cd functions
 npm ci
 npm run build               # tsc
+npm run test                # Vitest suite
 ```
 
 ## Deploy scripts
@@ -103,6 +120,19 @@ npm run deploy:prod  # activates 'vertex-prod' gcloud config, deploys to vertex-
 ```
 
 Firebase CLI uses the currently active gcloud account for ADC — switching configs is mandatory.
+
+## Shared-shard registry operations
+
+```bash
+npm run register-shard -- \
+   --shard-id=dev-shard-01 \
+   --project-id=vertex-shared-dev \
+   --site-id=vertex-shared-dev \
+   --environment=development \
+   --max-stores=100
+```
+
+The store creation screen reads shard capacity through `getRuntimeCapacitySummary` so operations can track shared-shard headroom while dedicated-project provisioning remains the active compatibility path.
 
 ## Cumulative Knowledge / Memory & Guidelines
 

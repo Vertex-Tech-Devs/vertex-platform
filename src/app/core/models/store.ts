@@ -1,6 +1,7 @@
 export type StoreStatus = 'provisioning' | 'active' | 'suspended' | 'error';
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';
 export type VersionUpdateStatus = 'idle' | 'updating' | 'failed';
+export type StoreRuntimeMode = 'shared-shard' | 'dedicated-project';
 
 export interface TemplateVersion {
   version: string;
@@ -20,6 +21,11 @@ export interface Store {
   id: string;
   name: string;
   slug: string;
+  tenantId?: string;
+  runtimeMode?: StoreRuntimeMode;
+  shardId?: string | null;
+  runtimeProjectId?: string;
+  runtimeSiteId?: string;
   firebaseProjectId: string;
   defaultUrl: string;
   customDomain?: string;
@@ -47,6 +53,24 @@ export interface CreateStorePayload {
   customDomain?: string;
   verticalId?: string;
   includeMockData?: boolean;
+  dedicatedProject?: boolean;
+}
+
+export interface StoreShard {
+  id: string;
+  environment: 'development' | 'production';
+  runtimeMode: 'shared-shard';
+  projectId: string;
+  siteId: string;
+  region: string;
+  status: 'active' | 'draining' | 'maintenance';
+  maxStores: number;
+  activeStores: number;
+  reservedStores: number;
+  currentTemplateVersion?: string;
+  currentDataVersion?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface StoreContact {

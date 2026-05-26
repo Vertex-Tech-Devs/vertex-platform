@@ -31,6 +31,28 @@ export interface DeploymentHistoryItem {
   displayTitle: string;
 }
 
+export interface RuntimeShardCapacity {
+  id: string;
+  projectId: string;
+  siteId: string;
+  region: string;
+  status: 'active' | 'draining' | 'maintenance';
+  activeStores: number;
+  reservedStores: number;
+  maxStores: number;
+  availableStores: number;
+  occupancyRatio: number;
+}
+
+export interface RuntimeCapacitySummary {
+  environment: 'development' | 'production';
+  sharedShardCount: number;
+  activeSharedShardCount: number;
+  availableSharedSlots: number;
+  recommendedRuntimeMode: 'shared-shard' | 'dedicated-project';
+  shards: RuntimeShardCapacity[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class StoresService {
   private db = getFirestore();
@@ -51,6 +73,15 @@ export class StoresService {
     const fn = httpsCallable<CreateStorePayload, { storeId: string }>(this.fns, 'provisionStore');
     const result = await fn(payload);
     return result.data.storeId;
+  }
+
+  async getRuntimeCapacitySummary(): Promise<RuntimeCapacitySummary> {
+    const fn = httpsCallable<Record<string, never>, { summary: RuntimeCapacitySummary }>(
+      this.fns,
+      'getRuntimeCapacitySummary'
+    );
+    const result = await fn({});
+    return result.data.summary;
   }
 
   async redeployStore(storeId: string): Promise<void> {
