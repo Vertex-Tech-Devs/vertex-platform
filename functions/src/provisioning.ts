@@ -740,7 +740,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       if (includeMockData !== false) {
         const effectiveVerticalId = verticalId || 'retail';
-        await seedStoreData(auth, projectId, effectiveVerticalId, name, true);
+        await seedStoreData(auth, projectId, effectiveVerticalId, name, true, true);
       }
 
       await setStep('initFirestore', 'done');
