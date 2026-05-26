@@ -979,7 +979,14 @@ function generateVariantCombinations(
 /**
  * Seeds isolated child project database with category trees, attributes, and products with variants.
  */
-export async function seedStoreData(auth: OAuth2Client, projectId: string, verticalId: string, storeName?: string, includeMockData = true): Promise<void> {
+export async function seedStoreData(
+  auth: OAuth2Client,
+  projectId: string,
+  verticalId: string,
+  storeName?: string,
+  includeMockData = true,
+  bypassSafety = false
+): Promise<void> {
   const sName = storeName ? storeName.trim() : 'Vertex';
   let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
@@ -1010,7 +1017,9 @@ export async function seedStoreData(auth: OAuth2Client, projectId: string, verti
   const seed = customizeSeed(rawSeed, sName);
 
   // 1. Run Safety Check
-  await checkStoreSafety(auth, projectId);
+  if (!bypassSafety) {
+    await checkStoreSafety(auth, projectId);
+  }
 
   console.log(`[SeedEngine] Safety check passed. Cleaning up database to begin a pristine seed on project "${projectId}"...`);
 
