@@ -6,26 +6,20 @@ import * as functions from 'firebase-functions/v1';
 import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
 
-const PROTECTED_SUPER_ADMINS = new Set([
-  'juan.l.espeche@gmail.com',
-  'vertex.tech.dev@gmail.com',
-]);
+const PROTECTED_SUPER_ADMINS = new Set(['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com']);
 
 const ensureProtectedSuperAdmins = async (db: FirebaseFirestore.Firestore): Promise<void> => {
   for (const email of PROTECTED_SUPER_ADMINS) {
-    await db
-      .collection('platformAdmins')
-      .doc(email)
-      .set(
-        {
-          email,
-          role: 'superAdmin',
-          protected: true,
-          addedBy: 'system',
-          updatedAt: new Date(),
-        },
-        { merge: true },
-      );
+    await db.collection('platformAdmins').doc(email).set(
+      {
+        email,
+        role: 'superAdmin',
+        protected: true,
+        addedBy: 'system',
+        updatedAt: new Date(),
+      },
+      { merge: true },
+    );
   }
 };
 
@@ -207,7 +201,7 @@ export const onPlatformAdminRoleChange = onDocumentWritten(
       const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims;
       await auth.setCustomUserClaims(user.uid, rest);
     } else {
-      const afterRole = isProtectedAdmin ? 'superAdmin' : (afterData['role'] || 'platformAdmin');
+      const afterRole = isProtectedAdmin ? 'superAdmin' : afterData['role'] || 'platformAdmin';
       if (isProtectedAdmin && afterData['role'] !== 'superAdmin') {
         await db
           .collection('platformAdmins')
@@ -246,7 +240,7 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
     }
 
     if (docSnap.exists || isProtectedAdmin) {
-      const role = isProtectedAdmin ? 'superAdmin' : (docSnap.data()?.['role'] || 'platformAdmin');
+      const role = isProtectedAdmin ? 'superAdmin' : docSnap.data()?.['role'] || 'platformAdmin';
       console.log(
         `Auto-setting claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`,
       );
