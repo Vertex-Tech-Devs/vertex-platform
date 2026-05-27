@@ -27,11 +27,10 @@ npm run lint
 npm run typecheck
 npm run test -- --watch=false
 npm run build:prod
-npm run e2e:ci
-npm run test:integration -- --workers=1
 cd functions
 npm run test
 
 echo ""
-echo "✔ All strict quality gates passed."
+echo "✔ Baseline quality gates passed locally."
+echo "  Full E2E + cross-repo integration remain mandatory in CI Quality Gate."
 echo ""
