@@ -28,6 +28,8 @@ Allowed types:
 
 ## Local Quality Gate
 
+Quality policy is strict: changes must be delivered with 0 errors and 0 warnings in local validation, CI, and editor diagnostics.
+
 Run before pushing:
 
 ```bash
@@ -44,6 +46,7 @@ cd functions && npm run test && npm run build && cd ..
 - Tests updated when behavior changes
 - No secrets committed
 - CI checks are green
+- No errors or warnings remain in lint, typecheck, tests, build, or editor diagnostics
 - Release governance policy respected
 
 ## Security Rules
