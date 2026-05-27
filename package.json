@@ -52,7 +52,7 @@
     "@angular/compiler-cli": "^21.2.14",
     "@google-cloud/secret-manager": "^5.0.0",
     "@playwright/test": "^1.60.0",
-    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.59.4",
     "cypress": "^14.5.4",
     "eslint": "^9.39.4",
