@@ -97,6 +97,7 @@ Both repositories now enforce strict `pre-push` gates.
 
 Current enforced checks:
 
-- `ecommerce-vertex` local push gate: lint, typecheck, unit tests, production build, Cypress E2E, Playwright integration.
+- `ecommerce-vertex` local push gate: lint, typecheck, unit tests, production build, Playwright integration.
+- `ecommerce-vertex` CI quality gate (required for merge): Cypress E2E + remaining mandatory checks.
 - `vertex-platform` local push gate: lint, typecheck, frontend tests (non-watch), production build, functions tests.
 - `vertex-platform` CI quality gate (required for merge): Cypress E2E + Playwright cross-repo integration.
