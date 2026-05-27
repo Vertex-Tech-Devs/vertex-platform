@@ -49,6 +49,20 @@ cd functions && npm run test && npm run build && cd ..
 - No errors or warnings remain in lint, typecheck, tests, build, or editor diagnostics
 - Release governance policy respected
 
+## PR Monitoring Policy
+
+To avoid unnecessary polling and token usage, use long-interval monitoring for PR checks.
+
+- Preferred command: `gh pr checks <PR_NUMBER> --watch --interval 300`
+- Default interval: 300 seconds (5 minutes). Use 600 seconds for long-running release checks.
+- Do not run repeated manual checks every few seconds.
+
+Alternative notifications:
+
+- Enable GitHub notifications for participating PRs (`Watching` -> `Custom` -> `Pull requests`).
+- Rely on GitHub email/mobile notifications when checks complete.
+- Use `gh pr merge <PR_NUMBER> --auto --merge` when repository settings allow auto-merge.
+
 ## Security Rules
 
 - Never commit credentials or private keys.
