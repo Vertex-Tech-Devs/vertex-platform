@@ -41,8 +41,12 @@ export class Billing implements OnInit {
 
   usageClass(a: BillingAccount): string {
     const p = this.usagePercent(a);
-    if (p >= 90) return 'usage--critical';
-    if (p >= 70) return 'usage--warning';
+    if (p >= 90) {
+      return 'usage--critical';
+    }
+    if (p >= 70) {
+      return 'usage--warning';
+    }
     return 'usage--ok';
   }
 
@@ -54,7 +58,9 @@ export class Billing implements OnInit {
 
   normalizeBillingId(raw: string): string {
     const value = raw.trim();
-    if (!value) return '';
+    if (!value) {
+      return '';
+    }
     return value.startsWith('billingAccounts/') ? value.slice('billingAccounts/'.length) : value;
   }
 
@@ -68,7 +74,10 @@ export class Billing implements OnInit {
   async addAccount(): Promise<void> {
     const id = this.normalizeBillingId(this.addId());
     const name = this.addName().trim();
-    if (!id || !name) { this.addError.set('ID y nombre son requeridos.'); return; }
+    if (!id || !name) {
+      this.addError.set('ID y nombre son requeridos.');
+      return;
+    }
     this.isAdding.set(true);
     this.addError.set('');
     try {
@@ -98,7 +107,11 @@ export class Billing implements OnInit {
     this.isSaving.set(true);
     this.saveError.set('');
     try {
-      await this.svc.updateAccount({ id, name: this.editName().trim(), maxProjects: this.editMax() });
+      await this.svc.updateAccount({
+        id,
+        name: this.editName().trim(),
+        maxProjects: this.editMax(),
+      });
       this.editingId.set(null);
     } catch (err: unknown) {
       this.saveError.set(err instanceof Error ? err.message : 'Error al guardar.');

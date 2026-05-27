@@ -1,6 +1,7 @@
 export interface ManageAdminPayload {
   email: string;
   action: 'add' | 'remove';
+  role?: 'superAdmin' | 'platformAdmin';
 }
 
 export interface AdminInfo {
@@ -8,6 +9,7 @@ export interface AdminInfo {
   email: string;
   displayName: string | undefined;
   photoURL: string | undefined;
+  role?: 'superAdmin' | 'platformAdmin';
 }
 
 export interface CreateStorePayload {
@@ -132,4 +134,3 @@ export interface InviteStaffPayload {
   email: string;
   role: 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
 }
-

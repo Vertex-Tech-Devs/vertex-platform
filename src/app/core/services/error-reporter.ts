@@ -15,7 +15,9 @@ export class GlobalErrorHandler implements ErrorHandler {
   }
 
   private async report(error: Error): Promise<void> {
-    if (!environment.errorReportingUrl) return;
+    if (!environment.errorReportingUrl) {
+      return;
+    }
 
     const body = JSON.stringify({
       message: error.message,

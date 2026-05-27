@@ -23,7 +23,9 @@ export class StoreCreate implements OnInit {
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
   readonly runtimeSummaryError = signal('');
 
-  readonly selectedVerticalType = signal<'indumentaria' | 'gastronomia' | 'retail' | 'custom'>('indumentaria');
+  readonly selectedVerticalType = signal<'indumentaria' | 'gastronomia' | 'retail' | 'custom'>(
+    'indumentaria',
+  );
   readonly customVerticalName = signal('');
 
   readonly form = this.fb.group({
@@ -37,17 +39,22 @@ export class StoreCreate implements OnInit {
     dedicatedProject: [false],
   });
 
-  async ngOnInit(): Promise<void> {
-    try {
-      this.runtimeSummary.set(await this.storesService.getRuntimeCapacitySummary());
-    } catch {
-      this.runtimeSummaryError.set('No se pudo cargar la capacidad actual de shared-shards.');
-    }
+  ngOnInit(): void {
+    void (async () => {
+      try {
+        this.runtimeSummary.set(await this.storesService.getRuntimeCapacitySummary());
+      } catch {
+        this.runtimeSummaryError.set('No se pudo cargar la capacidad actual de shared-shards.');
+      }
+    })();
   }
 
   autoSlug(): void {
     const name = this.form.get('name')?.value ?? '';
-    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
     this.form.get('slug')?.setValue(slug);
   }
 
@@ -75,7 +82,9 @@ export class StoreCreate implements OnInit {
     this.isSubmitting.set(true);
     this.errorMessage.set('');
     try {
-      const id = await this.storesService.createStore(this.form.value as Parameters<typeof this.storesService.createStore>[0]);
+      const id = await this.storesService.createStore(
+        this.form.value as Parameters<typeof this.storesService.createStore>[0],
+      );
       void this.router.navigate(['/stores', id]);
     } catch (error) {
       const message = error instanceof Error ? error.message : '';

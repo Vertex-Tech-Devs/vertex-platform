@@ -139,4 +139,3 @@ export interface PendingInvitation {
   status: 'pending' | 'accepted' | 'expired';
   createdAt: string;
 }
-

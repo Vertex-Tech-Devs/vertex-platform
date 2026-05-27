@@ -16,22 +16,40 @@
     <div class="add-grid">
       <div class="form-group">
         <label class="form-label">ID de la cuenta *</label>
-        <input class="form-control" [value]="addId()" (input)="addId.set($any($event.target).value)"
-          placeholder="XXXXXX-XXXXXX-XXXXXX o billingAccounts/XXXXXX-XXXXXX-XXXXXX" (focus)="startAdd()" />
+        <input
+          class="form-control"
+          [value]="addId()"
+          (input)="addId.set($any($event.target).value)"
+          placeholder="XXXXXX-XXXXXX-XXXXXX o billingAccounts/XXXXXX-XXXXXX-XXXXXX"
+          (focus)="startAdd()"
+        />
       </div>
       <div class="form-group">
         <label class="form-label">Nombre *</label>
-        <input class="form-control" [value]="addName()" (input)="addName.set($any($event.target).value)"
-          placeholder="Vertex Billing Account Five" />
+        <input
+          class="form-control"
+          [value]="addName()"
+          (input)="addName.set($any($event.target).value)"
+          placeholder="Vertex Billing Account Five"
+        />
       </div>
       <div class="form-group">
         <label class="form-label">Máx. proyectos</label>
-        <input class="form-control" type="number" min="1" max="100" [value]="addMax()"
-          (input)="addMax.set(+$any($event.target).value)" />
+        <input
+          class="form-control"
+          type="number"
+          min="1"
+          max="100"
+          [value]="addMax()"
+          (input)="addMax.set(+$any($event.target).value)"
+        />
       </div>
       <div class="form-group form-group--action">
-        <button class="btn btn-primary" (click)="addAccount()"
-          [disabled]="isAdding() || !addId().trim() || !addName().trim()">
+        <button
+          class="btn btn-primary"
+          (click)="addAccount()"
+          [disabled]="isAdding() || !addId().trim() || !addName().trim()"
+        >
           {{ isAdding() ? 'Verificando…' : 'Agregar' }}
         </button>
       </div>
@@ -60,28 +78,41 @@
       <ul class="account-list">
         @for (account of svc.accounts(); track account.id) {
           <li class="account-item" [class.account-item--inactive]="!account.active">
-
             @if (editingId() === account.id) {
               <!-- Edit mode -->
               <div class="account-item__edit">
                 <div class="edit-row">
                   <div class="form-group">
                     <label class="form-label">Nombre</label>
-                    <input class="form-control form-control--sm" [value]="editName()"
-                      (input)="editName.set($any($event.target).value)" />
+                    <input
+                      class="form-control form-control--sm"
+                      [value]="editName()"
+                      (input)="editName.set($any($event.target).value)"
+                    />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Máx. proyectos</label>
-                    <input class="form-control form-control--sm" type="number" min="1" [value]="editMax()"
-                      (input)="editMax.set(+$any($event.target).value)" />
+                    <input
+                      class="form-control form-control--sm"
+                      type="number"
+                      min="1"
+                      [value]="editMax()"
+                      (input)="editMax.set(+$any($event.target).value)"
+                    />
                   </div>
                 </div>
                 @if (saveError()) {
-                  <p class="error-msg" style="margin: 0.25rem 0 0; font-size: 0.8rem;">{{ saveError() }}</p>
+                  <p class="error-msg" style="margin: 0.25rem 0 0; font-size: 0.8rem">
+                    {{ saveError() }}
+                  </p>
                 }
                 <div class="edit-actions">
                   <button class="btn btn-secondary btn--sm" (click)="cancelEdit()">Cancelar</button>
-                  <button class="btn btn-primary btn--sm" (click)="saveEdit(account.id)" [disabled]="isSaving()">
+                  <button
+                    class="btn btn-primary btn--sm"
+                    (click)="saveEdit(account.id)"
+                    [disabled]="isSaving()"
+                  >
                     {{ isSaving() ? 'Guardando…' : 'Guardar' }}
                   </button>
                 </div>
@@ -94,7 +125,11 @@
                     <span class="account-name">{{ account.name }}</span>
                     <span class="account-id">{{ account.id }}</span>
                   </div>
-                  <span class="badge" [class.badge--active]="account.active" [class.badge--inactive]="!account.active">
+                  <span
+                    class="badge"
+                    [class.badge--active]="account.active"
+                    [class.badge--inactive]="!account.active"
+                  >
                     {{ account.active ? 'Activa' : 'Inactiva' }}
                   </span>
                 </div>
@@ -103,28 +138,43 @@
                   <div class="usage__bar">
                     <div class="usage__fill" [style.width.%]="usagePercent(account)"></div>
                   </div>
-                  <span class="usage__label">{{ account.usedProjects }} / {{ account.maxProjects }} proyectos</span>
+                  <span class="usage__label"
+                    >{{ account.usedProjects }} / {{ account.maxProjects }} proyectos</span
+                  >
                 </div>
 
                 @if (account.addedAt) {
-                  <span class="account-meta">Agregada {{ account.addedAt | date:'dd/MM/yyyy' }}</span>
+                  <span class="account-meta"
+                    >Agregada {{ account.addedAt | date: 'dd/MM/yyyy' }}</span
+                  >
                 }
               </div>
               <div class="account-item__actions">
                 <button class="btn-icon" title="Editar" (click)="startEdit(account)">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn-icon" [title]="account.active ? 'Desactivar' : 'Activar'"
-                  (click)="toggleActive(account)" [disabled]="togglingId() === account.id">
-                  <i class="bi" [class.bi-pause-circle]="account.active" [class.bi-play-circle]="!account.active"></i>
+                <button
+                  class="btn-icon"
+                  [title]="account.active ? 'Desactivar' : 'Activar'"
+                  (click)="toggleActive(account)"
+                  [disabled]="togglingId() === account.id"
+                >
+                  <i
+                    class="bi"
+                    [class.bi-pause-circle]="account.active"
+                    [class.bi-play-circle]="!account.active"
+                  ></i>
                 </button>
-                <button class="btn-icon btn-icon--danger" title="Eliminar"
-                  (click)="remove(account)" [disabled]="removingId() === account.id">
+                <button
+                  class="btn-icon btn-icon--danger"
+                  title="Eliminar"
+                  (click)="remove(account)"
+                  [disabled]="removingId() === account.id"
+                >
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
             }
-
           </li>
         }
       </ul>

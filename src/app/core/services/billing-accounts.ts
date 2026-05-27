@@ -29,7 +29,7 @@ export class BillingAccountsService {
         result.data.accounts.map((a) => ({
           ...a,
           addedAt: a.addedAt ? new Date(a.addedAt) : null,
-        }))
+        })),
       );
     } catch (err: unknown) {
       this.error.set(err instanceof Error ? err.message : 'Error al cargar billing accounts.');
@@ -44,7 +44,12 @@ export class BillingAccountsService {
     await this.loadAccounts();
   }
 
-  async updateAccount(payload: { id: string; name?: string; maxProjects?: number; active?: boolean }): Promise<void> {
+  async updateAccount(payload: {
+    id: string;
+    name?: string;
+    maxProjects?: number;
+    active?: boolean;
+  }): Promise<void> {
     const fn = httpsCallable(this.fns, 'updateBillingAccount');
     await fn(payload);
     await this.loadAccounts();

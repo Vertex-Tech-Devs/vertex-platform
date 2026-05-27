@@ -34,7 +34,7 @@ describe('retry', () => {
 
 function makeDb(
   accounts: Array<{ id: string; maxProjects: number }>,
-  storeUsage: Array<{ billingAccountId: string }>
+  storeUsage: Array<{ billingAccountId: string }>,
 ): Firestore {
   const accountsDocs = accounts.map((a) => ({
     id: a.id,
@@ -71,7 +71,7 @@ describe('pickBillingAccount', () => {
   it('throws when the only account is at full capacity', async () => {
     const db = makeDb(
       [{ id: 'acc-1', maxProjects: 2 }],
-      [{ billingAccountId: 'acc-1' }, { billingAccountId: 'acc-1' }]
+      [{ billingAccountId: 'acc-1' }, { billingAccountId: 'acc-1' }],
     );
     await expect(pickBillingAccount(db)).rejects.toThrow('at capacity');
   });
@@ -87,7 +87,7 @@ describe('pickBillingAccount', () => {
         { billingAccountId: 'acc-1' },
         { billingAccountId: 'acc-1' },
         { billingAccountId: 'acc-2' },
-      ]
+      ],
     );
     // acc-1 has 7 remaining, acc-2 has 9 remaining → should pick acc-2
     const result = await pickBillingAccount(db);
@@ -100,7 +100,7 @@ describe('pickBillingAccount', () => {
         { id: 'acc-full', maxProjects: 1 },
         { id: 'acc-empty', maxProjects: 5 },
       ],
-      [{ billingAccountId: 'acc-full' }]
+      [{ billingAccountId: 'acc-full' }],
     );
     // acc-full: 0 remaining, acc-empty: 5 remaining
     const result = await pickBillingAccount(db);

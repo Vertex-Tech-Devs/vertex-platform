@@ -38,7 +38,7 @@ export const listTemplateVersions = onCall(
             Accept: 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28',
           },
-        }
+        },
       );
 
       if (!res.ok) {
@@ -61,7 +61,7 @@ export const listTemplateVersions = onCall(
       console.warn('[listTemplateVersions] Failed to fetch releases:', err);
       return { versions: [] };
     }
-  }
+  },
 );
 
 export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
@@ -103,7 +103,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
           Accept: 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
         },
-      }
+      },
     );
 
     if (!tagRes.ok) {
@@ -151,7 +151,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
             deploy_token: deployToken,
           },
         }),
-      }
+      },
     );
 
     if (!res.ok && res.status !== 204) {
@@ -165,7 +165,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     });
 
     return { success: true };
-  }
+  },
 );
 
 export const completeVersionUpdate = onCall<{
@@ -173,42 +173,39 @@ export const completeVersionUpdate = onCall<{
   success: boolean;
   deployToken: string;
   version: string;
-}>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
-  async (request) => {
-    const { storeId, success, deployToken, version } = request.data;
+}>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
+  const { storeId, success, deployToken, version } = request.data;
 
-    if (!storeId || !deployToken) {
-      throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
-    }
-
-    const secrets = new SecretManagerServiceClient();
-    const [secretVersion] = await secrets.accessSecretVersion({
-      name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-    });
-    const expected = secretVersion.payload!.data!.toString().trim();
-    if (deployToken !== expected) {
-      throw new HttpsError('permission-denied', 'Invalid deploy token.');
-    }
-
-    const db = getFirestore();
-    const storeRef = db.collection('stores').doc(storeId);
-
-    if (success) {
-      await storeRef.update({
-        templateVersion: version,
-        versionUpdateStatus: 'idle',
-        versionUpdateTarget: null,
-        lastDeployedAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else {
-      await storeRef.update({
-        versionUpdateStatus: 'failed',
-        updatedAt: new Date(),
-      });
-    }
-
-    return { success: true };
+  if (!storeId || !deployToken) {
+    throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
   }
-);
+
+  const secrets = new SecretManagerServiceClient();
+  const [secretVersion] = await secrets.accessSecretVersion({
+    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+  });
+  const expected = secretVersion.payload!.data!.toString().trim();
+  if (deployToken !== expected) {
+    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  }
+
+  const db = getFirestore();
+  const storeRef = db.collection('stores').doc(storeId);
+
+  if (success) {
+    await storeRef.update({
+      templateVersion: version,
+      versionUpdateStatus: 'idle',
+      versionUpdateTarget: null,
+      lastDeployedAt: new Date(),
+      updatedAt: new Date(),
+    });
+  } else {
+    await storeRef.update({
+      versionUpdateStatus: 'failed',
+      updatedAt: new Date(),
+    });
+  }
+
+  return { success: true };
+});

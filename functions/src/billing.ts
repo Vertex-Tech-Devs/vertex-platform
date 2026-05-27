@@ -37,7 +37,7 @@ export const listBillingAccounts = onCall(
     }));
 
     return { accounts };
-  }
+  },
 );
 
 export const addBillingAccount = onCall<AddBillingAccountPayload>(
@@ -49,29 +49,41 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
     const { name, maxProjects = 15 } = request.data;
-    if (!normalizedId || !name) throw new HttpsError('invalid-argument', 'id and name are required.');
+    if (!normalizedId || !name)
+      throw new HttpsError('invalid-argument', 'id and name are required.');
 
     const db = getFirestore();
     const existing = await db.collection('billingAccounts').doc(normalizedId).get();
     if (existing.exists) {
-      throw new HttpsError('already-exists', `Billing account ${normalizedId} is already registered.`);
+      throw new HttpsError(
+        'already-exists',
+        `Billing account ${normalizedId} is already registered.`,
+      );
     }
 
     const auth = await getOwnerOAuthClient();
     try {
-      await apiFetch(auth, `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}`);
+      await apiFetch(
+        auth,
+        `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}`,
+      );
     } catch (err) {
       console.error('addBillingAccount verification error:', err);
-      throw new HttpsError('not-found', `Billing account ${normalizedId} not found or not accessible.`);
+      throw new HttpsError(
+        'not-found',
+        `Billing account ${normalizedId} not found or not accessible.`,
+      );
     }
 
     try {
       await apiFetch(
         auth,
         `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
-        { method: 'PATCH', body: { displayName: name } }
+        { method: 'PATCH', body: { displayName: name } },
       );
-    } catch { /* silently skip if user lacks billing.accounts.update */ }
+    } catch {
+      /* silently skip if user lacks billing.accounts.update */
+    }
 
     await db.collection('billingAccounts').doc(normalizedId).set({
       name,
@@ -81,14 +93,17 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
     });
 
     return { success: true };
-  }
+  },
 );
 
 export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform admins can update billing accounts.');
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can update billing accounts.',
+      );
     }
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
@@ -98,7 +113,8 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
     const db = getFirestore();
     const docRef = db.collection('billingAccounts').doc(normalizedId);
     const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
+    if (!snap.exists)
+      throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates['name'] = name;
@@ -113,20 +129,25 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
         await apiFetch(
           auth,
           `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
-          { method: 'PATCH', body: { displayName: name } }
+          { method: 'PATCH', body: { displayName: name } },
         );
-      } catch { /* silently skip if user lacks billing.accounts.update */ }
+      } catch {
+        /* silently skip if user lacks billing.accounts.update */
+      }
     }
 
     return { success: true };
-  }
+  },
 );
 
 export const removeBillingAccount = onCall<{ id: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform admins can remove billing accounts.');
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can remove billing accounts.',
+      );
     }
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
@@ -135,7 +156,8 @@ export const removeBillingAccount = onCall<{ id: string }>(
     const db = getFirestore();
     const docRef = db.collection('billingAccounts').doc(normalizedId);
     const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
+    if (!snap.exists)
+      throw new HttpsError('not-found', `Billing account ${normalizedId} not found.`);
 
     const activeStores = await db
       .collection('stores')
@@ -146,11 +168,11 @@ export const removeBillingAccount = onCall<{ id: string }>(
     if (!activeStores.empty) {
       throw new HttpsError(
         'failed-precondition',
-        `Cannot remove: this billing account has ${activeStores.size} active store(s) assigned. Reassign or delete them first.`
+        `Cannot remove: this billing account has ${activeStores.size} active store(s) assigned. Reassign or delete them first.`,
       );
     }
 
     await docRef.delete();
     return { success: true };
-  }
+  },
 );
