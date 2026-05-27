@@ -6,6 +6,29 @@ import * as functions from 'firebase-functions/v1';
 import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
 
+const PROTECTED_SUPER_ADMINS = new Set([
+  'juan.l.espeche@gmail.com',
+  'vertex.tech.dev@gmail.com',
+]);
+
+const ensureProtectedSuperAdmins = async (db: FirebaseFirestore.Firestore): Promise<void> => {
+  for (const email of PROTECTED_SUPER_ADMINS) {
+    await db
+      .collection('platformAdmins')
+      .doc(email)
+      .set(
+        {
+          email,
+          role: 'superAdmin',
+          protected: true,
+          addedBy: 'system',
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+  }
+};
+
 export const manageAdmin = onCall<ManageAdminPayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -25,8 +48,18 @@ export const manageAdmin = onCall<ManageAdminPayload>(
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const isProtectedAdmin = PROTECTED_SUPER_ADMINS.has(normalizedEmail);
     const db = getFirestore();
     const auth = getAuth();
+
+    if (action === 'remove' && isProtectedAdmin) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Protected super admin accounts cannot be removed.',
+      );
+    }
+
+    const effectiveRole = isProtectedAdmin ? 'superAdmin' : targetRole;
 
     try {
       if (action === 'add') {
@@ -36,7 +69,8 @@ export const manageAdmin = onCall<ManageAdminPayload>(
           .doc(normalizedEmail)
           .set({
             email: normalizedEmail,
-            role: targetRole,
+            role: effectiveRole,
+            protected: isProtectedAdmin,
             addedAt: new Date(),
             addedBy: request.auth.token.email || 'system',
           });
@@ -48,7 +82,7 @@ export const manageAdmin = onCall<ManageAdminPayload>(
           await auth.setCustomUserClaims(user.uid, {
             ...currentClaims,
             platformAdmin: true,
-            superAdmin: targetRole === 'superAdmin',
+            superAdmin: effectiveRole === 'superAdmin',
           });
         } catch (err: any) {
           if (err.code !== 'auth/user-not-found') {
@@ -86,6 +120,8 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
 
   const db = getFirestore();
   const auth = getAuth();
+
+  await ensureProtectedSuperAdmins(db);
 
   // Read pre-authorized admins from Firestore collection
   const snapshot = await db.collection('platformAdmins').get();
@@ -135,6 +171,12 @@ export const onPlatformAdminRoleChange = onDocumentWritten(
     const email = event.params.email;
     const afterData = event.data?.after.data();
     const auth = getAuth();
+    const db = getFirestore();
+    const isProtectedAdmin = PROTECTED_SUPER_ADMINS.has(email);
+
+    if (!afterData && isProtectedAdmin) {
+      await ensureProtectedSuperAdmins(db);
+    }
 
     let user;
     try {
@@ -151,11 +193,27 @@ export const onPlatformAdminRoleChange = onDocumentWritten(
     const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
 
     if (!afterData) {
+      if (isProtectedAdmin) {
+        console.log(`Protected admin ${email} was restored; enforcing superAdmin claim.`);
+        await auth.setCustomUserClaims(user.uid, {
+          ...currentClaims,
+          platformAdmin: true,
+          superAdmin: true,
+        });
+        return;
+      }
+
       console.log(`Revoking platformAdmin and superAdmin claims for ${email} (UID: ${user.uid})`);
       const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims;
       await auth.setCustomUserClaims(user.uid, rest);
     } else {
-      const afterRole = afterData['role'] || 'platformAdmin';
+      const afterRole = isProtectedAdmin ? 'superAdmin' : (afterData['role'] || 'platformAdmin');
+      if (isProtectedAdmin && afterData['role'] !== 'superAdmin') {
+        await db
+          .collection('platformAdmins')
+          .doc(email)
+          .set({ role: 'superAdmin', protected: true, updatedAt: new Date() }, { merge: true });
+      }
       console.log(`Setting claims for ${email} with role: ${afterRole} (UID: ${user.uid})`);
       await auth.setCustomUserClaims(user.uid, {
         ...currentClaims,
@@ -177,13 +235,18 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
   const email = user.email.toLowerCase();
   const db = getFirestore();
   const auth = getAuth();
+  const isProtectedAdmin = PROTECTED_SUPER_ADMINS.has(email);
 
   try {
     const docRef = db.collection('platformAdmins').doc(email);
     const docSnap = await docRef.get();
 
-    if (docSnap.exists) {
-      const role = docSnap.data()?.['role'] || 'platformAdmin';
+    if (!docSnap.exists && isProtectedAdmin) {
+      await ensureProtectedSuperAdmins(db);
+    }
+
+    if (docSnap.exists || isProtectedAdmin) {
+      const role = isProtectedAdmin ? 'superAdmin' : (docSnap.data()?.['role'] || 'platformAdmin');
       console.log(
         `Auto-setting claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`,
       );

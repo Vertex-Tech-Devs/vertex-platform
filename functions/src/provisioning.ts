@@ -1146,10 +1146,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
-              ref:
-                PLATFORM_PROJECT === 'vertex-platform-dev'
-                  ? 'feature/google-oauth-rbac'
-                  : undefined,
+              ref: 'main',
             },
           }),
         },
