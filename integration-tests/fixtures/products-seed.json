@@ -1,0 +1,25 @@
+{
+  "products": [
+    {
+      "name": "Producto Semilla 1",
+      "price": 1000,
+      "categoryId": "cat-indumentaria",
+      "image": "https://via.placeholder.com/300?text=P1",
+      "totalStock": 20
+    },
+    {
+      "name": "Producto Semilla 2",
+      "price": 1500,
+      "categoryId": "cat-indumentaria",
+      "image": "https://via.placeholder.com/300?text=P2",
+      "totalStock": 18
+    },
+    {
+      "name": "Producto Semilla 3",
+      "price": 2200,
+      "categoryId": "cat-indumentaria",
+      "image": "https://via.placeholder.com/300?text=P3",
+      "totalStock": 14
+    }
+  ]
+}
