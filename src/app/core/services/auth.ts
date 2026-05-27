@@ -23,6 +23,7 @@ export class AuthService {
   readonly isLoading = computed(() => this.user() === undefined);
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     onAuthStateChanged(this.auth, async (u) => {
       if (u) {
         const token = await getIdTokenResult(u, true);

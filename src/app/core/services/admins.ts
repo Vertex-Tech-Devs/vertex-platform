@@ -31,7 +31,10 @@ export class AdminsService {
     }
   }
 
-  async addAdmin(email: string, role: 'superAdmin' | 'platformAdmin' = 'platformAdmin'): Promise<void> {
+  async addAdmin(
+    email: string,
+    role: 'superAdmin' | 'platformAdmin' = 'platformAdmin',
+  ): Promise<void> {
     const manageAdmin = httpsCallable(this.fns, 'manageAdmin');
     await manageAdmin({ email, action: 'add', role });
     await this.loadAdmins();

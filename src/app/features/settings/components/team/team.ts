@@ -28,7 +28,9 @@ export class Team implements OnInit {
 
   async addAdmin(): Promise<void> {
     const email = this.newEmail().trim();
-    if (!email) return;
+    if (!email) {
+      return;
+    }
     this.isAdding.set(true);
     this.addError.set('');
     try {

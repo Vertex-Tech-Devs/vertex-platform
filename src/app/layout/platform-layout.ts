@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth';
 
@@ -26,7 +33,9 @@ export class PlatformLayout {
   }
 
   closeSidebar(): void {
-    if (this.isSidebarOpen()) this.isSidebarOpen.set(false);
+    if (this.isSidebarOpen()) {
+      this.isSidebarOpen.set(false);
+    }
   }
 
   async logout(): Promise<void> {
@@ -35,6 +44,8 @@ export class PlatformLayout {
 
   @HostListener('window:resize')
   onResize(): void {
-    if (window.innerWidth > this.breakpointLg) this.isSidebarOpen.set(false);
+    if (window.innerWidth > this.breakpointLg) {
+      this.isSidebarOpen.set(false);
+    }
   }
 }

@@ -134,4 +134,3 @@ export interface InviteStaffPayload {
   email: string;
   role: 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
 }
-

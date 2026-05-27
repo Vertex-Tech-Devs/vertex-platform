@@ -12,7 +12,12 @@ import {
   listProvisioningOwnerCandidates,
 } from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
-import type { InviteStaffPayload, StoreRuntimeMode, StoreShard, UpdateStoreConfigPayload } from './types';
+import type {
+  InviteStaffPayload,
+  StoreRuntimeMode,
+  StoreShard,
+  UpdateStoreConfigPayload,
+} from './types';
 
 function resolveRuntimeProjectId(store: {
   runtimeProjectId?: string;
@@ -104,7 +109,7 @@ async function deleteHostingSite(
 
   if (siteId === projectId || siteId === 'default') {
     console.log(
-      `[deleteStore] Site ${siteId} is the default site for project ${projectId}. Skipping site resource deletion call to avoid Firebase error. Custom domains have been successfully cleaned up.`
+      `[deleteStore] Site ${siteId} is the default site for project ${projectId}. Skipping site resource deletion call to avoid Firebase error. Custom domains have been successfully cleaned up.`,
     );
     return;
   }
@@ -156,7 +161,9 @@ async function deployHostingTombstone(
   const createVersionData = (await createVersionRes.json()) as { name?: string };
   const versionName = (createVersionData.name || '').trim();
   if (!versionName) {
-    throw new Error(`[runtimeCleanup] Missing version name when creating tombstone for ${projectId}/${siteId}.`);
+    throw new Error(
+      `[runtimeCleanup] Missing version name when creating tombstone for ${projectId}/${siteId}.`,
+    );
   }
 
   const populateRes = await fetch(
@@ -215,7 +222,9 @@ async function deleteProjectAndWait(
 
     if (operation.done) {
       if (operation.error?.message) {
-        throw new Error(`[deleteStore] Project deletion failed for ${projectId}: ${operation.error.message}`);
+        throw new Error(
+          `[deleteStore] Project deletion failed for ${projectId}: ${operation.error.message}`,
+        );
       }
       return;
     }
@@ -238,11 +247,7 @@ function isProjectAlreadyDeletedOrInactiveError(err: unknown): boolean {
 
 function isHostingAlreadyGoneOrInactiveError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return (
-    msg.includes('not found') ||
-    msg.includes('404') ||
-    msg.includes('site not found')
-  );
+  return msg.includes('not found') || msg.includes('404') || msg.includes('site not found');
 }
 
 function getCandidateSiteIds(runtimeSiteId: string, projectId: string): string[] {
@@ -251,7 +256,6 @@ function getCandidateSiteIds(runtimeSiteId: string, projectId: string): string[]
     .filter((value) => value.length > 0);
   return Array.from(new Set(candidates));
 }
-
 
 async function withAnyProvisioningOwner<T>(
   db: ReturnType<typeof getFirestore>,
@@ -303,7 +307,10 @@ export const getRuntimeCapacitySummary = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform admins can inspect runtime capacity.');
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can inspect runtime capacity.',
+      );
     }
 
     const db = getFirestore();
@@ -319,7 +326,10 @@ export const getRuntimeCapacitySummary = onCall(
   },
 );
 
-async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>, projectId: string): Promise<void> {
+async function ensureEmailPasswordSignInEnabled(
+  auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
+  projectId: string,
+): Promise<void> {
   const initIdentityPlatform = async (): Promise<void> => {
     try {
       await apiFetch(
@@ -329,11 +339,15 @@ async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof 
           method: 'POST',
           body: {},
           quotaProject: projectId,
-        }
+        },
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+      if (
+        !msg.includes('ALREADY_EXISTS') &&
+        !msg.includes('already exists') &&
+        !msg.includes('409')
+      ) {
         throw err;
       }
     }
@@ -351,7 +365,7 @@ async function ensureEmailPasswordSignInEnabled(auth: Awaited<ReturnType<typeof 
           },
         },
         quotaProject: projectId,
-      }
+      },
     );
   };
 
@@ -366,7 +380,7 @@ function maskToken(token: string): string {
 
 async function validateMercadoPagoCredentials(
   accessToken: string,
-  webhookUrl?: string
+  webhookUrl?: string,
 ): Promise<{ message: string; accountEmail?: string; userId?: string }> {
   const token = accessToken.trim();
   if (!token) {
@@ -375,7 +389,10 @@ async function validateMercadoPagoCredentials(
 
   const webhook = (webhookUrl || '').trim();
   if (webhook && !/^https:\/\//i.test(webhook)) {
-    throw new HttpsError('invalid-argument', 'El webhook de Mercado Pago debe comenzar con https://');
+    throw new HttpsError(
+      'invalid-argument',
+      'El webhook de Mercado Pago debe comenzar con https://',
+    );
   }
 
   try {
@@ -400,7 +417,10 @@ async function validateMercadoPagoCredentials(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new HttpsError('invalid-argument', `No se pudieron validar las credenciales de Mercado Pago. ${msg}`);
+    throw new HttpsError(
+      'invalid-argument',
+      `No se pudieron validar las credenciales de Mercado Pago. ${msg}`,
+    );
   }
 }
 
@@ -408,7 +428,7 @@ async function upsertSecretInProject(
   auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
   projectId: string,
   secretId: string,
-  secretValue: string
+  secretValue: string,
 ): Promise<void> {
   const tokenRes = await auth.getAccessToken();
   const headers = {
@@ -422,12 +442,15 @@ async function upsertSecretInProject(
       method: 'POST',
       headers,
       body: JSON.stringify({ replication: { automatic: {} } }),
-    }
+    },
   );
 
   if (!createRes.ok && createRes.status !== 409) {
     const text = await createRes.text();
-    throw new HttpsError('internal', `No se pudo crear el secreto de Mercado Pago: ${createRes.status} ${text}`);
+    throw new HttpsError(
+      'internal',
+      `No se pudo crear el secreto de Mercado Pago: ${createRes.status} ${text}`,
+    );
   }
 
   const addVersionRes = await fetch(
@@ -435,13 +458,18 @@ async function upsertSecretInProject(
     {
       method: 'POST',
       headers,
-      body: JSON.stringify({ payload: { data: Buffer.from(secretValue, 'utf8').toString('base64') } }),
-    }
+      body: JSON.stringify({
+        payload: { data: Buffer.from(secretValue, 'utf8').toString('base64') },
+      }),
+    },
   );
 
   if (!addVersionRes.ok) {
     const text = await addVersionRes.text();
-    throw new HttpsError('internal', `No se pudo guardar versión del secreto de Mercado Pago: ${addVersionRes.status} ${text}`);
+    throw new HttpsError(
+      'internal',
+      `No se pudo guardar versión del secreto de Mercado Pago: ${addVersionRes.status} ${text}`,
+    );
   }
 }
 
@@ -497,7 +525,7 @@ export const redeployStore = onCall<{ storeId: string }>(
             ref: ref,
           },
         }),
-      }
+      },
     );
 
     if (!res.ok && res.status !== 204) {
@@ -512,7 +540,7 @@ export const redeployStore = onCall<{ storeId: string }>(
     });
 
     return { success: true };
-  }
+  },
 );
 
 export const deleteStore = onCall<{ storeId: string }>(
@@ -584,7 +612,10 @@ export const deleteStore = onCall<{ storeId: string }>(
           }
         });
       } catch (err) {
-        console.error(`[deleteStore] Failed to decrement activeStores on shard ${store.shardId}:`, err);
+        console.error(
+          `[deleteStore] Failed to decrement activeStores on shard ${store.shardId}:`,
+          err,
+        );
       }
     }
 
@@ -592,7 +623,7 @@ export const deleteStore = onCall<{ storeId: string }>(
     await db.collection('stores').doc(storeId).delete();
 
     return { success: true };
-  }
+  },
 );
 
 export const processRuntimeCleanupTask = onDocumentCreated(
@@ -652,10 +683,8 @@ export const processRuntimeCleanupTask = onDocumentCreated(
           let lastHostingError: unknown = null;
           for (const candidateSiteId of candidateSiteIds) {
             try {
-              await withAnyProvisioningOwner(
-                db,
-                task.preferredOwnerId ?? undefined,
-                async (auth) => deleteHostingSite(auth, projectId, candidateSiteId),
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deleteHostingSite(auth, projectId, candidateSiteId),
               );
               hostingDeleted = true;
               break;
@@ -673,7 +702,9 @@ export const processRuntimeCleanupTask = onDocumentCreated(
               throw lastHostingError;
             }
             if (!hostingCandidateGone) {
-              throw new Error(`[runtimeCleanup] No Hosting site candidate could be validated for ${projectId}.`);
+              throw new Error(
+                `[runtimeCleanup] No Hosting site candidate could be validated for ${projectId}.`,
+              );
             }
           }
 
@@ -682,26 +713,25 @@ export const processRuntimeCleanupTask = onDocumentCreated(
           // the canal is already safely tombstoned publicly.
           for (const candidateSiteId of candidateSiteIds) {
             try {
-              await withAnyProvisioningOwner(
-                db,
-                task.preferredOwnerId ?? undefined,
-                async (auth) => deployHostingTombstone(auth, projectId, candidateSiteId),
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deployHostingTombstone(auth, projectId, candidateSiteId),
               );
               break;
             } catch (err) {
               if (isHostingAlreadyGoneOrInactiveError(err)) {
                 continue;
               }
-              console.warn(`[runtimeCleanup] Tombstone deploy failed for candidate ${candidateSiteId}:`, err);
+              console.warn(
+                `[runtimeCleanup] Tombstone deploy failed for candidate ${candidateSiteId}:`,
+                err,
+              );
             }
           }
 
           // 3. Attempt physical project deletion
           try {
-            await withAnyProvisioningOwner(
-              db,
-              task.preferredOwnerId ?? undefined,
-              async (auth) => deleteProjectAndWait(auth, projectId),
+            await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+              deleteProjectAndWait(auth, projectId),
             );
           } catch (err) {
             if (!isProjectAlreadyDeletedOrInactiveError(err)) {
@@ -718,17 +748,18 @@ export const processRuntimeCleanupTask = onDocumentCreated(
           // 1. Deploy tombstone first so the store goes dark instantly
           for (const candidateSiteId of candidateSiteIds) {
             try {
-              await withAnyProvisioningOwner(
-                db,
-                task.preferredOwnerId ?? undefined,
-                async (auth) => deployHostingTombstone(auth, projectId, candidateSiteId),
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deployHostingTombstone(auth, projectId, candidateSiteId),
               );
               break;
             } catch (err) {
               if (isHostingAlreadyGoneOrInactiveError(err)) {
                 continue;
               }
-              console.warn(`[runtimeCleanup] Tombstone deploy failed for shared-shard candidate ${candidateSiteId}:`, err);
+              console.warn(
+                `[runtimeCleanup] Tombstone deploy failed for shared-shard candidate ${candidateSiteId}:`,
+                err,
+              );
             }
           }
 
@@ -738,10 +769,8 @@ export const processRuntimeCleanupTask = onDocumentCreated(
           let lastHostingError: unknown = null;
           for (const candidateSiteId of candidateSiteIds) {
             try {
-              await withAnyProvisioningOwner(
-                db,
-                task.preferredOwnerId ?? undefined,
-                async (auth) => deleteHostingSite(auth, projectId, candidateSiteId),
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deleteHostingSite(auth, projectId, candidateSiteId),
               );
               hostingDeleted = true;
               break;
@@ -818,7 +847,7 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ domainName: domain }),
-      }
+      },
     );
 
     if (!res.ok) {
@@ -850,7 +879,7 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       requiredAction: record.requiredAction || 'ADD',
     }));
     return { success: true, dnsRecords };
-  }
+  },
 );
 
 export const getActiveStores = onCall(
@@ -898,11 +927,11 @@ export const getActiveStores = onCall(
           storeName: store.name,
           firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,
         };
-      })
+      }),
     );
 
     return { stores: stores.filter((s) => s.firebaseConfig !== null) };
-  }
+  },
 );
 
 export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
@@ -918,7 +947,9 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     }
 
     const configToSave = JSON.parse(JSON.stringify(config)) as Record<string, any>;
-    const mercadoPago = configToSave['payments']?.['mercadoPago'] as Record<string, any> | undefined;
+    const mercadoPago = configToSave['payments']?.['mercadoPago'] as
+      | Record<string, any>
+      | undefined;
     if (mercadoPago) {
       mercadoPago['publicKey'] = String(mercadoPago['publicKey'] || '').trim();
       mercadoPago['accessToken'] = String(mercadoPago['accessToken'] || '').trim();
@@ -935,7 +966,10 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
 
     if (mercadoPago) {
       if (mercadoPago['accessToken']) {
-        const validation = await validateMercadoPagoCredentials(mercadoPago['accessToken'], mercadoPago['webhookUrl']);
+        const validation = await validateMercadoPagoCredentials(
+          mercadoPago['accessToken'],
+          mercadoPago['webhookUrl'],
+        );
         await upsertSecretInProject(auth, projectId, 'mp-access-token', mercadoPago['accessToken']);
 
         mercadoPago['accessTokenSecret'] = 'mp-access-token';
@@ -947,7 +981,8 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
         mercadoPago['validatedAt'] = new Date().toISOString();
       } else if (mercadoPago['accessTokenSecret']) {
         mercadoPago['validationStatus'] = mercadoPago['validationStatus'] || 'valid';
-        mercadoPago['validationMessage'] = mercadoPago['validationMessage'] || 'Token almacenado en Secret Manager.';
+        mercadoPago['validationMessage'] =
+          mercadoPago['validationMessage'] || 'Token almacenado en Secret Manager.';
       } else {
         mercadoPago['validationStatus'] = 'pending';
         mercadoPago['validationMessage'] = 'Sin token configurado.';
@@ -960,11 +995,11 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
 
     let existingFields: Record<string, any> = {};
     try {
-      const existingDoc = await apiFetch(
+      const existingDoc = (await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
-        { quotaProject: projectId }
-      ) as { fields?: Record<string, any> };
+        { quotaProject: projectId },
+      )) as { fields?: Record<string, any> };
       existingFields = existingDoc.fields || {};
     } catch (err) {
       console.warn(`storeConfig did not exist for ${projectId}, creating new.`, err);
@@ -974,17 +1009,18 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     const mergedFields = { ...existingFields, ...incomingFields };
 
     await retry(
-      () => apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
-        {
-          method: 'PATCH',
-          body: { fields: mergedFields },
-          quotaProject: projectId
-        }
-      ),
+      () =>
+        apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+          {
+            method: 'PATCH',
+            body: { fields: mergedFields },
+            quotaProject: projectId,
+          },
+        ),
       5,
-      6000
+      6000,
     );
 
     const centralUpdates: Record<string, any> = { updatedAt: new Date() };
@@ -993,7 +1029,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     await db.collection('stores').doc(storeId).update(centralUpdates);
 
     return { success: true };
-  }
+  },
 );
 
 export const getStoreConfig = onCall<{ storeId: string }>(
@@ -1017,11 +1053,11 @@ export const getStoreConfig = onCall<{ storeId: string }>(
     const auth = await getOwnerOAuthClient();
 
     try {
-      const existingDoc = await apiFetch(
+      const existingDoc = (await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
-        { quotaProject: projectId }
-      ) as { fields?: Record<string, any> };
+        { quotaProject: projectId },
+      )) as { fields?: Record<string, any> };
 
       const parseValue = (val: any): any => {
         if (!val) return null;
@@ -1056,9 +1092,8 @@ export const getStoreConfig = onCall<{ storeId: string }>(
       console.warn(`storeConfig did not exist for ${projectId}`, err);
       return { config: null };
     }
-  }
+  },
 );
-
 
 export const inviteStaff = onCall<InviteStaffPayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -1104,7 +1139,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       console.error('[inviteStaff] Failed to load GCP owner credentials.', err);
       throw new HttpsError(
         'failed-precondition',
-        'No se pudo enviar la invitación real porque faltan credenciales de aprovisionamiento.'
+        'No se pudo enviar la invitación real porque faltan credenciales de aprovisionamiento.',
       );
     }
 
@@ -1112,32 +1147,38 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     let uid: string;
     try {
-      const createRes = await apiFetch(
+      const createRes = (await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
         {
           method: 'POST',
           body: { email: normalizedEmail, emailVerified: false },
           quotaProject: projectId,
-        }
-      ) as { localId: string };
+        },
+      )) as { localId: string };
       uid = createRes.localId;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('EMAIL_EXISTS')) {
         console.error(`[inviteStaff] Failed to create auth user in ${projectId}:`, err);
-        throw new HttpsError('internal', 'No se pudo crear el usuario en Firebase Auth del subproyecto.');
+        throw new HttpsError(
+          'internal',
+          'No se pudo crear el usuario en Firebase Auth del subproyecto.',
+        );
       }
 
       const lookup = (await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-        { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId }
+        { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId },
       )) as { users?: Array<{ localId: string }> };
 
       const existing = lookup.users?.[0]?.localId;
       if (!existing) {
-        throw new HttpsError('internal', 'No se encontró el usuario existente para completar la invitación.');
+        throw new HttpsError(
+          'internal',
+          'No se encontró el usuario existente para completar la invitación.',
+        );
       }
       uid = existing;
     }
@@ -1153,7 +1194,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
             customAttributes: JSON.stringify({ role: normalizedRole, storeId }),
           },
           quotaProject: projectId,
-        }
+        },
       );
 
       const { toFirestoreFields } = require('./seeds');
@@ -1171,7 +1212,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           method: 'PATCH',
           body: toFirestoreFields(userDoc),
           quotaProject: projectId,
-        }
+        },
       );
     } catch (err) {
       console.error(`[inviteStaff] Failed to sync claims/profile in ${projectId}:`, err);
@@ -1187,24 +1228,34 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           method: 'POST',
           body: { requestType: 'PASSWORD_RESET', email: normalizedEmail },
           quotaProject: projectId,
-        }
+        },
       );
 
-      await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).update({
-        inviteEmailSentAt: new Date(),
-        updatedAt: new Date(),
-      });
+      await db
+        .collection('stores')
+        .doc(storeId)
+        .collection('invitations')
+        .doc(invitationId)
+        .update({
+          inviteEmailSentAt: new Date(),
+          updatedAt: new Date(),
+        });
     } catch (err) {
       inviteEmailSent = false;
       console.error('[inviteStaff] Failed to dispatch invitation email.', err);
-      await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).update({
-        inviteEmailErrorAt: new Date(),
-        updatedAt: new Date(),
-      });
+      await db
+        .collection('stores')
+        .doc(storeId)
+        .collection('invitations')
+        .doc(invitationId)
+        .update({
+          inviteEmailErrorAt: new Date(),
+          updatedAt: new Date(),
+        });
     }
 
     return { success: true, token, inviteEmailSent };
-  }
+  },
 );
 
 export const getStoreStaff = onCall<{ storeId: string }>(
@@ -1226,14 +1277,20 @@ export const getStoreStaff = onCall<{ storeId: string }>(
     const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
     const projectId = resolveRuntimeProjectId(store);
 
-    let users: Array<{ uid: string; email: string; role: string; displayName?: string; joinedAt?: string }> = [];
+    let users: Array<{
+      uid: string;
+      email: string;
+      role: string;
+      displayName?: string;
+      joinedAt?: string;
+    }> = [];
     try {
       const auth = await getOwnerOAuthClient();
-      const usersRes = await apiFetch(
+      const usersRes = (await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`,
-        { quotaProject: projectId }
-      ) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
+        { quotaProject: projectId },
+      )) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
 
       if (usersRes.documents) {
         users = usersRes.documents.map((doc) => {
@@ -1251,12 +1308,19 @@ export const getStoreStaff = onCall<{ storeId: string }>(
         });
       }
     } catch (err) {
-      console.warn(`[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`, err);
+      console.warn(
+        `[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`,
+        err,
+      );
     }
 
     let invitations: any[] = [];
     try {
-      const invitationsSnap = await db.collection('stores').doc(storeId).collection('invitations').get();
+      const invitationsSnap = await db
+        .collection('stores')
+        .doc(storeId)
+        .collection('invitations')
+        .get();
       invitations = invitationsSnap.docs.map((d) => {
         const data = d.data();
         return {
@@ -1272,7 +1336,7 @@ export const getStoreStaff = onCall<{ storeId: string }>(
     }
 
     return { users, staff: users, invitations };
-  }
+  },
 );
 
 export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>(
@@ -1309,7 +1373,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
           Authorization: `Bearer ${tokenRes.token}`,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
 
     if (!res.ok) {
@@ -1340,7 +1404,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     }));
 
     return { success: true, status: normalizedStatus, rawStatus, dnsRecords };
-  }
+  },
 );
 
 export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
@@ -1367,7 +1431,9 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
     };
     const projectId = resolveRuntimeProjectId(store);
     const fallbackProjectId =
-      store.firebaseProjectId && store.firebaseProjectId !== projectId ? store.firebaseProjectId : null;
+      store.firebaseProjectId && store.firebaseProjectId !== projectId
+        ? store.firebaseProjectId
+        : null;
     const verticalId = store.verticalId || 'retail';
 
     const auth = await getOwnerOAuthClient();
@@ -1386,7 +1452,13 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
 
       if (shouldRetryWithFallback) {
         try {
-          await seedStoreData(auth, fallbackProjectId, verticalId, store.name, includeMockData !== false);
+          await seedStoreData(
+            auth,
+            fallbackProjectId,
+            verticalId,
+            store.name,
+            includeMockData !== false,
+          );
           await db.collection('stores').doc(storeId).update({
             runtimeProjectId: fallbackProjectId,
             updatedAt: new Date(),
@@ -1404,7 +1476,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       const msg = err instanceof Error ? err.message : String(err);
       throw new HttpsError('internal', `Failed to seed store data: ${msg}`);
     }
-  }
+  },
 );
 
 export const generatePasswordResetLink = onCall<{ storeId: string; email: string }>(
@@ -1435,7 +1507,7 @@ export const generatePasswordResetLink = onCall<{ storeId: string; email: string
           method: 'POST',
           body: { requestType: 'PASSWORD_RESET', email, returnOobLink: true },
           quotaProject: projectId,
-        }
+        },
       )) as { oobCode?: string; oobLink?: string };
 
       const actionLink =
@@ -1453,6 +1525,5 @@ export const generatePasswordResetLink = onCall<{ storeId: string; email: string
       const msg = err instanceof Error ? err.message : String(err);
       throw new HttpsError('internal', `Failed to generate link: ${msg}`);
     }
-  }
+  },
 );
-

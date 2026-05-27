@@ -31,12 +31,15 @@ export const manageAdmin = onCall<ManageAdminPayload>(
     try {
       if (action === 'add') {
         // Pre-authorize email in Firestore platformAdmins collection with role
-        await db.collection('platformAdmins').doc(normalizedEmail).set({
-          email: normalizedEmail,
-          role: targetRole,
-          addedAt: new Date(),
-          addedBy: request.auth.token.email || 'system',
-        });
+        await db
+          .collection('platformAdmins')
+          .doc(normalizedEmail)
+          .set({
+            email: normalizedEmail,
+            role: targetRole,
+            addedAt: new Date(),
+            addedBy: request.auth.token.email || 'system',
+          });
 
         // Sync custom claim immediately if user is already signed up
         try {
@@ -73,7 +76,7 @@ export const manageAdmin = onCall<ManageAdminPayload>(
       console.error('manageAdmin error:', err);
       throw new HttpsError('internal', 'An unexpected error occurred.');
     }
-  }
+  },
 );
 
 export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
@@ -87,7 +90,7 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
   // Read pre-authorized admins from Firestore collection
   const snapshot = await db.collection('platformAdmins').get();
   const adminMap = new Map(
-    snapshot.docs.map((doc) => [doc.id, doc.data()?.['role'] || 'platformAdmin'])
+    snapshot.docs.map((doc) => [doc.id, doc.data()?.['role'] || 'platformAdmin']),
   );
 
   const admins: AdminInfo[] = [];
@@ -126,39 +129,42 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
  * Triggered reactively when a document is written in the 'platformAdmins' collection.
  * Concedes or revokes custom claims on the user's Auth record.
  */
-export const onPlatformAdminRoleChange = onDocumentWritten('platformAdmins/{email}', async (event) => {
-  const email = event.params.email;
-  const afterData = event.data?.after.data();
-  const auth = getAuth();
+export const onPlatformAdminRoleChange = onDocumentWritten(
+  'platformAdmins/{email}',
+  async (event) => {
+    const email = event.params.email;
+    const afterData = event.data?.after.data();
+    const auth = getAuth();
 
-  let user;
-  try {
-    user = await auth.getUserByEmail(email);
-  } catch (err: any) {
-    if (err.code === 'auth/user-not-found') {
-      console.log(`User ${email} not found in Auth. Claims will be synced when they log in.`);
-    } else {
-      console.error(`Error fetching user ${email}:`, err);
+    let user;
+    try {
+      user = await auth.getUserByEmail(email);
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        console.log(`User ${email} not found in Auth. Claims will be synced when they log in.`);
+      } else {
+        console.error(`Error fetching user ${email}:`, err);
+      }
+      return;
     }
-    return;
-  }
 
-  const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
+    const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
 
-  if (!afterData) {
-    console.log(`Revoking platformAdmin and superAdmin claims for ${email} (UID: ${user.uid})`);
-    const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims;
-    await auth.setCustomUserClaims(user.uid, rest);
-  } else {
-    const afterRole = afterData['role'] || 'platformAdmin';
-    console.log(`Setting claims for ${email} with role: ${afterRole} (UID: ${user.uid})`);
-    await auth.setCustomUserClaims(user.uid, {
-      ...currentClaims,
-      platformAdmin: true,
-      superAdmin: afterRole === 'superAdmin',
-    });
-  }
-});
+    if (!afterData) {
+      console.log(`Revoking platformAdmin and superAdmin claims for ${email} (UID: ${user.uid})`);
+      const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims;
+      await auth.setCustomUserClaims(user.uid, rest);
+    } else {
+      const afterRole = afterData['role'] || 'platformAdmin';
+      console.log(`Setting claims for ${email} with role: ${afterRole} (UID: ${user.uid})`);
+      await auth.setCustomUserClaims(user.uid, {
+        ...currentClaims,
+        platformAdmin: true,
+        superAdmin: afterRole === 'superAdmin',
+      });
+    }
+  },
+);
 
 /**
  * Triggered when a new user registers in Firebase Auth on the platform.
@@ -178,7 +184,9 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
 
     if (docSnap.exists) {
       const role = docSnap.data()?.['role'] || 'platformAdmin';
-      console.log(`Auto-setting claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`);
+      console.log(
+        `Auto-setting claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`,
+      );
       const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
       await auth.setCustomUserClaims(user.uid, {
         ...currentClaims,

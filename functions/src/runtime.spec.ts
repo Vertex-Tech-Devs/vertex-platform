@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getAvailableShardSlots, resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
+import {
+  getAvailableShardSlots,
+  resolvePlatformEnvironment,
+  summarizeShardCapacity,
+} from './runtime';
 import type { StoreShard } from './types';
 
 function makeShard(overrides: Partial<StoreShard> = {}): StoreShard {
@@ -39,7 +43,9 @@ describe('getAvailableShardSlots', () => {
   });
 
   it('never returns a negative number', () => {
-    expect(getAvailableShardSlots(makeShard({ maxStores: 10, activeStores: 9, reservedStores: 5 }))).toBe(0);
+    expect(
+      getAvailableShardSlots(makeShard({ maxStores: 10, activeStores: 9, reservedStores: 5 })),
+    ).toBe(0);
   });
 });
 
@@ -47,7 +53,13 @@ describe('summarizeShardCapacity', () => {
   it('recommends shared-shard when active capacity exists', () => {
     const summary = summarizeShardCapacity([
       makeShard({ id: 'shared-a', activeStores: 40, reservedStores: 10, maxStores: 100 }),
-      makeShard({ id: 'shared-b', activeStores: 92, reservedStores: 8, maxStores: 100, status: 'draining' }),
+      makeShard({
+        id: 'shared-b',
+        activeStores: 92,
+        reservedStores: 8,
+        maxStores: 100,
+        status: 'draining',
+      }),
     ]);
 
     expect(summary.activeSharedShardCount).toBe(1);
@@ -59,7 +71,13 @@ describe('summarizeShardCapacity', () => {
   it('recommends dedicated-project when no active shard has available capacity', () => {
     const summary = summarizeShardCapacity([
       makeShard({ id: 'shared-a', activeStores: 90, reservedStores: 10, maxStores: 100 }),
-      makeShard({ id: 'shared-b', activeStores: 80, reservedStores: 20, maxStores: 100, status: 'maintenance' }),
+      makeShard({
+        id: 'shared-b',
+        activeStores: 80,
+        reservedStores: 20,
+        maxStores: 100,
+        status: 'maintenance',
+      }),
     ]);
 
     expect(summary.availableSharedSlots).toBe(0);

@@ -64,7 +64,9 @@ export function summarizeShardCapacity(
       return left.id.localeCompare(right.id);
     });
 
-  const activeSharedShardCount = normalizedShards.filter((shard) => shard.status === 'active').length;
+  const activeSharedShardCount = normalizedShards.filter(
+    (shard) => shard.status === 'active',
+  ).length;
   const availableSharedSlots = normalizedShards
     .filter((shard) => shard.status === 'active')
     .reduce((sum, shard) => sum + shard.availableStores, 0);

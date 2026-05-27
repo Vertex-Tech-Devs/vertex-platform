@@ -11,7 +11,8 @@
   <div class="add-card">
     <h2 class="add-card__title">Agregar administrador</h2>
     <p class="add-card__hint">
-      Ingresá el correo electrónico para pre-autorizarlo. Se le asignarán los permisos automáticamente cuando inicie sesión por primera vez.
+      Ingresá el correo electrónico para pre-autorizarlo. Se le asignarán los permisos
+      automáticamente cuando inicie sesión por primera vez.
     </p>
     <div class="add-form">
       <input
@@ -24,14 +25,18 @@
       />
       <select
         class="form-control"
-        style="max-width: 180px; margin: 0 0.5rem;"
+        style="max-width: 180px; margin: 0 0.5rem"
         [value]="newRole()"
         (change)="newRole.set($any($event.target).value)"
       >
         <option value="platformAdmin">Platform Admin</option>
         <option value="superAdmin">Super Admin</option>
       </select>
-      <button class="btn btn-primary" (click)="addAdmin()" [disabled]="isAdding() || !newEmail().trim()">
+      <button
+        class="btn btn-primary"
+        (click)="addAdmin()"
+        [disabled]="isAdding() || !newEmail().trim()"
+      >
         {{ isAdding() ? 'Agregando…' : 'Agregar' }}
       </button>
     </div>

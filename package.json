@@ -13,13 +13,16 @@
     "test": "ng test",
     "lint": "ng lint",
     "typecheck": "tsc --noEmit",
+    "qa": "tsx scripts/qa.ts",
+    "qa:full": "tsx scripts/qa.ts --full",
     "e2e": "cypress open",
     "e2e:ci": "start-server-and-test start http-get://127.0.0.1:4200 'cypress run'",
     "add-admin": "tsx scripts/add-admin.ts",
     "remove-admin": "tsx scripts/add-admin.ts --remove",
     "setup-provisioning": "tsx scripts/setup-provisioning.ts",
     "seed:stores": "tsx scripts/seed-existing-stores.ts",
-    "register-shard": "tsx scripts/register-shard.ts"
+    "register-shard": "tsx scripts/register-shard.ts",
+    "prepare": "husky"
   },
   "private": true,
   "packageManager": "npm@10.9.4",
@@ -54,6 +57,66 @@
     "start-server-and-test": "^2.1.2",
     "tsx": "^4.21.0",
     "typescript": "~5.9.2",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.8",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "functions/src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "cypress/**/*.ts": [
+      "prettier --write"
+    ],
+    "*.html": [
+      "prettier --write"
+    ],
+    "*.scss": [
+      "prettier --write"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ],
+      "type-case": [
+        2,
+        "always",
+        "lowercase"
+      ],
+      "type-empty": [
+        2,
+        "never"
+      ],
+      "scope-case": [
+        2,
+        "always",
+        "lowercase"
+      ]
+    }
   }
 }

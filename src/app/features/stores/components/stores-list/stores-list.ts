@@ -22,7 +22,12 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
       <div class="page-top">
         <div>
           <h1 class="page-title">Tiendas</h1>
-          <p class="page-sub">{{ stores.stores().length }} tienda{{ stores.stores().length !== 1 ? 's' : '' }} registrada{{ stores.stores().length !== 1 ? 's' : '' }}</p>
+          <p class="page-sub">
+            {{ stores.stores().length }} tienda{{
+              stores.stores().length !== 1 ? 's' : ''
+            }}
+            registrada{{ stores.stores().length !== 1 ? 's' : '' }}
+          </p>
         </div>
         <a routerLink="/stores/new" class="btn-primary">
           <i class="bi bi-plus-lg"></i> Nueva tienda

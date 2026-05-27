@@ -7,7 +7,10 @@ vi.mock('firebase-admin/firestore', () => ({
 vi.mock('firebase-functions/v2/https', () => ({
   onCall: vi.fn((_opts: unknown, handler: unknown) => handler),
   HttpsError: class HttpsError extends Error {
-    constructor(public code: string, message: string) {
+    constructor(
+      public code: string,
+      message: string,
+    ) {
       super(message);
     }
   },
@@ -71,10 +74,10 @@ function makeDb(slugExists = false, mockShards: any[] = []) {
           limit: vi.fn().mockReturnThis(),
           get: vi.fn().mockResolvedValue({
             empty: mockShards.length === 0,
-            docs: mockShards.map(s => ({
+            docs: mockShards.map((s) => ({
               id: s.id,
-              data: () => s
-            }))
+              data: () => s,
+            })),
           }),
           doc: vi.fn(() => docMock),
         };
@@ -106,34 +109,34 @@ describe('provisionStore handler', () => {
 
   it('rejects missing required fields', async () => {
     vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
-    await expect(
-      handler(makeRequest({ ...VALID_PAYLOAD, name: '' }))
-    ).rejects.toThrow(HttpsError);
+    await expect(handler(makeRequest({ ...VALID_PAYLOAD, name: '' }))).rejects.toThrow(HttpsError);
   });
 
   it('rejects invalid slug — too short', async () => {
     vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
-    await expect(
-      handler(makeRequest({ ...VALID_PAYLOAD, slug: 'ab' }))
-    ).rejects.toThrow(HttpsError);
+    await expect(handler(makeRequest({ ...VALID_PAYLOAD, slug: 'ab' }))).rejects.toThrow(
+      HttpsError,
+    );
   });
 
   it('rejects invalid slug — uppercase', async () => {
     vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
-    await expect(
-      handler(makeRequest({ ...VALID_PAYLOAD, slug: 'MyStore' }))
-    ).rejects.toThrow(HttpsError);
+    await expect(handler(makeRequest({ ...VALID_PAYLOAD, slug: 'MyStore' }))).rejects.toThrow(
+      HttpsError,
+    );
   });
 
   it('rejects invalid slug — starts with hyphen', async () => {
     vi.mocked(getFirestore).mockReturnValue(makeDb() as unknown as ReturnType<typeof getFirestore>);
-    await expect(
-      handler(makeRequest({ ...VALID_PAYLOAD, slug: '-mystore' }))
-    ).rejects.toThrow(HttpsError);
+    await expect(handler(makeRequest({ ...VALID_PAYLOAD, slug: '-mystore' }))).rejects.toThrow(
+      HttpsError,
+    );
   });
 
   it('rejects duplicate slug', async () => {
-    vi.mocked(getFirestore).mockReturnValue(makeDb(true) as unknown as ReturnType<typeof getFirestore>);
+    vi.mocked(getFirestore).mockReturnValue(
+      makeDb(true) as unknown as ReturnType<typeof getFirestore>,
+    );
     await expect(handler(makeRequest(VALID_PAYLOAD))).rejects.toThrow(HttpsError);
   });
 
@@ -171,13 +174,15 @@ describe('provisionStore handler', () => {
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
         };
-      })
+      }),
     };
     vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
-    
-    const result = (await handler(makeRequest({ ...VALID_PAYLOAD, dedicatedProject: true }))) as { projectId: string };
+
+    const result = (await handler(makeRequest({ ...VALID_PAYLOAD, dedicatedProject: true }))) as {
+      projectId: string;
+    };
     expect(result.projectId).toBe('vtx-my-store');
-    
+
     expect(docMock.set).toHaveBeenCalled();
     const savedData = docMock.set.mock.calls[0][0] as any;
     expect(savedData.runtimeMode).toBe('dedicated-project');
@@ -200,7 +205,7 @@ describe('provisionStore handler', () => {
         maxStores: 100,
         activeStores: 10,
         reservedStores: 2,
-      }
+      },
     ];
     const dbMock = {
       collection: vi.fn((colName) => {
@@ -218,10 +223,10 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({
               empty: false,
-              docs: mockShards.map(s => ({
+              docs: mockShards.map((s) => ({
                 id: s.id,
-                data: () => s
-              }))
+                data: () => s,
+              })),
             }),
             doc: vi.fn(() => docMock),
           };
@@ -232,13 +237,13 @@ describe('provisionStore handler', () => {
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
         };
-      })
+      }),
     };
     vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
-    
+
     const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
     expect(result.projectId).toBe('vtx-shard-project-1');
-    
+
     expect(docMock.set).toHaveBeenCalled();
     const savedData = docMock.set.mock.calls[0][0] as any;
     expect(savedData.runtimeMode).toBe('shared-shard');
@@ -274,13 +279,13 @@ describe('provisionStore handler', () => {
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
         };
-      })
+      }),
     };
     vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
-    
+
     const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
     expect(result.projectId).toContain('vtx-sd-');
-    
+
     expect(docMock.set).toHaveBeenCalled();
     const savedData = docMock.set.mock.calls[0][0] as any;
     expect(savedData.runtimeMode).toBe('shared-shard');

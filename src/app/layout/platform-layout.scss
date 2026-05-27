@@ -1,4 +1,6 @@
-:host { display: block; }
+:host {
+  display: block;
+}
 
 .platform-shell {
   display: flex;
@@ -9,7 +11,11 @@
     radial-gradient(circle at 85% 85%, rgba(88, 28, 135, 0.08) 0%, transparent 50%),
     linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 150px 150px, 150px 150px;
+  background-size:
+    100% 100%,
+    100% 100%,
+    150px 150px,
+    150px 150px;
   background-attachment: fixed;
   position: relative;
 }
@@ -96,8 +102,8 @@
   border: 1px solid transparent;
   position: relative;
 
-  i { 
-    font-size: 1.1rem; 
+  i {
+    font-size: 1.1rem;
     transition: transform var(--transition-base);
   }
 
@@ -113,7 +119,11 @@
   }
 
   &--active {
-    background: linear-gradient(135deg, hsla(199, 89%, 48%, 0.12) 0%, hsla(244, 75%, 64%, 0.12) 100%);
+    background: linear-gradient(
+      135deg,
+      hsla(199, 89%, 48%, 0.12) 0%,
+      hsla(244, 75%, 64%, 0.12) 100%
+    );
     border-color: hsla(244, 75%, 64%, 0.25);
     color: var(--platform-text-primary);
     box-shadow: 0 4px 20px -3px hsla(244, 75%, 64%, 0.15);
@@ -247,7 +257,9 @@
   line-height: 1;
   transition: color var(--transition-base);
 
-  &:hover { color: var(--platform-text-primary); }
+  &:hover {
+    color: var(--platform-text-primary);
+  }
 }
 
 .header-brand {
@@ -264,8 +276,12 @@
 }
 
 @media (max-width: 1024px) {
-  .platform-backdrop { display: block; }
-  .menu-toggle { display: block; }
+  .platform-backdrop {
+    display: block;
+  }
+  .menu-toggle {
+    display: block;
+  }
 
   .platform-sidebar {
     transform: translateX(-100%);
@@ -281,5 +297,7 @@
     width: 100%;
   }
 
-  .platform-content { padding: 1.25rem; }
+  .platform-content {
+    padding: 1.25rem;
+  }
 }

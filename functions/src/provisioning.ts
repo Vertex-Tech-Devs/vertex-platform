@@ -3,7 +3,13 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
-import type { CreateStorePayload, StepStatus, ProvisioningStep, StoreRuntimeMode, StoreShard } from './types';
+import type {
+  CreateStorePayload,
+  StepStatus,
+  ProvisioningStep,
+  StoreRuntimeMode,
+  StoreShard,
+} from './types';
 import {
   ALLOWED_ORIGINS,
   PLATFORM_PROJECT,
@@ -155,7 +161,10 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeProjectId: projectId,
         runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl: (runtimeMode === 'shared-shard') ? `https://${runtimeSiteId}.web.app` : `https://${projectId}.web.app`,
+        defaultUrl:
+          runtimeMode === 'shared-shard'
+            ? `https://${runtimeSiteId}.web.app`
+            : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
         includeMockData: includeMockData !== false,
@@ -370,7 +379,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             createProjectError = err;
             const raw = err instanceof Error ? err.message : String(err);
             const isQuotaError = isProjectQuotaExceeded(raw);
-            const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
+            const isLastCandidate =
+              candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
 
             if (!isQuotaError || isLastCandidate) {
               if (!isQuotaError) {
@@ -390,7 +400,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
 
         const raw =
-          createProjectError instanceof Error ? createProjectError.message : String(createProjectError);
+          createProjectError instanceof Error
+            ? createProjectError.message
+            : String(createProjectError);
         if (!isProjectQuotaExceeded(raw) || round === maxQuotaRetryRounds) {
           throw createProjectError;
         }
@@ -558,7 +570,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     const shardId = currentData['shardId'] || `shard-${env}-${projectId}`;
     const shardRef = db.collection('shards').doc(shardId);
-    
+
     const shardSnap = await shardRef.get();
     if (!shardSnap.exists) {
       await shardRef.set({
@@ -575,7 +587,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.info(`[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`);
+      console.info(
+        `[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`,
+      );
     }
   }
 
@@ -602,13 +616,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               body: { type: 'USER_SITE' },
             },
           );
-          console.info(`[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`);
+          console.info(
+            `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
+          );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
           if (!msg.includes('already exists') && !msg.includes('409')) {
             throw err;
           }
-          console.info(`[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`);
+          console.info(
+            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
+          );
         }
       }
 
@@ -1073,7 +1091,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
-              ref: PLATFORM_PROJECT === 'vertex-platform-dev' ? 'feature/dynamic-site-tombstone-deploy' : undefined,
+              ref:
+                PLATFORM_PROJECT === 'vertex-platform-dev'
+                  ? 'feature/dynamic-site-tombstone-deploy'
+                  : undefined,
             },
           }),
         },
@@ -1096,12 +1117,18 @@ export const runProvisioning = onDocumentCreated(
       await executeProvisioningSteps(event.params.storeId);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[runProvisioning] Unhandled provisioning error for store ${event.params.storeId}:`, err);
-      await getFirestore().collection('stores').doc(event.params.storeId).update({
-        status: 'error',
-        updatedAt: new Date(),
-        unhandledProvisioningError: message.slice(0, 800),
-      });
+      console.error(
+        `[runProvisioning] Unhandled provisioning error for store ${event.params.storeId}:`,
+        err,
+      );
+      await getFirestore()
+        .collection('stores')
+        .doc(event.params.storeId)
+        .update({
+          status: 'error',
+          updatedAt: new Date(),
+          unhandledProvisioningError: message.slice(0, 800),
+        });
     }
   },
 );
@@ -1153,7 +1180,10 @@ export const retryProvisioning = onCall<{ storeId: string }>(
         updatedAt: new Date(),
         unhandledProvisioningError: message.slice(0, 800),
       });
-      throw new HttpsError('internal', 'Provisioning retry failed unexpectedly. Review provisioning error details and try again.');
+      throw new HttpsError(
+        'internal',
+        'Provisioning retry failed unexpectedly. Review provisioning error details and try again.',
+      );
     }
     return { success: true };
   },
@@ -1220,9 +1250,14 @@ export const completeStoreDeployment = onCall<{
             });
           }
         });
-        console.info(`[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`);
+        console.info(
+          `[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`,
+        );
       } catch (err) {
-        console.error(`[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`, err);
+        console.error(
+          `[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`,
+          err,
+        );
       }
     }
   } else {
