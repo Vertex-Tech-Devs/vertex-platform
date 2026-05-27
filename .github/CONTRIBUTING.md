@@ -30,6 +30,15 @@ Allowed types:
 
 Quality policy is strict: changes must be delivered with 0 errors and 0 warnings in local validation, CI, and editor diagnostics.
 
+## Proactive Quality Policy
+
+Work must be proactive, not reactive. For every change, anticipate the next obvious failure points and validate them before requesting review.
+
+- Validate adjacent impact, not only touched files.
+- Pre-check likely breakpoints: auth/session flows, CI gates, build output, environment-specific behavior.
+- If a change can reasonably trigger a follow-up error, include the preventive fix in the same PR.
+- Avoid merge-then-fix cycles when a probable issue is already visible during implementation.
+
 Run before pushing:
 
 ```bash
@@ -62,6 +71,15 @@ Alternative notifications:
 - Enable GitHub notifications for participating PRs (`Watching` -> `Custom` -> `Pull requests`).
 - Rely on GitHub email/mobile notifications when checks complete.
 - Use `gh pr merge <PR_NUMBER> --auto --merge` when repository settings allow auto-merge.
+
+## Dependency PR Policy
+
+Dependency updates must stay manageable and low-noise.
+
+- Prefer grouped updates over many isolated PRs.
+- Keep open dependency PR volume intentionally low.
+- Merge dependency PRs through `develop` first, then promote via release PR to `main`.
+- Prioritize security-related updates; defer low-risk churn when there is no operational value.
 
 ## Security Rules
 
