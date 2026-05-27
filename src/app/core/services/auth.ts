@@ -2,7 +2,8 @@ import { Injectable, signal, computed } from '@angular/core';
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   getIdTokenResult,
@@ -23,6 +24,13 @@ export class AuthService {
   readonly isLoading = computed(() => this.user() === undefined);
 
   constructor() {
+    getRedirectResult(this.auth).catch((err) => {
+      const code = (err as { code?: string })?.code ?? '';
+      console.error('[Auth] getRedirectResult failed:', code, err);
+      this.authErrorCode.set(code);
+      this.authError.set('unknown');
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     onAuthStateChanged(this.auth, async (u) => {
       if (u) {
@@ -44,26 +52,13 @@ export class AuthService {
   async loginWithGoogle(): Promise<void> {
     this.authError.set(null);
     try {
-      const result = await signInWithPopup(this.auth, new GoogleAuthProvider());
-      const token = await getIdTokenResult(result.user, true);
-
-      if (!token.claims['platformAdmin']) {
-        await signOut(this.auth);
-        this.authError.set('unauthorized');
-        this.isSuperAdmin.set(false);
-        return;
-      }
-      this.isSuperAdmin.set(token.claims['superAdmin'] === true);
+      await signInWithRedirect(this.auth, new GoogleAuthProvider());
     } catch (err) {
       const code = (err as { code?: string })?.code ?? '';
       console.error('[Auth] loginWithGoogle failed:', code, err);
       this.authErrorCode.set(code);
       this.isSuperAdmin.set(false);
-      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
-        this.authError.set('popup-blocked');
-      } else {
-        this.authError.set('unknown');
-      }
+      this.authError.set('unknown');
     }
   }
 
