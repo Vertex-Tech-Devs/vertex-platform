@@ -11,7 +11,8 @@
   <div class="add-card">
     <h2 class="add-card__title">Agregar administrador</h2>
     <p class="add-card__hint">
-      El usuario debe haber iniciado sesión al menos una vez antes de ser promovido.
+      Ingresá el correo electrónico para pre-autorizarlo. Se le asignarán los permisos
+      automáticamente cuando inicie sesión por primera vez.
     </p>
     <div class="add-form">
       <input
@@ -22,7 +23,20 @@
         (input)="newEmail.set($any($event.target).value)"
         (keydown.enter)="addAdmin()"
       />
-      <button class="btn btn-primary" (click)="addAdmin()" [disabled]="isAdding() || !newEmail().trim()">
+      <select
+        class="form-control"
+        style="max-width: 180px; margin: 0 0.5rem"
+        [value]="newRole()"
+        (change)="newRole.set($any($event.target).value)"
+      >
+        <option value="platformAdmin">Platform Admin</option>
+        <option value="superAdmin">Super Admin</option>
+      </select>
+      <button
+        class="btn btn-primary"
+        (click)="addAdmin()"
+        [disabled]="isAdding() || !newEmail().trim()"
+      >
         {{ isAdding() ? 'Agregando…' : 'Agregar' }}
       </button>
     </div>
@@ -61,6 +75,11 @@
               <strong>{{ admin.displayName ?? admin.email }}</strong>
               @if (admin.displayName) {
                 <small>{{ admin.email }}</small>
+              }
+              @if (admin.role) {
+                <span class="badge" [class.badge--super]="admin.role === 'superAdmin'">
+                  {{ admin.role === 'superAdmin' ? 'Super Admin' : 'Platform Admin' }}
+                </span>
               }
             </div>
             @if (admin.email === auth.user()?.email) {

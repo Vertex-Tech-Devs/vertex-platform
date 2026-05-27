@@ -1,5 +1,7 @@
 import { PLATFORM_PROJECT } from './helpers';
 import type { StoreShard } from './types';
+import * as functions from 'firebase-functions/v1';
+import { getFirestore } from 'firebase-admin/firestore';
 
 export type PlatformEnvironment = 'development' | 'production';
 
@@ -64,7 +66,9 @@ export function summarizeShardCapacity(
       return left.id.localeCompare(right.id);
     });
 
-  const activeSharedShardCount = normalizedShards.filter((shard) => shard.status === 'active').length;
+  const activeSharedShardCount = normalizedShards.filter(
+    (shard) => shard.status === 'active',
+  ).length;
   const availableSharedSlots = normalizedShards
     .filter((shard) => shard.status === 'active')
     .reduce((sum, shard) => sum + shard.availableStores, 0);
@@ -78,3 +82,88 @@ export function summarizeShardCapacity(
     shards: normalizedShards,
   };
 }
+
+export const reconcileActiveStores = functions.pubsub
+  .schedule('0 0 * * *')
+  .timeZone('UTC')
+  .onRun(async (_context) => {
+    const db = getFirestore();
+    console.log('[Reconciliation] Starting daily store-shard reconciliation...');
+
+    try {
+      // 1. Fetch all active shared-shard stores
+      const storesSnap = await db
+        .collection('stores')
+        .where('runtimeMode', '==', 'shared-shard')
+        .where('status', '==', 'active')
+        .get();
+
+      // 2. Count active stores physically per shardId
+      const physicalCounts: Record<string, number> = {};
+      for (const doc of storesSnap.docs) {
+        const shardId = doc.data()['shardId'];
+        if (shardId) {
+          physicalCounts[shardId] = (physicalCounts[shardId] || 0) + 1;
+        }
+      }
+
+      // 3. Fetch all shards
+      const shardsSnap = await db.collection('shards').get();
+      let correctionsCount = 0;
+
+      for (const shardDoc of shardsSnap.docs) {
+        const shardId = shardDoc.id;
+        const currentActiveStores = shardDoc.data()['activeStores'] || 0;
+        const physicalActiveStores = physicalCounts[shardId] || 0;
+
+        if (currentActiveStores !== physicalActiveStores) {
+          console.warn(
+            `[Reconciliation] Mismatch detected in shard ${shardId}: registered=${currentActiveStores}, physical=${physicalActiveStores}. Auto-correcting...`,
+          );
+
+          // Update activeStores in Firestore
+          await db.collection('shards').doc(shardId).update({
+            activeStores: physicalActiveStores,
+            updatedAt: new Date(),
+          });
+
+          // Log warning audit log
+          await db.collection('audit_logs').add({
+            timestamp: new Date(),
+            severity: 'WARNING',
+            module: 'RECONCILIATION',
+            message: `Shard ${shardId} activeStores auto-corrected from ${currentActiveStores} to ${physicalActiveStores}.`,
+            details: {
+              shardId,
+              previousValue: currentActiveStores,
+              newValue: physicalActiveStores,
+            },
+          });
+
+          correctionsCount++;
+        }
+      }
+
+      console.log(
+        `[Reconciliation] Finished successfully. Total shards verified: ${shardsSnap.size}. Total corrections: ${correctionsCount}.`,
+      );
+
+      // Log success audit log
+      await db.collection('audit_logs').add({
+        timestamp: new Date(),
+        severity: 'INFO',
+        module: 'RECONCILIATION',
+        message: `Store-shard reconciliation finished successfully. Verified ${shardsSnap.size} shards. Corrections applied: ${correctionsCount}.`,
+      });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error('[Reconciliation] Error running daily store-shard reconciliation:', err);
+
+      await db.collection('audit_logs').add({
+        timestamp: new Date(),
+        severity: 'ERROR',
+        module: 'RECONCILIATION',
+        message: `Store-shard reconciliation failed: ${errorMsg}`,
+      });
+    }
+  });

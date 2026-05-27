@@ -4,13 +4,11 @@ import { authGuard } from './core/guards/auth';
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () =>
-      import('./features/auth/components/login/login').then((m) => m.Login),
+    loadComponent: () => import('./features/auth/components/login/login').then((m) => m.Login),
   },
   {
     path: '',
-    loadComponent: () =>
-      import('./layout/platform-layout').then((m) => m.PlatformLayout),
+    loadComponent: () => import('./layout/platform-layout').then((m) => m.PlatformLayout),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'stores', pathMatch: 'full' },
@@ -22,7 +20,7 @@ export const routes: Routes = [
             title: 'Tiendas',
             loadComponent: () =>
               import('./features/stores/components/stores-list/stores-list').then(
-                (m) => m.StoresList
+                (m) => m.StoresList,
               ),
           },
           {
@@ -30,7 +28,7 @@ export const routes: Routes = [
             title: 'Nueva tienda',
             loadComponent: () =>
               import('./features/stores/components/store-create/store-create').then(
-                (m) => m.StoreCreate
+                (m) => m.StoreCreate,
               ),
           },
           {
@@ -38,7 +36,7 @@ export const routes: Routes = [
             title: 'Detalle de tienda',
             loadComponent: () =>
               import('./features/stores/components/store-detail/store-detail').then(
-                (m) => m.StoreDetail
+                (m) => m.StoreDetail,
               ),
           },
         ],
@@ -50,17 +48,13 @@ export const routes: Routes = [
             path: 'team',
             title: 'Equipo',
             loadComponent: () =>
-              import('./features/settings/components/team/team').then(
-                (m) => m.Team
-              ),
+              import('./features/settings/components/team/team').then((m) => m.Team),
           },
           {
             path: 'billing',
             title: 'Facturación',
             loadComponent: () =>
-              import('./features/settings/components/billing/billing').then(
-                (m) => m.Billing
-              ),
+              import('./features/settings/components/billing/billing').then((m) => m.Billing),
           },
         ],
       },

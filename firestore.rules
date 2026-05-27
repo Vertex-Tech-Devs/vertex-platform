@@ -3,7 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isPlatformAdmin() {
-      return request.auth != null && request.auth.token.platformAdmin == true;
+      return request.auth != null && (
+        request.auth.token.platformAdmin == true ||
+        exists(/databases/$(database)/documents/platformAdmins/$(request.auth.token.email))
+      );
+    }
+
+    match /platformAdmins/{email} {
+      allow read, write: if isPlatformAdmin();
     }
 
     match /stores/{storeId} {
@@ -16,6 +23,52 @@ service cloud.firestore {
 
     match /billingAccounts/{accountId} {
       allow read, write: if isPlatformAdmin();
+    }
+
+    // Shared-Shard Storefront Collections (Allow public read access)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+      
+      match /variants/{variantId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin();
+      }
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /attributes/{docId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /siteContent/{docId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /pages/{docId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /configuracion/{docId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow get, create: if true;
+      allow list, update, delete: if isPlatformAdmin();
     }
   }
 }

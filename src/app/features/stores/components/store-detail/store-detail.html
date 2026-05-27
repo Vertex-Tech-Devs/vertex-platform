@@ -345,17 +345,19 @@
                 }
 
                 <!-- Danger Zone -->
-                <div class="danger-zone">
-                  <h3 class="danger-zone__title">Zona Peligrosa</h3>
-                  <button
-                    class="action-btn action-btn--danger"
-                    [disabled]="isDeleting()"
-                    (click)="showDeleteConfirm.set(true)"
-                  >
-                    <i class="bi bi-trash"></i> Eliminar tienda
-                    <small>Destrucción permanente de la tienda y su proyecto GCP completo</small>
-                  </button>
-                </div>
+                @if (auth.isSuperAdmin()) {
+                  <div class="danger-zone">
+                    <h3 class="danger-zone__title">Zona Peligrosa</h3>
+                    <button
+                      class="action-btn action-btn--danger"
+                      [disabled]="isDeleting()"
+                      (click)="showDeleteConfirm.set(true)"
+                    >
+                      <i class="bi bi-trash"></i> Eliminar tienda
+                      <small>Destrucción permanente de la tienda y su proyecto GCP completo</small>
+                    </button>
+                  </div>
+                }
               </div>
             </div>
 

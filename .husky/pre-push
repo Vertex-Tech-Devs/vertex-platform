@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "develop" ]; then
+  echo ""
+  echo "✖ Direct push to $BRANCH is not allowed."
+  echo "  Open a PR from a feature branch."
+  echo ""
+  exit 1
+fi
+
+if [ ! -d "../ecommerce-vertex" ]; then
+  echo ""
+  echo "✖ Missing sibling repository ../ecommerce-vertex."
+  echo "  Required for cross-repo integration validation."
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "Running strict pre-push quality gates..."
+echo ""
+
+npm run lint
+npm run typecheck
+npm run test -- --watch=false
+npm run build:prod
+cd functions
+npm run test
+
+echo ""
+echo "✔ Baseline quality gates passed locally."
+echo "  Full E2E + cross-repo integration remain mandatory in CI Quality Gate."
+echo ""

@@ -18,11 +18,22 @@
           }
         </h2>
         <p class="runtime-summary__body">
-          {{ runtimeSummary()!.activeSharedShardCount }} shard{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} activa{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} con {{ runtimeSummary()!.availableSharedSlots }} lugar{{ runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : '' }} libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}.
-          El alta actual sigue usando el flujo dedicado mientras termina la migración tenant-aware del storefront.
+          {{ runtimeSummary()!.activeSharedShardCount }} shard{{
+            runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : ''
+          }}
+          activa{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} con
+          {{ runtimeSummary()!.availableSharedSlots }} lugar{{
+            runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : ''
+          }}
+          libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}. El alta actual sigue
+          usando el flujo dedicado mientras termina la migración tenant-aware del storefront.
         </p>
       </div>
-      <div class="runtime-summary__badge runtime-summary__badge--{{ runtimeSummary()!.recommendedRuntimeMode }}">
+      <div
+        class="runtime-summary__badge runtime-summary__badge--{{
+          runtimeSummary()!.recommendedRuntimeMode
+        }}"
+      >
         {{ runtimeSummary()!.recommendedRuntimeMode === 'shared-shard' ? 'Ready' : 'Fallback' }}
       </div>
     </section>
@@ -31,17 +42,19 @@
   }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="create-form" novalidate>
-
     <section class="form-section">
       <h2 class="form-section__title">Identidad</h2>
       <div class="form-grid">
-
         <div class="form-group">
           <label class="form-label">Nombre de la tienda *</label>
-          <input formControlName="name" type="text" class="form-control"
-                 (blur)="autoSlug()"
-                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
-                 placeholder="Ropa María" />
+          <input
+            formControlName="name"
+            type="text"
+            class="form-control"
+            (blur)="autoSlug()"
+            [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+            placeholder="Ropa María"
+          />
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
             <div class="invalid-feedback">Campo obligatorio.</div>
           }
@@ -51,9 +64,13 @@
           <label class="form-label">Slug (URL) *</label>
           <div class="input-addon">
             <span class="input-addon__pre">vertex-stores.web.app/</span>
-            <input formControlName="slug" type="text" class="form-control"
-                   [class.is-invalid]="form.get('slug')?.invalid && form.get('slug')?.touched"
-                   placeholder="ropa-maria" />
+            <input
+              formControlName="slug"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="form.get('slug')?.invalid && form.get('slug')?.touched"
+              placeholder="ropa-maria"
+            />
           </div>
           @if (form.get('slug')?.invalid && form.get('slug')?.touched) {
             <div class="invalid-feedback">Solo letras minúsculas, números y guiones.</div>
@@ -62,53 +79,89 @@
 
         <div class="form-group">
           <label class="form-label">Email del cliente *</label>
-          <input formControlName="ownerEmail" type="email" class="form-control"
-                 [class.is-invalid]="form.get('ownerEmail')?.invalid && form.get('ownerEmail')?.touched"
-                 placeholder="cliente@email.com" />
+          <input
+            formControlName="ownerEmail"
+            type="email"
+            class="form-control"
+            [class.is-invalid]="form.get('ownerEmail')?.invalid && form.get('ownerEmail')?.touched"
+            placeholder="cliente@email.com"
+          />
           @if (form.get('ownerEmail')?.invalid && form.get('ownerEmail')?.touched) {
             <div class="invalid-feedback">Email inválido.</div>
           }
         </div>
-
       </div>
     </section>
 
     <section class="form-section">
       <h2 class="form-section__title">Vertical de Negocio *</h2>
-      <p class="form-hint" style="margin-bottom: 1.25rem; margin-top: -0.75rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
+      <p
+        class="form-hint"
+        style="
+          margin-bottom: 1.25rem;
+          margin-top: -0.75rem;
+          text-transform: none;
+          font-weight: normal;
+          letter-spacing: normal;
+        "
+      >
         Seleccioná el rubro de la tienda. Se cargará un catálogo inicial de productos de prueba.
       </p>
-      
+
       <div class="vertical-selector">
-        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'indumentaria'" (click)="selectVertical('indumentaria')">
+        <label
+          class="vertical-card"
+          [class.is-selected]="selectedVerticalType() === 'indumentaria'"
+          (click)="selectVertical('indumentaria')"
+        >
           <div class="vertical-card__icon">👕</div>
           <div class="vertical-card__content">
             <span class="vertical-card__title">Indumentaria</span>
-            <span class="vertical-card__desc">Talles, colores y colecciones de moda con stock inicial.</span>
-          </div>
-        </label>
-        
-        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'gastronomia'" (click)="selectVertical('gastronomia')">
-          <div class="vertical-card__icon">🍔</div>
-          <div class="vertical-card__content">
-            <span class="vertical-card__title">Gastronomía</span>
-            <span class="vertical-card__desc">Menú inicial, variantes de platos y delivery configurado.</span>
-          </div>
-        </label>
-        
-        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'retail'" (click)="selectVertical('retail')">
-          <div class="vertical-card__icon">📦</div>
-          <div class="vertical-card__content">
-            <span class="vertical-card__title">Retail General</span>
-            <span class="vertical-card__desc">Productos generales multirubro y especificaciones de prueba.</span>
+            <span class="vertical-card__desc"
+              >Talles, colores y colecciones de moda con stock inicial.</span
+            >
           </div>
         </label>
 
-        <label class="vertical-card" [class.is-selected]="selectedVerticalType() === 'custom'" (click)="selectVertical('custom')">
+        <label
+          class="vertical-card"
+          [class.is-selected]="selectedVerticalType() === 'gastronomia'"
+          (click)="selectVertical('gastronomia')"
+        >
+          <div class="vertical-card__icon">🍔</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Gastronomía</span>
+            <span class="vertical-card__desc"
+              >Menú inicial, variantes de platos y delivery configurado.</span
+            >
+          </div>
+        </label>
+
+        <label
+          class="vertical-card"
+          [class.is-selected]="selectedVerticalType() === 'retail'"
+          (click)="selectVertical('retail')"
+        >
+          <div class="vertical-card__icon">📦</div>
+          <div class="vertical-card__content">
+            <span class="vertical-card__title">Retail General</span>
+            <span class="vertical-card__desc"
+              >Productos generales multirubro y especificaciones de prueba.</span
+            >
+          </div>
+        </label>
+
+        <label
+          class="vertical-card"
+          [class.is-selected]="selectedVerticalType() === 'custom'"
+          (click)="selectVertical('custom')"
+        >
           <div class="vertical-card__icon">🌟</div>
           <div class="vertical-card__content">
             <span class="vertical-card__title">Otro Rubro</span>
-            <span class="vertical-card__desc">Creá una tienda con rubro totalmente personalizado.</span>
+            <span class="vertical-card__desc"
+              >Creá una tienda con rubro totalmente personalizado.</span
+            >
           </div>
         </label>
       </div>
@@ -117,10 +170,13 @@
         <div class="custom-vertical-container">
           <div class="form-group">
             <label class="form-label">Nombre del Rubro Personalizado *</label>
-            <input type="text" class="form-control"
-                   [value]="customVerticalName()"
-                   (input)="onCustomVerticalChange($any($event.target).value)"
-                   placeholder="Ej: Juguetería, Petshop, Ferretería..." />
+            <input
+              type="text"
+              class="form-control"
+              [value]="customVerticalName()"
+              (input)="onCustomVerticalChange($any($event.target).value)"
+              placeholder="Ej: Juguetería, Petshop, Ferretería..."
+            />
             @if (form.get('verticalId')?.invalid && form.get('verticalId')?.touched) {
               <div class="invalid-feedback">Debés escribir el nombre del rubro personalizado.</div>
             }
@@ -131,12 +187,48 @@
 
     <section class="form-section">
       <h2 class="form-section__title">Datos de Demostración</h2>
-      <p class="form-hint" style="margin-bottom: 1rem; margin-top: -0.5rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
-        Los clientes y pedidos simulados de prueba se cargan para poder visualizar métricas y órdenes en el dashboard. Desmarcalo si querés iniciar la tienda totalmente vacía y limpia.
+      <p
+        class="form-hint"
+        style="
+          margin-bottom: 1rem;
+          margin-top: -0.5rem;
+          text-transform: none;
+          font-weight: normal;
+          letter-spacing: normal;
+        "
+      >
+        Los clientes y pedidos simulados de prueba se cargan para poder visualizar métricas y
+        órdenes en el dashboard. Desmarcalo si querés iniciar la tienda totalmente vacía y limpia.
       </p>
-      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
-        <input id="includeMockData" formControlName="includeMockData" type="checkbox" style="width: 1.25rem; height: 1.25rem; cursor: pointer;" />
-        <label for="includeMockData" style="color: var(--platform-text-primary); font-size: 0.95rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+      <div
+        class="form-group"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 1rem;
+          border-radius: 8px;
+        "
+      >
+        <input
+          id="includeMockData"
+          formControlName="includeMockData"
+          type="checkbox"
+          style="width: 1.25rem; height: 1.25rem; cursor: pointer"
+        />
+        <label
+          for="includeMockData"
+          style="
+            color: var(--platform-text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            margin: 0;
+          "
+        >
           Cargar 20 clientes y 20 pedidos simulados iniciales
         </label>
       </div>
@@ -144,12 +236,49 @@
 
     <section class="form-section">
       <h2 class="form-section__title">Alojamiento e Infraestructura</h2>
-      <p class="form-hint" style="margin-bottom: 1rem; margin-top: -0.5rem; text-transform: none; font-weight: normal; letter-spacing: normal;">
-        De forma predeterminada, la tienda se alojará en un shard compartido (shared-shard) para optimizar costos de Google Cloud. Marcá la opción de abajo si necesitás un proyecto de Google Cloud totalmente aislado y dedicado para este cliente.
+      <p
+        class="form-hint"
+        style="
+          margin-bottom: 1rem;
+          margin-top: -0.5rem;
+          text-transform: none;
+          font-weight: normal;
+          letter-spacing: normal;
+        "
+      >
+        De forma predeterminada, la tienda se alojará en un shard compartido (shared-shard) para
+        optimizar costos de Google Cloud. Marcá la opción de abajo si necesitás un proyecto de
+        Google Cloud totalmente aislado y dedicado para este cliente.
       </p>
-      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
-        <input id="dedicatedProject" formControlName="dedicatedProject" type="checkbox" style="width: 1.25rem; height: 1.25rem; cursor: pointer;" />
-        <label for="dedicatedProject" style="color: var(--platform-text-primary); font-size: 0.95rem; font-weight: 500; cursor: pointer; user-select: none; margin: 0;">
+      <div
+        class="form-group"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 1rem;
+          border-radius: 8px;
+        "
+      >
+        <input
+          id="dedicatedProject"
+          formControlName="dedicatedProject"
+          type="checkbox"
+          style="width: 1.25rem; height: 1.25rem; cursor: pointer"
+        />
+        <label
+          for="dedicatedProject"
+          style="
+            color: var(--platform-text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            margin: 0;
+          "
+        >
           Crear proyecto de Google Cloud dedicado (Premium)
         </label>
       </div>
@@ -158,20 +287,26 @@
     <section class="form-section">
       <h2 class="form-section__title">Marca</h2>
       <div class="form-grid">
-
         <div class="form-group">
           <label class="form-label">Logo URL</label>
-          <input formControlName="logoUrl" type="url" class="form-control"
-                 placeholder="https://..." />
+          <input
+            formControlName="logoUrl"
+            type="url"
+            class="form-control"
+            placeholder="https://..."
+          />
         </div>
 
         <div class="form-group form-grid--full">
           <label class="form-label">Dominio personalizado (opcional)</label>
-          <input formControlName="customDomain" type="text" class="form-control"
-                 placeholder="tienda.com" />
+          <input
+            formControlName="customDomain"
+            type="text"
+            class="form-control"
+            placeholder="tienda.com"
+          />
           <small class="form-hint">Se puede configurar después del provisionamiento.</small>
         </div>
-
       </div>
     </section>
 
@@ -189,6 +324,5 @@
         }
       </button>
     </div>
-
   </form>
 </div>

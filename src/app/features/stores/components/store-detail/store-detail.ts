@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
+import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
 import type { DeploymentHistoryItem } from '@core/services/stores';
 import type {
@@ -37,6 +38,7 @@ const STEP_ORDER = [
 })
 export class StoreDetail implements OnInit, OnDestroy {
   private storesService = inject(StoresService);
+  readonly auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -194,9 +196,13 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async loadHistory(): Promise<void> {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     const projectId = s.firebaseProjectId;
-    if (!projectId) return;
+    if (!projectId) {
+      return;
+    }
 
     this.isLoadingHistory.set(true);
     try {
@@ -230,7 +236,9 @@ export class StoreDetail implements OnInit, OnDestroy {
   async applyVersionUpdate(): Promise<void> {
     const s = this.store();
     const version = this.selectedVersion();
-    if (!s || !version || s.templateVersion === version) return;
+    if (!s || !version || s.templateVersion === version) {
+      return;
+    }
 
     this.isUpdatingVersion.set(true);
     this.versionUpdateError.set('');
@@ -252,10 +260,16 @@ export class StoreDetail implements OnInit, OnDestroy {
   startPolling(): void {
     this.stopPolling();
     this.pollIntervalId = setInterval(() => {
-      if (this.activeTab() !== 'orquestacion') return;
-      if (document.hidden) return;
+      if (this.activeTab() !== 'orquestacion') {
+        return;
+      }
+      if (document.hidden) {
+        return;
+      }
       const s = this.store();
-      if (!s) return;
+      if (!s) {
+        return;
+      }
       void this.loadHistory();
     }, 15000);
   }
@@ -271,7 +285,9 @@ export class StoreDetail implements OnInit, OnDestroy {
   async setTab(tab: 'orquestacion' | 'config' | 'equipo' | 'dominios'): Promise<void> {
     this.activeTab.set(tab);
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
 
     if (tab === 'orquestacion') {
       void this.loadHistory();
@@ -290,7 +306,9 @@ export class StoreDetail implements OnInit, OnDestroy {
   // Configuration Loading and Saving
   async loadConfig(): Promise<void> {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.isLoadingConfig.set(true);
     this.configError.set('');
     this.configSuccess.set('');
@@ -374,7 +392,9 @@ export class StoreDetail implements OnInit, OnDestroy {
       return;
     }
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.isSavingConfig.set(true);
     this.configError.set('');
     this.configSuccess.set('');
@@ -406,10 +426,12 @@ export class StoreDetail implements OnInit, OnDestroy {
 
       // Update central store doc if needed
       const centralUpdates: Partial<Pick<Store, 'name' | 'logoUrl'>> = {};
-      if (formValue.storeName && formValue.storeName !== s.name)
+      if (formValue.storeName && formValue.storeName !== s.name) {
         centralUpdates.name = formValue.storeName;
-      if (formValue.logoUrl !== undefined && formValue.logoUrl !== s.logoUrl)
+      }
+      if (formValue.logoUrl !== undefined && formValue.logoUrl !== s.logoUrl) {
         centralUpdates.logoUrl = formValue.logoUrl;
+      }
 
       if (Object.keys(centralUpdates).length > 0) {
         await this.storesService.updateStore(s.id, centralUpdates);
@@ -425,7 +447,9 @@ export class StoreDetail implements OnInit, OnDestroy {
   // Staff management
   async loadStaff(): Promise<void> {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.isLoadingStaff.set(true);
     this.inviteError.set('');
     this.inviteSuccess.set('');
@@ -447,7 +471,9 @@ export class StoreDetail implements OnInit, OnDestroy {
       return;
     }
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.isInvitingStaff.set(true);
     this.inviteError.set('');
     this.inviteSuccess.set('');
@@ -476,7 +502,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async generateAccessLink(email: string): Promise<void> {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.isGeneratingLink.set(true);
     this.generatedResetLink.set('');
     this.copyFeedbackSuccess.set(false);
@@ -512,9 +540,13 @@ export class StoreDetail implements OnInit, OnDestroy {
   // DNS & Domain verification
   async verifyDNS(silent = false): Promise<void> {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     const domain = s.customDomain || this.domainInput;
-    if (!domain) return;
+    if (!domain) {
+      return;
+    }
 
     if (!silent) {
       this.isVerifyingDNS.set(true);
@@ -554,7 +586,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   openEdit(): void {
     const s = this.store();
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     this.editForm.setValue({
       name: s.name,
       ownerEmail: s.ownerEmail,
@@ -570,7 +604,9 @@ export class StoreDetail implements OnInit, OnDestroy {
       return;
     }
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.isSaving.set(true);
     this.saveError.set('');
     try {
@@ -591,7 +627,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async suspend(): Promise<void> {
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.isSuspending.set(true);
     this.actionError.set('');
     try {
@@ -607,7 +645,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async activate(): Promise<void> {
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.isActivating.set(true);
     this.actionError.set('');
     try {
@@ -635,7 +675,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async redeploy(): Promise<void> {
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.isRedeploying.set(true);
     this.actionError.set('');
     try {
@@ -655,7 +697,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async seedStore(): Promise<void> {
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.showSeedConfirm.set(false);
     this.isSeeding.set(true);
     this.actionError.set('');
@@ -675,7 +719,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async retry(): Promise<void> {
     const id = this.store()?.id;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     this.isRetrying.set(true);
     this.actionError.set('');
     try {
@@ -693,7 +739,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async connectDomain(): Promise<void> {
     const id = this.store()?.id;
-    if (!id || !this.domainInput) return;
+    if (!id || !this.domainInput) {
+      return;
+    }
     this.isConnectingDomain.set(true);
     this.dnsVerificationError.set('');
     this.dnsVerificationSuccess.set('');
@@ -712,7 +760,9 @@ export class StoreDetail implements OnInit, OnDestroy {
   }
 
   formatDate(dateVal: unknown): Date | string | null {
-    if (!dateVal) return null;
+    if (!dateVal) {
+      return null;
+    }
     if (typeof dateVal === 'string') {
       const match = dateVal.match(/Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)/);
       if (match) {
@@ -731,7 +781,9 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async deleteStore(): Promise<void> {
     const s = this.store();
-    if (!s || this.deleteConfirmInput !== s.slug) return;
+    if (!s || this.deleteConfirmInput !== s.slug) {
+      return;
+    }
     this.isDeleting.set(true);
     this.actionError.set('');
     try {

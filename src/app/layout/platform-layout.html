@@ -23,24 +23,26 @@
         <i class="bi bi-shop-window"></i>
         <span>Tiendas</span>
       </a>
-      <a
-        class="nav-item"
-        routerLink="/settings/team"
-        routerLinkActive="nav-item--active"
-        (click)="closeSidebar()"
-      >
-        <i class="bi bi-people"></i>
-        <span>Equipo</span>
-      </a>
-      <a
-        class="nav-item"
-        routerLink="/settings/billing"
-        routerLinkActive="nav-item--active"
-        (click)="closeSidebar()"
-      >
-        <i class="bi bi-credit-card"></i>
-        <span>Facturación</span>
-      </a>
+      @if (auth.isSuperAdmin()) {
+        <a
+          class="nav-item"
+          routerLink="/settings/team"
+          routerLinkActive="nav-item--active"
+          (click)="closeSidebar()"
+        >
+          <i class="bi bi-people"></i>
+          <span>Equipo</span>
+        </a>
+        <a
+          class="nav-item"
+          routerLink="/settings/billing"
+          routerLinkActive="nav-item--active"
+          (click)="closeSidebar()"
+        >
+          <i class="bi bi-credit-card"></i>
+          <span>Facturación</span>
+        </a>
+      }
     </nav>
 
     <div class="sidebar-footer">

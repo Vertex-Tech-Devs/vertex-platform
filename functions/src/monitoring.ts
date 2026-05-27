@@ -22,9 +22,9 @@ export const logClientError = onRequest(
         timestamp: timestamp ?? new Date().toISOString(),
         '@type':
           'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',
-      })
+      }),
     );
 
     res.status(204).send('');
-  }
+  },
 );

@@ -3,7 +3,13 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
-import type { CreateStorePayload, StepStatus, ProvisioningStep, StoreRuntimeMode, StoreShard } from './types';
+import type {
+  CreateStorePayload,
+  StepStatus,
+  ProvisioningStep,
+  StoreRuntimeMode,
+  StoreShard,
+} from './types';
 import {
   ALLOWED_ORIGINS,
   PLATFORM_PROJECT,
@@ -155,7 +161,10 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeProjectId: projectId,
         runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl: (runtimeMode === 'shared-shard') ? `https://${runtimeSiteId}.web.app` : `https://${projectId}.web.app`,
+        defaultUrl:
+          runtimeMode === 'shared-shard'
+            ? `https://${runtimeSiteId}.web.app`
+            : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
         includeMockData: includeMockData !== false,
@@ -370,7 +379,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             createProjectError = err;
             const raw = err instanceof Error ? err.message : String(err);
             const isQuotaError = isProjectQuotaExceeded(raw);
-            const isLastCandidate = candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
+            const isLastCandidate =
+              candidate.id === ownerCandidates[ownerCandidates.length - 1]?.id;
 
             if (!isQuotaError || isLastCandidate) {
               if (!isQuotaError) {
@@ -390,7 +400,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
 
         const raw =
-          createProjectError instanceof Error ? createProjectError.message : String(createProjectError);
+          createProjectError instanceof Error
+            ? createProjectError.message
+            : String(createProjectError);
         if (!isProjectQuotaExceeded(raw) || round === maxQuotaRetryRounds) {
           throw createProjectError;
         }
@@ -558,7 +570,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     const shardId = currentData['shardId'] || `shard-${env}-${projectId}`;
     const shardRef = db.collection('shards').doc(shardId);
-    
+
     const shardSnap = await shardRef.get();
     if (!shardSnap.exists) {
       await shardRef.set({
@@ -575,7 +587,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.info(`[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`);
+      console.info(
+        `[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`,
+      );
     }
   }
 
@@ -602,13 +616,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               body: { type: 'USER_SITE' },
             },
           );
-          console.info(`[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`);
+          console.info(
+            `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
+          );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
           if (!msg.includes('already exists') && !msg.includes('409')) {
             throw err;
           }
-          console.info(`[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`);
+          console.info(
+            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
+          );
         }
       }
 
@@ -875,7 +893,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Step 2: Configure and enable the Email/Password sign-in method
+        // Step 2: Configure and enable Email/Password + Google OAuth sign-in methods
         await apiFetch(
           auth,
           `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
@@ -891,6 +909,32 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             quotaProject: projectId,
           },
         );
+
+        // Step 3: Enable Google as an OAuth IdP so the "Sign in with Google" button
+        // works on the storefront without any manual Firebase Console configuration.
+        try {
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            {
+              method: 'PATCH',
+              body: {
+                name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+                enabled: true,
+              },
+              quotaProject: projectId,
+            },
+          );
+          console.info(
+            `[provisioning:initAdmin] Google OAuth IdP enabled for project ${projectId}`,
+          );
+        } catch (googleIdpErr) {
+          // Non-fatal: log and continue. The store admin can enable Google manually
+          // from the Firebase console if the API call fails (e.g., missing OAuth client).
+          console.warn(
+            `[provisioning:initAdmin] Could not enable Google IdP automatically (may need manual OAuth client setup): ${googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr)}`,
+          );
+        }
       };
       await retry(initIdentityPlatform, 5, 8000);
 
@@ -954,11 +998,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         },
       )) as { oobCode?: string; oobLink?: string };
 
-      const actionLink =
-        oobRes.oobLink ||
-        (oobRes.oobCode
-          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
-          : '');
+      let actionLink = oobRes.oobLink || '';
+      if (actionLink && (actionLink.startsWith('?') || actionLink.startsWith('/'))) {
+        const query = actionLink.startsWith('/') ? actionLink : `/${actionLink}`;
+        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action${query}`;
+      } else if (!actionLink && oobRes.oobCode) {
+        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
+      }
 
       if (actionLink) {
         await storeRef.collection('private').doc('ownerAccess').set(
@@ -969,6 +1015,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
           { merge: true },
         );
+
+        // Send welcome email to the store owner with the invitation/password setup link
+        const emailSubject = `Bienvenido a Vertex - Configura tu tienda ${name}`;
+        const emailHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <h2 style="color: #10b981; margin-top: 0;">¡Felicitaciones! Tu tienda está siendo creada</h2>
+            <p>Hola,</p>
+            <p>Hemos iniciado el aprovisionamiento de tu nueva tienda <strong>${name}</strong> en la plataforma Vertex.</p>
+            <p>Para configurar tu contraseña de administrador y acceder a tu panel de control, haz clic en el siguiente enlace:</p>
+            <p style="margin: 24px 0; text-align: center;">
+              <a href="${actionLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Configurar Contraseña</a>
+            </p>
+            <p style="color: #6b7280; font-size: 14px;">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;">${actionLink}</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+            <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">Este correo fue enviado automáticamente por Vertex Platform. Por favor, no respondas a este mensaje.</p>
+          </div>
+        `;
+
+        await db.collection('mail').add({
+          to: [ownerEmail],
+          message: {
+            subject: emailSubject,
+            html: emailHtml,
+            text: `Bienvenido a Vertex. Configura tu contraseña de administrador ingresando a: ${actionLink}`,
+          },
+        });
       }
 
       await setStep('initAdmin', 'done');
@@ -1073,7 +1146,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
-              ref: PLATFORM_PROJECT === 'vertex-platform-dev' ? 'feature/dynamic-site-tombstone-deploy' : undefined,
+              ref:
+                PLATFORM_PROJECT === 'vertex-platform-dev'
+                  ? 'feature/google-oauth-rbac'
+                  : undefined,
             },
           }),
         },
@@ -1096,12 +1172,18 @@ export const runProvisioning = onDocumentCreated(
       await executeProvisioningSteps(event.params.storeId);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[runProvisioning] Unhandled provisioning error for store ${event.params.storeId}:`, err);
-      await getFirestore().collection('stores').doc(event.params.storeId).update({
-        status: 'error',
-        updatedAt: new Date(),
-        unhandledProvisioningError: message.slice(0, 800),
-      });
+      console.error(
+        `[runProvisioning] Unhandled provisioning error for store ${event.params.storeId}:`,
+        err,
+      );
+      await getFirestore()
+        .collection('stores')
+        .doc(event.params.storeId)
+        .update({
+          status: 'error',
+          updatedAt: new Date(),
+          unhandledProvisioningError: message.slice(0, 800),
+        });
     }
   },
 );
@@ -1153,7 +1235,10 @@ export const retryProvisioning = onCall<{ storeId: string }>(
         updatedAt: new Date(),
         unhandledProvisioningError: message.slice(0, 800),
       });
-      throw new HttpsError('internal', 'Provisioning retry failed unexpectedly. Review provisioning error details and try again.');
+      throw new HttpsError(
+        'internal',
+        'Provisioning retry failed unexpectedly. Review provisioning error details and try again.',
+      );
     }
     return { success: true };
   },
@@ -1220,9 +1305,14 @@ export const completeStoreDeployment = onCall<{
             });
           }
         });
-        console.info(`[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`);
+        console.info(
+          `[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`,
+        );
       } catch (err) {
-        console.error(`[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`, err);
+        console.error(
+          `[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`,
+          err,
+        );
       }
     }
   } else {

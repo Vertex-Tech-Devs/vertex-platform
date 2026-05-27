@@ -29,7 +29,10 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
   async (request) => {
     // Auth check
     if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform admins can view deployment history.');
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can view deployment history.',
+      );
     }
 
     const { projectId } = request.data;
@@ -39,7 +42,7 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
 
     try {
       const pat = await getGitHubPat();
-      
+
       // Fetch latest 20 runs from the actions API
       const runsRes = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/actions/runs?per_page=20',
@@ -49,7 +52,7 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
             Accept: 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28',
           },
-        }
+        },
       );
 
       if (!runsRes.ok) {
@@ -71,7 +74,7 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
                   Accept: 'application/vnd.github+json',
                   'X-GitHub-Api-Version': '2022-11-28',
                 },
-              }
+              },
             );
 
             if (!jobsRes.ok) return { run, matches: false };
@@ -80,9 +83,8 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
             const jobs = jobsData.jobs ?? [];
 
             // Match if any job name contains the projectId
-            const matches = jobs.some((job) => 
-              job.name.includes(projectId) || 
-              run.display_title.includes(projectId)
+            const matches = jobs.some(
+              (job) => job.name.includes(projectId) || run.display_title.includes(projectId),
             );
 
             return { run, matches };
@@ -90,7 +92,7 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
             console.error(`Error fetching jobs for run ${run.id}:`, err);
             return { run, matches: false };
           }
-        })
+        }),
       );
 
       // Filter and map to simple clean format
@@ -109,8 +111,11 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
 
       return { history: filteredHistory };
     } catch (err) {
-      console.warn('[getStoreDeploymentHistory] Gracefully caught error (likely missing or invalid github-pat secret):', err);
+      console.warn(
+        '[getStoreDeploymentHistory] Gracefully caught error (likely missing or invalid github-pat secret):',
+        err,
+      );
       return { history: [] };
     }
-  }
+  },
 );
