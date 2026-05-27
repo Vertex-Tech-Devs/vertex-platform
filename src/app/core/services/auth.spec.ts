@@ -8,12 +8,14 @@ const {
   mockSignOut,
   mockGetIdTokenResult,
   mockSignInWithRedirect,
+  mockGetRedirectResult,
 } = vi.hoisted(() => ({
   mockUnsubscribe: vi.fn(),
   mockOnAuthStateChanged: vi.fn(),
   mockSignOut: vi.fn().mockResolvedValue(undefined),
   mockGetIdTokenResult: vi.fn(),
   mockSignInWithRedirect: vi.fn(),
+  mockGetRedirectResult: vi.fn().mockResolvedValue(null),
 }));
 
 let capturedAuthCallback: ((user: unknown) => Promise<void>) | null = null;
@@ -23,6 +25,7 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: mockOnAuthStateChanged,
   GoogleAuthProvider: vi.fn(),
   signInWithRedirect: mockSignInWithRedirect,
+  getRedirectResult: mockGetRedirectResult,
   signOut: mockSignOut,
   getIdTokenResult: mockGetIdTokenResult,
 }));
@@ -86,5 +89,19 @@ describe('AuthService', () => {
     mockSignInWithRedirect.mockRejectedValue(new Error('redirect-failed'));
     await service.loginWithGoogle();
     expect(service.authError()).toBe('unknown');
+  });
+
+  it('sets unknown error when getRedirectResult rejects', async () => {
+    mockGetRedirectResult.mockRejectedValue({ code: 'auth/invalid-credential' });
+    TestBed.resetTestingModule();
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, cb: (user: unknown) => void) => {
+      capturedAuthCallback = cb as (user: unknown) => Promise<void>;
+      return mockUnsubscribe;
+    });
+    TestBed.configureTestingModule({ providers: [AuthService] });
+    const svc = TestBed.inject(AuthService);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(svc.authError()).toBe('unknown');
+    expect(svc.authErrorCode()).toBe('auth/invalid-credential');
   });
 });

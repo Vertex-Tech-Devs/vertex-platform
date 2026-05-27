@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   getIdTokenResult,
@@ -23,6 +24,13 @@ export class AuthService {
   readonly isLoading = computed(() => this.user() === undefined);
 
   constructor() {
+    getRedirectResult(this.auth).catch((err) => {
+      const code = (err as { code?: string })?.code ?? '';
+      console.error('[Auth] getRedirectResult failed:', code, err);
+      this.authErrorCode.set(code);
+      this.authError.set('unknown');
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     onAuthStateChanged(this.auth, async (u) => {
       if (u) {
