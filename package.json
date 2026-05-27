@@ -38,7 +38,7 @@
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
-    "firebase": "^12.12.1",
+    "firebase": "^12.13.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -56,7 +56,7 @@
     "@typescript-eslint/parser": "^8.59.4",
     "cypress": "^14.5.4",
     "eslint": "^9.39.4",
-    "firebase-admin": "^13.8.0",
+    "firebase-admin": "^13.10.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "start-server-and-test": "^2.1.2",
