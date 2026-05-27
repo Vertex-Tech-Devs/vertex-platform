@@ -110,6 +110,38 @@ npm run add-admin vertex.tech.dev@gmail.com
 
 ---
 
+## 🧭 Orquestación de Acceso de Tiendas
+
+La plataforma administra el acceso admin de cada tienda de forma centralizada y sin contraseñas locales:
+
+1. `provisioning.ts` preautoriza el correo del owner en `admin_roles` del proyecto de la tienda.
+2. `inviteStaff` escribe correos y roles (`admin`, `warehouse`, `fulfillment`, `analyst`) en `admin_roles` del runtime project.
+3. El frontend de tienda permite solo login con Google OAuth y valida claims de acceso.
+
+### Política de Login de Tienda
+
+- Método único permitido: Google OAuth.
+- Flujo de password reset para acceso admin: deshabilitado para operación estándar.
+- Dominio OAuth: la provisión sincroniza `authorizedDomains` con `*.web.app`, `*.firebaseapp.com` y dominio custom si existe.
+
+---
+
+## 📈 Observabilidad de Provisioning
+
+El estado de alta de tienda se expone de manera continua en `stores/{id}`:
+
+- `status`: `provisioning`, `active`, `suspended`, `error`.
+- `provisioningSteps`: estado por paso (`pending`, `running`, `done`, `error`) con detalle de error cuando aplica.
+- `updatedAt`: timestamp operativo para seguimiento en vivo.
+
+En UI de plataforma:
+
+1. Lista de tiendas: muestra paso actual, porcentaje y barra de progreso.
+2. Detalle de tienda: muestra paso actual, completados/total y última actualización.
+3. Reintentos: disponibles cuando la tienda queda en `error`.
+
+---
+
 ## 🛡️ Gobernanza de Despliegues y Ramas
 
 El repositorio sigue un esquema estricto de flujo continuo para asegurar la estabilidad operacional.

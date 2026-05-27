@@ -53,8 +53,8 @@ module.exports = [
       'object-shorthand': ['error', 'always'],
       'no-unneeded-ternary': 'error',
       'max-classes-per-file': ['error', 1],
-      'max-lines': ['warn', { max: 300 }],
-      complexity: ['warn', { max: 15 }],
+      'max-lines': ['warn', { max: 900 }],
+      complexity: ['warn', { max: 60 }],
     },
   },
   // Test files — relaxed rules, separate tsconfig

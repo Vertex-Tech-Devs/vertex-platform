@@ -106,6 +106,20 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
               <p class="store-card__meta">
                 {{ store.ownerEmail }}
               </p>
+              @if (store.status === 'provisioning' || store.status === 'error') {
+                <div class="store-card__progress">
+                  <div class="store-card__progress-head">
+                    <span>{{ provisioningStepLabel(store) }}</span>
+                    <span>{{ provisioningPercent(store) }}%</span>
+                  </div>
+                  <div class="store-card__progress-bar">
+                    <div
+                      class="store-card__progress-fill"
+                      [style.width.%]="provisioningPercent(store)"
+                    ></div>
+                  </div>
+                </div>
+              }
             </a>
           }
         </div>
@@ -146,5 +160,36 @@ export class StoresList {
 
   statusLabel(s: Store['status']): string {
     return STATUS_LABELS[s];
+  }
+
+  provisioningPercent(store: Store): number {
+    const steps = store.provisioningSteps ?? {};
+    const entries = Object.values(steps);
+    if (entries.length === 0) {
+      return 0;
+    }
+    const done = entries.filter((step) => step.status === 'done').length;
+    return Math.round((done / entries.length) * 100);
+  }
+
+  provisioningStepLabel(store: Store): string {
+    const steps = store.provisioningSteps ?? {};
+    const ordered = Object.values(steps);
+    const running = ordered.find((step) => step.status === 'running');
+    if (running) {
+      return `En curso: ${running.label}`;
+    }
+
+    const failed = ordered.find((step) => step.status === 'error');
+    if (failed) {
+      return `Falló: ${failed.label}`;
+    }
+
+    const pending = ordered.find((step) => step.status === 'pending');
+    if (pending) {
+      return `Pendiente: ${pending.label}`;
+    }
+
+    return 'Provisioning completado, esperando validación final';
   }
 }
