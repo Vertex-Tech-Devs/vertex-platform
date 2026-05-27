@@ -7,13 +7,13 @@ const {
   mockOnAuthStateChanged,
   mockSignOut,
   mockGetIdTokenResult,
-  mockSignInWithPopup,
+  mockSignInWithRedirect,
 } = vi.hoisted(() => ({
   mockUnsubscribe: vi.fn(),
   mockOnAuthStateChanged: vi.fn(),
   mockSignOut: vi.fn().mockResolvedValue(undefined),
   mockGetIdTokenResult: vi.fn(),
-  mockSignInWithPopup: vi.fn(),
+  mockSignInWithRedirect: vi.fn(),
 }));
 
 let capturedAuthCallback: ((user: unknown) => Promise<void>) | null = null;
@@ -22,7 +22,7 @@ vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({ currentUser: null })),
   onAuthStateChanged: mockOnAuthStateChanged,
   GoogleAuthProvider: vi.fn(),
-  signInWithPopup: mockSignInWithPopup,
+  signInWithRedirect: mockSignInWithRedirect,
   signOut: mockSignOut,
   getIdTokenResult: mockGetIdTokenResult,
 }));
@@ -75,16 +75,15 @@ describe('AuthService', () => {
     expect(service.authError()).toBe('unauthorized');
   });
 
-  it('loginWithGoogle sets unauthorized when platformAdmin claim is missing', async () => {
-    mockSignInWithPopup.mockResolvedValue({ user: { uid: 'xyz' } });
-    mockGetIdTokenResult.mockResolvedValue({ claims: {} });
+  it('loginWithGoogle starts redirect flow', async () => {
+    mockSignInWithRedirect.mockResolvedValue(undefined);
     await service.loginWithGoogle();
-    expect(mockSignOut).toHaveBeenCalled();
-    expect(service.authError()).toBe('unauthorized');
+    expect(mockSignInWithRedirect).toHaveBeenCalled();
+    expect(service.authError()).toBeNull();
   });
 
-  it('loginWithGoogle sets unknown error on popup exception', async () => {
-    mockSignInWithPopup.mockRejectedValue(new Error('popup-closed'));
+  it('loginWithGoogle sets unknown error on redirect exception', async () => {
+    mockSignInWithRedirect.mockRejectedValue(new Error('redirect-failed'));
     await service.loginWithGoogle();
     expect(service.authError()).toBe('unknown');
   });
