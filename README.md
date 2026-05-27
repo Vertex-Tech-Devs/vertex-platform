@@ -67,11 +67,25 @@ npm test
 # E2E tests (Cypress)
 npm run e2e:ci
 
+# Cross-repo integration (Platform + Storefront)
+# Requires sibling folder ../ecommerce-vertex checked out locally
+npm run test:integration
+
+# Same integration flow with Playwright UI
+npm run test:integration:ui
+
+# Full local orchestrator (starts both apps and runs integration suite)
+npm run test:integration:env
+
 # Functions unit tests (Vitest, node environment)
 cd functions && npm test
 ```
 
-Both suites run in CI on every PR and push to `main`.
+CI behavior:
+
+- `develop` / `main` PRs run lint, typecheck, unit, build, security and Cypress.
+- PRs targeting `main` additionally run integration tests.
+- Cross-repo integration in CI requires `CROSS_REPO_PAT` secret; otherwise it is reported as stub.
 
 ## Building
 

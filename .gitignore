@@ -73,3 +73,8 @@ scripts/check-root-collections.ts
 scripts/inspect-prueba-tres.ts
 scripts/delete-prueba-tres.ts
 ext-params.env
+
+# Local exploratory and generated artifacts
+scratch/
+playwright-report/
+test-results/

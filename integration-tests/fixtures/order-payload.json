@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "var-001",
+      "productId": "prod-1",
+      "variantId": "var-001",
+      "name": "Producto Semilla 1",
+      "price": 1000,
+      "quantity": 2,
+      "image": "https://via.placeholder.com/80",
+      "attributes": {},
+      "stock": 20
+    }
+  ],
+  "total": 2000
+}
