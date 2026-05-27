@@ -893,7 +893,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Step 2: Configure and enable the Email/Password sign-in method
+        // Step 2: Configure and enable Email/Password + Google OAuth sign-in methods
         await apiFetch(
           auth,
           `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
@@ -909,6 +909,32 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             quotaProject: projectId,
           },
         );
+
+        // Step 3: Enable Google as an OAuth IdP so the "Sign in with Google" button
+        // works on the storefront without any manual Firebase Console configuration.
+        try {
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            {
+              method: 'PATCH',
+              body: {
+                name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+                enabled: true,
+              },
+              quotaProject: projectId,
+            },
+          );
+          console.info(
+            `[provisioning:initAdmin] Google OAuth IdP enabled for project ${projectId}`,
+          );
+        } catch (googleIdpErr) {
+          // Non-fatal: log and continue. The store admin can enable Google manually
+          // from the Firebase console if the API call fails (e.g., missing OAuth client).
+          console.warn(
+            `[provisioning:initAdmin] Could not enable Google IdP automatically (may need manual OAuth client setup): ${googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr)}`,
+          );
+        }
       };
       await retry(initIdentityPlatform, 5, 8000);
 
