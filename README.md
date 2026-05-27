@@ -1,250 +1,226 @@
 # Vertex Platform
 
-Multi-tenant SaaS platform for creating and managing independent e-commerce stores. Each store
-gets its own Firebase project provisioned automatically through Cloud Functions.
+Control plane for tenant provisioning, operations, and governance in the Vertex ecosystem.
 
-## Tech stack
+Resumen ES: plataforma de control para crear, operar y gobernar tiendas multi-tenant.
 
-- **Frontend**: Angular 21, standalone components, signals, `ChangeDetectionStrategy.OnPush`
-- **Backend**: Firebase Functions v2 (Gen2 / Cloud Run), TypeScript
-- **Database**: Firestore
-- **Auth**: Firebase Auth with custom claims (`platformAdmin: true`)
-- **CI/CD**: GitHub Actions → Firebase Hosting + Functions
+## Quick Start (10 minutes) / Inicio Rapido (10 minutos)
 
-## Environments
+### EN
 
-| Env         | Firebase project      | URL                                 |
-| ----------- | --------------------- | ----------------------------------- |
-| Production  | `vertex-platform-app` | https://vertex-platform-app.web.app |
-| Development | `vertex-platform-dev` | https://vertex-platform-dev.web.app |
+1. Install dependencies.
+2. Authenticate Firebase and Google Cloud.
+3. Start the app.
+4. Run baseline quality checks.
 
-## Prerequisites
+### ES
 
-- Node.js 20+
-- Firebase CLI (`npm install -g firebase-tools`)
-- Google Cloud SDK (`gcloud`)
-- Two gcloud configurations:
-  - `default` — personal account (`juan.l.espeche@gmail.com`) → dev
-  - `vertex-prod` — Vertex account (`vertex.tech.dev@gmail.com`) → prod
+1. Instala dependencias.
+2. Autentica Firebase y Google Cloud.
+3. Inicia la app.
+4. Ejecuta validaciones base.
 
-## Local setup
+Commands:
 
 ```bash
-# Install root dependencies (--legacy-peer-deps needed: @angular/fire@20 / Angular 21 peer conflict)
 npm ci --legacy-peer-deps
-
-# Install functions dependencies
 cd functions && npm ci && cd ..
-
-# Log in to Firebase
 firebase login
-
-# Set up local ADC for dev project
 gcloud auth application-default login
 gcloud auth application-default set-quota-project vertex-platform-dev
-```
-
-## Development server
-
-```bash
 npm run start
-# → http://localhost:4200
+npm run lint && npm run typecheck
 ```
 
-## Code quality
+## Contents
+
+- Overview / Resumen
+- Architecture / Arquitectura
+- Environments / Entornos
+- Setup and Commands / Configuracion y Comandos
+- Quality and Testing / Calidad y Testing
+- Deploy and Release Governance / Despliegue y Gobernanza
+- Access Control / Control de Acceso
+- Incident Runbooks / Runbooks de Incidentes
+- Documentation Index
+
+## Overview / Resumen
+
+### EN
+
+Vertex Platform orchestrates tenant lifecycle operations and cross-repo integrations with ecommerce templates.
+
+### ES
+
+Vertex Platform orquesta el ciclo de vida de tenants y la integracion cross-repo con templates ecommerce.
+
+Core capabilities:
+
+- Tenant provisioning and lifecycle management
+- Runtime and capacity administration
+- Billing account management
+- Platform user and role administration
+- Cross-repo integration orchestration
+
+## Architecture / Arquitectura
+
+Stack:
+
+- Frontend: Angular 21, standalone components, signals
+- Backend: Firebase Functions v2 + v1 triggers (TypeScript)
+- Data: Firestore
+- Auth: Firebase Auth + custom claims
+- CI/CD: GitHub Actions
+
+Main backend modules:
+
+- functions/src/admin.ts
+- functions/src/provisioning.ts
+- functions/src/stores.ts
+- functions/src/billing.ts
+- functions/src/versioning.ts
+
+## Environments / Entornos
+
+| Environment | Project ID | URL |
+| --- | --- | --- |
+| Development | vertex-platform-dev | https://vertex-platform-dev.web.app |
+| Production | vertex-platform-app | https://vertex-platform-app.web.app |
+
+Recommended operator split:
+
+- Dev operations: juan.l.espeche@gmail.com
+- Prod operations: vertex.tech.dev@gmail.com
+
+## Setup and Commands / Configuracion y Comandos
+
+Prerequisites:
+
+- Node.js 20+
+- npm 10+
+- Firebase CLI
+- Google Cloud SDK
+
+Core commands:
 
 ```bash
-npm run lint        # ESLint (Angular + TypeScript rules)
-npm run typecheck   # tsc --noEmit (no emit, just type checking)
-```
-
-## Tests
-
-```bash
-# Angular unit tests (Vitest via @angular/build:unit-test)
+# App
+npm run start
+npm run build:dev
+npm run build:prod
+npm run lint
+npm run typecheck
 npm test
-
-# E2E tests (Cypress)
 npm run e2e:ci
 
-# Cross-repo integration (Platform + Storefront)
-# Requires sibling folder ../ecommerce-vertex checked out locally
+# Integration and QA
 npm run test:integration
-
-# Same integration flow with Playwright UI
 npm run test:integration:ui
-
-# Full local orchestrator (starts both apps and runs integration suite)
 npm run test:integration:env
+npm run qa
+npm run qa:full
 
-# Functions unit tests (Vitest, node environment)
-cd functions && npm test
-```
+# Functions
+cd functions
+npm run build
+npm run test
 
-CI behavior:
-
-- `develop` / `main` PRs run lint, typecheck, unit, build, security and Cypress.
-- PRs targeting `main` additionally run integration tests.
-- Cross-repo integration in CI requires `CROSS_REPO_PAT` secret; otherwise it is reported as stub.
-
-## Building
-
-```bash
-npm run build:dev   # Development build → dist/vertex-platform/browser
-npm run build:prod  # Production build  → dist/vertex-platform/browser
-```
-
-## Deploy
-
-```bash
-# Deploy to dev (uses 'default' gcloud config)
+# Deploy
 npm run deploy:dev
-
-# Deploy to prod (uses 'vertex-prod' gcloud config)
 npm run deploy:prod
 ```
 
-CI auto-deploys to production on every push to `main` via GitHub Actions
-(uses `FIREBASE_SERVICE_ACCOUNT` secret).
+## Quality and Testing / Calidad y Testing
 
-## Admin scripts
+Local baseline:
+
+- lint
+- typecheck
+- unit tests
+- build
+
+CI required gates:
+
+- CI workflow
+- CodeQL workflow
+- Deploy workflow
+- Cross-repo integration gate (when configured)
+
+## Deploy and Release Governance / Despliegue y Gobernanza
+
+Long-lived branches:
+
+- develop = integration
+- main = release
+
+Mandatory policy:
+
+1. Promote only with PR develop -> main.
+2. Back-sync with PR main -> develop after release.
+3. No direct push bypass on protected branches.
+4. Do not merge with delete-branch when PR head is main or develop.
+
+## Access Control / Control de Acceso
+
+Authorization model:
+
+- platformAdmin claim: required for platform operations
+- superAdmin claim: required for role administration
+
+Protected super-admin baseline (enforced):
+
+- juan.l.espeche@gmail.com
+- vertex.tech.dev@gmail.com
+
+Enforcement behavior:
+
+- Protected accounts are auto-seeded as superAdmin in platformAdmins.
+- Protected accounts cannot be removed by standard role flows.
+- Claim drift is corrected by synchronization logic.
+- New auth records for protected users are elevated automatically.
+
+Manual recovery:
 
 ```bash
-# Add / remove platform admin users
-npm run add-admin    # prompts for email
-npm run remove-admin # prompts for email
-
-# Seed test stores in dev
-npm run seed:stores
-
-# Set up provisioning prerequisites
-npm run setup-provisioning
-
-# Register or update shared-shard capacity metadata
-npm run register-shard -- --shard-id=prod-shard-01 --project-id=vertex-shared-prod --site-id=vertex-shared-prod --environment=production --max-stores=100
+npm run add-admin juan.l.espeche@gmail.com -- --dev
+npm run add-admin juan.l.espeche@gmail.com
+npm run add-admin vertex.tech.dev@gmail.com -- --dev
+npm run add-admin vertex.tech.dev@gmail.com
 ```
 
-## Development Workflow
+After changes, user must sign out and sign in again.
 
-### Estrategia de ramas
+## Incident Runbooks / Runbooks de Incidentes
 
-| Rama        | Propósito                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `main`      | Rama de producción. Todo commit en esta rama dispara el CI/CD hacia `vertex-platform-app`. |
-| `develop`   | Rama de integración continua. Base de todo trabajo nuevo.                                  |
-| `feature/*` | Ramas de funcionalidad. Se crean desde `develop` y se fusionan a `develop`.                |
-| `hotfix/*`  | Parches urgentes. Se crean desde `main`, se fusionan a `main` **y** a `develop`.           |
+### 1) Main branch appears red / Main en rojo
 
-### Flujo de trabajo estándar
+1. Inspect latest main runs.
+2. If stale/cancelled required contexts exist, create clean sync PR develop -> main.
+3. Wait for required checks to pass.
+4. Merge through protected flow.
 
-```
-feature/* → develop → main
-                ↑
-         (Back-Merge obligatorio)
-```
+### 2) Deploy fails on Cloud Scheduler permissions
 
-### ⚠️ Protocolo Obligatorio de Sincronización Inversa (Back-Merge)
+1. Ensure cloudscheduler.googleapis.com is enabled.
+2. Ensure deployment principal has scheduler update permissions.
+3. Re-run failed Deploy workflow.
 
-**REGLA CRÍTICA:** Cada vez que se realice un merge de `develop` → `main` (o se aplique un `hotfix`), es **MANDATORIO** ejecutar inmediatamente el siguiente bloque de sincronización inversa para evitar divergencias de historial en el pipeline multi-tenant.
+### 3) Login denied with unauthorized access
 
-El criterio de éxito es que `git diff develop..main` **no devuelva ninguna salida de código fuente**.
+1. Validate missing platformAdmin claim.
+2. Re-assign role using add-admin script.
+3. User signs out/signs in.
 
-```bash
-# Flujo Obligatorio de Sincronización Inversa (Back-Merge)
-git checkout develop
-git pull origin develop
-git merge origin/main
-# Resolver conflictos manteniendo la estabilidad si los hubiera
-git push origin develop
-```
+## Documentation Index
 
-> **¿Por qué es obligatorio?** El pipeline de aprovisionamiento multi-tenant genera commits automáticos (incrementos de versión en `package.json`, actualizaciones de `CURRENT_TEMPLATE_VERSION` en `provisioning.ts`). Si `develop` diverge de `main`, estos incrementos se pierden en el próximo merge, causando regresiones silenciosas de versión en los tenants ya desplegados.
+- docs/development.md
+- docs/testing-unified.md
+- docs/scalability-roadmap.md
+- docs/email-provisioning.md
+- docs/github-rulesets.md
+- .github/CONTRIBUTING.md
+- .github/dependabot.yml
+- SECURITY.md
+- .github/CODEOWNERS
 
-### Ciclo de vida de un incremento de versión
-
-1. Se mergea `develop` → `main` (PR aprobado)
-2. CI/CD despliega automáticamente a producción
-3. **Inmediatamente** ejecutar el Back-Merge (`main` → `develop`)
-4. Verificar con `git diff develop..main` que no hay divergencia
-5. Recién entonces crear la próxima rama `feature/*`
-
----
-
-## Architecture
-
-## Scalability Direction
-
-The current `1 store = 1 Firebase/GCP project` provisioning model is operationally functional but not the long-term business architecture.
-
-- Google Cloud `projects_count` becomes a hard blocker as stores grow.
-- Projects in `DELETE_REQUESTED` continue counting against that quota until permanently purged.
-- The target architecture is a `shared-shard` runtime model where many stores share one runtime project and are isolated by `tenantId`.
-
-The detailed migration plan lives in [docs/scalability-roadmap.md](docs/scalability-roadmap.md).
-
-High-level target:
-
-- `shared-shard` is the default runtime mode for new stores.
-- `dedicated-project` remains only for premium exceptions.
-- Initial target capacity is `100` stores per shard.
-
-Legacy dedicated-project provisioning remains documented below because it is still the active compatibility path today.
-
-### Functions modules
-
-| Module            | Functions                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `admin.ts`        | `manageAdmin`, `listAdmins`                                                                |
-| `provisioning.ts` | `provisionStore`, `runProvisioning`                                                        |
-| `stores.ts`       | `redeployStore`, `deleteStore`, `connectDomain`, `getActiveStores`                         |
-| `billing.ts`      | `listBillingAccounts`, `addBillingAccount`, `updateBillingAccount`, `removeBillingAccount` |
-
-### Store provisioning flow
-
-1. Admin calls `provisionStore` → Firestore doc created with `status: 'provisioning'`
-2. `runProvisioning` Firestore trigger fires → 8 sequential GCP steps
-3. Steps are idempotent — safe to retry on error
-4. Step 8 dispatches `repository_dispatch` to `ecommerce-vertex` repo
-5. ecommerce-vertex CI builds and deploys the store's Angular app
-
-### Firestore schema
-
-```
-stores/{storeId}
-  status: 'provisioning' | 'active' | 'suspended' | 'error'
-  slug: string               # unique, 3–20 chars, [a-z0-9-]
-  firebaseProjectId: string  # vtx-{slug}
-  billingAccountId: string
-  provisioningSteps: Record<stepId, { status, label, error? }>
-  /private/firebaseConfig: { apiKey, authDomain, projectId, ... }
-
-billingAccounts/{accountId}
-  active: boolean
-  maxProjects: number
-  addedAt: Timestamp
-```
-
-### Key secrets (Secret Manager — `vertex-platform-app`)
-
-| Secret                            | Purpose                                                                                                   |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `platform-owner-credentials`      | Legacy single-owner OAuth2 ADC kept as backward-compatible fallback                                       |
-| `platform-owner-credentials-pool` | Array of provisioning owner credentials used to rotate GCP project creation across multiple quota buckets |
-| `github-pat`                      | GitHub PAT with `repo` scope — dispatches to ecommerce-vertex                                             |
-| `deploy-token`                    | Machine-to-machine auth token for `getActiveStores`                                                       |
-
-## Security
-
-- All Cloud Functions require `platformAdmin: true` custom claim.
-- CORS is strictly restricted to `vertex-platform-app.web.app` and `vertex-platform-dev.web.app`.
-- Slug validated server-side: `/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/`.
-- Error messages sanitized before returning to clients.
-- **Firebase Auth Domain Best Practice**: When developing locally, add `localhost` as an authorized domain _strictly_ inside the Dev project (`vertex-platform-dev`). **Never** add `localhost` to the Production project (`vertex-platform-app` / `vertex-prod`) to prevent phishing and session hijacking vulnerabilities.
-
-## Custom Seeding Engine & Mock Data
-
-The platform features a premium seeding engine that customizes the demo storefront's catalogs dynamically based on the vertical (Fashion, Gastronomy, Retail) and commercial identity defined by the tenant.
-
-- **`includeMockData` Toggle Flag**: During both store creation and manual store database seeding (from the Orchestration panel), you can check/uncheck the **"Datos de Demostración"** checkbox to include or skip the 20 simulated clients and 20 simulated orders.
-- **Why this option exists**: Firestore security rules in the storefront project (`ecommerce-vertex`) block editing or deleting client records (`allow write: if false`), and orders are permanent transactions. Omit this mock data to keep the database completely clean for pure production tenants, while still pre-populating attributes, categories, customized pages, and personalized banners.
-- **Personalized Brand Engine**: The backend runs a recursive customizer (`customizeSeed`) that automatically replaces all references of `'Vertex'` with the store's dynamic commercial name inside product details, categories, pages, and footer contact handles.
+Maintainer note: keep this README as canonical operational documentation. Use docs/ for deep-dive specifications and link them here.
