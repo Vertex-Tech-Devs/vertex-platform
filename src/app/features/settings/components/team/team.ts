@@ -17,6 +17,7 @@ export class Team implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly newEmail = signal('');
+  readonly newRole = signal<'superAdmin' | 'platformAdmin'>('platformAdmin');
   readonly isAdding = signal(false);
   readonly addError = signal('');
   readonly removingUid = signal<string | null>(null);
@@ -31,8 +32,9 @@ export class Team implements OnInit {
     this.isAdding.set(true);
     this.addError.set('');
     try {
-      await this.adminsService.addAdmin(email);
+      await this.adminsService.addAdmin(email, this.newRole());
       this.newEmail.set('');
+      this.newRole.set('platformAdmin');
     } catch (err: unknown) {
       this.addError.set(err instanceof Error ? err.message : 'Error al agregar admin.');
     } finally {

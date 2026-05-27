@@ -8,6 +8,7 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const args = process.argv.slice(2);
 const email = args.find((a) => !a.startsWith('--'));
@@ -23,19 +24,32 @@ const projectId = isDev ? 'vertex-platform-dev' : 'vertex-platform-app';
 initializeApp({ projectId });
 
 const auth = getAuth();
+const db = getFirestore();
 
 void (async () => {
   try {
     const user = await auth.getUserByEmail(email);
     const currentClaims = user.customClaims ?? {};
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (remove) {
-      const { platformAdmin: _, ...rest } = currentClaims as Record<string, unknown>;
+      const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims as Record<string, unknown>;
       await auth.setCustomUserClaims(user.uid, rest);
-      console.log(`✅ Removed platform admin access from ${email} in project "${projectId}"`);
+      await db.collection('platformAdmins').doc(normalizedEmail).delete();
+      console.log(`✅ Removed super admin access and Firestore document for ${email} in project "${projectId}"`);
     } else {
-      await auth.setCustomUserClaims(user.uid, { ...currentClaims, platformAdmin: true });
-      console.log(`✅ ${email} is now a platform admin in project "${projectId}"`);
+      await auth.setCustomUserClaims(user.uid, {
+        ...currentClaims,
+        platformAdmin: true,
+        superAdmin: true,
+      });
+      await db.collection('platformAdmins').doc(normalizedEmail).set({
+        email: normalizedEmail,
+        role: 'superAdmin',
+        addedAt: new Date(),
+        addedBy: 'cli-script',
+      });
+      console.log(`✅ ${email} is now a super admin in project "${projectId}"`);
       console.log('   They must sign out and back in for the claim to take effect.');
     }
   } catch (err: unknown) {

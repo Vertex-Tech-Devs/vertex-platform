@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
+import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
 import type { DeploymentHistoryItem } from '@core/services/stores';
 import type {
@@ -37,6 +38,7 @@ const STEP_ORDER = [
 })
 export class StoreDetail implements OnInit, OnDestroy {
   private storesService = inject(StoresService);
+  readonly auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);

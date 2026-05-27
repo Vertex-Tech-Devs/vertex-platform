@@ -16,6 +16,7 @@ export class AuthService {
   private auth = getAuth();
 
   readonly user = signal<User | null | undefined>(undefined);
+  readonly isSuperAdmin = signal<boolean>(false);
   readonly authError = signal<AuthError | null>(null);
   readonly authErrorCode = signal<string>('');
   readonly isLoggedIn = computed(() => !!this.user());
@@ -28,8 +29,12 @@ export class AuthService {
         if (!token.claims['platformAdmin']) {
           await signOut(this.auth);
           this.authError.set('unauthorized');
+          this.isSuperAdmin.set(false);
           return;
         }
+        this.isSuperAdmin.set(token.claims['superAdmin'] === true);
+      } else {
+        this.isSuperAdmin.set(false);
       }
       this.user.set(u);
     });
@@ -44,12 +49,15 @@ export class AuthService {
       if (!token.claims['platformAdmin']) {
         await signOut(this.auth);
         this.authError.set('unauthorized');
+        this.isSuperAdmin.set(false);
         return;
       }
+      this.isSuperAdmin.set(token.claims['superAdmin'] === true);
     } catch (err) {
       const code = (err as { code?: string })?.code ?? '';
       console.error('[Auth] loginWithGoogle failed:', code, err);
       this.authErrorCode.set(code);
+      this.isSuperAdmin.set(false);
       if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
         this.authError.set('popup-blocked');
       } else {
@@ -59,6 +67,7 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    this.isSuperAdmin.set(false);
     await signOut(this.auth);
   }
 }

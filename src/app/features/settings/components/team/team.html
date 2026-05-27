@@ -22,6 +22,15 @@
         (input)="newEmail.set($any($event.target).value)"
         (keydown.enter)="addAdmin()"
       />
+      <select
+        class="form-control"
+        style="max-width: 180px; margin: 0 0.5rem;"
+        [value]="newRole()"
+        (change)="newRole.set($any($event.target).value)"
+      >
+        <option value="platformAdmin">Platform Admin</option>
+        <option value="superAdmin">Super Admin</option>
+      </select>
       <button class="btn btn-primary" (click)="addAdmin()" [disabled]="isAdding() || !newEmail().trim()">
         {{ isAdding() ? 'Agregando…' : 'Agregar' }}
       </button>
@@ -61,6 +70,11 @@
               <strong>{{ admin.displayName ?? admin.email }}</strong>
               @if (admin.displayName) {
                 <small>{{ admin.email }}</small>
+              }
+              @if (admin.role) {
+                <span class="badge" [class.badge--super]="admin.role === 'superAdmin'">
+                  {{ admin.role === 'superAdmin' ? 'Super Admin' : 'Platform Admin' }}
+                </span>
               }
             </div>
             @if (admin.email === auth.user()?.email) {

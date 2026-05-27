@@ -6,6 +6,7 @@ export interface AdminInfo {
   email: string;
   displayName: string | undefined;
   photoURL: string | undefined;
+  role?: 'superAdmin' | 'platformAdmin';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -30,9 +31,9 @@ export class AdminsService {
     }
   }
 
-  async addAdmin(email: string): Promise<void> {
+  async addAdmin(email: string, role: 'superAdmin' | 'platformAdmin' = 'platformAdmin'): Promise<void> {
     const manageAdmin = httpsCallable(this.fns, 'manageAdmin');
-    await manageAdmin({ email, action: 'add' });
+    await manageAdmin({ email, action: 'add', role });
     await this.loadAdmins();
   }
 

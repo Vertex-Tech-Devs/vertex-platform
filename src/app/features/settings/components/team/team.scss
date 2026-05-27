@@ -176,3 +176,24 @@
 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+
+.badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--platform-text-secondary);
+  border: 1px solid var(--platform-card-border);
+  margin-top: 0.2rem;
+  width: fit-content;
+
+  &--super {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+}
+
