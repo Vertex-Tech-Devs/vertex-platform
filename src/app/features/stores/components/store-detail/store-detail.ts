@@ -23,6 +23,7 @@ const STEP_ORDER = [
   'enableApis',
   'createWebApp',
   'initFirestore',
+  'configureEmail',
   'initAdmin',
   'grantAccess',
   'triggerDeploy',
@@ -56,10 +57,27 @@ export class StoreDetail implements OnInit, OnDestroy {
     return STEP_ORDER.filter((id) => id in steps);
   });
 
-  readonly progressPercent = computed(() => {
+  readonly provisioningSnapshot = computed(() => {
     const steps = this.store()?.provisioningSteps ?? {};
-    const done = Object.values(steps).filter((s) => s.status === 'done').length;
-    return Math.round((done / STEP_ORDER.length) * 100);
+    const ordered = this.orderedSteps().map((id) => ({ id, ...steps[id] }));
+    const total = ordered.length;
+    const done = ordered.filter((step) => step.status === 'done').length;
+    const running = ordered.find((step) => step.status === 'running');
+    const failed = ordered.find((step) => step.status === 'error');
+    const pending = ordered.find((step) => step.status === 'pending');
+    const current = running ?? failed ?? pending ?? ordered[ordered.length - 1];
+
+    return {
+      total,
+      done,
+      percent: total > 0 ? Math.round((done / total) * 100) : 0,
+      currentLabel: current?.label ?? 'Esperando inicio',
+      currentStatus: current?.status ?? 'pending',
+    };
+  });
+
+  readonly progressPercent = computed(() => {
+    return this.provisioningSnapshot().percent;
   });
 
   // Action loading signals
@@ -482,11 +500,11 @@ export class StoreDetail implements OnInit, OnDestroy {
       const result = await this.storesService.inviteStaff(s.id, email!, role!);
       if (result.inviteEmailSent) {
         this.inviteSuccess.set(
-          `Invitación enviada con éxito a ${email}. Se generó y despachó el correo de acceso.`,
+          `Invitación enviada con éxito a ${email}. El acceso queda habilitado con Google OAuth y el rol seleccionado.`,
         );
       } else {
         this.inviteSuccess.set(
-          `Usuario creado y rol asignado para ${email}, pero el email automático falló. Podés reenviar acceso desde Firebase Auth.`,
+          `El correo ${email} quedó preautorizado con rol ${role}, pero el email automático falló. Compartí manualmente el acceso por Google OAuth.`,
         );
       }
       this.inviteForm.reset({ email: '', role: 'admin' });

@@ -139,7 +139,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       createWebApp: { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
       configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
-      initAdmin: { status: 'pending', label: 'Crear usuario administrador' },
+      initAdmin: { status: 'pending', label: 'Preautorizar acceso administrador (Google)' },
       grantAccess: { status: 'pending', label: 'Configurar permisos de deploy' },
       triggerDeploy: { status: 'pending', label: 'Desplegar tienda' },
     };
@@ -190,6 +190,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     name,
     logoUrl,
     ownerEmail,
+    customDomain,
     firebaseProjectId: projectId,
     billingAccountId,
     verticalId,
@@ -201,6 +202,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     name: string;
     logoUrl: string | null;
     ownerEmail: string;
+    customDomain?: string | null;
     firebaseProjectId: string;
     billingAccountId: string;
     verticalId?: string;
@@ -220,7 +222,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const setStep = async (id: string, status: StepStatus, error?: string): Promise<void> => {
     await storeRef.update({
       [`provisioningSteps.${id}.status`]: status,
-      ...(error ? { [`provisioningSteps.${id}.error`]: error } : {}),
+      ...(error
+        ? { [`provisioningSteps.${id}.error`]: error }
+        : { [`provisioningSteps.${id}.error`]: null }),
       updatedAt: new Date(),
     });
   };
@@ -866,9 +870,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('initAdmin')) {
     await setStep('initAdmin', 'running');
     try {
-      // Initialize Identity Platform configuration (enables Email/Password provider)
+      const normalizedOwnerEmail = ownerEmail.trim().toLowerCase();
+
+      // Initialize Identity Platform configuration for Google OAuth-only store login.
       const initIdentityPlatform = async (): Promise<void> => {
-        // Step 1: Initialize Identity Platform configuration on the target project
         try {
           await apiFetch(
             auth,
@@ -893,7 +898,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Step 2: Configure and enable Email/Password + Google OAuth sign-in methods
+        // Disable email/password so Google OAuth is the only login method.
         await apiFetch(
           auth,
           `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
@@ -902,7 +907,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             body: {
               signIn: {
                 email: {
-                  enabled: true,
+                  enabled: false,
                 },
               },
             },
@@ -910,8 +915,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
         );
 
-        // Step 3: Enable Google as an OAuth IdP so the "Sign in with Google" button
-        // works on the storefront without any manual Firebase Console configuration.
         try {
           await apiFetch(
             auth,
@@ -935,100 +938,90 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `[provisioning:initAdmin] Could not enable Google IdP automatically (may need manual OAuth client setup): ${googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr)}`,
           );
         }
+
+        // Keep authorized domains aligned with hosted runtime URLs.
+        const config = (await apiFetch(
+          auth,
+          `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
+          {
+            quotaProject: projectId,
+          },
+        )) as { authorizedDomains?: string[] };
+
+        const requiredDomains = new Set<string>([
+          `${projectId}.firebaseapp.com`,
+          `${projectId}.web.app`,
+        ]);
+        if (runtimeSiteId) {
+          requiredDomains.add(`${runtimeSiteId}.web.app`);
+        }
+        if (customDomain) {
+          requiredDomains.add(customDomain.trim().toLowerCase());
+        }
+
+        const existingDomains = config.authorizedDomains ?? [];
+        const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
+        const hasChanges =
+          nextDomains.length !== existingDomains.length ||
+          nextDomains.some((domain) => !existingDomains.includes(domain));
+
+        if (hasChanges) {
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=authorizedDomains`,
+            {
+              method: 'PATCH',
+              body: { authorizedDomains: nextDomains },
+              quotaProject: projectId,
+            },
+          );
+        }
       };
       await retry(initIdentityPlatform, 5, 8000);
 
-      // Create user (retry to handle API propagation delay after enableApis)
-      const createOrFetchUid = async (): Promise<string> => {
-        try {
-          const res = (await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
-            {
-              method: 'POST',
-              body: { email: ownerEmail, emailVerified: false },
-              quotaProject: projectId,
+      const encodedOwnerEmail = encodeURIComponent(normalizedOwnerEmail);
+      await apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedOwnerEmail}`,
+        {
+          method: 'PATCH',
+          body: {
+            fields: {
+              role: { stringValue: 'admin' },
+              source: { stringValue: 'platform-provisioning' },
+              updatedAt: { timestampValue: new Date().toISOString() },
             },
-          )) as { localId: string };
-          return res.localId;
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('EMAIL_EXISTS')) throw err;
-          const lookup = (await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            { method: 'POST', body: { email: [ownerEmail] }, quotaProject: projectId },
-          )) as { users: Array<{ localId: string }> };
-          if (!lookup.users?.length)
-            throw new Error(`User ${ownerEmail} not found after EMAIL_EXISTS`);
-          return lookup.users[0].localId;
-        }
-      };
-      const uid = await retry(createOrFetchUid, 5, 8000);
-
-      // Set admin: true custom claim
-      await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
-        {
-          method: 'POST',
-          body: { localId: uid, customAttributes: JSON.stringify({ admin: true }) },
+          },
           quotaProject: projectId,
         },
       );
 
-      // Send password reset email as the invite link
-      await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        {
-          method: 'POST',
-          body: { requestType: 'PASSWORD_RESET', email: ownerEmail },
-          quotaProject: projectId,
-        },
-      );
+      const loginUrl = runtimeSiteId
+        ? `https://${runtimeSiteId}.web.app/admin/login`
+        : `https://${projectId}.web.app/admin/login`;
 
-      const oobRes = (await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        {
-          method: 'POST',
-          body: { requestType: 'PASSWORD_RESET', email: ownerEmail, returnOobLink: true },
-          quotaProject: projectId,
-        },
-      )) as { oobCode?: string; oobLink?: string };
-
-      let actionLink = oobRes.oobLink || '';
-      if (actionLink && (actionLink.startsWith('?') || actionLink.startsWith('/'))) {
-        const query = actionLink.startsWith('/') ? actionLink : `/${actionLink}`;
-        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action${query}`;
-      } else if (!actionLink && oobRes.oobCode) {
-        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
-      }
-
-      if (actionLink) {
+      if (loginUrl) {
         await storeRef.collection('private').doc('ownerAccess').set(
           {
-            email: ownerEmail,
-            actionLink,
+            email: normalizedOwnerEmail,
+            loginUrl,
             generatedAt: new Date(),
           },
           { merge: true },
         );
 
-        // Send welcome email to the store owner with the invitation/password setup link
-        const emailSubject = `Bienvenido a Vertex - Configura tu tienda ${name}`;
+        const emailSubject = `Bienvenido a Vertex - Acceso habilitado para ${name}`;
         const emailHtml = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
             <h2 style="color: #10b981; margin-top: 0;">¡Felicitaciones! Tu tienda está siendo creada</h2>
             <p>Hola,</p>
             <p>Hemos iniciado el aprovisionamiento de tu nueva tienda <strong>${name}</strong> en la plataforma Vertex.</p>
-            <p>Para configurar tu contraseña de administrador y acceder a tu panel de control, haz clic en el siguiente enlace:</p>
+            <p>Tu correo quedó preautorizado para ingresar al panel administrativo con Google OAuth.</p>
             <p style="margin: 24px 0; text-align: center;">
-              <a href="${actionLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Configurar Contraseña</a>
+              <a href="${loginUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Ingresar con Google</a>
             </p>
             <p style="color: #6b7280; font-size: 14px;">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
-            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;">${actionLink}</p>
+            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;">${loginUrl}</p>
             <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
             <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">Este correo fue enviado automáticamente por Vertex Platform. Por favor, no respondas a este mensaje.</p>
           </div>
@@ -1039,7 +1032,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           message: {
             subject: emailSubject,
             html: emailHtml,
-            text: `Bienvenido a Vertex. Configura tu contraseña de administrador ingresando a: ${actionLink}`,
+            text: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
           },
         });
       }

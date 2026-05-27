@@ -360,52 +360,6 @@ export const getRuntimeCapacitySummary = onCall(
   },
 );
 
-async function ensureEmailPasswordSignInEnabled(
-  auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
-  projectId: string,
-): Promise<void> {
-  const initIdentityPlatform = async (): Promise<void> => {
-    try {
-      await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
-        {
-          method: 'POST',
-          body: {},
-          quotaProject: projectId,
-        },
-      );
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (
-        !msg.includes('ALREADY_EXISTS') &&
-        !msg.includes('already exists') &&
-        !msg.includes('409')
-      ) {
-        throw err;
-      }
-    }
-
-    await apiFetch(
-      auth,
-      `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
-      {
-        method: 'PATCH',
-        body: {
-          signIn: {
-            email: {
-              enabled: true,
-            },
-          },
-        },
-        quotaProject: projectId,
-      },
-    );
-  };
-
-  await retry(initIdentityPlatform, 5, 8000);
-}
-
 function maskToken(token: string): string {
   const trimmed = token.trim();
   if (trimmed.length <= 8) return '********';
@@ -994,7 +948,10 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+    };
     const projectId = resolveRuntimeProjectId(store);
     const auth = await getOwnerOAuthClient();
 
@@ -1082,7 +1039,10 @@ export const getStoreConfig = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+    };
     const projectId = resolveRuntimeProjectId(store);
     const auth = await getOwnerOAuthClient();
 
@@ -1152,8 +1112,15 @@ export const inviteStaff = onCall<InviteStaffPayload>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const store = storeSnap.data() as {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+    };
     const projectId = resolveRuntimeProjectId(store);
+    const loginUrl = store.runtimeSiteId
+      ? `https://${store.runtimeSiteId}.web.app/admin/login`
+      : `https://${projectId}.web.app/admin/login`;
 
     const token = crypto.randomUUID();
     const invitationId = crypto.randomUUID();
@@ -1177,93 +1144,50 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       );
     }
 
-    await ensureEmailPasswordSignInEnabled(auth, projectId);
-
-    let uid: string;
     try {
-      const createRes = (await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
-        {
-          method: 'POST',
-          body: { email: normalizedEmail, emailVerified: false },
-          quotaProject: projectId,
-        },
-      )) as { localId: string };
-      uid = createRes.localId;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('EMAIL_EXISTS')) {
-        console.error(`[inviteStaff] Failed to create auth user in ${projectId}:`, err);
-        throw new HttpsError(
-          'internal',
-          'No se pudo crear el usuario en Firebase Auth del subproyecto.',
-        );
-      }
-
-      const lookup = (await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-        { method: 'POST', body: { email: [normalizedEmail] }, quotaProject: projectId },
-      )) as { users?: Array<{ localId: string }> };
-
-      const existing = lookup.users?.[0]?.localId;
-      if (!existing) {
-        throw new HttpsError(
-          'internal',
-          'No se encontró el usuario existente para completar la invitación.',
-        );
-      }
-      uid = existing;
-    }
-
-    try {
+      const encodedEmail = encodeURIComponent(normalizedEmail);
       await apiFetch(
         auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedEmail}`,
         {
-          method: 'POST',
+          method: 'PATCH',
           body: {
-            localId: uid,
-            customAttributes: JSON.stringify({ role: normalizedRole, storeId }),
+            fields: {
+              role: { stringValue: normalizedRole },
+              source: { stringValue: 'vertex-platform-invite' },
+              updatedAt: { timestampValue: new Date().toISOString() },
+            },
           },
           quotaProject: projectId,
         },
       );
-
-      const { toFirestoreFields } = require('./seeds');
-      const userDoc = {
-        email: normalizedEmail,
-        role: normalizedRole,
-        displayName: '',
-        joinedAt: new Date(),
-      };
-
-      await apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`,
-        {
-          method: 'PATCH',
-          body: toFirestoreFields(userDoc),
-          quotaProject: projectId,
-        },
-      );
     } catch (err) {
-      console.error(`[inviteStaff] Failed to sync claims/profile in ${projectId}:`, err);
-      throw new HttpsError('internal', 'No se pudo asignar rol y perfil al usuario invitado.');
+      console.error(`[inviteStaff] Failed to write admin_roles in ${projectId}:`, err);
+      throw new HttpsError(
+        'internal',
+        'No se pudo preautorizar el correo en la tienda destino para OAuth de Google.',
+      );
     }
 
     let inviteEmailSent = true;
     try {
-      await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        {
-          method: 'POST',
-          body: { requestType: 'PASSWORD_RESET', email: normalizedEmail },
-          quotaProject: projectId,
+      await db.collection('mail').add({
+        to: [normalizedEmail],
+        message: {
+          subject: 'Acceso habilitado en Vertex Store (Google OAuth)',
+          html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.45; color: #0f172a;">
+              <h2 style="margin: 0 0 12px;">Acceso autorizado</h2>
+              <p>Tu correo fue autorizado para acceder al panel administrativo de la tienda.</p>
+              <p><strong>Rol asignado:</strong> ${normalizedRole}</p>
+              <p>Ingresá con Google desde aquí:</p>
+              <p><a href="${loginUrl}">${loginUrl}</a></p>
+              <p style="font-size: 12px; color: #64748b;">Usá exactamente este correo en el login con Google.</p>
+            </div>
+          `,
+          text: `Acceso autorizado en Vertex Store. Rol: ${normalizedRole}. Ingresa con Google en: ${loginUrl}`,
         },
-      );
+      });
 
       await db
         .collection('stores')
@@ -1520,44 +1444,9 @@ export const generatePasswordResetLink = onCall<{ storeId: string; email: string
       throw new HttpsError('permission-denied', 'Only platform admins can generate reset links.');
     }
 
-    const { storeId, email } = request.data;
-    if (!storeId || !email) {
-      throw new HttpsError('invalid-argument', 'storeId and email are required.');
-    }
-
-    const db = getFirestore();
-    const storeSnap = await db.collection('stores').doc(storeId).get();
-    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
-
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
-    const projectId = resolveRuntimeProjectId(store);
-    const auth = await getOwnerOAuthClient();
-
-    try {
-      const oobRes = (await apiFetch(
-        auth,
-        `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:sendOobCode`,
-        {
-          method: 'POST',
-          body: { requestType: 'PASSWORD_RESET', email, returnOobLink: true },
-          quotaProject: projectId,
-        },
-      )) as { oobCode?: string; oobLink?: string };
-
-      const actionLink =
-        oobRes.oobLink ||
-        (oobRes.oobCode
-          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
-          : '');
-
-      if (!actionLink) {
-        throw new Error('No reset link was returned by Identity Toolkit.');
-      }
-      return { success: true, actionLink };
-    } catch (err: any) {
-      console.error(`[generatePasswordResetLink] Failed for ${email} in ${projectId}:`, err);
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpsError('internal', `Failed to generate link: ${msg}`);
-    }
+    throw new HttpsError(
+      'failed-precondition',
+      'Password reset links are disabled. Store admin access is Google OAuth only.',
+    );
   },
 );
