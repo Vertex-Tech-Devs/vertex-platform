@@ -315,13 +315,47 @@ export const getRuntimeCapacitySummary = onCall(
 
     const db = getFirestore();
     const environment = resolvePlatformEnvironment();
+
+    // 1. Fetch shards and extract unique projects
     const shardsSnap = await db.collection('shards').where('environment', '==', environment).get();
     const shards = shardsSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }) as StoreShard)
       .filter((shard) => shard.runtimeMode === 'shared-shard');
+    const shardProjectIds = new Set(shards.map((s) => s.projectId).filter(Boolean));
+
+    // 2. Fetch dedicated project stores and extract unique projects
+    const storesSnap = await db
+      .collection('stores')
+      .where('runtimeMode', '==', 'dedicated-project')
+      .where('status', '==', 'active')
+      .get();
+    const dedicatedProjectIds = new Set(
+      storesSnap.docs.map((doc) => doc.data()['projectId']).filter(Boolean),
+    );
+
+    // 3. Count total unique active projects
+    const totalActiveProjects = new Set([...shardProjectIds, ...dedicatedProjectIds]).size;
+
+    // 4. Fetch billing account max limit
+    const billingAccountsSnap = await db
+      .collection('billingAccounts')
+      .where('active', '==', true)
+      .get();
+    let maxProjectsLimit = 15; // default fallback
+    if (!billingAccountsSnap.empty) {
+      maxProjectsLimit = billingAccountsSnap.docs[0].data()['maxProjects'] || 15;
+    }
+
+    // 5. Calculate usage metrics and check warning threshold (80%)
+    const projectUsageRatio = maxProjectsLimit > 0 ? totalActiveProjects / maxProjectsLimit : 0;
+    const quotaWarning = projectUsageRatio >= 0.8;
 
     return {
       summary: summarizeShardCapacity(shards, environment),
+      totalActiveProjects,
+      maxProjectsLimit,
+      projectUsageRatio,
+      quotaWarning,
     };
   },
 );
