@@ -1,226 +1,150 @@
-# Vertex Platform
+# 🛡️ Vertex Platform
 
-Control plane for tenant provisioning, operations, and governance in the Vertex ecosystem.
+Plano de control (Control Plane) centralizado para el aprovisionamiento, operaciones y gobernanza del ecosistema multi-tenant de Vertex.
 
-Resumen ES: plataforma de control para crear, operar y gobernar tiendas multi-tenant.
+La plataforma coordina todo el ciclo de vida de las tiendas independientes de los clientes, gestiona los recursos de Google Cloud y Firebase, administra las cuentas de facturación y orquesta los despliegues automáticos cruzados (cross-repo) con la plantilla de e-commerce.
 
-## Quick Start (10 minutes) / Inicio Rapido (10 minutos)
+---
 
-### EN
+## 🚀 Inicio Rápido (10 minutos)
 
-1. Install dependencies.
-2. Authenticate Firebase and Google Cloud.
-3. Start the app.
-4. Run baseline quality checks.
+Sigue estos pasos para configurar e iniciar la plataforma localmente en tu entorno de desarrollo:
 
-### ES
+1. **Instalar dependencias:**
+   Asegúrate de instalar los paquetes tanto del frontend de Angular como de las Cloud Functions:
+   ```bash
+   npm ci --legacy-peer-deps
+   cd functions && npm ci && cd ..
+   ```
+   *(Nota: Se requiere `--legacy-peer-deps` debido a compatibilidad de paquetes en la versión de Angular).*
 
-1. Instala dependencias.
-2. Autentica Firebase y Google Cloud.
-3. Inicia la app.
-4. Ejecuta validaciones base.
+2. **Autenticar herramientas CLI:**
+   Autentica tanto Firebase como el SDK de Google Cloud para que la aplicación local pueda interactuar con los servicios correspondientes:
+   ```bash
+   firebase login
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project vertex-platform-dev
+   ```
 
-Commands:
+3. **Iniciar la aplicación:**
+   Ejecuta el servidor de desarrollo de Angular:
+   ```bash
+   npm run start
+   ```
 
+4. **Ejecutar validaciones base:**
+   Valida que el código cumpla con los estándares de tipos y estilo estricto antes de realizar cambios:
+   ```bash
+   npm run lint && npm run typecheck
+   ```
+
+---
+
+## 📁 Contenidos y Arquitectura
+
+* **`src/app`**: Capa frontend construida sobre **Angular 21+**, utilizando arquitectura de componentes independientes (Standalone Components) y gestión de estado mediante **Señales (Signals)** para garantizar un rendimiento óptimo.
+* **`functions/src`**: Capa backend que corre sobre **Firebase Functions v2**. Contiene la lógica core de negocio:
+  * `admin.ts`: Gestión de administradores de la plataforma y asignación de roles.
+  * `provisioning.ts`: Flujo y automatización secuencial de pasos para la creación de proyectos dedicados de GCP por tienda cliente.
+  * `stores.ts`: Operaciones de redimensionamiento, suspensión, eliminación y mapeo de dominios de las tiendas.
+  * `billing.ts`: Gestión y asignación de cuentas de facturación.
+  * `helpers.ts`: Utilidades del sistema, clientes OAuth y reintentos automáticos.
+
+---
+
+## 🌐 Entornos de Operación
+
+La plataforma cuenta con dos entornos principales administrados de forma aislada:
+
+| Entorno | ID de Proyecto Firebase | URL de Acceso | Comando de Despliegue |
+|---------|-------------------------|---------------|-----------------------|
+| **Desarrollo (Dev)** | `vertex-platform-dev` | [vertex-platform-dev.web.app](https://vertex-platform-dev.web.app) | `npm run deploy:dev` |
+| **Producción (Prod)** | `vertex-platform-app` | [vertex-platform-app.web.app](https://vertex-platform-app.web.app) | `npm run deploy:prod` |
+
+*Operadores Recomendados:*
+- Operaciones en Dev: `juan.l.espeche@gmail.com`
+- Operaciones en Prod: `vertex.tech.dev@gmail.com`
+
+---
+
+## 💻 Comandos Útiles de Desarrollo
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run start` | Inicia el servidor de desarrollo de Angular en `http://localhost:4200` |
+| `npm run build:dev` | Compila el frontend configurado para el entorno de desarrollo |
+| `npm run build:prod` | Compila el frontend optimizado para producción |
+| `npm run lint` | Analiza el código con ESLint en búsqueda de errores de formato y estilo |
+| `npm run typecheck` | Ejecuta la verificación estricta de tipos de TypeScript |
+| `npm test` | Corre las pruebas unitarias de la aplicación frontend |
+| `npm run e2e:ci` | Corre las pruebas integrales de punta a punta en Cypress (modo headless) |
+| `npm run qa` | Ejecuta de forma integrada el análisis estático y pruebas unitarias básicas |
+| `npm run qa:full` | Ejecuta la validación exhaustiva de QA, incluyendo pruebas E2E e integración |
+
+---
+
+## 🔑 Control de Acceso y Roles (RBAC)
+
+La plataforma implementa un modelo estricto de autorización basado en reclamos personalizados (**Custom Claims**):
+
+* **`platformAdmin`**: Permiso necesario para realizar cualquier operación general sobre la plataforma y tiendas de los clientes.
+* **`superAdmin`**: Permiso de máximo nivel para delegar y administrar roles de usuario.
+
+### Cuentas Protegidas de Fábrica (Hardcoded Protection)
+Las siguientes cuentas de correo están blindadas de forma nativa por el sistema:
+1. `juan.l.espeche@gmail.com`
+2. `vertex.tech.dev@gmail.com`
+
+El sistema automáticamente eleva estas cuentas al rol de `superAdmin`, corrigiendo de forma proactiva cualquier intento de alteración o desactualización de permisos sobre ellas.
+
+### Script de Recuperación Manual de Roles
+Si necesitas asignar manualmente permisos de administrador en caso de emergencia, ejecuta:
 ```bash
-npm ci --legacy-peer-deps
-cd functions && npm ci && cd ..
-firebase login
-gcloud auth application-default login
-gcloud auth application-default set-quota-project vertex-platform-dev
-npm run start
-npm run lint && npm run typecheck
-```
-
-## Contents
-
-- Overview / Resumen
-- Architecture / Arquitectura
-- Environments / Entornos
-- Setup and Commands / Configuracion y Comandos
-- Quality and Testing / Calidad y Testing
-- Deploy and Release Governance / Despliegue y Gobernanza
-- Access Control / Control de Acceso
-- Incident Runbooks / Runbooks de Incidentes
-- Documentation Index
-
-## Overview / Resumen
-
-### EN
-
-Vertex Platform orchestrates tenant lifecycle operations and cross-repo integrations with ecommerce templates.
-
-### ES
-
-Vertex Platform orquesta el ciclo de vida de tenants y la integracion cross-repo con templates ecommerce.
-
-Core capabilities:
-
-- Tenant provisioning and lifecycle management
-- Runtime and capacity administration
-- Billing account management
-- Platform user and role administration
-- Cross-repo integration orchestration
-
-## Architecture / Arquitectura
-
-Stack:
-
-- Frontend: Angular 21, standalone components, signals
-- Backend: Firebase Functions v2 + v1 triggers (TypeScript)
-- Data: Firestore
-- Auth: Firebase Auth + custom claims
-- CI/CD: GitHub Actions
-
-Main backend modules:
-
-- functions/src/admin.ts
-- functions/src/provisioning.ts
-- functions/src/stores.ts
-- functions/src/billing.ts
-- functions/src/versioning.ts
-
-## Environments / Entornos
-
-| Environment | Project ID | URL |
-| --- | --- | --- |
-| Development | vertex-platform-dev | https://vertex-platform-dev.web.app |
-| Production | vertex-platform-app | https://vertex-platform-app.web.app |
-
-Recommended operator split:
-
-- Dev operations: juan.l.espeche@gmail.com
-- Prod operations: vertex.tech.dev@gmail.com
-
-## Setup and Commands / Configuracion y Comandos
-
-Prerequisites:
-
-- Node.js 20+
-- npm 10+
-- Firebase CLI
-- Google Cloud SDK
-
-Core commands:
-
-```bash
-# App
-npm run start
-npm run build:dev
-npm run build:prod
-npm run lint
-npm run typecheck
-npm test
-npm run e2e:ci
-
-# Integration and QA
-npm run test:integration
-npm run test:integration:ui
-npm run test:integration:env
-npm run qa
-npm run qa:full
-
-# Functions
-cd functions
-npm run build
-npm run test
-
-# Deploy
-npm run deploy:dev
-npm run deploy:prod
-```
-
-## Quality and Testing / Calidad y Testing
-
-Local baseline:
-
-- lint
-- typecheck
-- unit tests
-- build
-
-CI required gates:
-
-- CI workflow
-- CodeQL workflow
-- Deploy workflow
-- Cross-repo integration gate (when configured)
-
-## Deploy and Release Governance / Despliegue y Gobernanza
-
-Long-lived branches:
-
-- develop = integration
-- main = release
-
-Mandatory policy:
-
-1. Promote only with PR develop -> main.
-2. Back-sync with PR main -> develop after release.
-3. No direct push bypass on protected branches.
-4. Do not merge with delete-branch when PR head is main or develop.
-
-## Access Control / Control de Acceso
-
-Authorization model:
-
-- platformAdmin claim: required for platform operations
-- superAdmin claim: required for role administration
-
-Protected super-admin baseline (enforced):
-
-- juan.l.espeche@gmail.com
-- vertex.tech.dev@gmail.com
-
-Enforcement behavior:
-
-- Protected accounts are auto-seeded as superAdmin in platformAdmins.
-- Protected accounts cannot be removed by standard role flows.
-- Claim drift is corrected by synchronization logic.
-- New auth records for protected users are elevated automatically.
-
-Manual recovery:
-
-```bash
+# Para el entorno de Desarrollo
 npm run add-admin juan.l.espeche@gmail.com -- --dev
-npm run add-admin juan.l.espeche@gmail.com
-npm run add-admin vertex.tech.dev@gmail.com -- --dev
+
+# Para el entorno de Producción
 npm run add-admin vertex.tech.dev@gmail.com
 ```
+*Nota: Después de aplicar este script, el usuario afectado debe cerrar sesión y volver a iniciarla para refrescar sus tokens.*
 
-After changes, user must sign out and sign in again.
+---
 
-## Incident Runbooks / Runbooks de Incidentes
+## 🛡️ Gobernanza de Despliegues y Ramas
 
-### 1) Main branch appears red / Main en rojo
+El repositorio sigue un esquema estricto de flujo continuo para asegurar la estabilidad operacional.
 
-1. Inspect latest main runs.
-2. If stale/cancelled required contexts exist, create clean sync PR develop -> main.
-3. Wait for required checks to pass.
-4. Merge through protected flow.
+### Políticas de Ramas
+* **`develop`**: Rama de integración diaria. Todo desarrollo de características (`feature/*`) nace y muere aquí.
+* **`main`**: Rama estable de lanzamiento en producción.
 
-### 2) Deploy fails on Cloud Scheduler permissions
+### Reglas de Negocio en Git
+1. **Promoción vía Pull Request:** La única vía permitida para incorporar código a `main` es mediante un Pull Request desde `develop` hacia `main` que complete exitosamente todos los Quality Gates automáticos.
+2. **Sincronización Inversa Obligatoria:** Tras cada fusión hacia `main`, se debe realizar un back-merge inmediato (`main` -> `develop`) para resolver divergencias en archivos de control como `package.json`.
+3. **No Eliminación de Ramas:** Las ramas `develop` y `main` son **ramas permanentes** bajo protección del servidor y **JAMÁS se deben eliminar** bajo ninguna circunstancia.
 
-1. Ensure cloudscheduler.googleapis.com is enabled.
-2. Ensure deployment principal has scheduler update permissions.
-3. Re-run failed Deploy workflow.
+---
 
-### 3) Login denied with unauthorized access
+## 🚨 Guías de Resolución de Incidentes (Runbooks)
 
-1. Validate missing platformAdmin claim.
-2. Re-assign role using add-admin script.
-3. User signs out/signs in.
+### 1) Rama `main` en Estado Rojo (Fallas de Compilación o CI)
+1. Inspecciona los logs del workflow fallido en GitHub Actions.
+2. Si se debe a fallas de consistencia o dependencias desalineadas, abre un Pull Request de sincronización reversa (`main` -> `develop`) o una PR de corrección rápida sobre `develop`.
+3. Valida localmente y en el pipeline que el job `Quality Gate` pase a verde completo antes de reintentar integraciones.
 
-## Documentation Index
+### 2) Fallas de Permisos en Cloud Scheduler durante el Despliegue
+1. Asegúrate de que la API de Cloud Scheduler (`cloudscheduler.googleapis.com`) esté activa en el proyecto de Firebase.
+2. Verifica que el principal de IAM que ejecuta la acción tenga asignado el rol para crear/modificar schedulers.
+3. Reinicia el workflow en GitHub Actions.
 
-- docs/development.md
-- docs/testing-unified.md
-- docs/scalability-roadmap.md
-- docs/email-provisioning.md
-- docs/github-rulesets.md
-- .github/CONTRIBUTING.md
-- .github/dependabot.yml
-- SECURITY.md
-- .github/CODEOWNERS
+---
 
-Maintainer note: keep this README as canonical operational documentation. Use docs/ for deep-dive specifications and link them here.
+## 📚 Índice de Documentación Técnica
+
+Para un análisis a profundidad sobre componentes y arquitectura técnica, consulta los siguientes archivos:
+* [docs/development.md](docs/development.md): Guía de desarrollo del agente de IA y estándares de código de backend.
+* [docs/testing-unified.md](docs/testing-unified.md): Guía de unificación de suites de test unitarios e integración.
+* [docs/scalability-roadmap.md](docs/scalability-roadmap.md): Hoja de ruta para la migración del modelo legacy de GCP a Shard Compartido.
+* [docs/github-rulesets.md](docs/github-rulesets.md): Detalle de Branch Rulesets programáticos activos para la seguridad en Git.
+* [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md): Guía de contribución y convenciones de Git.
+* [SECURITY.md](SECURITY.md): Políticas de divulgación y reporte de vulnerabilidades.
