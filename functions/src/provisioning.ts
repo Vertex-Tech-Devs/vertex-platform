@@ -972,11 +972,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         },
       )) as { oobCode?: string; oobLink?: string };
 
-      const actionLink =
-        oobRes.oobLink ||
-        (oobRes.oobCode
-          ? `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`
-          : '');
+      let actionLink = oobRes.oobLink || '';
+      if (actionLink && (actionLink.startsWith('?') || actionLink.startsWith('/'))) {
+        const query = actionLink.startsWith('/') ? actionLink : `/${actionLink}`;
+        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action${query}`;
+      } else if (!actionLink && oobRes.oobCode) {
+        actionLink = `https://${projectId}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${oobRes.oobCode}`;
+      }
 
       if (actionLink) {
         await storeRef.collection('private').doc('ownerAccess').set(
@@ -987,6 +989,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
           { merge: true },
         );
+
+        // Send welcome email to the store owner with the invitation/password setup link
+        const emailSubject = `Bienvenido a Vertex - Configura tu tienda ${name}`;
+        const emailHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <h2 style="color: #10b981; margin-top: 0;">¡Felicitaciones! Tu tienda está siendo creada</h2>
+            <p>Hola,</p>
+            <p>Hemos iniciado el aprovisionamiento de tu nueva tienda <strong>${name}</strong> en la plataforma Vertex.</p>
+            <p>Para configurar tu contraseña de administrador y acceder a tu panel de control, haz clic en el siguiente enlace:</p>
+            <p style="margin: 24px 0; text-align: center;">
+              <a href="${actionLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Configurar Contraseña</a>
+            </p>
+            <p style="color: #6b7280; font-size: 14px;">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;">${actionLink}</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+            <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">Este correo fue enviado automáticamente por Vertex Platform. Por favor, no respondas a este mensaje.</p>
+          </div>
+        `;
+
+        await db.collection('mail').add({
+          to: [ownerEmail],
+          message: {
+            subject: emailSubject,
+            html: emailHtml,
+            text: `Bienvenido a Vertex. Configura tu contraseña de administrador ingresando a: ${actionLink}`,
+          },
+        });
       }
 
       await setStep('initAdmin', 'done');
@@ -1093,7 +1122,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               deploy_token: deployTokenValue,
               ref:
                 PLATFORM_PROJECT === 'vertex-platform-dev'
-                  ? 'feature/dynamic-site-tombstone-deploy'
+                  ? 'feature/google-oauth-rbac'
                   : undefined,
             },
           }),
