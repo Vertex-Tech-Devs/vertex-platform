@@ -87,3 +87,15 @@ And for `vertex-platform`:
 ```bash
 npm run test:integration
 ```
+
+## 7. Local push guardrails (enforced by Husky)
+
+Both repositories now enforce strict `pre-push` gates.
+
+- Direct push to `develop` and `main` is blocked.
+- Push from feature branches is blocked unless all required quality checks pass.
+
+Current enforced checks:
+
+- `ecommerce-vertex`: lint, typecheck, unit tests, production build, Cypress E2E, Playwright integration.
+- `vertex-platform`: lint, typecheck, frontend tests (non-watch), production build, Cypress E2E, Playwright cross-repo integration, functions tests.
