@@ -9,6 +9,9 @@
 Release promotion must always happen via PR from develop to main.
 After each release merge, execute a main to develop back-merge PR to avoid divergence.
 
+> [!IMPORTANT]
+> **Norma de Permanencia de Ramas:** Las ramas `develop` y `main` son ramas de largo ciclo de vida y **JAMÁS se deben eliminar** bajo ninguna circunstancia. Cualquier acción manual o automática que intente removerlas o alterar su persistencia histórica está terminantemente prohibida.
+
 ## Commit Convention
 
 This repository uses Conventional Commits.
