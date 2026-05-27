@@ -1,9 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // 1. Mock Firebase services before importing
-vi.mock('firebase-functions/v2/scheduler', () => ({
-  onSchedule: vi.fn((_opts: any, handler: any) => handler),
-}));
+vi.mock('firebase-functions/v1', () => {
+  const onRun = vi.fn((handler: any) => handler);
+  const timeZone = vi.fn(() => ({ onRun }));
+  const schedule = vi.fn(() => ({ timeZone }));
+  return {
+    pubsub: {
+      schedule,
+    },
+  };
+});
 vi.mock('firebase-functions/v2/https', () => ({
   onCall: vi.fn((_opts: any, handler: any) => handler),
   HttpsError: class HttpsError extends Error {

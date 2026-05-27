@@ -1,6 +1,6 @@
 import { PLATFORM_PROJECT } from './helpers';
 import type { StoreShard } from './types';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
+import * as functions from 'firebase-functions/v1';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export type PlatformEnvironment = 'development' | 'production';
@@ -83,12 +83,10 @@ export function summarizeShardCapacity(
   };
 }
 
-export const reconcileActiveStores = onSchedule(
-  {
-    schedule: '0 0 * * *', // Runs daily at midnight UTC
-    timeZone: 'UTC',
-  },
-  async (_event) => {
+export const reconcileActiveStores = functions.pubsub
+  .schedule('0 0 * * *')
+  .timeZone('UTC')
+  .onRun(async (_context) => {
     const db = getFirestore();
     console.log('[Reconciliation] Starting daily store-shard reconciliation...');
 
@@ -168,5 +166,4 @@ export const reconcileActiveStores = onSchedule(
         message: `Store-shard reconciliation failed: ${errorMsg}`,
       });
     }
-  },
-);
+  });
