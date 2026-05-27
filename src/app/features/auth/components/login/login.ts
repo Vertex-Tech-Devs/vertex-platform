@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '@core/services/auth';
 
@@ -192,10 +192,15 @@ export class Login {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  constructor() {
+    effect(() => {
+      if (this.auth.isLoggedIn()) {
+        void this.router.navigate(['/stores']);
+      }
+    });
+  }
+
   async login(): Promise<void> {
     await this.auth.loginWithGoogle();
-    if (this.auth.isLoggedIn()) {
-      void this.router.navigate(['/stores']);
-    }
   }
 }
