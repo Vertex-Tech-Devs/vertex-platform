@@ -4,7 +4,43 @@ Esta guía detalla los pasos críticos necesarios para garantizar la **provisió
 
 ---
 
-## ¿Por qué es necesario este proceso?
+## ⚠️ Activar Gmail SMTP para la Plataforma (paso obligatorio)
+
+Los env files de la extensión en `extensions/` ya están configurados con Gmail SMTP (`vertex.tech.dev@gmail.com`). Para que los emails funcionen, debés actualizar el secreto en GCP Secret Manager con la App Password de Gmail.
+
+### Pasos para activar Gmail SMTP
+
+1. **Crear una App Password de Gmail**
+   - Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) con la cuenta `vertex.tech.dev@gmail.com`
+   - Seleccionar **Otro (nombre personalizado)** → Nombre: `vertex-platform`
+   - Copiar el código de 16 caracteres generado (ej: `abcd efgh ijkl mnop`)
+
+2. **Actualizar el secreto en GCP Secret Manager — DEV**
+   ```bash
+   echo -n "TUAPPPASSWORDSIN ESPACIOS" | gcloud secrets versions add ext-firestore-send-email-SMTP_PASSWORD \
+     --data-file=- \
+     --project=vertex-platform-dev
+   ```
+
+3. **Actualizar el secreto en GCP Secret Manager — PROD**
+   ```bash
+   echo -n "TUAPPPASSWORDSIN ESPACIOS" | gcloud secrets versions add ext-firestore-send-email-SMTP_PASSWORD \
+     --data-file=- \
+     --project=vertex-platform-app
+   ```
+
+4. **Desplegar la extensión con la nueva config**
+   ```bash
+   # DEV
+   firebase deploy --only extensions --project vertex-platform-dev
+
+   # PROD
+   firebase deploy --only extensions --project vertex-platform-app
+   ```
+
+> **Nota**: La extensión NO se actualiza con el pipeline automático de CI/CD. Este paso se ejecuta manualmente cuando cambia la configuración SMTP.
+
+---
 
 Durante la creación y aprovisionamiento de una tienda en la plataforma Vertex (ejecutado en `provisioning.ts`), el sistema siembra de manera automática los documentos iniciales en Firestore:
 * `settings/emailTemplates`: Contiene el asunto y las plantillas HTML para la confirmación de pedidos al cliente y notificaciones al administrador.
