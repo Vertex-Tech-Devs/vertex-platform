@@ -597,14 +597,17 @@
                           formControlName="webhookUrl"
                           type="url"
                           class="form-control"
-                          placeholder="https://..."
+                          [readonly]="true"
+                          [placeholder]="
+                            computeMercadoPagoWebhookUrl(store()) || 'Webhook autogenerado'
+                          "
                         />
-                        @if (
-                          configForm.get('payments.mercadoPago.webhookUrl')?.invalid &&
-                          configForm.get('payments.mercadoPago.webhookUrl')?.touched
-                        ) {
-                          <span class="invalid-feedback">URL inválida.</span>
-                        }
+                        <span
+                          class="form-hint"
+                          style="text-transform: none; letter-spacing: normal"
+                        >
+                          Se genera automáticamente desde el proyecto Firebase de la tienda.
+                        </span>
                       </div>
 
                       @if (
@@ -820,9 +823,6 @@
                       <label class="form-label">Rol en la Tienda (RBAC Claims)</label>
                       <select formControlName="role" class="form-select">
                         <option value="admin">Administrador (Acceso total)</option>
-                        <option value="warehouse">Warehouse (Inventario & Stock)</option>
-                        <option value="fulfillment">Fulfillment (Pedidos & Despachos)</option>
-                        <option value="analyst">Analista (Solo lectura / Métricas)</option>
                       </select>
                     </div>
 

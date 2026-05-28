@@ -8,6 +8,7 @@ import {
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideFirebaseApp } from '@angular/fire/app';
 import { initializeApp } from 'firebase/app';
+import { initializeFirestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 import { environment } from '@environments/environment';
@@ -16,6 +17,9 @@ import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
+initializeFirestore(firebaseApp, {
+  experimentalAutoDetectLongPolling: true,
+});
 
 if (!environment.production) {
   (
