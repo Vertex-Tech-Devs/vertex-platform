@@ -190,4 +190,314 @@ describe('StoresService', () => {
       },
     ]);
   });
+
+  it('verifyDomain maps LIVE status to live', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { success: true, status: 'LIVE', dnsRecords: [] },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.verifyDomain('store-4', 'otrodominio.com');
+
+    expect(result.status).toBe('live');
+    expect(result.dnsRecords).toEqual([]);
+  });
+
+  it('verifyDomain maps unknown status to pending', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { success: true, status: 'PENDING', dnsRecords: [] },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.verifyDomain('store-5', 'pendiente.com');
+
+    expect(result.status).toBe('pending');
+  });
+
+  it('verifyDomain falls back to pending when status is undefined', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { success: true, dnsRecords: [] },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.verifyDomain('store-6', 'indefinido.com');
+
+    expect(result.status).toBe('pending');
+  });
+
+  it('connectDomain calls connectDomain cloud function and maps DNS records', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        dnsRecords: [
+          {
+            domainName: '@',
+            type: 'A',
+            rdata: '151.101.1.195',
+            requiredAction: 'ADD',
+          },
+          {
+            domainName: 'www',
+            type: 'CNAME',
+            rdata: 'tienda.web.app',
+            requiredAction: 'ADD',
+          },
+        ],
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.connectDomain('store-7', 'mitienda.com');
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'connectDomain');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-7', domain: 'mitienda.com' });
+    expect(result.dnsRecords).toHaveLength(2);
+    expect(result.dnsRecords[0]).toEqual({
+      host: '@',
+      type: 'A',
+      value: '151.101.1.195',
+      requiredAction: 'ADD',
+    });
+    expect(result.dnsRecords[1]).toEqual({
+      host: 'www',
+      type: 'CNAME',
+      value: 'tienda.web.app',
+      requiredAction: 'ADD',
+    });
+  });
+
+  it('connectDomain returns empty dnsRecords when backend returns none', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { success: true, dnsRecords: [] },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.connectDomain('store-8', 'vacia.com');
+
+    expect(result.dnsRecords).toEqual([]);
+  });
+
+  it('connectDomain falls back host to @ when domainName is missing', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        dnsRecords: [{ type: 'TXT', rdata: 'verificacion', requiredAction: 'ADD' }],
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.connectDomain('store-9', 'fallback.com');
+
+    expect(result.dnsRecords[0].host).toBe('@');
+  });
+
+  it('redeployStore calls redeployStore cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.redeployStore('store-abc');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'redeployStore');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc' });
+  });
+
+  it('deleteStore calls deleteStore cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.deleteStore('store-abc');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'deleteStore');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc' });
+  });
+
+  it('retryProvisioning calls retryProvisioning cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.retryProvisioning('store-abc');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'retryProvisioning');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc' });
+  });
+
+  it('getDeploymentHistory calls getStoreDeploymentHistory cloud function', async () => {
+    const mockFn = vi
+      .fn()
+      .mockResolvedValue({ data: { history: [{ id: 1, runNumber: 42, status: 'completed' }] } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const history = await service.getDeploymentHistory('project-123');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getStoreDeploymentHistory');
+    expect(mockFn).toHaveBeenCalledWith({ projectId: 'project-123' });
+    expect(history).toHaveLength(1);
+    expect(history[0].runNumber).toBe(42);
+  });
+
+  it('updateStoreConfig calls updateStoreConfig cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.updateStoreConfig('store-abc', { storeName: 'New Name' });
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'updateStoreConfig');
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-abc',
+      config: { storeName: 'New Name' },
+    });
+  });
+
+  it('generatePasswordResetLink calls generatePasswordResetLink cloud function', async () => {
+    const mockFn = vi
+      .fn()
+      .mockResolvedValue({ data: { success: true, actionLink: 'https://link' } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.generatePasswordResetLink('store-abc', 'test@test.com');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'generatePasswordResetLink');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc', email: 'test@test.com' });
+    expect(result.actionLink).toBe('https://link');
+  });
+
+  it('getStoreConfig calls getStoreConfig cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { config: { storeName: 'Test' } } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const config = await service.getStoreConfig('store-abc');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getStoreConfig');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc' });
+    expect(config).toEqual({ storeName: 'Test' });
+  });
+
+  it('seedStore calls seedStore cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.seedStore('store-abc', false);
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'seedStore');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc', includeMockData: false });
+  });
+
+  it('listTemplateVersions calls listTemplateVersions cloud function', async () => {
+    const mockFn = vi
+      .fn()
+      .mockResolvedValue({
+        data: { versions: [{ version: 'v1', tag: 'latest', publishedAt: 'now', isLatest: true }] },
+      });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const versions = await service.listTemplateVersions();
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'listTemplateVersions');
+    expect(versions).toHaveLength(1);
+    expect(versions[0].version).toBe('v1');
+  });
+
+  it('updateStoreVersion calls updateStoreVersion cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.updateStoreVersion('store-abc', 'v2');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'updateStoreVersion');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc', version: 'v2' });
+  });
+
+  it('updateStore and setStatus update firestore documents', async () => {
+    const { doc, updateDoc } = await import('firebase/firestore');
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.updateStore('store-id', { name: 'New Name' });
+    expect(doc).toHaveBeenCalledWith(expect.anything(), 'stores', 'store-id');
+    expect(updateDoc).toHaveBeenCalled();
+
+    await service.setStatus('store-id', 'suspended');
+    expect(doc).toHaveBeenCalledWith(expect.anything(), 'stores', 'store-id');
+    expect(updateDoc).toHaveBeenCalled();
+  });
+
+  it('inferDnsType correctly parses various dns required actions', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        dnsRecords: [
+          { requiredAction: 'ADD TXT VALUE' },
+          { requiredAction: 'ADD AAAA VALUE' },
+          { requiredAction: 'ADD CNAME VALUE' },
+          { requiredAction: 'ADD OTHER' },
+        ],
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.connectDomain('store-xyz', 'test.com');
+    expect(result.dnsRecords[0].type).toBe('TXT');
+    expect(result.dnsRecords[1].type).toBe('AAAA');
+    expect(result.dnsRecords[2].type).toBe('CNAME');
+    expect(result.dnsRecords[3].type).toBe('A');
+  });
 });

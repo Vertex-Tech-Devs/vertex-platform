@@ -5,6 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 
 const SLUG_RE = /^[a-z0-9-]+$/;
+const DOMAIN_RE =
+  /^$|^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
 @Component({
   selector: 'app-store-create',
@@ -33,8 +35,8 @@ export class StoreCreate implements OnInit {
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
-    customDomain: [''],
-    verticalId: ['indumentaria' as string, Validators.required],
+    customDomain: ['', [Validators.pattern(DOMAIN_RE)]],
+    verticalId: ['indumentaria' as string, [Validators.required, Validators.maxLength(50)]],
     includeMockData: [true],
     dedicatedProject: [false],
   });
@@ -53,6 +55,8 @@ export class StoreCreate implements OnInit {
     const name = this.form.get('name')?.value ?? '';
     const slug = name
       .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     this.form.get('slug')?.setValue(slug);
