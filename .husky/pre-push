@@ -28,7 +28,7 @@ npm run typecheck
 npm run test -- --watch=false
 npm run build:prod
 cd functions
-npm run test
+npm run test:coverage
 
 echo ""
 echo "✔ Baseline quality gates passed locally."

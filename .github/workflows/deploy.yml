@@ -61,8 +61,8 @@ jobs:
         run: npm ci
         working-directory: functions
 
-      - name: Run backend tests
-        run: npm run test
+      - name: Run backend tests with coverage
+        run: npm run test:coverage
         working-directory: functions
 
   build-dev:
