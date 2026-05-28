@@ -23,6 +23,7 @@ import {
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
+import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '1.0.0';
 const CURRENT_STORE_SCHEMA_VERSION = 1;
@@ -33,6 +34,8 @@ export const provisionStore = onCall<CreateStorePayload>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
     }
+
+    await checkRateLimit(request.auth?.uid, 'provisionStore', 5, 15);
 
     const {
       name,
@@ -177,6 +180,15 @@ export const provisionStore = onCall<CreateStorePayload>(
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+    await logAuditAction(
+      request.auth?.uid || 'unknown',
+      request.auth?.token.email as string | undefined,
+      'provisionStore',
+      storeId,
+      'success',
+      { name, slug, ownerEmail },
+    );
 
     return { storeId, projectId };
   },

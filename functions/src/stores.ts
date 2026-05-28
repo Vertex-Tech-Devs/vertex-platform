@@ -34,6 +34,65 @@ function resolveRuntimeSiteId(store: { runtimeSiteId?: string }): string {
   return store.runtimeSiteId ?? 'default';
 }
 
+function isOwnerOrSuperAdmin(
+  authEmail: string | undefined,
+  ownerEmail: string | undefined,
+): boolean {
+  if (!authEmail) return false;
+  const superAdmins = ['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com'];
+  return superAdmins.includes(authEmail) || authEmail === ownerEmail;
+}
+
+export async function logAuditAction(
+  userId: string,
+  email: string | undefined,
+  action: string,
+  targetId: string,
+  result: 'success' | 'failure',
+  details?: Record<string, any>,
+): Promise<void> {
+  try {
+    const db = getFirestore();
+    await db.collection('auditLog').add({
+      userId,
+      email: email || null,
+      action,
+      targetId,
+      timestamp: new Date(),
+      result,
+      details: details || null,
+    });
+  } catch (err) {
+    console.error('[logAuditAction] Failed to write audit log:', err);
+  }
+}
+
+export async function checkRateLimit(
+  uid: string | undefined,
+  action: string,
+  maxCalls: number,
+  windowMinutes: number,
+): Promise<void> {
+  if (!uid) return;
+  const db = getFirestore();
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - windowMinutes * 60 * 1000);
+
+  const snap = await db
+    .collection('auditLog')
+    .where('userId', '==', uid)
+    .where('action', '==', action)
+    .where('timestamp', '>', cutoff)
+    .get();
+
+  if (snap.size >= maxCalls) {
+    throw new HttpsError(
+      'resource-exhausted',
+      `Límite de solicitudes excedido para la acción: ${action}. Por favor, intentá de nuevo más tarde.`,
+    );
+  }
+}
+
 function inferProjectIdFromDefaultUrl(defaultUrl?: string): string | null {
   const raw = (defaultUrl ?? '').trim();
   if (!raw) {
@@ -398,6 +457,32 @@ async function validateMercadoPagoCredentials(
     }
 
     const user = (await res.json()) as { id?: number | string; email?: string };
+
+    // Test call to /v1/preferences to verify preference creation permissions
+    const testPrefRes = await fetch('https://api.mercadopago.com/v1/preferences', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        items: [
+          {
+            title: 'Test Preference Validation',
+            quantity: 1,
+            unit_price: 1.0,
+          },
+        ],
+      }),
+    });
+
+    if (testPrefRes.status === 403) {
+      throw new Error(
+        'El token de Mercado Pago no tiene permisos para crear preferencias de pago (/v1/preferences).',
+      );
+    }
+
     return {
       message: `Credenciales válidas para ${user.email || 'cuenta sin email'}.`,
       accountEmail: user.email || undefined,
@@ -610,6 +695,14 @@ export const deleteStore = onCall<{ storeId: string }>(
     // Delete store document
     await db.collection('stores').doc(storeId).delete();
 
+    await logAuditAction(
+      request.auth?.uid || 'unknown',
+      request.auth?.token.email as string | undefined,
+      'deleteStore',
+      storeId,
+      'success',
+    );
+
     return { success: true };
   },
 );
@@ -808,9 +901,19 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     }
 
     const { storeId, domain } = request.data;
-    if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) {
+    if (!storeId || !/^[a-zA-Z0-9_-]{1,100}$/.test(storeId)) {
+      throw new HttpsError('invalid-argument', 'Invalid storeId.');
+    }
+    if (
+      !domain ||
+      !/^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(
+        domain,
+      )
+    ) {
       throw new HttpsError('invalid-argument', 'Invalid domain format.');
     }
+
+    await checkRateLimit(request.auth?.uid, 'connectDomain', 10, 15);
 
     const db = getFirestore();
     const storeSnap = await db.collection('stores').doc(storeId).get();
@@ -820,8 +923,18 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       firebaseProjectId?: string;
       runtimeProjectId?: string;
       runtimeSiteId?: string;
+      ownerEmail?: string;
     };
+
+    const authEmail = request.auth?.token.email as string | undefined;
+    if (!isOwnerOrSuperAdmin(authEmail, store.ownerEmail)) {
+      throw new HttpsError('permission-denied', 'You do not have permission to manage this store.');
+    }
+
     const projectId = resolveRuntimeProjectId(store);
+    if (!projectId) {
+      throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
+    }
     const siteId = resolveRuntimeSiteId(store);
     const auth = await getOwnerOAuthClient();
 
@@ -860,12 +973,24 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       updatedAt: new Date(),
     });
 
-    const dnsRecords = (result.requiredDnsUpdates?.discovered ?? []).map((record) => ({
-      domainName: record.domainName || '@',
-      type: record.type || 'A',
-      rdata: record.rdata || '',
-      requiredAction: record.requiredAction || 'ADD',
+    const discovered = result.requiredDnsUpdates?.discovered;
+    const dnsRecordsList = Array.isArray(discovered) ? discovered : [];
+    const dnsRecords = dnsRecordsList.map((record) => ({
+      domainName: record?.domainName || '@',
+      type: record?.type || 'A',
+      rdata: record?.rdata || '',
+      requiredAction: record?.requiredAction || 'ADD',
     }));
+
+    await logAuditAction(
+      request.auth?.uid || 'unknown',
+      authEmail,
+      'connectDomain',
+      storeId,
+      'success',
+      { domain },
+    );
+
     return { success: true, dnsRecords };
   },
 );
@@ -1096,6 +1221,8 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       throw new HttpsError('permission-denied', 'Only platform admins can invite staff.');
     }
 
+    await checkRateLimit(request.auth?.uid, 'inviteStaff', 15, 15);
+
     const { storeId, email, role } = request.data;
     if (!storeId || !email || !role) {
       throw new HttpsError('invalid-argument', 'storeId, email, and role are required.');
@@ -1230,6 +1357,15 @@ export const inviteStaff = onCall<InviteStaffPayload>(
         });
     }
 
+    await logAuditAction(
+      request.auth?.uid || 'unknown',
+      request.auth?.token.email as string | undefined,
+      'inviteStaff',
+      storeId,
+      'success',
+      { email: normalizedEmail, role: normalizedRole, inviteEmailSent },
+    );
+
     return { success: true, token, inviteEmailSent };
   },
 );
@@ -1323,8 +1459,16 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     }
 
     const { storeId, domain } = request.data;
-    if (!storeId || !domain) {
-      throw new HttpsError('invalid-argument', 'storeId and domain are required.');
+    if (!storeId || !/^[a-zA-Z0-9_-]{1,100}$/.test(storeId)) {
+      throw new HttpsError('invalid-argument', 'Invalid storeId.');
+    }
+    if (
+      !domain ||
+      !/^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(
+        domain,
+      )
+    ) {
+      throw new HttpsError('invalid-argument', 'Invalid domain format.');
     }
 
     const db = getFirestore();
@@ -1335,8 +1479,18 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       firebaseProjectId?: string;
       runtimeProjectId?: string;
       runtimeSiteId?: string;
+      ownerEmail?: string;
     };
+
+    const authEmail = request.auth?.token.email as string | undefined;
+    if (!isOwnerOrSuperAdmin(authEmail, store.ownerEmail)) {
+      throw new HttpsError('permission-denied', 'You do not have permission to manage this store.');
+    }
+
     const projectId = resolveRuntimeProjectId(store);
+    if (!projectId) {
+      throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
+    }
     const siteId = resolveRuntimeSiteId(store);
     const auth = await getOwnerOAuthClient();
 
@@ -1378,6 +1532,15 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       rdata: record.rdata || '',
       requiredAction: record.requiredAction || 'ADD',
     }));
+
+    await logAuditAction(
+      request.auth?.uid || 'unknown',
+      authEmail,
+      'verifyDomainDNSStatus',
+      storeId,
+      'success',
+      { domain, status: normalizedStatus },
+    );
 
     return { success: true, status: normalizedStatus, rawStatus, dnsRecords };
   },
