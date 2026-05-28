@@ -115,8 +115,9 @@ npm run add-admin vertex.tech.dev@gmail.com
 La plataforma administra el acceso admin de cada tienda de forma centralizada y sin contraseñas locales:
 
 1. `provisioning.ts` preautoriza el correo del owner en `admin_roles` del proyecto de la tienda.
-2. `inviteStaff` escribe correos y roles (`admin`, `warehouse`, `fulfillment`, `analyst`) en `admin_roles` del runtime project.
-3. El frontend de tienda permite solo login con Google OAuth y valida claims de acceso.
+2. `inviteStaff` escribe correos con rol `admin` en `admin_roles` del runtime project.
+3. `inviteStaff` envía un email de invitación HTML profesional con CTA directo al login admin de la tienda.
+4. El frontend de tienda permite solo login con Google OAuth y valida claims de acceso.
 
 ### Política de Login de Tienda
 

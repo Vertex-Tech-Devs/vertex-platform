@@ -154,7 +154,7 @@ export class StoreDetail implements OnInit, OnDestroy {
         accessTokenMasked: [''],
         accountEmail: [''],
         accountUserId: [''],
-        webhookUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
+        webhookUrl: [''],
         validationStatus: ['pending'],
         validationMessage: [''],
       }),
@@ -331,6 +331,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.configError.set('');
     this.configSuccess.set('');
     try {
+      const computedWebhookUrl = this.computeMercadoPagoWebhookUrl(s);
       const config = await this.storesService.getStoreConfig(s.id);
       if (config) {
         this.configForm.patchValue({
@@ -362,7 +363,7 @@ export class StoreDetail implements OnInit, OnDestroy {
               accessTokenMasked: config.payments?.mercadoPago?.accessTokenMasked || '',
               accountEmail: config.payments?.mercadoPago?.accountEmail || '',
               accountUserId: config.payments?.mercadoPago?.accountUserId || '',
-              webhookUrl: config.payments?.mercadoPago?.webhookUrl || '',
+              webhookUrl: computedWebhookUrl || config.payments?.mercadoPago?.webhookUrl || '',
               validationStatus: config.payments?.mercadoPago?.validationStatus || 'pending',
               validationMessage: config.payments?.mercadoPago?.validationMessage || '',
             },
@@ -389,7 +390,7 @@ export class StoreDetail implements OnInit, OnDestroy {
               accessTokenMasked: '',
               accountEmail: '',
               accountUserId: '',
-              webhookUrl: '',
+              webhookUrl: computedWebhookUrl,
               validationStatus: 'pending',
               validationMessage: '',
             },
@@ -433,8 +434,17 @@ export class StoreDetail implements OnInit, OnDestroy {
         formValue.payments.mercadoPago.publicKey = formValue.payments.mercadoPago.publicKey?.trim();
         formValue.payments.mercadoPago.accessToken =
           formValue.payments.mercadoPago.accessToken?.trim();
+
+        const computedWebhookUrl = this.computeMercadoPagoWebhookUrl(s);
         formValue.payments.mercadoPago.webhookUrl =
-          formValue.payments.mercadoPago.webhookUrl?.trim();
+          computedWebhookUrl || formValue.payments.mercadoPago.webhookUrl?.trim();
+
+        const hasStoredToken = !!formValue.payments.mercadoPago.accessTokenSecret?.trim();
+        const isRotatingToken = !!formValue.payments.mercadoPago.accessToken;
+        if ((hasStoredToken || isRotatingToken) && !formValue.payments.mercadoPago.publicKey) {
+          this.configError.set('Para activar Mercado Pago necesitás configurar una Public Key.');
+          return;
+        }
       }
 
       await this.storesService.updateStoreConfig(s.id, formValue);
@@ -460,6 +470,17 @@ export class StoreDetail implements OnInit, OnDestroy {
     } finally {
       this.isSavingConfig.set(false);
     }
+  }
+
+  computeMercadoPagoWebhookUrl(store: Store | null): string {
+    if (!store) {
+      return '';
+    }
+    const projectId = store.runtimeProjectId || store.firebaseProjectId;
+    if (!projectId) {
+      return '';
+    }
+    return `https://us-central1-${projectId}.cloudfunctions.net/mercadoPagoWebhookHandler`;
   }
 
   // Staff management

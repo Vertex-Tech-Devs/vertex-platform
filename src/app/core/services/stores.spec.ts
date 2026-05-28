@@ -117,4 +117,77 @@ describe('StoresService', () => {
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getRuntimeCapacitySummary');
     expect(result.availableSharedSlots).toBe(48);
   });
+
+  it('inviteStaff returns false when invite email dispatch failed', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        inviteEmailSent: false,
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.inviteStaff('store-1', 'staff@example.com', 'admin');
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'inviteStaff');
+    expect(result.inviteEmailSent).toBe(false);
+  });
+
+  it('getStoreStaff falls back to empty arrays when backend omits lists', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.getStoreStaff('store-2');
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getStoreStaff');
+    expect(result.staff).toEqual([]);
+    expect(result.invitations).toEqual([]);
+  });
+
+  it('verifyDomain maps ACTIVE status to live and normalizes DNS records', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        status: 'ACTIVE',
+        dnsRecords: [
+          {
+            domainName: '@',
+            type: 'TXT',
+            rdata: 'vertex-verification-token',
+            requiredAction: 'ADD',
+          },
+        ],
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.verifyDomain('store-3', 'midominio.com');
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'verifyDomainDNSStatus');
+    expect(result.status).toBe('live');
+    expect(result.dnsRecords).toEqual([
+      {
+        host: '@',
+        type: 'TXT',
+        value: 'vertex-verification-token',
+        requiredAction: 'ADD',
+      },
+    ]);
+  });
 });

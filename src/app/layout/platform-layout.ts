@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth';
 
 @Component({
@@ -19,6 +19,7 @@ import { AuthService } from '@core/services/auth';
 })
 export class PlatformLayout {
   readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly isSidebarOpen = signal(false);
 
   readonly userInitial = computed(() => {
@@ -40,6 +41,7 @@ export class PlatformLayout {
 
   async logout(): Promise<void> {
     await this.auth.logout();
+    await this.router.navigate(['/login']);
   }
 
   @HostListener('window:resize')
