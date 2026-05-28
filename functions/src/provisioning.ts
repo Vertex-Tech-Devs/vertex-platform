@@ -139,6 +139,10 @@ export const provisionStore = onCall<CreateStorePayload>(
       createWebApp: { status: 'pending', label: 'Crear app web' },
       initFirestore: { status: 'pending', label: 'Inicializar Firestore' },
       configureEmail: { status: 'pending', label: 'Configurar sistema de emails' },
+      installEmailExtension: {
+        status: skipGcpSteps ? 'done' : 'pending',
+        label: 'Instalar extensión de email',
+      },
       initAdmin: { status: 'pending', label: 'Preautorizar acceso administrador (Google)' },
       grantAccess: { status: 'pending', label: 'Configurar permisos de deploy' },
       triggerDeploy: { status: 'pending', label: 'Desplegar tienda' },
@@ -340,6 +344,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       'provisioningSteps.initFirestore.error': null,
       'provisioningSteps.configureEmail.status': 'pending',
       'provisioningSteps.configureEmail.error': null,
+      'provisioningSteps.installEmailExtension.status': 'pending',
+      'provisioningSteps.installEmailExtension.error': null,
       'provisioningSteps.initAdmin.status': 'pending',
       'provisioningSteps.initAdmin.error': null,
       'provisioningSteps.grantAccess.status': 'pending',
@@ -552,6 +558,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'storage.googleapis.com',
               'cloudresourcemanager.googleapis.com',
               'firebasehosting.googleapis.com',
+              'secretmanager.googleapis.com',
+              'firebaseextensions.googleapis.com',
             ],
           },
         },
@@ -856,9 +864,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       console.info(
         `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates y settings/emailEngine para el proyecto ${projectId}.`,
       );
-      console.warn(
-        `[provisioning:configureEmail] ¡ATENCIÓN! La extensión 'firebase-trigger-email' debe ser provista/instalada físicamente en el proyecto Firebase '${projectId}' y vinculada a un servidor SMTP real para el envío efectivo de correos. Consultar docs/email-provisioning.md para más detalles.`,
-      );
 
       await setStep('configureEmail', 'done');
     } catch (err) {
@@ -867,7 +872,80 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  // ── Step 7: Create store admin user and send invite email ──────────────
+  // ── Step 7: Install firestore-send-email extension ────────────────────
+  if (!isDone('installEmailExtension')) {
+    await setStep('installEmailExtension', 'running');
+    try {
+      const secretsClient = new SecretManagerServiceClient();
+      const [pwVersion] = await secretsClient.accessSecretVersion({
+        name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
+      });
+      const smtpPassword = pwVersion.payload!.data!.toString().trim();
+
+      const secretId = 'ext-firestore-send-email-SMTP_PASSWORD';
+
+      try {
+        await apiFetch(
+          auth,
+          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${secretId}`,
+          { method: 'POST', body: { replication: { automatic: {} } }, quotaProject: projectId },
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
+      }
+
+      await apiFetch(
+        auth,
+        `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${secretId}:addVersion`,
+        {
+          method: 'POST',
+          body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
+          quotaProject: projectId,
+        },
+      );
+
+      const extOp = (await apiFetch(
+        auth,
+        `https://firebaseextensions.googleapis.com/v1beta/projects/${projectId}/instances`,
+        {
+          method: 'POST',
+          body: {
+            name: `projects/${projectId}/instances/firestore-send-email`,
+            config: {
+              extensionRef: 'firebase/firestore-send-email',
+              params: {
+                SMTP_CONNECTION_URI: 'smtp://vertex.tech.dev%40gmail.com@smtp.gmail.com:587',
+                SMTP_PASSWORD: `projects/${projectId}/secrets/${secretId}/versions/latest`,
+                DEFAULT_FROM: 'vertex.tech.dev@gmail.com',
+                MAIL_COLLECTION: 'mail',
+                TEMPLATES_COLLECTION: 'emailTemplates',
+                DEFAULT_REPLY_TO: '',
+                USERS_COLLECTION: '',
+              },
+            },
+          },
+          quotaProject: projectId,
+        },
+      )) as { name: string; done?: boolean };
+
+      if (!extOp.done) {
+        await pollOperation(auth, extOp.name, 'https://firebaseextensions.googleapis.com/v1beta');
+      }
+
+      await setStep('installEmailExtension', 'done');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('already exists') || msg.includes('409')) {
+        await setStep('installEmailExtension', 'done');
+      } else {
+        await fail('installEmailExtension', err);
+        return;
+      }
+    }
+  }
+
+  // ── Step 8: Create store admin user and send invite email ──────────────
   if (!isDone('initAdmin')) {
     await setStep('initAdmin', 'running');
     try {
