@@ -17,9 +17,7 @@ import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
-initializeFirestore(firebaseApp, {
-  experimentalAutoDetectLongPolling: true,
-});
+initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true });
 
 if (!environment.production) {
   (
