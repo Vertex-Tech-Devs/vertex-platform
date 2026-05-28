@@ -551,6 +551,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'identitytoolkit.googleapis.com',
               'storage.googleapis.com',
               'cloudresourcemanager.googleapis.com',
+              'firebasehosting.googleapis.com',
             ],
           },
         },
