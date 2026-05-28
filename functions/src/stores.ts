@@ -1103,7 +1103,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedRole = role.trim().toLowerCase();
-    const allowedRoles = new Set(['admin', 'warehouse', 'fulfillment', 'analyst']);
+    const allowedRoles = new Set(['admin']);
     if (!allowedRoles.has(normalizedRole)) {
       throw new HttpsError('invalid-argument', 'Invalid role for staff invitation.');
     }
@@ -1174,18 +1174,34 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       await db.collection('mail').add({
         to: [normalizedEmail],
         message: {
-          subject: 'Acceso habilitado en Vertex Store (Google OAuth)',
+          subject: `Admin access enabled for ${storeId} in Vertex`,
           html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.45; color: #0f172a;">
-              <h2 style="margin: 0 0 12px;">Acceso autorizado</h2>
-              <p>Tu correo fue autorizado para acceder al panel administrativo de la tienda.</p>
-              <p><strong>Rol asignado:</strong> ${normalizedRole}</p>
-              <p>Ingresá con Google desde aquí:</p>
-              <p><a href="${loginUrl}">${loginUrl}</a></p>
-              <p style="font-size: 12px; color: #64748b;">Usá exactamente este correo en el login con Google.</p>
+            <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+              <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
+                <div style="padding:20px 24px;background:linear-gradient(120deg,#0f172a,#1d4ed8);color:#ffffff;">
+                  <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Vertex Platform</p>
+                  <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">Your admin access is ready</h1>
+                </div>
+                <div style="padding:24px;">
+                  <p style="margin:0 0 14px;color:#0f172a;font-size:15px;line-height:1.55;">
+                    You were granted admin access for store <strong>${storeId}</strong>.
+                  </p>
+                  <p style="margin:0 0 18px;color:#334155;font-size:14px;">Assigned role: <strong>Store Admin</strong></p>
+                  <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.5;">
+                    Sign in using Google OAuth with this same email address.
+                  </p>
+                  <p style="margin:0 0 22px;">
+                    <a href="${loginUrl}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Open Admin Panel</a>
+                  </p>
+                  <p style="margin:0 0 10px;color:#64748b;font-size:12px;line-height:1.45;">
+                    If the button does not work, copy and paste this URL in your browser:
+                  </p>
+                  <p style="margin:0;color:#1d4ed8;font-size:12px;word-break:break-all;">${loginUrl}</p>
+                </div>
+              </div>
             </div>
           `,
-          text: `Acceso autorizado en Vertex Store. Rol: ${normalizedRole}. Ingresa con Google en: ${loginUrl}`,
+          text: `You now have admin access for store ${storeId}. Sign in with Google OAuth: ${loginUrl}`,
         },
       });
 

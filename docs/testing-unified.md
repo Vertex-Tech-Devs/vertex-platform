@@ -22,6 +22,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run e2e:ci
+npm run test -- --watch=false --include=src/app/core/services/stores.spec.ts
 cd functions && npm ci && npm test && cd ..
 ```
 
@@ -57,6 +58,12 @@ What it does:
    - preload cart and open checkout
    - verify admin orders route shell
    - return to platform store detail
+
+Focused unit coverage in `src/app/core/services/stores.spec.ts` additionally validates:
+
+- `inviteStaff` behavior when email dispatch fails (`inviteEmailSent=false`).
+- `getStoreStaff` mapping defaults to empty arrays when backend omits lists.
+- `verifyDomainDNSStatus` normalization (`ACTIVE` -> `live`) and DNS records mapping.
 
 ## 4. CI policy (unified)
 
