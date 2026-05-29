@@ -84,7 +84,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       }
     });
 
-    let runtimeMode: StoreRuntimeMode = 'shared-shard';
+    let runtimeMode: StoreRuntimeMode;
     let shardId: string | null = null;
     let projectId = `vtx-${slug}`.slice(0, 30);
     let runtimeSiteId = 'default';

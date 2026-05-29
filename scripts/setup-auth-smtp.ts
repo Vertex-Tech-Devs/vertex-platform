@@ -36,7 +36,6 @@ void (async () => {
     const connectionUri = params['SMTP_CONNECTION_URI'];
     const smtpPassword = params['SMTP_PASSWORD'];
     const defaultFrom = params['DEFAULT_FROM'];
-    const defaultFromName = params['DEFAULT_FROM_NAME'];
 
     if (!connectionUri || !smtpPassword || !defaultFrom) {
       throw new Error('Missing required SMTP configuration parameters in .env file.');
@@ -105,7 +104,7 @@ void (async () => {
       if (isUriDevPasswordValid) {
         password = decodeURIComponent(uriPassword);
       } else {
-        console.log(`[SMTP Config] Resolving secret from GCP Secret Manager: ${password}...`);
+        console.log('[SMTP Config] Resolving secret from GCP Secret Manager...');
         try {
           const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
           const smClient = new SecretManagerServiceClient();
