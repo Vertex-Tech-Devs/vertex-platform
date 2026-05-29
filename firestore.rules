@@ -62,7 +62,8 @@ service cloud.firestore {
     }
 
     match /configuracion/{tenantId} {
-      allow read, write: if request.auth != null &&
+      allow read: if true;
+      allow write: if request.auth != null &&
         (request.auth.token.tenantId == tenantId ||
          (resource != null && resource.data.tenantId == tenantId) ||
          (request.resource != null && request.resource.data.tenantId == tenantId));
