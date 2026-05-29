@@ -26,6 +26,8 @@
     "setup-provisioning": "tsx scripts/setup-provisioning.ts",
     "seed:stores": "tsx scripts/seed-existing-stores.ts",
     "register-shard": "tsx scripts/register-shard.ts",
+    "test:provision": "bash scripts/verify-provision.sh",
+    "test:email-delivery": "bash scripts/test-email-delivery.sh",
     "prepare": "husky"
   },
   "private": true,
