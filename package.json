@@ -28,6 +28,7 @@
     "register-shard": "tsx scripts/register-shard.ts",
     "test:provision": "bash scripts/verify-provision.sh",
     "test:email-delivery": "bash scripts/test-email-delivery.sh",
+    "setup": "tsx scripts/setup.ts",
     "prepare": "husky"
   },
   "private": true,
@@ -52,6 +53,7 @@
     "@angular/build": "^21.2.12",
     "@angular/cli": "^21.2.12",
     "@angular/compiler-cli": "^21.2.14",
+    "@clack/prompts": "^1.5.0",
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
