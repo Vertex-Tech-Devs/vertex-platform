@@ -128,10 +128,23 @@ async function main() {
   const ecommerceRoot = path.join(__dirname, '../../ecommerce-vertex');
   const tenantId = storeName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
 
+  // Helper for safe file mutation without TOCTOU race conditions
+  const mutateFileIfExists = (filePath: string, mutator: (content: string) => string) => {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const mutated = mutator(content);
+      fs.writeFileSync(filePath, mutated, 'utf8');
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+  };
+
   try {
     // 1. Muted .firebaserc
     const firebasercPath = path.join(ecommerceRoot, '.firebaserc');
-    if (fs.existsSync(firebasercPath)) {
+    mutateFileIfExists(firebasercPath, () => {
       const rc = {
         projects: {
           default: prodProjectId,
@@ -139,54 +152,54 @@ async function main() {
           dev: devProjectId,
         },
       };
-      fs.writeFileSync(firebasercPath, JSON.stringify(rc, null, 2), 'utf8');
-    }
+      return JSON.stringify(rc, null, 2);
+    });
 
     // 2. Muted src/environments/environment.ts
     const envPath = path.join(ecommerceRoot, 'src/environments/environment.ts');
-    if (fs.existsSync(envPath)) {
-      let content = fs.readFileSync(envPath, 'utf8');
-      content = content.replace(/tenantId:\s*['"][^'"]*['"]/, `tenantId: '${tenantId}'`);
-      content = content.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
-      content = content.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
-      content = content.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${devProjectId}'`);
-      content = content.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
-      content = content.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
-      content = content.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${devProjectId}.cloudfunctions.net'`);
-      fs.writeFileSync(envPath, content, 'utf8');
-    }
+    mutateFileIfExists(envPath, (content) => {
+      let result = content.replace(/tenantId:\s*['"][^'"]*['"]/, `tenantId: '${tenantId}'`);
+      result = result.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
+      result = result.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
+      result = result.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${devProjectId}'`);
+      result = result.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
+      result = result.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
+      result = result.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${devProjectId}.cloudfunctions.net'`);
+      return result;
+    });
 
     // 3. Muted src/environments/environment.prod.ts
     const envProdPath = path.join(ecommerceRoot, 'src/environments/environment.prod.ts');
-    if (fs.existsSync(envProdPath)) {
-      let content = fs.readFileSync(envProdPath, 'utf8');
-      content = content.replace(/tenantId:\s*['"][^'"]*['"]/, `tenantId: '${tenantId}'`);
-      content = content.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
-      content = content.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
-      content = content.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${prodProjectId}'`);
-      content = content.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
-      content = content.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
-      content = content.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${prodProjectId}.cloudfunctions.net'`);
-      fs.writeFileSync(envProdPath, content, 'utf8');
-    }
+    mutateFileIfExists(envProdPath, (content) => {
+      let result = content.replace(/tenantId:\s*['"][^'"]*['"]/, `tenantId: '${tenantId}'`);
+      result = result.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
+      result = result.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
+      result = result.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${prodProjectId}'`);
+      result = result.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
+      result = result.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
+      result = result.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${prodProjectId}.cloudfunctions.net'`);
+      return result;
+    });
 
     // 4. Muted src/index.html
     const indexPath = path.join(ecommerceRoot, 'src/index.html');
-    if (fs.existsSync(indexPath)) {
-      let content = fs.readFileSync(indexPath, 'utf8');
-      content = content.replace(/<title>[^<]*<\/title>/, `<title>${storeName}</title>`);
-      fs.writeFileSync(indexPath, content, 'utf8');
-    }
+    mutateFileIfExists(indexPath, (content) => {
+      return content.replace(/<title>[^<]*<\/title>/, `<title>${storeName}</title>`);
+    });
 
     // 5. Generate functions/.env
     const envExamplePath = path.join(ecommerceRoot, 'functions/.env.example');
     const envFunctionsPath = path.join(ecommerceRoot, 'functions/.env');
-    if (fs.existsSync(envExamplePath)) {
-      let content = fs.readFileSync(envExamplePath, 'utf8');
-      content = content.replace(/MERCADOPAGO_ACCESSTOKEN=[^\r\n]*/, `MERCADOPAGO_ACCESSTOKEN=${mpAccessToken}`);
-      content = content.replace(/MERCADOPAGO_WEBHOOK_URL=[^\r\n]*/, `MERCADOPAGO_WEBHOOK_URL=https://us-central1-${prodProjectId}.cloudfunctions.net/mercadoPagoWebhookHandler`);
-      content = content.replace(/SITE_URL=[^\r\n]*/, `SITE_URL=${siteUrl}`);
-      fs.writeFileSync(envFunctionsPath, content, 'utf8');
+    try {
+      const content = fs.readFileSync(envExamplePath, 'utf8');
+      let result = content.replace(/MERCADOPAGO_ACCESSTOKEN=[^\r\n]*/, `MERCADOPAGO_ACCESSTOKEN=${mpAccessToken}`);
+      result = result.replace(/MERCADOPAGO_WEBHOOK_URL=[^\r\n]*/, `MERCADOPAGO_WEBHOOK_URL=https://us-central1-${prodProjectId}.cloudfunctions.net/mercadoPagoWebhookHandler`);
+      result = result.replace(/SITE_URL=[^\r\n]*/, `SITE_URL=${siteUrl}`);
+      fs.writeFileSync(envFunctionsPath, result, 'utf8');
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
     }
 
     s.stop('Configuración de marca blanca multitenant completada con éxito.');
