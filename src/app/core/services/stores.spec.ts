@@ -431,11 +431,9 @@ describe('StoresService', () => {
   });
 
   it('listTemplateVersions calls listTemplateVersions cloud function', async () => {
-    const mockFn = vi
-      .fn()
-      .mockResolvedValue({
-        data: { versions: [{ version: 'v1', tag: 'latest', publishedAt: 'now', isLatest: true }] },
-      });
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { versions: [{ version: 'v1', tag: 'latest', publishedAt: 'now', isLatest: true }] },
+    });
     mockHttpsCallable.mockReturnValue(mockFn);
 
     const { StoresService } = await import('./stores');
