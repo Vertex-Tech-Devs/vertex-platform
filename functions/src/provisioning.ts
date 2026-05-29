@@ -927,7 +927,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             config: {
               extensionRef: 'firebase/firestore-send-email',
               params: {
-                SMTP_CONNECTION_URI: 'smtp://vertex.tech.dev%40gmail.com@smtp.gmail.com:587',
+                SMTP_CONNECTION_URI: `smtp://vertex.tech.dev%40gmail.com:${encodeURIComponent(smtpPassword)}@smtp.gmail.com:587`,
                 SMTP_PASSWORD: `projects/${projectId}/secrets/${secretId}/versions/latest`,
                 DEFAULT_FROM: 'vertex.tech.dev@gmail.com',
                 MAIL_COLLECTION: 'mail',
