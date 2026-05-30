@@ -5,6 +5,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as functions from 'firebase-functions/v1';
 import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
+import { z } from 'zod';
 
 const PROTECTED_SUPER_ADMINS = new Set(['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com']);
 
@@ -255,3 +256,135 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
     console.error(`Error checking/setting platformAdmin claim for ${email}:`, err);
   }
 });
+
+const provisionStoreAdminSchema = z.object({
+  email: z.string().email(),
+  storeName: z.string().min(1),
+  tenantId: z.string().min(1),
+  contact: z.object({
+    phone: z.string().min(1),
+    email: z.string().email(),
+    whatsApp: z.string().optional().or(z.literal('')),
+    instagram: z.string().optional().or(z.literal('')),
+    facebook: z.string().optional().or(z.literal('')),
+  }),
+});
+
+export const provisionStoreAdmin = onCall(
+  { cors: true, invoker: 'public', maxInstances: 5 },
+  async (request) => {
+    let parsedData;
+    try {
+      parsedData = provisionStoreAdminSchema.parse(request.data);
+    } catch (err: any) {
+      throw new HttpsError('invalid-argument', `Validation failed: ${err.message}`);
+    }
+
+    const { email, storeName, tenantId } = parsedData;
+    const db = getFirestore();
+    const auth = getAuth();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 1. Create user in Firebase central Auth if they do not exist
+    let userRecord;
+    try {
+      userRecord = await auth.getUserByEmail(normalizedEmail);
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        try {
+          userRecord = await auth.createUser({
+            email: normalizedEmail,
+            emailVerified: true,
+          });
+        } catch (createErr: any) {
+          console.error('Error creating user in Auth:', createErr);
+          throw new HttpsError(
+            'internal',
+            `Failed to create user administrator: ${createErr.message}`,
+          );
+        }
+      } else {
+        console.error('Error checking user in Auth:', err);
+        throw new HttpsError('internal', `Failed to check user administrator: ${err.message}`);
+      }
+    }
+
+    // 2. Idempotency Check: Verify if an email was already sent for this tenantId or email in the last 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    try {
+      const emailMailSnap = await db
+        .collection('mail')
+        .where('to', 'array-contains', normalizedEmail)
+        .get();
+
+      const duplicateByEmail = emailMailSnap.docs.some((doc) => {
+        const cAt = doc.data()['createdAt'];
+        const date = cAt instanceof Date ? cAt : cAt?.toDate ? cAt.toDate() : new Date(cAt);
+        return date >= oneDayAgo;
+      });
+
+      const tenantMailSnap = await db.collection('mail').where('tenantId', '==', tenantId).get();
+
+      const duplicateByTenant = tenantMailSnap.docs.some((doc) => {
+        const cAt = doc.data()['createdAt'];
+        const date = cAt instanceof Date ? cAt : cAt?.toDate ? cAt.toDate() : new Date(cAt);
+        return date >= oneDayAgo;
+      });
+
+      if (duplicateByEmail || duplicateByTenant) {
+        console.log(
+          `Duplicate onboarding email request ignored (idempotency triggered) for ${normalizedEmail} / ${tenantId}.`,
+        );
+        return { success: true, message: 'Onboarding processed (duplicate email skipped).' };
+      }
+    } catch (queryErr) {
+      console.error('Error performing idempotency check:', queryErr);
+    }
+
+    // 3. Atomically write the notification document to 'mail' collection
+    const loginUrl = `https://${tenantId}.web.app/admin/login`;
+    const emailSubject = `¡Bienvenido a ${storeName}! Configuración completada - Vertex`;
+    const emailHtml = `
+      <div style="background:#f8fafc;padding:32px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1);">
+          <div style="padding:24px;background:linear-gradient(135deg,#0f172a,#2563eb);color:#ffffff;">
+            <p style="margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;">Vertex Platform</p>
+            <h1 style="margin:8px 0 0;font-size:24px;font-weight:700;">¡Tu tienda está lista!</h1>
+          </div>
+          <div style="padding:24px;line-height:1.6;">
+            <p style="margin:0 0 16px;font-size:16px;">Hola,</p>
+            <p style="margin:0 0 16px;">¡Felicitaciones! Tu tienda <strong>${storeName}</strong> ha sido aprovisionada con éxito en el tenant <code>${tenantId}</code>.</p>
+            <p style="margin:0 0 20px;">Tu cuenta de administrador con el correo <strong>${normalizedEmail}</strong> ya está activa. Podés ingresar directamente al panel de control utilizando tus credenciales desde el siguiente enlace:</p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="${loginUrl}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;box-shadow:0 2px 4px rgb(37 99 235 / 0.2);">Ingresar al panel</a>
+            </p>
+            <hr style="border:0;border-top:1px solid #e2e8f0;margin:24px 0;" />
+            <p style="margin:0 0 8px;color:#64748b;font-size:12px;">Si el botón de arriba no funciona, copiá y pegá esta URL en tu navegador:</p>
+            <p style="margin:0;color:#2563eb;font-size:12px;word-break:break-all;">${loginUrl}</p>
+          </div>
+          <div style="padding:16px 24px;background:#f1f5f9;color:#64748b;font-size:12px;text-align:center;">
+            Este correo fue enviado de forma automática por Vertex Platform.
+          </div>
+        </div>
+      </div>
+    `;
+
+    try {
+      await db.collection('mail').add({
+        to: [normalizedEmail],
+        tenantId,
+        createdAt: new Date(),
+        message: {
+          subject: emailSubject,
+          html: emailHtml,
+          text: `¡Bienvenido a ${storeName}! Tu cuenta de administrador con email ${normalizedEmail} está lista. Ingresá al panel en: ${loginUrl}`,
+        },
+      });
+    } catch (mailErr: any) {
+      console.error('Error writing mail to queue:', mailErr);
+      throw new HttpsError('internal', `Failed to queue onboarding email: ${mailErr.message}`);
+    }
+
+    return { success: true, userId: userRecord.uid };
+  },
+);
