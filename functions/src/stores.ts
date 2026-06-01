@@ -10,6 +10,7 @@ import {
   apiFetch,
   retry,
   listProvisioningOwnerCandidates,
+  sendDirectEmail,
 } from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
 import type {
@@ -1300,39 +1301,96 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     let inviteEmailSent = true;
     try {
-      await db.collection('mail').add({
-        to: [normalizedEmail],
-        message: {
-          subject: `Acceso de administrador habilitado para ${storeName} - Vertex`,
-          html: `
-            <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
-              <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
-                <div style="padding:20px 24px;background:linear-gradient(120deg,#0f172a,#1d4ed8);color:#ffffff;">
-                  <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Vertex Platform</p>
-                  <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">Tu acceso de administrador está listo</h1>
-                </div>
-                <div style="padding:24px;">
-                  <p style="margin:0 0 14px;color:#0f172a;font-size:15px;line-height:1.55;">
-                    Se te otorgó acceso de administrador para la tienda <strong>${storeName}</strong>.
-                  </p>
-                  <p style="margin:0 0 18px;color:#334155;font-size:14px;">Rol asignado: <strong>Administrador</strong></p>
-                  <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.5;">
-                    Ingresá con tu cuenta de Google usando esta misma dirección de email.
-                  </p>
-                  <p style="margin:0 0 22px;">
-                    <a href="${loginUrl}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Ingresar al panel</a>
-                  </p>
-                  <p style="margin:0 0 10px;color:#64748b;font-size:12px;line-height:1.45;">
-                    Si el botón no funciona, copiá y pegá el siguiente enlace en tu navegador:
-                  </p>
-                  <p style="margin:0;color:#1d4ed8;font-size:12px;word-break:break-all;">${loginUrl}</p>
-                </div>
-              </div>
+      const emailSubject = `Acceso de administrador habilitado para ${storeName} - Vertex`;
+      const emailHtml = `
+        <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
+            <div style="padding:20px 24px;background:linear-gradient(120deg,#0f172a,#1d4ed8);color:#ffffff;">
+              <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Vertex Platform</p>
+              <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">Tu acceso de administrador está listo</h1>
             </div>
-          `,
-          text: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
-        },
-      });
+            <div style="padding:24px;">
+              <p style="margin:0 0 14px;color:#0f172a;font-size:15px;line-height:1.55;">
+                Se te otorgó acceso de administrador para la tienda <strong>${storeName}</strong>.
+              </p>
+              <p style="margin:0 0 18px;color:#334155;font-size:14px;">Rol asignado: <strong>Administrador</strong></p>
+              <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.5;">
+                Ingresá con tu cuenta de Google usando esta misma dirección de email.
+              </p>
+              <p style="margin:0 0 22px;">
+                <a href="${loginUrl}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Ingresar al panel</a>
+              </p>
+              <p style="margin:0 0 10px;color:#64748b;font-size:12px;line-height:1.45;">
+                Si el botón no funciona, copiá y pegá el siguiente enlace en tu navegador:
+              </p>
+              <p style="margin:0;color:#1d4ed8;font-size:12px;word-break:break-all;">${loginUrl}</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      try {
+        if (projectId === PLATFORM_PROJECT) {
+          await sendDirectEmail(
+            normalizedEmail,
+            emailSubject,
+            emailHtml,
+            `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+          );
+          console.info(
+            `[inviteStaff] Staff invitation email successfully sent directly to ${normalizedEmail} using SMTP.`,
+          );
+        } else {
+          const mailDocFields = {
+            to: {
+              arrayValue: {
+                values: [{ stringValue: normalizedEmail }],
+              },
+            },
+            message: {
+              mapValue: {
+                fields: {
+                  subject: { stringValue: emailSubject },
+                  html: { stringValue: emailHtml },
+                  text: {
+                    stringValue: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+                  },
+                },
+              },
+            },
+            createdAt: {
+              timestampValue: new Date().toISOString(),
+            },
+          };
+
+          await apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
+            {
+              method: 'POST',
+              body: { fields: mailDocFields },
+              quotaProject: projectId,
+            },
+          );
+          console.info(
+            `[inviteStaff] Staff invitation email successfully queued in store ${projectId}'s mail collection.`,
+          );
+        }
+      } catch (mailErr) {
+        console.warn(
+          `[inviteStaff] Failed to queue invitation email in store ${projectId}'s mail collection, falling back to central mail queue:`,
+          mailErr,
+        );
+        // Fallback to central platform mail collection
+        await db.collection('mail').add({
+          to: [normalizedEmail],
+          message: {
+            subject: emailSubject,
+            html: emailHtml,
+            text: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+          },
+        });
+      }
 
       await db
         .collection('stores')
