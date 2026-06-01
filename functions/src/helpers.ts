@@ -1,6 +1,7 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { OAuth2Client } from 'google-auth-library';
+import * as nodemailer from 'nodemailer';
 
 interface OwnerCredentialsSecret {
   id?: string;
@@ -26,6 +27,7 @@ export const PLATFORM_PROJECT =
 export const ALLOWED_ORIGINS = [
   'https://vertex-platform-app.web.app',
   'https://vertex-platform-dev.web.app',
+  'http://localhost:4200',
 ];
 
 let cachedGitHubPat: string | null = null;
@@ -263,4 +265,35 @@ export async function pollOperation(
     }
   }
   throw new Error(`Operation ${operationName} timed out after ${maxAttempts * delayMs}ms`);
+}
+
+export async function sendDirectEmail(
+  to: string,
+  subject: string,
+  html: string,
+  text: string,
+): Promise<void> {
+  const secretsClient = new SecretManagerServiceClient();
+  const [pwVersion] = await secretsClient.accessSecretVersion({
+    name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
+  });
+  const smtpPassword = pwVersion.payload!.data!.toString().trim();
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: 'vertex.tech.dev@gmail.com',
+      pass: smtpPassword,
+    },
+  });
+
+  await transporter.sendMail({
+    from: '"Vertex Platform" <vertex.tech.dev@gmail.com>',
+    to,
+    subject,
+    text,
+    html,
+  });
 }

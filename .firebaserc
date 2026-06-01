@@ -23,7 +23,7 @@
   "etags": {
     "vertex-platform-dev": {
       "extensionInstances": {
-        "firestore-send-email": "2bb15ab1ab95cecac37ce125789cba1084dd7a4c273d88f5880aa1005682751f"
+        "firestore-send-email": "b6087e491f6ade4906ac49f4a12fca30bb7a20766fc54e8ddb26350cd80b4981"
       }
     },
     "vertex-platform-app": {
