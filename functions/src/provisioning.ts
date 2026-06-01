@@ -20,6 +20,7 @@ import {
   pollOperation,
   pickBillingAccount,
   listProvisioningOwnerCandidates,
+  sendDirectEmail,
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
@@ -1103,29 +1104,104 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
         const emailSubject = `Bienvenido a Vertex - Acceso habilitado para ${name}`;
         const emailHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-            <h2 style="color: #10b981; margin-top: 0;">¡Felicitaciones! Tu tienda está siendo creada</h2>
-            <p>Hola,</p>
-            <p>Hemos iniciado el aprovisionamiento de tu nueva tienda <strong>${name}</strong> en la plataforma Vertex.</p>
-            <p>Tu correo quedó preautorizado para ingresar al panel administrativo con Google OAuth.</p>
-            <p style="margin: 24px 0; text-align: center;">
-              <a href="${loginUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Ingresar con Google</a>
-            </p>
-            <p style="color: #6b7280; font-size: 14px;">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
-            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;">${loginUrl}</p>
-            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-            <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">Este correo fue enviado automáticamente por Vertex Platform. Por favor, no respondas a este mensaje.</p>
+          <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+            <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+              <div style="padding:24px 28px;background:linear-gradient(135deg,#0f172a,#10b981);color:#ffffff;">
+                <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;font-weight:700;">Vertex Platform</p>
+                <h1 style="margin:8px 0 0;font-size:24px;line-height:1.25;font-weight:700;">¡Tu tienda está siendo creada!</h1>
+              </div>
+              <div style="padding:28px 24px;">
+                <p style="margin:0 0 16px;color:#0f172a;font-size:16px;line-height:1.6;">
+                  ¡Hola! Hemos iniciado el aprovisionamiento de tu nueva tienda <strong>${name}</strong> en la plataforma Vertex de manera exitosa.
+                </p>
+                <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
+                  Tu correo electrónico ha sido preautorizado para ingresar con la máxima seguridad al panel administrativo usando tu cuenta de Google (Google OAuth).
+                </p>
+                <div style="margin:28px 0;text-align:center;">
+                  <a href="${loginUrl}" style="display:inline-block;padding:14px 28px;background:#10b981;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">Ingresar al Panel Administrativo</a>
+                </div>
+                <div style="background:#f8fafc;border-radius:10px;padding:16px;margin:24px 0;border:1px solid #f1f5f9;">
+                  <p style="margin:0 0 8px;color:#64748b;font-size:13px;font-weight:600;">Enlace de acceso rápido:</p>
+                  <p style="margin:0;color:#10b981;font-size:13px;word-break:break-all;font-family:monospace;">${loginUrl}</p>
+                </div>
+                <hr style="border:0;border-top:1px solid #e2e8f0;margin:28px 0;" />
+                <p style="color:#94a3b8;font-size:11px;margin:0;line-height:1.4;text-align:center;">
+                  Este correo fue enviado de forma automática por Vertex Platform al iniciar el aprovisionamiento. Por favor, no respondas a este mensaje.
+                </p>
+              </div>
+            </div>
           </div>
         `;
 
-        await db.collection('mail').add({
-          to: [ownerEmail],
-          message: {
-            subject: emailSubject,
-            html: emailHtml,
-            text: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
-          },
-        });
+        try {
+          if (projectId === PLATFORM_PROJECT) {
+            await sendDirectEmail(
+              ownerEmail,
+              emailSubject,
+              emailHtml,
+              `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+            );
+            console.info(
+              `[provisioning:initAdmin] Welcome email successfully sent directly to ${ownerEmail} using SMTP.`,
+            );
+          } else {
+            const mailDocFields = {
+              to: {
+                arrayValue: {
+                  values: [{ stringValue: ownerEmail }],
+                },
+              },
+              message: {
+                mapValue: {
+                  fields: {
+                    subject: { stringValue: emailSubject },
+                    html: { stringValue: emailHtml },
+                    text: {
+                      stringValue: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+                    },
+                  },
+                },
+              },
+              createdAt: {
+                timestampValue: new Date().toISOString(),
+              },
+            };
+
+            await apiFetch(
+              auth,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
+              {
+                method: 'POST',
+                body: { fields: mailDocFields },
+                quotaProject: projectId,
+              },
+            );
+            console.info(
+              `[provisioning:initAdmin] Welcome email successfully queued in new store ${projectId}'s mail collection.`,
+            );
+          }
+        } catch (mailErr) {
+          console.warn(
+            `[provisioning:initAdmin] Failed to queue welcome email in ${projectId}'s mail collection, falling back to central mail queue:`,
+            mailErr,
+          );
+          // Fallback to central platform mail collection
+          try {
+            await db.collection('mail').add({
+              to: [ownerEmail],
+              message: {
+                subject: emailSubject,
+                html: emailHtml,
+                text: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+              },
+            });
+          } catch (centralErr) {
+            console.error(
+              '[provisioning:initAdmin] Central fallback email queue failed:',
+              centralErr,
+            );
+          }
+        }
       }
 
       await setStep('initAdmin', 'done');
