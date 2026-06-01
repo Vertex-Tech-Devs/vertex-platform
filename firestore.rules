@@ -85,5 +85,23 @@ service cloud.firestore {
     match /admin_roles/{email} {
       allow read, write: if isPlatformAdmin() || isStoreAdmin();
     }
+
+    match /clients/{clientId} {
+      allow read: if isPlatformAdmin() || isStoreAdmin();
+      allow write: if isPlatformAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if (request.auth != null && request.auth.uid == userId) || isPlatformAdmin() || isStoreAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if (request.auth != null && request.auth.uid == userId) || isPlatformAdmin() || isStoreAdmin();
+      allow delete: if isPlatformAdmin() || isStoreAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource.data.userId == request.auth.uid || isPlatformAdmin() || isStoreAdmin());
+    }
   }
 }
