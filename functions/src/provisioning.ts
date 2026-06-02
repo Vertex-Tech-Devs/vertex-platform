@@ -848,10 +848,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      if (includeMockData !== false) {
-        const effectiveVerticalId = verticalId || 'retail';
-        await seedStoreData(auth, projectId, effectiveVerticalId, name, true, true);
-      }
+      const effectiveVerticalId = verticalId || 'retail';
+      const hasMockData = includeMockData !== false;
+      await seedStoreData(auth, projectId, effectiveVerticalId, name, hasMockData, true);
 
       await setStep('initFirestore', 'done');
     } catch (err) {
@@ -1352,6 +1351,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       });
       const deployTokenValue = version.payload!.data!.toString().trim();
 
+      const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+      const targetRef = env === 'production' ? 'main' : 'develop';
+
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
         {
@@ -1372,7 +1374,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
-              ref: 'main',
+              ref: targetRef,
             },
           }),
         },
