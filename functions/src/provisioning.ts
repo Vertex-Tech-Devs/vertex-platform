@@ -215,6 +215,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeMode,
     runtimeSiteId,
     isNewShard,
+    tenantId,
+    id: storeIdAttr,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -227,6 +229,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeMode?: StoreRuntimeMode;
     runtimeSiteId?: string;
     isNewShard?: boolean;
+    tenantId: string;
+    id: string;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -776,6 +780,68 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   updatedAt: { timestampValue: now },
                 },
               },
+            },
+          ),
+        5,
+        6000,
+      );
+
+      console.info(
+        `[provisioning:initFirestore] Writing initial branding config to configuracion/${tenantId}...`,
+      );
+      await retry(
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/${tenantId}`,
+            {
+              method: 'PATCH',
+              body: {
+                fields: {
+                  tenantId: { stringValue: tenantId },
+                  storeId: { stringValue: storeIdAttr },
+                  storeName: { stringValue: name },
+                  tagline: { stringValue: '' },
+                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                  faviconUrl: { stringValue: '' },
+                  colors: {
+                    mapValue: {
+                      fields: {
+                        primary: { stringValue: '#ea580c' },
+                        accent: { stringValue: '#ef4444' },
+                        background: { stringValue: '#ffffff' },
+                      },
+                    },
+                  },
+                  payments: {
+                    mapValue: {
+                      fields: {
+                        mercadoPagoPublicKey: { stringValue: '' },
+                      },
+                    },
+                  },
+                  contact: {
+                    mapValue: {
+                      fields: {
+                        phone: { stringValue: '' },
+                        email: { stringValue: ownerEmail },
+                        whatsApp: { stringValue: '' },
+                        instagram: { stringValue: '' },
+                        facebook: { stringValue: '' },
+                      },
+                    },
+                  },
+                  seo: {
+                    mapValue: {
+                      fields: {
+                        metaDescription: { stringValue: `Bienvenido a ${name}` },
+                      },
+                    },
+                  },
+                  setupCompleted: { booleanValue: true },
+                },
+              },
+              quotaProject: projectId,
             },
           ),
         5,
