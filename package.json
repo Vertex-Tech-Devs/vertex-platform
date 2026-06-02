@@ -70,7 +70,7 @@
     "@commitlint/config-conventional": "^19.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
     "@playwright/test": "^1.60.0",
-    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.59.4",
     "@vitest/coverage-v8": "^4.1.7",
     "cypress": "^14.5.4",
