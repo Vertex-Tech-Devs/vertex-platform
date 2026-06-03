@@ -4,6 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 
+import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
+
 const SLUG_RE = /^[a-z0-9-]+$/;
 const DOMAIN_RE =
   /^$|^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
@@ -25,18 +27,13 @@ export class StoreCreate implements OnInit {
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
   readonly runtimeSummaryError = signal('');
 
-  readonly selectedVerticalType = signal<'indumentaria' | 'gastronomia' | 'retail' | 'custom'>(
-    'indumentaria',
-  );
-  readonly customVerticalName = signal('');
-
   readonly form = this.fb.group({
     name: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
     customDomain: ['', [Validators.pattern(DOMAIN_RE)]],
-    verticalId: ['indumentaria' as string, [Validators.required, Validators.maxLength(50)]],
+    verticalId: [DEFAULT_STORE_VERTICAL as string, [Validators.required, Validators.maxLength(50)]],
     includeMockData: [true],
     dedicatedProject: [false],
   });
@@ -60,22 +57,6 @@ export class StoreCreate implements OnInit {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     this.form.get('slug')?.setValue(slug);
-  }
-
-  selectVertical(type: 'indumentaria' | 'gastronomia' | 'retail' | 'custom'): void {
-    this.selectedVerticalType.set(type);
-    if (type !== 'custom') {
-      this.form.get('verticalId')?.setValue(type);
-    } else {
-      this.form.get('verticalId')?.setValue(this.customVerticalName().trim());
-    }
-  }
-
-  onCustomVerticalChange(value: string): void {
-    this.customVerticalName.set(value);
-    if (this.selectedVerticalType() === 'custom') {
-      this.form.get('verticalId')?.setValue(value.trim());
-    }
   }
 
   async onSubmit(): Promise<void> {

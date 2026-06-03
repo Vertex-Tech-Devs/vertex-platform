@@ -78,6 +78,12 @@
               "**/*.html",
               "src/environments/**/*"
             ],
+            "coverageReporters": [
+              "html",
+              "json-summary",
+              "lcov",
+              "text-summary"
+            ],
             "coverageThresholds": {
               "statements": 85,
               "branches": 85,
