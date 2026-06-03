@@ -215,6 +215,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeMode,
     runtimeSiteId,
     isNewShard,
+    tenantId,
+    id: storeIdAttr,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -227,6 +229,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeMode?: StoreRuntimeMode;
     runtimeSiteId?: string;
     isNewShard?: boolean;
+    tenantId: string;
+    id: string;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -782,10 +786,71 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      if (includeMockData !== false) {
-        const effectiveVerticalId = verticalId || 'retail';
-        await seedStoreData(auth, projectId, effectiveVerticalId, name, true, true);
-      }
+      console.info(
+        `[provisioning:initFirestore] Writing initial branding config to configuracion/${tenantId}...`,
+      );
+      await retry(
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/${tenantId}`,
+            {
+              method: 'PATCH',
+              body: {
+                fields: {
+                  tenantId: { stringValue: tenantId },
+                  storeId: { stringValue: storeIdAttr },
+                  storeName: { stringValue: name },
+                  tagline: { stringValue: '' },
+                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                  faviconUrl: { stringValue: '' },
+                  colors: {
+                    mapValue: {
+                      fields: {
+                        primary: { stringValue: '#ea580c' },
+                        accent: { stringValue: '#ef4444' },
+                        background: { stringValue: '#ffffff' },
+                      },
+                    },
+                  },
+                  payments: {
+                    mapValue: {
+                      fields: {
+                        mercadoPagoPublicKey: { stringValue: '' },
+                      },
+                    },
+                  },
+                  contact: {
+                    mapValue: {
+                      fields: {
+                        phone: { stringValue: '' },
+                        email: { stringValue: ownerEmail },
+                        whatsApp: { stringValue: '' },
+                        instagram: { stringValue: '' },
+                        facebook: { stringValue: '' },
+                      },
+                    },
+                  },
+                  seo: {
+                    mapValue: {
+                      fields: {
+                        metaDescription: { stringValue: `Bienvenido a ${name}` },
+                      },
+                    },
+                  },
+                  setupCompleted: { booleanValue: true },
+                },
+              },
+              quotaProject: projectId,
+            },
+          ),
+        5,
+        6000,
+      );
+
+      const effectiveVerticalId = verticalId || 'retail';
+      const hasMockData = includeMockData !== false;
+      await seedStoreData(auth, projectId, effectiveVerticalId, name, hasMockData, true);
 
       await setStep('initFirestore', 'done');
     } catch (err) {
@@ -1071,15 +1136,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       };
       await retry(initIdentityPlatform, 5, 8000);
 
-      const encodedOwnerEmail = encodeURIComponent(normalizedOwnerEmail);
+      const compositeKey = `${tenantId}_${normalizedOwnerEmail}`;
+      const encodedKey = encodeURIComponent(compositeKey);
       await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedOwnerEmail}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedKey}`,
         {
           method: 'PATCH',
           body: {
             fields: {
-              role: { stringValue: 'admin' },
+              role: { stringValue: 'owner' },
+              tenantId: { stringValue: tenantId },
               source: { stringValue: 'platform-provisioning' },
               updatedAt: { timestampValue: new Date().toISOString() },
             },
@@ -1286,6 +1353,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       });
       const deployTokenValue = version.payload!.data!.toString().trim();
 
+      const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+      const targetRef = env === 'production' ? 'main' : 'develop';
+
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
         {
@@ -1306,7 +1376,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
-              ref: 'main',
+              ref: targetRef,
             },
           }),
         },

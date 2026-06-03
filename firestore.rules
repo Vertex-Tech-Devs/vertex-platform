@@ -9,6 +9,10 @@ service cloud.firestore {
       );
     }
 
+    function isStoreAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
     match /platformAdmins/{email} {
       allow read, write: if isPlatformAdmin();
     }
@@ -28,37 +32,37 @@ service cloud.firestore {
     // Shared-Shard Storefront Collections (Allow public read access)
     match /products/{productId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
       
       match /variants/{variantId} {
         allow read: if true;
-        allow write: if isPlatformAdmin();
+        allow write: if isPlatformAdmin() || isStoreAdmin();
       }
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
     }
 
     match /settings/{docId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
     }
 
     match /attributes/{docId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
     }
 
     match /siteContent/{docId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
     }
 
     match /pages/{docId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isStoreAdmin();
     }
 
     match /configuracion/{tenantId} {
@@ -71,7 +75,33 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow get, create: if true;
-      allow list, update, delete: if isPlatformAdmin();
+      allow list, update, delete: if isPlatformAdmin() || isStoreAdmin();
+    }
+
+    match /mail/{docId} {
+      allow read, write: if isPlatformAdmin() || isStoreAdmin();
+    }
+
+    match /admin_roles/{email} {
+      allow read, write: if isPlatformAdmin() || isStoreAdmin();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isPlatformAdmin() || isStoreAdmin();
+      allow write: if isPlatformAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if (request.auth != null && request.auth.uid == userId) || isPlatformAdmin() || isStoreAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if (request.auth != null && request.auth.uid == userId) || isPlatformAdmin() || isStoreAdmin();
+      allow delete: if isPlatformAdmin() || isStoreAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource.data.userId == request.auth.uid || isPlatformAdmin() || isStoreAdmin());
     }
   }
 }

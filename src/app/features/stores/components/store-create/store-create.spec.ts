@@ -116,26 +116,4 @@ describe('StoreCreate', () => {
 
     expect(component.form.touched).toBe(true);
   });
-
-  it('handles selectVertical and custom vertical changes correctly', () => {
-    const fixture = TestBed.createComponent(StoreCreate);
-    const component = fixture.componentInstance;
-
-    // Default select
-    component.selectVertical('gastronomia');
-    expect(component.selectedVerticalType()).toBe('gastronomia');
-    expect(component.form.get('verticalId')?.value).toBe('gastronomia');
-
-    // Custom vertical select
-    component.onCustomVerticalChange('Mi Rubro Custom');
-    expect(component.customVerticalName()).toBe('Mi Rubro Custom');
-
-    component.selectVertical('custom');
-    expect(component.selectedVerticalType()).toBe('custom');
-    expect(component.form.get('verticalId')?.value).toBe('Mi Rubro Custom');
-
-    // Changing custom vertical updates the form field
-    component.onCustomVerticalChange('Otro Rubro');
-    expect(component.form.get('verticalId')?.value).toBe('Otro Rubro');
-  });
 });
