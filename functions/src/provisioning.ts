@@ -1136,15 +1136,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       };
       await retry(initIdentityPlatform, 5, 8000);
 
-      const encodedOwnerEmail = encodeURIComponent(normalizedOwnerEmail);
+      const compositeKey = `${tenantId}_${normalizedOwnerEmail}`;
+      const encodedKey = encodeURIComponent(compositeKey);
       await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedOwnerEmail}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedKey}`,
         {
           method: 'PATCH',
           body: {
             fields: {
-              role: { stringValue: 'admin' },
+              role: { stringValue: 'owner' },
+              tenantId: { stringValue: tenantId },
               source: { stringValue: 'platform-provisioning' },
               updatedAt: { timestampValue: new Date().toISOString() },
             },
