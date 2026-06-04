@@ -43,9 +43,9 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
     try {
       const pat = await getGitHubPat();
 
-      // Fetch latest 20 runs from the actions API
+      // Fetch latest 50 repository_dispatch runs from the actions API
       const runsRes = await fetch(
-        'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/actions/runs?per_page=20',
+        'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/actions/runs?event=repository_dispatch&per_page=50',
         {
           headers: {
             Authorization: `Bearer ${pat}`,
