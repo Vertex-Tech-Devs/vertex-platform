@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
@@ -1154,6 +1154,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           quotaProject: projectId,
         },
       );
+
+      // Also write to the local platform database under 'admin_roles' for development / fallback reference
+      try {
+        await db.collection('admin_roles').doc(compositeKey).set({
+          role: 'owner',
+          tenantId: tenantId,
+          source: 'platform-provisioning',
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      } catch (localErr) {
+        console.error('Failed to write owner role to local platform DB:', localErr);
+      }
 
       const loginUrl = runtimeSiteId
         ? `https://${runtimeSiteId}.web.app/admin/login`

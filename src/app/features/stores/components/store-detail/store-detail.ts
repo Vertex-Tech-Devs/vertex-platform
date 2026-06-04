@@ -212,7 +212,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.stopPolling();
   }
 
-  async loadHistory(): Promise<void> {
+  async loadHistory(silent = false): Promise<void> {
     const s = this.store();
     if (!s) {
       return;
@@ -222,14 +222,18 @@ export class StoreDetail implements OnInit, OnDestroy {
       return;
     }
 
-    this.isLoadingHistory.set(true);
+    if (!silent) {
+      this.isLoadingHistory.set(true);
+    }
     try {
       const history = await this.storesService.getDeploymentHistory(projectId);
       this.deploymentHistory.set(history);
     } catch (err) {
       console.error('Error loading deployment history:', err);
     } finally {
-      this.isLoadingHistory.set(false);
+      if (!silent) {
+        this.isLoadingHistory.set(false);
+      }
     }
   }
 
@@ -288,7 +292,7 @@ export class StoreDetail implements OnInit, OnDestroy {
       if (!s) {
         return;
       }
-      void this.loadHistory();
+      void this.loadHistory(true);
     }, 15000);
   }
 
