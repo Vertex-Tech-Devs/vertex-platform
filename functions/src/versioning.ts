@@ -143,6 +143,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
           event_type: 'update-store-version',
           client_payload: {
             store_id: storeId,
+            site_id: storeData['runtimeSiteId'] || 'default',
             project_id: storeData['firebaseProjectId'],
             firebase_config: JSON.stringify(firebaseConfig),
             ref: `refs/tags/v${version}`,

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   getFirestore,
   collection,
@@ -8,8 +8,9 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+import { Observable, switchMap, of } from 'rxjs';
+import { AuthService } from './auth';
 
 import type {
   Store,
@@ -65,14 +66,29 @@ export class StoresService {
   private db = getFirestore();
   private fns = getFunctions();
   private storesRef = collection(this.db, 'stores');
+  private authService = inject(AuthService);
 
   readonly stores = toSignal(
-    new Observable<Store[]>((subscriber) => {
-      const unsub = onSnapshot(this.storesRef, (snap) =>
-        subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Store)),
-      );
-      return unsub;
-    }),
+    toObservable(this.authService.user).pipe(
+      switchMap((u) => {
+        if (!u) {
+          return of([]);
+        }
+        return new Observable<Store[]>((subscriber) => {
+          const unsub = onSnapshot(
+            this.storesRef,
+            (snap) => {
+              subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Store));
+            },
+            (error) => {
+              console.warn('[StoresService] Firestore subscription error:', error);
+              subscriber.next([]);
+            },
+          );
+          return unsub;
+        });
+      }),
+    ),
     { initialValue: [] },
   );
 
@@ -129,12 +145,16 @@ export class StoresService {
     await fn({ storeId });
   }
 
-  async getDeploymentHistory(projectId: string): Promise<DeploymentHistoryItem[]> {
-    const fn = httpsCallable<{ projectId: string }, { history: DeploymentHistoryItem[] }>(
-      this.fns,
-      'getStoreDeploymentHistory',
-    );
-    const result = await fn({ projectId });
+  async getDeploymentHistory(
+    projectId: string,
+    storeId?: string,
+    siteId?: string,
+  ): Promise<DeploymentHistoryItem[]> {
+    const fn = httpsCallable<
+      { projectId: string; storeId?: string; siteId?: string },
+      { history: DeploymentHistoryItem[] }
+    >(this.fns, 'getStoreDeploymentHistory');
+    const result = await fn({ projectId, storeId, siteId });
     return result.data.history;
   }
 
