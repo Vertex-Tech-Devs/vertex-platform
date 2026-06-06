@@ -1736,7 +1736,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}?updateMask.fieldPaths=contactPhone&updateMask.fieldPaths=contactEmail&updateMask.fieldPaths=socialInstagramUrl&updateMask.fieldPaths=socialFacebookUrl&updateMask.fieldPaths=socialWhatsAppUrl&updateMask.fieldPaths=copyrightText`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),

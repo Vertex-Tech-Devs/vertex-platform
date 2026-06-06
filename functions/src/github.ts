@@ -3,6 +3,8 @@ import { getGitHubPat, ALLOWED_ORIGINS } from './helpers';
 
 interface DeploymentHistoryPayload {
   projectId: string;
+  storeId?: string;
+  siteId?: string;
 }
 
 interface GitHubJob {
@@ -35,7 +37,7 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
       );
     }
 
-    const { projectId } = request.data;
+    const { projectId, storeId, siteId } = request.data;
     if (!projectId) {
       throw new HttpsError('invalid-argument', 'Missing projectId.');
     }
@@ -82,10 +84,19 @@ export const getStoreDeploymentHistory = onCall<DeploymentHistoryPayload>(
             const jobsData = (await jobsRes.json()) as { jobs: GitHubJob[] };
             const jobs = jobsData.jobs ?? [];
 
-            // Match if any job name contains the projectId
-            const matches = jobs.some(
-              (job) => job.name.includes(projectId) || run.display_title.includes(projectId),
-            );
+            // Match if any job name contains the appropriate identifier
+            const matches = jobs.some((job) => {
+              const jobName = job.name;
+              const title = run.display_title;
+              if (siteId && siteId !== 'default') {
+                return jobName.includes(siteId) || title.includes(siteId);
+              }
+              return (
+                jobName.includes(projectId) ||
+                title.includes(projectId) ||
+                (storeId && (jobName.includes(storeId) || title.includes(storeId)))
+              );
+            });
 
             return { run, matches };
           } catch (err) {
