@@ -22,6 +22,9 @@ vi.mock('firebase/functions', () => ({
   httpsCallable: mockHttpsCallable,
 }));
 
+import { AuthService } from './auth';
+import { signal } from '@angular/core';
+
 describe('StoresService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,6 +33,20 @@ describe('StoresService', () => {
       return mockUnsub;
     });
     mockCollection.mockReturnValue({ id: 'stores' });
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            user: signal({ email: 'admin@test.com' }),
+            isSuperAdmin: signal(false),
+            isLoggedIn: signal(true),
+            isLoading: signal(false),
+          },
+        },
+      ],
+    });
   });
 
   it('initializes stores signal as empty array', async () => {
@@ -43,6 +60,7 @@ describe('StoresService', () => {
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
     TestBed.inject(StoresService);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockOnSnapshot).toHaveBeenCalledOnce();
   });
 
@@ -50,6 +68,7 @@ describe('StoresService', () => {
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
     TestBed.inject(StoresService);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     // The Observable must return the unsub function so toSignal can clean up
     const observableFactory = mockOnSnapshot.mock.calls[0];
     expect(observableFactory).toBeDefined();
@@ -69,6 +88,7 @@ describe('StoresService', () => {
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
     const service = TestBed.inject(StoresService);
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(service.stores()).toHaveLength(2);
     expect(service.stores()[0]).toEqual({ id: 'store1', name: 'Test Store', status: 'active' });

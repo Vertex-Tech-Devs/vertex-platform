@@ -787,13 +787,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       console.info(
-        `[provisioning:initFirestore] Writing initial branding config to configuracion/${tenantId}...`,
+        `[provisioning:initFirestore] Writing initial branding config to tenants/${tenantId}/configuracion/store...`,
       );
       await retry(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/${tenantId}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/configuracion/store`,
             {
               method: 'PATCH',
               body: {

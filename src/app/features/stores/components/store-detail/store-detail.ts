@@ -226,7 +226,11 @@ export class StoreDetail implements OnInit, OnDestroy {
       this.isLoadingHistory.set(true);
     }
     try {
-      const history = await this.storesService.getDeploymentHistory(projectId);
+      const history = await this.storesService.getDeploymentHistory(
+        projectId,
+        s.id,
+        s.runtimeSiteId,
+      );
       this.deploymentHistory.set(history);
     } catch (err) {
       console.error('Error loading deployment history:', err);
