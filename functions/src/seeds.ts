@@ -1062,22 +1062,25 @@ async function deleteDocumentPath(
 }
 
 // Check if store has existing products or orders to prevent overwriting production stores
-async function checkStoreSafety(auth: OAuth2Client, projectId: string): Promise<void> {
+async function checkStoreSafety(
+  auth: OAuth2Client,
+  projectId: string,
+  tenantId: string,
+): Promise<void> {
   console.log(
-    `[SeedEngine] Safety validation: Checking products and orders in project "${projectId}"...`,
+    `[SeedEngine] Safety validation: Checking products and orders in project "${projectId}" tenant "${tenantId}"...`,
   );
+  const base = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
   try {
-    const productsRes = (await apiFetch(
-      auth,
-      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products?pageSize=1`,
-      { method: 'GET', quotaProject: projectId },
-    )) as { documents?: Array<unknown> };
+    const productsRes = (await apiFetch(auth, `${base}/tenants/${tenantId}/products?pageSize=1`, {
+      method: 'GET',
+      quotaProject: projectId,
+    })) as { documents?: Array<unknown> };
 
-    const ordersRes = (await apiFetch(
-      auth,
-      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders?pageSize=1`,
-      { method: 'GET', quotaProject: projectId },
-    )) as { documents?: Array<unknown> };
+    const ordersRes = (await apiFetch(auth, `${base}/tenants/${tenantId}/orders?pageSize=1`, {
+      method: 'GET',
+      quotaProject: projectId,
+    })) as { documents?: Array<unknown> };
 
     const hasProducts = productsRes && productsRes.documents && productsRes.documents.length > 0;
     const hasOrders = ordersRes && ordersRes.documents && ordersRes.documents.length > 0;
@@ -1123,11 +1126,14 @@ function generateVariantCombinations(
 export async function seedStoreData(
   auth: OAuth2Client,
   projectId: string,
+  tenantId: string,
   verticalId: string,
   storeName?: string,
   includeMockData = true,
   bypassSafety = false,
 ): Promise<void> {
+  // Builds a tenant-namespaced Firestore path segment
+  const tp = (path: string) => `tenants/${tenantId}/${path}`;
   const sName = storeName ? storeName.trim() : 'Vertex';
   let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
@@ -1161,7 +1167,7 @@ export async function seedStoreData(
 
   // 1. Run Safety Check
   if (!bypassSafety) {
-    await checkStoreSafety(auth, projectId);
+    await checkStoreSafety(auth, projectId, tenantId);
   }
 
   console.log(
@@ -1171,11 +1177,11 @@ export async function seedStoreData(
   // 2. Clear Database Collections
   const collectionsToClear = ['products', 'categories', 'clients', 'orders', 'attributes'];
   for (const col of collectionsToClear) {
-    await clearCollection(auth, projectId, col);
+    await clearCollection(auth, projectId, tp(col));
   }
-  await deleteDocumentPath(auth, projectId, 'siteContent/homePage');
-  await deleteDocumentPath(auth, projectId, 'pages/aboutUs');
-  await deleteDocumentPath(auth, projectId, 'configuracion/footer');
+  await deleteDocumentPath(auth, projectId, tp('siteContent/homePage'));
+  await deleteDocumentPath(auth, projectId, tp('pages/aboutUs'));
+  await deleteDocumentPath(auth, projectId, tp('configuracion/store'));
 
   console.log(
     `[SeedEngine] Clean-up complete. Starting database seeding for vertical: "${targetVertical}"`,
@@ -1191,7 +1197,7 @@ export async function seedStoreData(
       () =>
         apiFetch(
           auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attributes/${attr.id}`,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`attributes/${attr.id}`)}`,
           {
             method: 'PATCH',
             body: toFirestoreFields(docData),
@@ -1218,7 +1224,7 @@ export async function seedStoreData(
       () =>
         apiFetch(
           auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/categories/${cat.id}`,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`categories/${cat.id}`)}`,
           {
             method: 'PATCH',
             body: toFirestoreFields(docData),
@@ -1240,7 +1246,9 @@ export async function seedStoreData(
     variantAttributes: string[];
   }> = [];
 
-  for (const prod of seed.products) {
+  // Limit to first 15 products (3 per category) to keep seed lean during testing
+  const productsToSeed = seed.products.slice(0, 15);
+  for (const prod of productsToSeed) {
     const discount = prod.discount ?? 0;
     const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
 
@@ -1269,7 +1277,7 @@ export async function seedStoreData(
       () =>
         apiFetch(
           auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prod.id}`,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}`)}`,
           {
             method: 'PATCH',
             body: toFirestoreFields(initialProdData),
@@ -1308,7 +1316,7 @@ export async function seedStoreData(
           () =>
             apiFetch(
               auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prod.id}/variants/v${varIdx}`,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/v${varIdx}`)}`,
               {
                 method: 'PATCH',
                 body: toFirestoreFields(variantData),
@@ -1330,7 +1338,7 @@ export async function seedStoreData(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prod.id}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}`)}`,
             {
               method: 'PATCH',
               body: toFirestoreFields({
@@ -1350,7 +1358,7 @@ export async function seedStoreData(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prod.id}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}`)}`,
             {
               method: 'PATCH',
               body: toFirestoreFields({
@@ -1379,7 +1387,8 @@ export async function seedStoreData(
     // 6. Seed Clients (from CLIENT_DATA)
     const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
     let clientIdx = 0;
-    for (const client of CLIENT_DATA) {
+    // Limit to 10 clients to keep seed lean during testing
+    for (const client of CLIENT_DATA.slice(0, 10)) {
       const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
       const clientDocId = `cli-${clientIdx}`;
       const clientPayload = {
@@ -1396,7 +1405,7 @@ export async function seedStoreData(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/clients/${clientDocId}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`clients/${clientDocId}`)}`,
             {
               method: 'PATCH',
               body: toFirestoreFields(clientPayload),
@@ -1419,7 +1428,8 @@ export async function seedStoreData(
 
     // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
     let orderIdx = 0;
-    for (const order of ORDER_DATA) {
+    // Limit to 10 orders to keep seed lean during testing
+    for (const order of ORDER_DATA.slice(0, 10)) {
       const cl = seededClients[order.clientIdx % seededClients.length];
       const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
       const orderDocId = `ord-${orderIdx++}`;
@@ -1488,7 +1498,7 @@ export async function seedStoreData(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${orderDocId}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`orders/${orderDocId}`)}`,
             {
               method: 'PATCH',
               body: toFirestoreFields(orderPayload),
@@ -1499,7 +1509,7 @@ export async function seedStoreData(
         6000,
       );
     }
-    console.log(`[SeedEngine] Seeded ${ORDER_DATA.length} orders.`);
+    console.log(`[SeedEngine] Seeded ${orderIdx} orders.`);
   } else {
     console.log('[SeedEngine] includeMockData is false. Skipping clients and orders seeding.');
   }
@@ -1617,7 +1627,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/siteContent/homePage`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('siteContent/homePage')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(homePagePayload),
@@ -1699,7 +1709,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pages/aboutUs`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('pages/aboutUs')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(aboutUsPayload),
@@ -1726,7 +1736,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/footer`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),
@@ -1736,6 +1746,6 @@ export async function seedStoreData(
     5,
     6000,
   );
-  console.log(`[SeedEngine] Seeded configuracion/footer successfully.`);
+  console.log(`[SeedEngine] Seeded configuracion/store successfully.`);
   console.log(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }

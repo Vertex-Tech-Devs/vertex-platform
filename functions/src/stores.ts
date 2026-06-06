@@ -1077,8 +1077,16 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     const store = storeSnap.data() as {
       firebaseProjectId?: string;
       runtimeProjectId?: string;
+      runtimeMode?: string;
+      tenantId?: string;
+      slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
+    const tenantId = store.tenantId || store.slug || storeId;
+    const isSharedShard = (store.runtimeMode || 'dedicated-project') === 'shared-shard';
+    const configPath = isSharedShard
+      ? `tenants/${tenantId}/settings/storeConfig`
+      : 'settings/storeConfig';
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
@@ -1114,7 +1122,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     try {
       const existingDoc = (await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
         { quotaProject: projectId },
       )) as { fields?: Record<string, any> };
       existingFields = existingDoc.fields || {};
@@ -1129,7 +1137,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       () =>
         apiFetch(
           auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
           {
             method: 'PATCH',
             body: { fields: mergedFields },
@@ -1168,14 +1176,22 @@ export const getStoreConfig = onCall<{ storeId: string }>(
     const store = storeSnap.data() as {
       firebaseProjectId?: string;
       runtimeProjectId?: string;
+      runtimeMode?: string;
+      tenantId?: string;
+      slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
+    const tenantId = store.tenantId || store.slug || storeId;
+    const isSharedShard = (store.runtimeMode || 'dedicated-project') === 'shared-shard';
+    const configPath = isSharedShard
+      ? `tenants/${tenantId}/settings/storeConfig`
+      : 'settings/storeConfig';
     const auth = await getOwnerOAuthClient();
 
     try {
       const existingDoc = (await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
         { quotaProject: projectId },
       )) as { fields?: Record<string, any> };
 
@@ -1244,10 +1260,14 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       firebaseProjectId?: string;
       runtimeProjectId?: string;
       runtimeSiteId?: string;
+      runtimeMode?: string;
       name?: string;
+      tenantId?: string;
+      slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
     const storeName = store.name || storeId;
+    const tenantId = store.tenantId || store.slug || storeId;
     const loginUrl = store.runtimeSiteId
       ? `https://${store.runtimeSiteId}.web.app/admin/login`
       : `https://${projectId}.web.app/admin/login`;
@@ -1276,14 +1296,16 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     try {
       const encodedEmail = encodeURIComponent(normalizedEmail);
+      const compositeKey = `${tenantId}_${encodedEmail}`;
       await apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedEmail}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${compositeKey}`,
         {
           method: 'PATCH',
           body: {
             fields: {
               role: { stringValue: normalizedRole },
+              tenantId: { stringValue: tenantId },
               source: { stringValue: 'vertex-platform-invite' },
               updatedAt: { timestampValue: new Date().toISOString() },
             },
