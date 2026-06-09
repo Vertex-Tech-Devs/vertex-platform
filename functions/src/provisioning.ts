@@ -660,18 +660,50 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
-      const appOp = (await apiFetch(
-        auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-        { method: 'POST', body: { displayName: name } },
-      )) as { name: string };
-      await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+      let appId: string;
 
-      const appsRes = (await apiFetch(
-        auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-      )) as { apps: Array<{ appId: string }> };
-      const appId = appsRes.apps[0].appId;
+      if (runtimeMode === 'shared-shard') {
+        // Shared-shard stores share the same Firebase project, so they can reuse the same
+        // Web App registration. Creating a new one per store hits the 30-app project limit.
+        const appsRes = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+        )) as { apps: Array<{ appId: string }> };
+
+        if (appsRes.apps?.length) {
+          appId = appsRes.apps[0].appId;
+          console.info(
+            `[provisioning:createWebApp] Reusing existing Web App ${appId} on shard ${projectId}`,
+          );
+        } else {
+          const appOp = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+            { method: 'POST', body: { displayName: `${projectId}-shard` } },
+          )) as { name: string };
+          await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+          const refreshed = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+          )) as { apps: Array<{ appId: string }> };
+          appId = refreshed.apps[0].appId;
+          console.info(
+            `[provisioning:createWebApp] Created first Web App ${appId} on shard ${projectId}`,
+          );
+        }
+      } else {
+        const appOp = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+          { method: 'POST', body: { displayName: name } },
+        )) as { name: string };
+        await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+        const appsRes = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+        )) as { apps: Array<{ appId: string }> };
+        appId = appsRes.apps[0].appId;
+      }
 
       const configRes = (await apiFetch(
         auth,
