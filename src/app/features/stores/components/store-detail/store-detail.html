@@ -212,6 +212,34 @@
                   se realiza directamente sobre su proyecto Firebase al confirmar.
                 </p>
 
+                <div
+                  class="auto-update-toggle mb-3"
+                  style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem"
+                >
+                  <label
+                    class="toggle-label"
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 0.5rem;
+                      cursor: pointer;
+                      font-size: 0.9rem;
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="store()!.autoUpdate"
+                      (change)="toggleAutoUpdate($event)"
+                      [disabled]="isUpdatingAutoUpdate()"
+                      style="width: 1rem; height: 1rem; cursor: pointer"
+                    />
+                    <span>Actualizar automáticamente al lanzar nueva versión del template</span>
+                  </label>
+                  @if (isUpdatingAutoUpdate()) {
+                    <span class="spinner-sm"></span>
+                  }
+                </div>
+
                 @if (isLoadingVersions()) {
                   <p class="text-muted">Cargando versiones disponibles…</p>
                 } @else if (availableVersions().length === 0) {
