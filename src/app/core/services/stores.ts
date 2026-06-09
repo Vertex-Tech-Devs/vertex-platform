@@ -128,7 +128,7 @@ export class StoresService {
 
   async updateStore(
     id: string,
-    data: Partial<Pick<Store, 'name' | 'ownerEmail' | 'logoUrl'>>,
+    data: Partial<Pick<Store, 'name' | 'ownerEmail' | 'logoUrl' | 'autoUpdate'>>,
   ): Promise<void> {
     await updateDoc(doc(this.db, 'stores', id), { ...data, updatedAt: serverTimestamp() });
   }

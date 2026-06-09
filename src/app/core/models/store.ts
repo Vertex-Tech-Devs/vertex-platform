@@ -40,6 +40,7 @@ export interface Store {
   templateCommit?: string;
   versionUpdateStatus?: VersionUpdateStatus;
   versionUpdateTarget?: string;
+  autoUpdate?: boolean;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;
   verticalId?: string;

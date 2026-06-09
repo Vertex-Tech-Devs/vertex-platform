@@ -1025,6 +1025,10 @@ export const getActiveStores = onCall(
           name: string;
           firebaseProjectId?: string;
           runtimeProjectId?: string;
+          slug?: string;
+          tenantId?: string;
+          runtimeSiteId?: string;
+          autoUpdate?: boolean;
         };
         const projectId = resolveRuntimeProjectId(store);
 
@@ -1037,6 +1041,9 @@ export const getActiveStores = onCall(
 
         return {
           storeId: store.id,
+          tenantId: store.slug || store.tenantId || store.id,
+          siteId: store.runtimeSiteId || store.id,
+          autoUpdate: store.autoUpdate ?? false,
           projectId,
           storeName: store.name,
           firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,

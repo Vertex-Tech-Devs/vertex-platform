@@ -182,6 +182,7 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly availableVersions = signal<TemplateVersion[]>([]);
   readonly isLoadingVersions = signal(false);
   readonly isUpdatingVersion = signal(false);
+  readonly isUpdatingAutoUpdate = signal(false);
   readonly selectedVersion = signal('');
   readonly versionUpdateError = signal('');
   readonly versionUpdateSuccess = signal('');
@@ -280,6 +281,22 @@ export class StoreDetail implements OnInit, OnDestroy {
       );
     } finally {
       this.isUpdatingVersion.set(false);
+    }
+  }
+
+  async toggleAutoUpdate(event: Event): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    const checked = (event.target as HTMLInputElement).checked;
+    this.isUpdatingAutoUpdate.set(true);
+    try {
+      await this.storesService.updateStore(s.id, { autoUpdate: checked });
+    } catch (err) {
+      console.error('Error updating autoUpdate:', err);
+    } finally {
+      this.isUpdatingAutoUpdate.set(false);
     }
   }
 
