@@ -1,0 +1,144 @@
+{
+  "name": "vertex-platform",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "build:dev": "ng build --configuration=development",
+    "build:prod": "ng build --configuration=production",
+    "deploy:dev": "gcloud config configurations activate default && npm run clean && npm run build:dev && npm --prefix functions run build && firebase deploy --only hosting:dev,functions --project=vertex-platform-dev --force",
+    "deploy:prod": "gcloud config configurations activate vertex-prod && npm run clean && npm run build:prod && npm --prefix functions run build && firebase deploy --only hosting:prod,functions --project=vertex-platform-app",
+    "clean": "rm -rf dist functions/lib .angular/cache .firebase",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "lint": "ng lint",
+    "typecheck": "tsc --noEmit",
+    "qa": "tsx scripts/qa.ts",
+    "qa:full": "tsx scripts/qa.ts --full",
+    "e2e": "cypress open",
+    "e2e:ci": "start-server-and-test start http-get://127.0.0.1:4200 'cypress run'",
+    "test:integration": "playwright test --config integration-tests/playwright.config.ts",
+    "test:integration:ui": "playwright test --ui --config integration-tests/playwright.config.ts",
+    "test:integration:env": "bash scripts/start-integration-env.sh",
+    "add-admin": "tsx scripts/add-admin.ts",
+    "remove-admin": "tsx scripts/add-admin.ts --remove",
+    "setup-provisioning": "tsx scripts/setup-provisioning.ts",
+    "seed:stores": "tsx scripts/seed-existing-stores.ts",
+    "register-shard": "tsx scripts/register-shard.ts",
+    "test:provision": "bash scripts/verify-provision.sh",
+    "test:email-delivery": "bash scripts/test-email-delivery.sh",
+    "setup": "tsx scripts/setup.ts",
+    "prepare": "husky"
+  },
+  "private": true,
+  "packageManager": "npm@10.9.4",
+  "overrides": {
+    "@angular/common": "^21.2.14",
+    "@angular/core": "^21.2.14",
+    "@angular/platform-browser": "^21.2.14",
+    "@angular/compiler": "^21.2.14",
+    "brace-expansion": ">=2.0.1",
+    "fast-uri": ">=3.1.2",
+    "protobufjs": ">=7.5.8",
+    "tmp": ">=0.2.6",
+    "uuid": ">=11.1.1",
+    "qs": ">=6.15.1"
+  },
+  "dependencies": {
+    "@angular/common": "^21.2.14",
+    "@angular/compiler": "^21.2.14",
+    "@angular/core": "^21.2.14",
+    "@angular/fire": "^20.0.1",
+    "@angular/forms": "^21.2.14",
+    "@angular/platform-browser": "^21.2.14",
+    "@angular/router": "^21.2.14",
+    "firebase": "^12.13.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-eslint/builder": "^21.4.0",
+    "@angular-eslint/eslint-plugin": "^21.4.0",
+    "@angular-eslint/eslint-plugin-template": "^21.4.0",
+    "@angular-eslint/template-parser": "^21.4.0",
+    "@angular/build": "^21.2.12",
+    "@angular/cli": "^21.2.12",
+    "@angular/compiler-cli": "^21.2.14",
+    "@clack/prompts": "^1.5.0",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "@google-cloud/secret-manager": "^5.0.0",
+    "@playwright/test": "^1.60.0",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/parser": "^8.59.4",
+    "@vitest/coverage-v8": "^4.1.7",
+    "cypress": "^14.5.4",
+    "eslint": "^9.39.4",
+    "firebase-admin": "^13.10.0",
+    "husky": "^9.0.0",
+    "jsdom": "^28.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.8.1",
+    "start-server-and-test": "^2.1.2",
+    "tsx": "^4.22.3",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.7"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "functions/src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "cypress/**/*.ts": [
+      "prettier --write"
+    ],
+    "*.html": [
+      "prettier --write"
+    ],
+    "*.scss": [
+      "prettier --write"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ],
+      "type-case": [
+        2,
+        "always",
+        "lowercase"
+      ],
+      "type-empty": [
+        2,
+        "never"
+      ],
+      "scope-case": [
+        2,
+        "always",
+        "lowercase"
+      ]
+    }
+  }
+}

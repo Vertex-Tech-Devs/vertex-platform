@@ -1,0 +1,206 @@
+@if (order) {
+  <div class="modal-header modal-header-glass">
+    <h4 class="modal-title w-100 text-center mb-0">
+      <i class="bi bi-receipt me-2 text-primary" aria-hidden="true"></i>
+      Recibo #{{ order.id }}
+    </h4>
+    <button type="button" class="btn-close-glass" aria-label="Close" (click)="close()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="modal-body p-0 custom-scrollbar bg-white">
+    <div class="receipt-paper">
+      <div class="receipt-header">
+        <div class="store-details">
+          @if (logoUrl()) {
+            <img
+              class="store-logo-image"
+              [src]="logoUrl()"
+              [alt]="storeName() || 'Logo de tienda'"
+            />
+          } @else {
+            <div class="store-logo-placeholder">
+              <i class="bi bi-shop" aria-hidden="true"></i>
+            </div>
+          }
+          <h2 class="store-name">{{ storeName() }}</h2>
+        </div>
+        <div class="receipt-meta">
+          <div class="meta-item">
+            <span class="meta-label">Recibo #</span>
+            <span class="meta-value">{{ order.id }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Emisión</span>
+            <span class="meta-value">{{ today | date: 'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Pedido</span>
+            <span class="meta-value">{{ order.orderDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="customer-details">
+        <div class="info-block">
+          <h5 class="block-title">
+            <i class="bi bi-person me-2" aria-hidden="true"></i>Facturado a
+          </h5>
+          <div class="block-content">
+            <p class="customer-name">{{ order.clientName }}</p>
+            @if (order.clientEmail) {
+              <p class="contact-info">
+                <i class="bi bi-envelope me-2 text-muted" aria-hidden="true"></i
+                >{{ order.clientEmail }}
+              </p>
+            }
+            @if (order.clientPhone) {
+              <p class="contact-info">
+                <i class="bi bi-telephone me-2 text-muted" aria-hidden="true"></i
+                >{{ order.clientPhone }}
+              </p>
+            }
+          </div>
+        </div>
+        <div class="info-block">
+          <h5 class="block-title">
+            <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>Enviado a
+          </h5>
+          <div class="block-content">
+            <address class="mb-0">
+              <span class="d-block">{{ order.shippingAddress.street }}</span>
+              <span class="d-block"
+                >{{ order.shippingAddress.city }}, {{ order.shippingAddress.state }}</span
+              >
+              <span class="d-block">{{ order.shippingAddress.zipCode }}</span>
+              <span class="d-block fw-bold mt-1">{{ order.shippingAddress.country }}</span>
+            </address>
+          </div>
+        </div>
+      </div>
+
+      <div class="items-table-container">
+        <table class="table receipt-table mb-0 d-none d-md-table">
+          <thead>
+            <tr>
+              <th class="text-start">Descripción</th>
+              <th class="text-center" style="width: 15%">Cant.</th>
+              <th class="text-end" style="width: 25%">Precio</th>
+              <th class="text-end" style="width: 25%">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of order.items; track item.variantId) {
+              <tr>
+                <td class="text-start fw-semibold text-dark">{{ item.productName }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-end">
+                  {{ item.price | currency: currencyCode() : currencySymbol() }}
+                </td>
+                <td class="text-end fw-semibold">
+                  {{ getItemSubtotal(item) | currency: currencyCode() : currencySymbol() }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="mobile-items-list d-md-none">
+          <h5 class="list-title">Productos</h5>
+          @for (item of order.items; track item.variantId) {
+            <div class="mobile-item">
+              <div class="item-header">
+                <span class="item-name fw-semibold text-dark">{{ item.productName }}</span>
+              </div>
+              <div class="item-details">
+                <span class="item-qty text-muted"
+                  >{{ item.quantity }} x
+                  {{ item.price | currency: currencyCode() : currencySymbol() }}</span
+                >
+                <span class="item-subtotal fw-semibold">{{
+                  getItemSubtotal(item) | currency: currencyCode() : currencySymbol()
+                }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="receipt-footer">
+        <div class="payment-info">
+          <p class="mb-1 text-muted small text-uppercase fw-bold">Método de Pago</p>
+          <p class="mb-0 fw-semibold text-dark">
+            {{ order.paymentDetails?.paymentMethod || 'No especificado' }}
+          </p>
+        </div>
+        <div class="totals-summary">
+          <table class="table table-borderless mb-0 summary-table">
+            <tbody>
+              <tr>
+                <td class="text-muted">Subtotal</td>
+                <td class="text-end fw-medium">
+                  {{
+                    order.paymentDetails?.subtotal || (order.items | sumItems: 'price' : 'quantity')
+                      | currency: currencyCode() : currencySymbol()
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted">Costo de Envío</td>
+                <td class="text-end fw-medium">
+                  {{
+                    order.paymentDetails?.shippingCost || 0
+                      | currency: currencyCode() : currencySymbol()
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted">Impuestos</td>
+                <td class="text-end fw-medium">
+                  {{
+                    order.paymentDetails?.taxAmount || 0
+                      | currency: currencyCode() : currencySymbol()
+                  }}
+                </td>
+              </tr>
+              <tr class="total-row">
+                <td class="fw-bold fs-5 text-dark">Total</td>
+                <td class="text-end fw-bold fs-5 text-primary">
+                  {{ order.total | currency: currencyCode() : currencySymbol() }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="receipt-watermark">
+        <p>Gracias por tu compra en {{ storeName() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer modal-footer-glass">
+    <button type="button" class="btn-glass-secondary" (click)="close()">Cancelar</button>
+    <button type="button" class="btn-glass-primary" (click)="printReceipt()">
+      <i class="bi bi-printer me-2" aria-hidden="true"></i>Imprimir Recibo
+    </button>
+  </div>
+} @else {
+  <div class="modal-header modal-header-glass">
+    <h4 class="modal-title w-100 text-center text-danger mb-0">Error</h4>
+    <button type="button" class="btn-close-glass" aria-label="Close" (click)="close()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="modal-body modal-body-glass text-center py-5">
+    <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3 d-block" aria-hidden="true"></i>
+    <p class="text-light fs-5">No se pudieron cargar los datos del recibo.</p>
+  </div>
+  <div class="modal-footer modal-footer-glass">
+    <button type="button" class="btn-glass-secondary w-100" (click)="close()">Cerrar</button>
+  </div>
+}

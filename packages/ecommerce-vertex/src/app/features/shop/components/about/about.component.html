@@ -1,0 +1,60 @@
+@if (data$ | async; as pageData) {
+  <div class="about">
+    <section
+      class="about-hero"
+      [style.background-image]="'url(' + pageData.bannerImageUrl + ')'"
+      aria-label="Banner"
+    >
+      <div class="about-hero__content">
+        <h1 class="about-hero__title">{{ pageData.bannerTitle }}</h1>
+        @if (pageData.bannerSubtitle) {
+          <p class="about-hero__subtitle">{{ pageData.bannerSubtitle }}</p>
+        }
+      </div>
+    </section>
+
+    <div class="about__container">
+      <section class="about__section" aria-label="Nuestra historia">
+        <h2 class="about__section-title">{{ pageData.centralTitle }}</h2>
+        <div class="about__story">
+          <div class="about__story-grid">
+            <div class="about__story-image-wrap">
+              <img
+                [src]="pageData.centralImageUrl"
+                [alt]="pageData.centralTitle"
+                class="about__story-image"
+                loading="lazy"
+              />
+            </div>
+            <div class="about__story-text">
+              <p class="about__story-description">{{ pageData.centralDescription }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="about__section" aria-label="Misión y Visión">
+        <h2 class="about__section-title">{{ pageData.cardsSectionTitle }}</h2>
+        <div class="about__cards-grid">
+          @for (card of pageData.featureCards; track $index; let i = $index) {
+            <article class="about-card">
+              @if (i === 0) {
+                <i class="bi bi-bullseye about-card__icon" aria-hidden="true"></i>
+              } @else {
+                <i class="bi bi-stars about-card__icon" aria-hidden="true"></i>
+              }
+              <h3 class="about-card__title">{{ card.title }}</h3>
+              <p class="about-card__text">{{ card.content }}</p>
+            </article>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <div class="about__loading" role="status">
+    <div class="spinner-border">
+      <span class="visually-hidden">Cargando contenido...</span>
+    </div>
+  </div>
+}

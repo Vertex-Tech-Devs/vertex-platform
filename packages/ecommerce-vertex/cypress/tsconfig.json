@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "dom"],
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["cypress", "node"],
+    "isolatedModules": false,
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "e2e/**/*.ts",
+    "support/**/*.ts"
+  ],
+  "exclude": [
+    "../node_modules"
+  ]
+}

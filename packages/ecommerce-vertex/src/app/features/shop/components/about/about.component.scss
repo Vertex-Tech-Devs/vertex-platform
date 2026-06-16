@@ -1,0 +1,175 @@
+// ============================================
+// ABOUT — Premium Brand Story
+// ============================================
+
+:host {
+  display: block;
+  background-color: var(--shop-bg);
+  color: var(--text-primary);
+}
+
+.about {
+  width: 100%;
+}
+
+.about__container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+// Hero banner
+.about-hero {
+  width: 100%;
+  height: 50vh;
+  min-height: 350px;
+  background-size: cover;
+  background-position: center 30%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: var(--space-8) var(--space-6);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.5) 100%);
+  }
+}
+
+.about-hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  color: #fff;
+}
+
+.about-hero__title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.about-hero__subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.35rem);
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+// Sections
+.about__section {
+  padding: var(--space-16) 0 var(--space-12);
+}
+
+.about__section-title {
+  text-align: center;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  margin-bottom: var(--space-12);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+// Story grid
+.about__story-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  align-items: center;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-12);
+  }
+}
+
+.about__story-image {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  display: block;
+}
+
+.about__story-description {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+// Feature cards
+.about__cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.about-card {
+  background: var(--shop-surface);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8);
+  text-align: center;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.about-card__icon {
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+  display: block;
+}
+
+.about-card__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+}
+
+.about-card__text {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+// Loading
+.about__loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+
+  .spinner-border {
+    width: 2rem;
+    height: 2rem;
+    color: var(--text-muted);
+  }
+}
+
+@media (max-width: 768px) {
+  .about-hero {
+    height: 40vh;
+    min-height: 280px;
+  }
+
+  .about__section {
+    padding: var(--space-10) 0 var(--space-8);
+  }
+}

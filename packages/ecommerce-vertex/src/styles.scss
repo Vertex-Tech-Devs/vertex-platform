@@ -1,0 +1,176 @@
+@use 'styles/variables' as vars;
+@use 'sass:color';
+
+// ============================================
+// GLOBAL RESET & BASE
+// ============================================
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: vars.$font-family-primary;
+  background-color: vars.$dark-bg-primary;
+  color: vars.$text-light;
+  line-height: 1.6;
+}
+
+// ============================================
+// SCROLLBAR — Sleek & Minimal
+// ============================================
+body::-webkit-scrollbar {
+  width: 8px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+// ============================================
+// FOCUS STYLES — Accessibility
+// ============================================
+:focus-visible {
+  outline: 2px solid vars.$accent-blue;
+  outline-offset: 2px;
+}
+
+// ============================================
+// SELECTION
+// ============================================
+::selection {
+  background-color: rgba(vars.$accent-purple, 0.25);
+  color: inherit;
+}
+
+// ============================================
+// QUILL EDITOR OVERRIDES (Admin)
+// ============================================
+.ql-snow {
+  .ql-toolbar {
+    background-color: #f8f9fb !important;
+    border-top-left-radius: var(--radius-md) !important;
+    border-top-right-radius: var(--radius-md) !important;
+    border: 1px solid #e2e5ea !important;
+    border-bottom: 0 !important;
+
+    .ql-stroke,
+    .ql-picker-label,
+    .ql-picker-item {
+      stroke: #555 !important;
+      color: #555 !important;
+    }
+    .ql-fill {
+      fill: #555 !important;
+    }
+
+    button:hover,
+    .ql-picker-label:hover {
+      .ql-stroke,
+      & {
+        stroke: vars.$accent-blue !important;
+        color: vars.$accent-blue !important;
+      }
+      .ql-fill {
+        fill: vars.$accent-blue !important;
+      }
+    }
+
+    & .ql-active {
+      .ql-stroke,
+      & {
+        stroke: vars.$accent-blue !important;
+        color: vars.$accent-blue !important;
+      }
+      .ql-fill {
+        fill: vars.$accent-blue !important;
+      }
+    }
+  }
+
+  .ql-container {
+    background-color: #ffffff !important;
+    border-bottom-left-radius: var(--radius-md) !important;
+    border-bottom-right-radius: var(--radius-md) !important;
+    border: 1px solid #e2e5ea !important;
+
+    .ql-editor {
+      color: #1a1a2e !important;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      min-height: 120px;
+
+      &.ql-blank::before {
+        color: rgba(0, 0, 0, 0.35) !important;
+        font-style: normal !important;
+      }
+    }
+  }
+
+  .ql-picker-options {
+    background-color: #ffffff !important;
+    border-color: #e2e5ea !important;
+    color: #555 !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+}
+
+// ============================================
+// NGX-BOOTSTRAP MODAL — Clean Light
+// ============================================
+.modal-content {
+  background: #ffffff;
+  border: 1px solid vars.$glass-border;
+  border-radius: var(--radius-lg, 12px);
+  color: vars.$text-light;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.modal-backdrop.show {
+  backdrop-filter: blur(4px);
+}
+
+// ============================================
+// BOOTSTRAP DARK OVERRIDES
+// ============================================
+.form-check-input {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+
+  &:checked {
+    background-color: vars.$accent-blue;
+    border-color: vars.$accent-blue;
+  }
+}
+
+.text-muted {
+  color: vars.$text-muted-dark !important;
+}
+
+// .btn-close — use default Bootstrap styling for light modals

@@ -1,0 +1,190 @@
+// ============================================
+// CAROUSEL — BEM, Modern CSS
+// ============================================
+
+:host {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: var(--aspect-ratio, var(--carousel-aspect-ratio, 16 / 9));
+  overflow: visible;
+  border-radius: 0;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// -- Slide --
+.carousel__slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  pointer-events: auto;
+  z-index: 1;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.carousel__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: opacity var(--transition-base);
+}
+
+// -- Controls --
+.carousel__control {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  font-size: 1.25rem;
+  padding: 0;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.6);
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  i {
+    pointer-events: none;
+  }
+
+  &--prev {
+    left: var(--space-4);
+  }
+  &--next {
+    right: var(--space-4);
+  }
+
+  @media (max-width: 768px) {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+    &--prev {
+      left: var(--space-2);
+    }
+    &--next {
+      right: var(--space-2);
+    }
+  }
+}
+
+// -- Indicators --
+.carousel__indicators {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 50;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.carousel__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  pointer-events: auto;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(1.15);
+  }
+
+  &--active {
+    background: #fff;
+    transform: scale(1.25);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 768px) {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+// -- Progress --
+.carousel__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+  transition: width 0.3s ease;
+  z-index: 5;
+  border-radius: 0 2px 2px 0;
+}
+
+// -- Reduced motion --
+@media (prefers-reduced-motion: reduce) {
+  .carousel__image,
+  .carousel__control,
+  .carousel__indicators,
+  .carousel__progress {
+    transition: none !important;
+  }
+}
+
+// -- Touch devices --
+@media (hover: none) and (pointer: coarse) {
+  .carousel__control {
+    width: 48px;
+    height: 48px;
+  }
+  .carousel__dot {
+    width: 12px;
+    height: 12px;
+  }
+}

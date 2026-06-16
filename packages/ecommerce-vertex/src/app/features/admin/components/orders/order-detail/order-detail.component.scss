@@ -1,0 +1,323 @@
+@use 'variables' as vars;
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.order-detail-wrapper {
+  width: 100%;
+  padding-bottom: 2rem;
+  animation: float-in 0.4s ease-out;
+}
+
+.card-gradient-wrapper {
+  padding: 1px;
+  border-radius: var(--radius-lg, 12px);
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.12),
+    rgba(59, 130, 246, 0.08),
+    rgba(168, 85, 247, 0.12)
+  );
+  background-size: 200% 200%;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.list-card {
+  border: none;
+  border-radius: calc(var(--radius-lg, 12px) - 1px);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(20px);
+
+  .card-body {
+    padding: 1.5rem;
+
+    @media (min-width: 768px) {
+      padding: 2rem;
+    }
+  }
+}
+
+.text-strong {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.text-soft {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.text-label {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.page-title-container {
+  min-width: 0;
+
+  .card-title {
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.01em;
+  }
+
+  .order-id-subtitle {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.4);
+    display: block;
+    margin-top: 0.25rem;
+  }
+}
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(168, 85, 247, 0.25);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.2),
+      inset 0 0 20px rgba(168, 85, 247, 0.05);
+  }
+}
+
+.section-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 1rem;
+  display: flex;
+  align-items: center;
+
+  i {
+    background: linear-gradient(135deg, #a855f7, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.2rem;
+    filter: drop-shadow(0 2px 4px rgba(168, 85, 247, 0.3));
+  }
+}
+
+.glass-input {
+  background-color: rgba(15, 23, 42, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  padding: 0.4rem 0.8rem;
+
+  &:focus {
+    background-color: rgba(15, 23, 42, 0.8);
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+    outline: none;
+  }
+
+  &.form-select {
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+  }
+
+  option {
+    background-color: #0f172a;
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.glass-table {
+  --bs-table-bg: transparent;
+
+  thead th {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding: 1.25rem 0.5rem;
+    vertical-align: middle;
+    border: none;
+  }
+}
+
+.border-white-10 {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-table {
+  td {
+    padding: 0.6rem 0;
+    background: transparent;
+  }
+
+  .total-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    td {
+      padding-top: 1.25rem;
+      margin-top: 0.5rem;
+    }
+  }
+}
+
+.btn-glass-secondary,
+.btn-glass-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  padding: 0.6rem 1.25rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-glass-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+}
+
+.btn-glass-primary {
+  background: rgba(129, 140, 248, 0.15);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #c7d2fe;
+
+  &:hover {
+    background: rgba(129, 140, 248, 0.3);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(129, 140, 248, 0.3);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .page-title-container .card-title {
+    font-size: 1.5rem;
+  }
+
+  .details-table {
+    thead {
+      display: none;
+    }
+
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      row-gap: 0.5rem;
+      column-gap: 1.25rem;
+
+      &:hover {
+        background: rgba(15, 23, 42, 0.4);
+      }
+    }
+
+    td {
+      padding: 0;
+      border: none;
+      text-align: left !important;
+
+      &::before {
+        display: none;
+      }
+    }
+
+    td.product-img-cell {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+
+      img {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+      }
+    }
+
+    td.product-name-cell {
+      grid-column: 2;
+      font-size: 1.1rem;
+    }
+
+    td.product-qty-cell {
+      grid-column: 2;
+      font-size: 0.9rem;
+
+      &::before {
+        content: 'Cantidad: ';
+        display: inline;
+        font-weight: normal;
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    td.product-price-cell {
+      display: none;
+    }
+
+    td.product-subtotal-cell {
+      grid-column: 2;
+      font-size: 1.15rem;
+    }
+  }
+}
