@@ -73,6 +73,9 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
+            "exclude": [
+              "**/functions/**"
+            ],
             "coverage": true,
             "coverageExclude": [
               "**/*.html",
