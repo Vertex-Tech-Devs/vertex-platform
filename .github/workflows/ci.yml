@@ -90,7 +90,7 @@ jobs:
         if: matrix.project == 'ecommerce-vertex'
         run: |
           npm ci --prefix packages/ecommerce-vertex/functions
-          npm run test --workspace=packages/ecommerce-vertex
+          npm run test:ci --workspace=packages/ecommerce-vertex
           npm run test --prefix packages/ecommerce-vertex/functions
 
   build:
