@@ -136,7 +136,7 @@ export class SeedContentService {
   }
 
   async seedAboutUs(): Promise<void> {
-    const storeName = this.storeConfigService.storeName() || 'Nuestra Tienda';
+    const storeName = this.storeConfigService.storeName() ?? 'Nuestra Tienda';
     await this.run(() =>
       setDoc(doc(this.firestore, tenantPath('pages'), 'aboutUs'), {
         bannerTitle: 'Quiénes Somos',

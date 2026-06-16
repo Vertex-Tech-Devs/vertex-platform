@@ -28,12 +28,7 @@ import { routes } from './app.routes';
 export function createAppConfig(firebaseConfig: FirebaseOptions): ApplicationConfig {
   const createFirestore = (): Firestore => {
     const app = getApp();
-    const isCypress =
-      typeof window !== 'undefined' && (window as unknown as { Cypress?: unknown }).Cypress;
     try {
-      if (isCypress) {
-        return getFirestore(app);
-      }
       return initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
     } catch {
       return getFirestore(app);

@@ -54,7 +54,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Build Contracts
         run: npm run build --workspace=@vertex/contracts
@@ -77,7 +77,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Run tests
         run: npm run test:ci
@@ -101,7 +101,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Generate stub environment file for build check
         run: cp src/environments/environment.example.ts src/environments/environment.prod.ts
@@ -131,7 +131,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: functions
 
       - run: npm run build
@@ -148,7 +148,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Audit frontend
         run: npm audit --audit-level=high
@@ -174,7 +174,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Generate stub environment file
         run: cp src/environments/environment.example.ts src/environments/environment.ts
@@ -227,7 +227,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Mark integration mode
         id: integration-mode
@@ -299,6 +299,7 @@ jobs:
           [ -n "$SA" ] && echo "available=true" >> "$GITHUB_OUTPUT" || echo "available=false" >> "$GITHUB_OUTPUT"
 
       - name: Deploy preview channel
+         # Se asume despliegue a Firebase Hosting para desarrollo de e-commerce
         if: steps.check.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
