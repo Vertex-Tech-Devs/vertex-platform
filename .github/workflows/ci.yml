@@ -78,9 +78,9 @@ jobs:
 
       - name: Run Platform Tests
         run: |
-          npm ci --prefix functions --legacy-peer-deps
+          npm ci --prefix vertex-platform/functions --legacy-peer-deps
           npm run test -- --watch=false --exclude="**/functions/**"
-          npm run test:coverage --prefix functions
+          npm run test:coverage --prefix vertex-platform/functions
 
   build:
     name: Build Frontend
@@ -123,9 +123,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - run: npm ci --legacy-peer-deps
-        working-directory: functions
+        working-directory: vertex-platform/functions
       - run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
   security-audit:
     name: Security Audit
@@ -146,7 +146,7 @@ jobs:
 
       - name: Audit functions
         run: npm audit --audit-level=high
-        working-directory: functions
+        working-directory: vertex-platform/functions
         continue-on-error: true
 
   e2e-tests:

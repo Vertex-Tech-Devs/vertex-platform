@@ -61,11 +61,11 @@ jobs:
 
       - name: Install backend dependencies
         run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Run backend tests with coverage
         run: npm run test:coverage
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
   build-dev:
     name: Build (Development)
@@ -127,10 +127,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
   deploy-dev:
     name: '→ Development'
@@ -151,11 +151,11 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Build Functions
         run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Download frontend build
         uses: actions/download-artifact@v8
@@ -195,11 +195,11 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Build Functions
         run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Download frontend build
         uses: actions/download-artifact@v8
