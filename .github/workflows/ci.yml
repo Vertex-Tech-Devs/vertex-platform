@@ -82,7 +82,7 @@ jobs:
       - name: Run Platform Tests
         if: matrix.project == 'vertex-platform'
         run: |
-          npm run test --workspace=vertex-platform -- --watch=false --browsers=ChromeHeadless
+          npm run test --workspace=vertex-platform -- --watch=false
           npm run test:coverage --prefix vertex-platform/functions
 
       - name: Run Storefront Tests
@@ -110,14 +110,14 @@ jobs:
 
       - name: Check bundle size
         run: |
-          SIZE=$(du -sk dist/vertex-platform/browser | cut -f1)
+          SIZE=$(du -sk vertex-platform/dist/vertex-platform/browser | cut -f1)
           echo "Bundle size: ${SIZE}KB (limit: 5000KB)"
           [ "$SIZE" -le 5000 ] || { echo "::error::Bundle size ${SIZE}KB exceeds 5000KB limit"; exit 1; }
 
       - uses: actions/upload-artifact@v7
         with:
           name: dist-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
           retention-days: 3
 
   functions-build:
@@ -298,7 +298,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: dist-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
 
       - name: Check secret availability
         id: check
@@ -317,6 +317,7 @@ jobs:
           target: dev
           channelId: pr-${{ github.event.pull_request.number }}
           expires: 7d
+          entryPoint: vertex-platform
 
   quality-gate:
     name: Quality Gate
