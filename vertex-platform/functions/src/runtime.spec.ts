@@ -113,6 +113,27 @@ describe('summarizeShardCapacity', () => {
     expect(summary.availableSharedSlots).toBe(0);
     expect(summary.recommendedRuntimeMode).toBe('dedicated-project');
   });
+
+  it('sorts shards by availableStores when they have the same active status', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shard-less', activeStores: 90, reservedStores: 0, maxStores: 100 }),
+      makeShard({ id: 'shard-more', activeStores: 50, reservedStores: 0, maxStores: 100 }),
+    ]);
+    expect(summary.shards[0].id).toBe('shard-more');
+  });
+
+  it('handles maxStores equal to 0 correctly when calculating occupancyRatio', () => {
+    const summary = summarizeShardCapacity([makeShard({ maxStores: 0 })]);
+    expect(summary.shards[0].occupancyRatio).toBe(1);
+  });
+
+  it('sorts active shards before non-active shards', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shard-inactive', status: 'maintenance' }),
+      makeShard({ id: 'shard-active', status: 'active' }),
+    ]);
+    expect(summary.shards[0].id).toBe('shard-active');
+  });
 });
 
 describe('reconcileActiveStores scheduler', () => {
@@ -130,6 +151,7 @@ describe('reconcileActiveStores scheduler', () => {
     const mockShards = [
       { id: 'shard-1', activeStores: 5 }, // Should be corrected to 2
       { id: 'shard-2', activeStores: 1 }, // Correct
+      { id: 'shard-3' }, // Missing activeStores, defaults to 0, should be corrected to 0
     ];
 
     const updatedShards: Record<string, number> = {};
@@ -194,6 +216,32 @@ describe('reconcileActiveStores scheduler', () => {
     expect(auditLogs[0].severity).toBe('WARNING');
     expect(auditLogs[0].details.newValue).toBe(2);
     expect(auditLogs[1].severity).toBe('INFO');
+  });
+
+  it('handles errors during reconciliation and logs to audit_logs', async () => {
+    const auditLogs: any[] = [];
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'audit_logs') {
+          return {
+            add: vi.fn().mockImplementation((log) => {
+              auditLogs.push(log);
+              return Promise.resolve();
+            }),
+          };
+        }
+        throw new Error('Database connection failed');
+      }),
+    };
+
+    vi.mocked(getFirestore).mockReturnValue(dbMock as any);
+
+    const handler = reconcileActiveStores as unknown as (event: any) => Promise<void>;
+    await handler({});
+
+    expect(auditLogs.length).toBe(1);
+    expect(auditLogs[0].severity).toBe('ERROR');
+    expect(auditLogs[0].message).toContain('Database connection failed');
   });
 });
 
