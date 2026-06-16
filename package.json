@@ -13,7 +13,7 @@
     "sync-context": "tsx scripts/sync-ai-context.ts",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run build --workspace=packages/shared-contracts --if-present && npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
     "tsx": "^4.22.3",
