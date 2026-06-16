@@ -26,7 +26,7 @@
     "clean": "rm -rf dist functions/lib coverage",
     "prepare": "husky",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run build --workspace=packages/shared-contracts --if-present && tsc --noEmit",
     "build:dev": "ng build --configuration development",
     "build:fn": "npm run build --prefix functions",
     "postinstall": "([ ! -f src/environments/environment.ts ] && cp src/environments/environment.example.ts src/environments/environment.ts 2>/dev/null || true) && ([ ! -f src/firebase-config.json ] && cp src/firebase-config.example.json src/firebase-config.json 2>/dev/null || true) && ([ -z \"$CI\" ] && [ -d \"functions\" ] && (cd functions && npm install) || true)"
