@@ -13,9 +13,14 @@
     "sync-context": "tsx scripts/sync-ai-context.ts",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present"
+    "test:ci": "npm run test:ci --workspaces --if-present",
+    "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present",
+    "setup": "npm run setup --workspace=packages/ecommerce-vertex",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "tsx": "^4.22.3",
     "typescript": "~5.9.2"
   }

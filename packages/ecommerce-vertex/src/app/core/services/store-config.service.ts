@@ -2,66 +2,10 @@ import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import type { DocumentReference, DocumentSnapshot } from '@angular/fire/firestore';
-import type { StoreConfig } from '@core/models/store-config.model';
+import { StoreConfigSchema } from '@vertex/contracts';
+import type { StoreConfig } from '@vertex/contracts';
 import { environment } from '../../../environments/environment';
-import { z } from 'zod';
 import { tenantPath } from '@core/utils/tenant';
-
-export const StoreConfigSchema = z.object({
-  tenantId: z.string().default('').catch(''),
-  storeId: z.string().default('white-label-store').catch('white-label-store'),
-  storeName: z.string().default('Mi Tienda').catch('Mi Tienda'),
-  tagline: z.string().default('').catch(''),
-  logoUrl: z.string().default('').catch(''),
-  faviconUrl: z.string().default('').catch(''),
-  colors: z
-    .object({
-      primary: z.string().default('#ea580c').catch('#ea580c'),
-      accent: z.string().default('#ef4444').catch('#ef4444'),
-      background: z.string().default('#ffffff').catch('#ffffff'),
-    })
-    .default({
-      primary: '#ea580c',
-      accent: '#ef4444',
-      background: '#ffffff',
-    }),
-  payments: z
-    .object({
-      mercadoPagoPublicKey: z.string().default('').catch(''),
-    })
-    .default({
-      mercadoPagoPublicKey: '',
-    }),
-  contact: z
-    .object({
-      phone: z.string().default('').catch(''),
-      email: z.string().default('').catch(''),
-      whatsApp: z.string().default('').catch(''),
-      instagram: z.string().default('').catch(''),
-      facebook: z.string().default('').catch(''),
-    })
-    .default({
-      phone: '',
-      email: '',
-      whatsApp: '',
-      instagram: '',
-      facebook: '',
-    }),
-  seo: z
-    .object({
-      metaDescription: z.string().default('').catch(''),
-    })
-    .default({
-      metaDescription: '',
-    }),
-  setupCompleted: z.boolean().default(true).catch(true),
-  contactPhone: z.string().optional(),
-  contactEmail: z.string().optional(),
-  socialInstagramUrl: z.string().optional(),
-  socialFacebookUrl: z.string().optional(),
-  socialWhatsAppUrl: z.string().optional(),
-  copyrightText: z.string().optional(),
-});
 
 @Injectable({ providedIn: 'root' })
 export class StoreConfigService {
@@ -72,52 +16,15 @@ export class StoreConfigService {
   private readonly _storeConfig = signal<StoreConfig | null>(null);
   readonly storeConfig = this._storeConfig.asReadonly();
 
-  readonly storeName = computed(() => this.storeConfig()?.storeName ?? 'Mi Tienda');
+  readonly storeName = computed(() => this.storeConfig()?.storeName ?? 'Mi Tienda Online');
   readonly logoUrl = computed(() => this.storeConfig()?.logoUrl ?? '');
   readonly isFirstRun = computed(() => !this.storeConfig()?.setupCompleted);
 
   constructor() {
-    // Dynamic theme, title and favicon injection reactive effect
     effect(() => {
       const config = this.storeConfig();
       if (config) {
-        // 1. Title reactivity
-        if (config.storeName) {
-          this.titleService.setTitle(config.storeName);
-        }
-
-        // 1b. SEO Meta Description reactivity
-        if (config.seo?.metaDescription) {
-          this.metaService.updateTag({ name: 'description', content: config.seo.metaDescription });
-        }
-
-        // 2. Favicon reactivity
-        if (config.faviconUrl) {
-          const link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-          if (link) {
-            link.href = config.faviconUrl;
-          } else {
-            const newLink = document.createElement('link');
-            newLink.rel = 'icon';
-            newLink.type = 'image/x-icon';
-            newLink.href = config.faviconUrl;
-            document.head.appendChild(newLink);
-          }
-        }
-
-        // 3. Colors styling injection
-        if (config.colors) {
-          const root = document.documentElement;
-          if (config.colors.primary) {
-            root.style.setProperty('--color-primary', config.colors.primary);
-          }
-          if (config.colors.accent) {
-            root.style.setProperty('--color-accent', config.colors.accent);
-          }
-          if (config.colors.background) {
-            root.style.setProperty('--shop-bg', config.colors.background);
-          }
-        }
+        this.applyConfigToDom(config);
       }
     });
   }
@@ -137,108 +44,165 @@ export class StoreConfigService {
   async loadConfig(): Promise<void> {
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
     try {
+      // 1. Intentar cargar configuracion/store unificado
       const snap = await Promise.race([
         this.getDocSnap(this.getDocRef(tenantPath('configuracion'), 'store')).catch(() => null),
         timeout,
       ]);
+
       if (snap?.exists()) {
         const validatedData = StoreConfigSchema.parse(snap.data());
-        this._storeConfig.set(validatedData as StoreConfig);
-        this.applyConfigToDom(validatedData as StoreConfig);
+        this._storeConfig.set(validatedData);
         return;
       }
 
-      const fallbackSnap = await Promise.race([
+      // 2. Rutina de migración transparente de configuracion/footer y configuracion/settings
+      const settingsSnap = await Promise.race([
         this.getDocSnap(this.getDocRef(tenantPath('settings'), 'storeConfig')).catch(() => null),
         timeout,
       ]);
-      if (fallbackSnap?.exists()) {
-        const validatedData = StoreConfigSchema.parse(
-          this.parseSettingsRaw(fallbackSnap.data() as Record<string, unknown>)
-        );
-        this._storeConfig.set(validatedData as StoreConfig);
-        this.applyConfigToDom(validatedData as StoreConfig);
-        return;
+      const footerSnap = await Promise.race([
+        this.getDocSnap(this.getDocRef(tenantPath('configuracion'), 'footer')).catch(() => null),
+        timeout,
+      ]);
+
+      if (settingsSnap?.exists() || footerSnap?.exists()) {
+        const validated = await this.migrateFromLegacySettings(settingsSnap, footerSnap);
+        if (validated) {
+          this._storeConfig.set(validated);
+          return;
+        }
       }
 
-      // Legacy flat path: configuracion/{tenantId} (provisioned before tenant namespace)
+      // 3. Intento de legado por ruta plana del inquilino (configuracion/{tenantId})
       const legacySnap = await Promise.race([
         this.getDocSnap(this.getDocRef('configuracion', environment.tenantId)).catch(() => null),
         timeout,
       ]);
+
       if (legacySnap?.exists()) {
-        const validatedData = StoreConfigSchema.parse(
-          this.parseLegacyConfigRaw(legacySnap.data() as Record<string, unknown>)
-        );
-        this._storeConfig.set(validatedData as StoreConfig);
-        this.applyConfigToDom(validatedData as StoreConfig);
-      } else {
-        this._storeConfig.set(null);
+        const validated = await this.migrateFromTenantLegacy(legacySnap);
+        if (validated) {
+          this._storeConfig.set(validated);
+          return;
+        }
       }
+
+      this._storeConfig.set(null);
     } catch (err) {
       console.error('Error al cargar la configuración de la tienda:', err);
       this._storeConfig.set(null);
     }
   }
 
-  private parseSettingsRaw(raw: Record<string, unknown>): Record<string, unknown> {
-    const payments = raw['payments'] as Record<string, unknown> | undefined;
-    const mpKey = payments?.['mercadoPago']
-      ? ((payments as Record<string, Record<string, string>>)['mercadoPago']['publicKey'] ?? '')
-      : '';
-    const contact = raw['contact'] as Record<string, string> | undefined;
+  private async migrateFromLegacySettings(
+    settingsSnap: DocumentSnapshot | null,
+    footerSnap: DocumentSnapshot | null
+  ): Promise<StoreConfig | null> {
+    const settingsData = settingsSnap?.exists() ? settingsSnap.data() : {};
+    const footerData = footerSnap?.exists() ? footerSnap.data() : {};
+
+    const migrated = this.mapLegacySettings(settingsData, footerData);
+    const validated = StoreConfigSchema.parse(migrated);
+    await this.saveConfig(validated);
+    return validated;
+  }
+
+  private mapLegacySettings(
+    settingsData: Record<string, unknown> | null | undefined,
+    footerData: Record<string, unknown> | null | undefined
+  ): StoreConfig {
     return {
-      tenantId: environment.tenantId,
-      storeId: 'white-label-store',
-      storeName: (raw['storeName'] as string) ?? 'Mi Tienda',
-      tagline: (raw['tagline'] as string) ?? (raw['strapline'] as string) ?? '',
-      logoUrl: (raw['logoUrl'] as string) ?? '',
-      faviconUrl: (raw['faviconUrl'] as string) ?? '',
-      colors: raw['colors'] ?? { primary: '#ea580c', accent: '#ef4444', background: '#ffffff' },
-      payments: { mercadoPagoPublicKey: mpKey },
-      contact: {
-        phone: contact?.['phone'] ?? '',
-        email: contact?.['email'] ?? '',
-        whatsApp: contact?.['whatsapp'] ?? '',
-        instagram: '',
-        facebook: '',
-      },
-      seo: {
-        metaDescription:
-          (raw['seo'] as Record<string, string>)?.['metaDescription'] ?? 'Bienvenido',
-      },
       setupCompleted: true,
+      storeName: (settingsData?.['storeName'] as string) ?? 'Mi Tienda Online',
+      tagline: (settingsData?.['tagline'] as string) ?? '',
+      logoUrl: (settingsData?.['logoUrl'] as string) ?? '',
+      faviconUrl: (settingsData?.['faviconUrl'] as string) ?? '',
+      ...this.mapColorsAndBranding(settingsData),
+      ...this.mapContactAndSeo(settingsData, footerData),
     };
   }
 
-  private parseLegacyConfigRaw(raw: Record<string, unknown>): Record<string, unknown> {
-    const payments = raw['payments'] as Record<string, string> | undefined;
+  private mapColorsAndBranding(
+    settingsData: Record<string, unknown> | null | undefined
+  ): Pick<
+    StoreConfig,
+    'colorPrimary' | 'colorAccent' | 'colorBackground' | 'mercadoPagoPublicKey'
+  > {
+    const colors = settingsData?.['colors'] as Record<string, string> | undefined;
     return {
-      tenantId: environment.tenantId,
-      storeId: (raw['storeId'] as string) ?? 'white-label-store',
-      storeName: (raw['storeName'] as string) ?? 'Mi Tienda',
+      colorPrimary: colors?.['primary'] ?? '#ea580c',
+      colorAccent: colors?.['accent'] ?? '#ef4444',
+      colorBackground: colors?.['background'] ?? '#1a1a2e',
+      mercadoPagoPublicKey:
+        (settingsData?.['payments'] as Record<string, Record<string, string>> | undefined)?.[
+          'mercadoPago'
+        ]?.['publicKey'] ?? '',
+    };
+  }
+
+  private mapContactAndSeo(
+    settingsData: Record<string, unknown> | null | undefined,
+    footerData: Record<string, unknown> | null | undefined
+  ): Pick<
+    StoreConfig,
+    | 'contactPhone'
+    | 'contactEmail'
+    | 'whatsappNumber'
+    | 'instagramUrl'
+    | 'facebookUrl'
+    | 'metaDescription'
+  > {
+    const contact = settingsData?.['contact'] as Record<string, string> | undefined;
+    const seo = settingsData?.['seo'] as Record<string, string> | undefined;
+    return {
+      contactPhone: (footerData?.['phone'] as string) ?? contact?.['phone'] ?? '',
+      contactEmail:
+        (footerData?.['email'] as string) ?? contact?.['email'] ?? 'contacto@mitiendaonline.com',
+      whatsappNumber:
+        (footerData?.['socials'] as Record<string, string> | undefined)?.['whatsApp'] ??
+        contact?.['whatsapp'] ??
+        '',
+      instagramUrl:
+        (footerData?.['socials'] as Record<string, string> | undefined)?.['instagram'] ?? '',
+      facebookUrl:
+        (footerData?.['socials'] as Record<string, string> | undefined)?.['facebook'] ?? '',
+      metaDescription: seo?.['metaDescription'] ?? '',
+    };
+  }
+
+  private async migrateFromTenantLegacy(
+    legacySnap: DocumentSnapshot | null
+  ): Promise<StoreConfig | null> {
+    const raw = legacySnap?.data() as Record<string, unknown>;
+    const colors = raw['colors'] as Record<string, string> | undefined;
+    const payments = raw['payments'] as Record<string, string> | undefined;
+    const contact = raw['contact'] as Record<string, string> | undefined;
+    const seo = raw['seo'] as Record<string, string> | undefined;
+
+    const migrated: StoreConfig = {
+      setupCompleted: (raw['setupCompleted'] as boolean) ?? true,
+      storeName: (raw['storeName'] as string) ?? 'Mi Tienda Online',
       tagline: (raw['tagline'] as string) ?? '',
       logoUrl: (raw['logoUrl'] as string) ?? '',
       faviconUrl: (raw['faviconUrl'] as string) ?? '',
-      colors: (raw['colors'] as Record<string, string>) ?? {
-        primary: '#ea580c',
-        accent: '#ef4444',
-        background: '#ffffff',
-      },
-      payments: {
-        mercadoPagoPublicKey:
-          (raw['mercadoPagoPublicKey'] as string) ?? payments?.['mercadoPagoPublicKey'] ?? '',
-      },
-      contact: {
-        phone: (raw['contactPhone'] as string) ?? '',
-        email: (raw['contactEmail'] as string) ?? '',
-        whatsApp: (raw['socialWhatsAppUrl'] as string) ?? '',
-        instagram: (raw['socialInstagramUrl'] as string) ?? '',
-        facebook: (raw['socialFacebookUrl'] as string) ?? '',
-      },
-      seo: { metaDescription: (raw['metaDescription'] as string) ?? '' },
-      setupCompleted: (raw['setupCompleted'] as boolean) ?? true,
+      colorPrimary: colors?.['primary'] ?? '#ea580c',
+      colorAccent: colors?.['accent'] ?? '#ef4444',
+      colorBackground: colors?.['background'] ?? '#1a1a2e',
+      mercadoPagoPublicKey:
+        (raw['mercadoPagoPublicKey'] as string) ?? payments?.['mercadoPagoPublicKey'] ?? '',
+      contactPhone: (raw['contactPhone'] as string) ?? contact?.['phone'] ?? '',
+      contactEmail:
+        (raw['contactEmail'] as string) ?? contact?.['email'] ?? 'contacto@mitiendaonline.com',
+      whatsappNumber: (raw['socialWhatsAppUrl'] as string) ?? contact?.['whatsApp'] ?? '',
+      instagramUrl: (raw['socialInstagramUrl'] as string) ?? contact?.['instagram'] ?? '',
+      facebookUrl: (raw['socialFacebookUrl'] as string) ?? contact?.['facebook'] ?? '',
+      metaDescription: (raw['metaDescription'] as string) ?? seo?.['metaDescription'] ?? '',
     };
+
+    const validated = StoreConfigSchema.parse(migrated);
+    await this.saveConfig(validated);
+    return validated;
   }
 
   async saveConfig(data: StoreConfig): Promise<void> {
@@ -254,8 +218,8 @@ export class StoreConfigService {
     if (config.storeName) {
       this.titleService.setTitle(config.storeName);
     }
-    if (config.seo?.metaDescription) {
-      this.metaService.updateTag({ name: 'description', content: config.seo.metaDescription });
+    if (config.metaDescription) {
+      this.metaService.updateTag({ name: 'description', content: config.metaDescription });
     }
     if (config.faviconUrl) {
       let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
@@ -267,17 +231,9 @@ export class StoreConfigService {
       }
       link.href = config.faviconUrl;
     }
-    if (config.colors) {
-      const root = document.documentElement;
-      if (config.colors.primary) {
-        root.style.setProperty('--color-primary', config.colors.primary);
-      }
-      if (config.colors.accent) {
-        root.style.setProperty('--color-accent', config.colors.accent);
-      }
-      if (config.colors.background) {
-        root.style.setProperty('--shop-bg', config.colors.background);
-      }
-    }
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', config.colorPrimary);
+    root.style.setProperty('--color-accent', config.colorAccent);
+    root.style.setProperty('--color-background', config.colorBackground);
   }
 }

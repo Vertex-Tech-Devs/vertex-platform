@@ -28,14 +28,14 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npm run start -- --host 127.0.0.1 --port 4200',
+      command: 'npx serve -s dist/vertex-platform/browser -l 4200',
       cwd: platformRoot,
       url: platformUrl,
       reuseExistingServer: !process.env['CI'],
       timeout: 180_000,
     },
     {
-      command: 'npm run start -- --host 127.0.0.1 --port 4201',
+      command: 'npx serve -s ../../dist/ecommerce-vertex/browser -l 4201',
       cwd: storefrontRoot,
       url: storefrontUrl,
       reuseExistingServer: !process.env['CI'],

@@ -31,6 +31,7 @@ $accent-yellow: #d97706;
 $accent-orange: #ea580c;
 $color-primary: var(--color-primary, #ea580c);
 $color-accent: var(--color-accent, #ef4444);
+$color-background: var(--color-background, #1a1a2e);
 
 $brand-gradient: linear-gradient(135deg, $color-primary, $color-accent);
 $brand-gradient-hover: linear-gradient(135deg, var(--color-primary-hover, #fb923c), #f87171);
@@ -150,10 +151,11 @@ $card-header-latest-products-bg: linear-gradient(135deg, #047857, #059669);
   --text-secondary: #{$text-muted-light};
   --text-muted: #{$text-muted-dark};
   /* ── White-Label Brand ── */
-  --color-primary: var(--color-primary, #ea580c);
-  --color-primary-hover: var(--color-primary-hover, #fb923c);
-  --color-secondary: var(--color-secondary, #4f46e5);
-  --color-accent: var(--color-accent, #ef4444);
+  --color-primary: #ea580c;
+  --color-primary-hover: #fb923c;
+  --color-secondary: #4f46e5;
+  --color-accent: #ef4444;
+  --color-background: #1a1a2e;
   --brand-gradient: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   --brand-gradient-hover: linear-gradient(135deg, var(--color-primary-hover), #f87171);
 

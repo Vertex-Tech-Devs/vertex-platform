@@ -24,7 +24,7 @@ export class SeoService {
 
   private applyMeta(cfg: StoreConfig): void {
     const title = cfg.storeName;
-    const description = cfg.seo.metaDescription?.trim() || cfg.tagline || cfg.storeName;
+    const description = cfg.metaDescription?.trim() ?? cfg.tagline ?? cfg.storeName;
 
     this.title.setTitle(title);
     this.meta.updateTag({ name: 'description', content: description });

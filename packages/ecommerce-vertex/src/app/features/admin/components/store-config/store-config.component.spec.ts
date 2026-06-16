@@ -19,30 +19,20 @@ describe('StoreConfigComponent', () => {
   let authServiceSpy: jasmine.SpyObj<AuthService>;
 
   const mockConfig: StoreConfig = {
-    tenantId: 'store',
-    storeId: 'white-label-store',
     storeName: 'Test Store',
     tagline: 'Test Tagline',
     logoUrl: 'http://example.com/logo.png',
     faviconUrl: 'http://example.com/favicon.png',
-    colors: {
-      primary: '#ea580c',
-      accent: '#ef4444',
-      background: '#ffffff',
-    },
-    payments: {
-      mercadoPagoPublicKey: 'TEST-PUBLIC-KEY',
-    },
-    contact: {
-      phone: '+54 11 1234-5678',
-      email: 'test@store.com',
-      whatsApp: '+5491112345678',
-      instagram: 'https://instagram.com/test',
-      facebook: 'https://facebook.com/test',
-    },
-    seo: {
-      metaDescription: 'Test SEO Description',
-    },
+    colorPrimary: '#ea580c',
+    colorAccent: '#ef4444',
+    colorBackground: '#ffffff',
+    mercadoPagoPublicKey: 'TEST-PUBLIC-KEY',
+    contactPhone: '+54 11 1234-5678',
+    contactEmail: 'test@store.com',
+    whatsappNumber: '+5491112345678',
+    instagramUrl: 'https://instagram.com/test',
+    facebookUrl: 'https://facebook.com/test',
+    metaDescription: 'Test SEO Description',
     setupCompleted: true,
   };
 
@@ -100,17 +90,22 @@ describe('StoreConfigComponent', () => {
   it('should initialize form with values from StoreConfigService', () => {
     expect(component.form.get('storeName')?.value).toBe('Test Store');
     expect(component.form.get('tagline')?.value).toBe('Test Tagline');
-    expect(component.form.get('colors.primary')?.value).toBe('#ea580c');
-    expect(component.form.get('payments.mercadoPagoPublicKey')?.value).toBe('TEST-PUBLIC-KEY');
-    expect(component.form.get('contact.email')?.value).toBe('test@store.com');
+    expect(component.form.get('colorPrimary')?.value).toBe('#ea580c');
+    expect(component.form.get('mercadoPagoPublicKey')?.value).toBe('TEST-PUBLIC-KEY');
+    expect(component.form.get('contactEmail')?.value).toBe('test@store.com');
   });
 
   it('should change activeTab signal when setTab is called', () => {
     expect(component.activeTab()).toBe('identity');
     component.setTab('colors');
+    fixture.detectChanges();
     expect(component.activeTab()).toBe('colors');
     component.setTab('payments');
+    fixture.detectChanges();
     expect(component.activeTab()).toBe('payments');
+    component.setTab('contact-seo');
+    fixture.detectChanges();
+    expect(component.activeTab()).toBe('contact-seo');
   });
 
   it('should show error alert if form is invalid on submit', async () => {
@@ -222,5 +217,144 @@ describe('StoreConfigComponent', () => {
 
     expect(component.faviconUploading()).toBeFalse();
     expect(sweetAlertSpy.error).toHaveBeenCalled();
+  });
+
+  it('should ignore logo upload if files list is empty or null', () => {
+    const event1 = {
+      target: {
+        files: [],
+      },
+    } as unknown as Event;
+    component.onLogoUpload(event1);
+    expect(storageServiceSpy.uploadFile).not.toHaveBeenCalled();
+
+    const event2 = {
+      target: {
+        files: null,
+      },
+    } as unknown as Event;
+    component.onLogoUpload(event2);
+    expect(storageServiceSpy.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('should ignore favicon upload if files list is empty or null', () => {
+    const event1 = {
+      target: {
+        files: [],
+      },
+    } as unknown as Event;
+    component.onFaviconUpload(event1);
+    expect(storageServiceSpy.uploadFile).not.toHaveBeenCalled();
+
+    const event2 = {
+      target: {
+        files: null,
+      },
+    } as unknown as Event;
+    component.onFaviconUpload(event2);
+    expect(storageServiceSpy.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('should handle error when saveConfig fails in onSubmit', async () => {
+    storeConfigServiceSpy.saveConfig.and.returnValue(Promise.reject(new Error('Save failed')));
+    await component.onSubmit();
+    expect(sweetAlertSpy.error).toHaveBeenCalled();
+    expect(component.isSubmitting).toBeFalse();
+  });
+
+  it('should not patch form if config is null on init', () => {
+    const mockConfigSignal = signal<StoreConfig | null>(null);
+    const mockStoreNameSignal = signal<string>('Test Store');
+    const mockLogoUrlSignal = signal<string>('');
+    const mockIsFirstRunSignal = signal<boolean>(true);
+
+    const localSpy = jasmine.createSpyObj('StoreConfigService', ['loadConfig', 'saveConfig']);
+    Object.defineProperty(localSpy, 'storeConfig', {
+      value: mockConfigSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'storeName', {
+      value: mockStoreNameSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'logoUrl', {
+      value: mockLogoUrlSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'isFirstRun', {
+      value: mockIsFirstRunSignal.asReadonly(),
+    });
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [StoreConfigComponent, ReactiveFormsModule],
+      providers: [
+        { provide: StoreConfigService, useValue: localSpy },
+        { provide: StorageService, useValue: storageServiceSpy },
+        { provide: SweetAlertService, useValue: sweetAlertSpy },
+        { provide: AuthService, useValue: authServiceSpy },
+      ],
+    });
+
+    const localFixture = TestBed.createComponent(StoreConfigComponent);
+    const localComp = localFixture.componentInstance;
+    localFixture.detectChanges();
+    expect(localComp.form.get('storeName')?.value).toBe('Mi Tienda');
+  });
+
+  it('should use default values for individual fields if config exists but fields are missing', () => {
+    const mockConfigSignal = signal<StoreConfig | null>({} as StoreConfig);
+    const mockStoreNameSignal = signal<string>('Test Store');
+    const mockLogoUrlSignal = signal<string>('');
+    const mockIsFirstRunSignal = signal<boolean>(true);
+
+    const localSpy = jasmine.createSpyObj('StoreConfigService', ['loadConfig', 'saveConfig']);
+    Object.defineProperty(localSpy, 'storeConfig', {
+      value: mockConfigSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'storeName', {
+      value: mockStoreNameSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'logoUrl', {
+      value: mockLogoUrlSignal.asReadonly(),
+    });
+    Object.defineProperty(localSpy, 'isFirstRun', {
+      value: mockIsFirstRunSignal.asReadonly(),
+    });
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [StoreConfigComponent, ReactiveFormsModule],
+      providers: [
+        { provide: StoreConfigService, useValue: localSpy },
+        { provide: StorageService, useValue: storageServiceSpy },
+        { provide: SweetAlertService, useValue: sweetAlertSpy },
+        { provide: AuthService, useValue: authServiceSpy },
+      ],
+    });
+
+    const localFixture = TestBed.createComponent(StoreConfigComponent);
+    const localComp = localFixture.componentInstance;
+    localFixture.detectChanges();
+    expect(localComp.form.get('setupCompleted')?.value).toBeTrue();
+    expect(localComp.form.get('colorPrimary')?.value).toBe('#ea580c');
+  });
+
+  it('should handle isOwner being false on initialization', () => {
+    const localAuth = jasmine.createSpyObj('AuthService', [], {
+      isOwner$: of(false),
+    });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [StoreConfigComponent, ReactiveFormsModule],
+      providers: [
+        { provide: StoreConfigService, useValue: storeConfigServiceSpy },
+        { provide: StorageService, useValue: storageServiceSpy },
+        { provide: SweetAlertService, useValue: sweetAlertSpy },
+        { provide: AuthService, useValue: localAuth },
+      ],
+    });
+
+    const localFixture = TestBed.createComponent(StoreConfigComponent);
+    const localComp = localFixture.componentInstance;
+    localFixture.detectChanges();
+    expect(localComp.isOwner()).toBeFalse();
   });
 });

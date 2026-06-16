@@ -7,6 +7,7 @@ import { EmailManagementComponent } from './email-management.component';
 import { EmailSettingsService } from '@core/services/email-settings.service';
 import type { EmailSettings } from '@core/models/email-settings.model';
 import { SweetAlertService } from '@core/services/sweet-alert.service';
+import type { QuillEditorComponent } from 'ngx-quill';
 
 describe('EmailManagementComponent', () => {
   let component: EmailManagementComponent;
@@ -156,6 +157,27 @@ describe('EmailManagementComponent', () => {
     expect(component.isTestModalVisible).toBeFalse();
   });
 
+  it('openTestModal should handle null form controls gracefully', () => {
+    const originalEmailFormGet = component.emailForm.get.bind(component.emailForm);
+    const originalTestFormGet = component.testEmailModalForm.get.bind(component.testEmailModalForm);
+
+    spyOn(component.emailForm, 'get').and.callFake((name: string) => {
+      if (name === 'storeOwnerEmail') {
+        return null;
+      }
+      return originalEmailFormGet(name);
+    });
+    spyOn(component.testEmailModalForm, 'get').and.callFake((name: string) => {
+      if (name === 'recipientEmail') {
+        return null;
+      }
+      return originalTestFormGet(name);
+    });
+
+    component.openTestModal();
+    expect(component.isTestModalVisible).toBeTrue();
+  });
+
   it('restoreDefaults(true) with confirm=true should mark form dirty and show success', async () => {
     sweetAlertSpy.confirm.and.returnValue(Promise.resolve(true));
     component.emailForm.markAsPristine();
@@ -216,5 +238,54 @@ describe('EmailManagementComponent', () => {
     await component.onSendAdvancedTest();
 
     expect(sweetAlertSpy.error).toHaveBeenCalled();
+  });
+
+  it('onSendAdvancedTest should send with only adminNotification selected', async () => {
+    emailSettingsSpy.sendAdvancedTestEmail.and.returnValue(Promise.resolve());
+    component.testEmailModalForm.get('recipientEmail')?.setValue('test@test.com');
+    component.testEmailModalForm.get('templatesToTest.adminNotification')?.setValue(true);
+    component.testEmailModalForm.get('templatesToTest.customerConfirmation')?.setValue(false);
+
+    await component.onSendAdvancedTest();
+    expect(emailSettingsSpy.sendAdvancedTestEmail).toHaveBeenCalled();
+  });
+
+  it('onSendAdvancedTest should send with only customerConfirmation selected', async () => {
+    emailSettingsSpy.sendAdvancedTestEmail.and.returnValue(Promise.resolve());
+    component.testEmailModalForm.get('recipientEmail')?.setValue('test@test.com');
+    component.testEmailModalForm.get('templatesToTest.adminNotification')?.setValue(false);
+    component.testEmailModalForm.get('templatesToTest.customerConfirmation')?.setValue(true);
+
+    await component.onSendAdvancedTest();
+    expect(emailSettingsSpy.sendAdvancedTestEmail).toHaveBeenCalled();
+  });
+
+  it('toggleMobileSection should toggle mobile active section', () => {
+    component.mobileActiveSection = 1;
+    component.toggleMobileSection(1);
+    expect(component.mobileActiveSection).toBe(0);
+
+    component.toggleMobileSection(2);
+    expect(component.mobileActiveSection).toBe(2);
+  });
+
+  it('insertPlaceholder should insert placeholder into Quill editor', () => {
+    const mockQuill = jasmine.createSpyObj('quill', [
+      'getSelection',
+      'insertText',
+      'setSelection',
+      'focus',
+    ]);
+    mockQuill.getSelection.and.returnValue({ index: 5 });
+
+    const mockEditor = {
+      quillEditor: mockQuill,
+    };
+
+    component.insertPlaceholder('{orderId}', mockEditor as unknown as QuillEditorComponent);
+    expect(mockQuill.getSelection).toHaveBeenCalled();
+    expect(mockQuill.insertText).toHaveBeenCalledWith(5, '{orderId}', 'user');
+    expect(mockQuill.setSelection).toHaveBeenCalledWith(5 + '{orderId}'.length, 0, 'user');
+    expect(mockQuill.focus).toHaveBeenCalled();
   });
 });

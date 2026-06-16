@@ -20,4 +20,8 @@
       <router-outlet></router-outlet>
     </main>
   </div>
+
+  @if (isFirstRun()) {
+    <app-first-run-wizard></app-first-run-wizard>
+  }
 </div>

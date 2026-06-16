@@ -23,6 +23,18 @@
         </button>
       </li>
 
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          [class.active]="activeTab() === 'colors'"
+          (click)="setTab('colors')"
+          type="button"
+          role="tab"
+        >
+          <i class="bi bi-brush-fill me-2"></i>Colores
+        </button>
+      </li>
+
       @if (isOwner()) {
         <li class="nav-item" role="presentation">
           <button
@@ -85,26 +97,16 @@
                   </div>
 
                   <div class="col-md-6">
-                    <label class="form-label text-label"
-                      >Eslogan / Tagline <span class="text-danger">*</span></label
-                    >
+                    <label class="form-label text-label">Eslogan / Tagline</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-chat-quote-fill"></i></span>
                       <input
                         formControlName="tagline"
                         type="text"
                         class="form-control glass-input"
-                        [class.is-invalid]="
-                          form.get('tagline')?.invalid && form.get('tagline')?.touched
-                        "
                         placeholder="Ej: Vestite con estilo y confort"
                       />
                     </div>
-                    @if (form.get('tagline')?.invalid && form.get('tagline')?.touched) {
-                      <div class="invalid-feedback d-block mt-2">
-                        El tagline o eslogan es obligatorio.
-                      </div>
-                    }
                   </div>
 
                   <div class="col-md-6">
@@ -192,9 +194,118 @@
           </div>
         }
 
+        <!-- Tab 2: Colores (Tema visual) -->
+        @if (activeTab() === 'colors') {
+          <div class="tab-pane active" role="tabpanel">
+            <div class="glass-card card-colors">
+              <div class="card-header border-0 fw-bold d-flex align-items-center">
+                <i class="bi bi-palette me-2"></i> Paleta Cromática de Marca Blanca
+              </div>
+              <div class="card-body">
+                <div class="row g-4">
+                  <div class="col-md-4">
+                    <label class="form-label text-label"
+                      >Color Primario <span class="text-danger">*</span></label
+                    >
+                    <div class="d-flex align-items-center gap-2">
+                      <input
+                        formControlName="colorPrimary"
+                        type="color"
+                        class="form-control form-control-color border-0 rounded-circle"
+                        style="width: 50px; height: 50px; padding: 0; cursor: pointer"
+                      />
+                      <input
+                        formControlName="colorPrimary"
+                        type="text"
+                        class="form-control glass-input font-monospace text-uppercase"
+                        placeholder="#EA580C"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label text-label"
+                      >Color de Acento <span class="text-danger">*</span></label
+                    >
+                    <div class="d-flex align-items-center gap-2">
+                      <input
+                        formControlName="colorAccent"
+                        type="color"
+                        class="form-control form-control-color border-0 rounded-circle"
+                        style="width: 50px; height: 50px; padding: 0; cursor: pointer"
+                      />
+                      <input
+                        formControlName="colorAccent"
+                        type="text"
+                        class="form-control glass-input font-monospace text-uppercase"
+                        placeholder="#EF4444"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label text-label"
+                      >Color de Fondo <span class="text-danger">*</span></label
+                    >
+                    <div class="d-flex align-items-center gap-2">
+                      <input
+                        formControlName="colorBackground"
+                        type="color"
+                        class="form-control form-control-color border-0 rounded-circle"
+                        style="width: 50px; height: 50px; padding: 0; cursor: pointer"
+                      />
+                      <input
+                        formControlName="colorBackground"
+                        type="text"
+                        class="form-control glass-input font-monospace text-uppercase"
+                        placeholder="#1A1A2E"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Live Preview Mock -->
+                  <div class="col-12 mt-5">
+                    <h5 class="text-label mb-3"><i class="bi bi-eye me-2"></i> Preview en Vivo</h5>
+                    <div
+                      class="live-preview-mock border rounded p-4 text-center transition-colors"
+                      [style.background-color]="form.get('colorBackground')?.value"
+                      style="
+                        min-height: 200px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        border-color: rgba(255, 255, 255, 0.1) !important;
+                      "
+                    >
+                      <h3
+                        [style.color]="form.get('colorPrimary')?.value"
+                        class="fw-bold mb-2 text-uppercase font-sans"
+                      >
+                        {{ form.get('storeName')?.value || 'Mi Tienda Online' }}
+                      </h3>
+                      <p class="text-muted small mb-4">
+                        {{ form.get('tagline')?.value || 'Tu eslogan se verá reflejado aquí' }}
+                      </p>
+                      <button
+                        type="button"
+                        class="btn btn-lg px-4 text-white fw-bold shadow-sm"
+                        [style.background-color]="form.get('colorAccent')?.value"
+                        style="border: none; border-radius: 8px"
+                      >
+                        Comprar Ahora
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
         <!-- Tab 3: Pasarela de Pagos -->
         @if (activeTab() === 'payments' && isOwner()) {
-          <div class="tab-pane active" role="tabpanel" formGroupName="payments">
+          <div class="tab-pane active" role="tabpanel">
             <div class="glass-card card-payments">
               <div class="card-header border-0 fw-bold d-flex align-items-center">
                 <i class="bi bi-credit-card-2-front-fill me-2"></i> Integración con Mercado Pago
@@ -203,8 +314,7 @@
                 <div class="row g-4">
                   <div class="col-12">
                     <label class="form-label text-label"
-                      >Clave Pública de Mercado Pago (Public Key)
-                      <span class="text-danger">*</span></label
+                      >Clave Pública de Mercado Pago (Public Key)</label
                     >
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
@@ -212,10 +322,6 @@
                         formControlName="mercadoPagoPublicKey"
                         [type]="showMpKey() ? 'text' : 'password'"
                         class="form-control glass-input font-monospace"
-                        [class.is-invalid]="
-                          form.get('payments.mercadoPagoPublicKey')?.invalid &&
-                          form.get('payments.mercadoPagoPublicKey')?.touched
-                        "
                         placeholder="APP_USR-... o TEST-..."
                       />
                       <button
@@ -231,15 +337,27 @@
                         ></i>
                       </button>
                     </div>
-                    @if (
-                      form.get('payments.mercadoPagoPublicKey')?.invalid &&
-                      form.get('payments.mercadoPagoPublicKey')?.touched
-                    ) {
-                      <div class="invalid-feedback d-block mt-2">
-                        La clave pública de Mercado Pago es obligatoria para procesar cobros en
-                        pasarela.
+
+                    @if (form.get('mercadoPagoPublicKey')?.value) {
+                      <div
+                        class="col-12 mt-4 p-3 bg-dark bg-opacity-50 border border-secondary rounded"
+                      >
+                        <label class="form-label text-label fw-bold"
+                          ><i class="bi bi-link-45deg me-1"></i>URL de Webhook de Mercado Pago
+                          (Autogenerada)</label
+                        >
+                        <input
+                          type="text"
+                          readonly
+                          class="form-control glass-input font-monospace text-soft bg-black border-0"
+                          [value]="derivedWebhookUrl()"
+                        />
+                        <div class="form-text text-soft mt-1">
+                          Los eventos de pago se notificarán y procesarán en este endpoint.
+                        </div>
                       </div>
                     }
+
                     <div class="form-text text-soft mt-2 d-flex align-items-center gap-1">
                       <i class="bi bi-info-circle-fill"></i>
                       <span
@@ -258,7 +376,7 @@
         @if (activeTab() === 'contact-seo') {
           <div class="tab-pane active" role="tabpanel">
             <!-- Contacto Group -->
-            <div class="glass-card card-contact mb-4" formGroupName="contact">
+            <div class="glass-card card-contact mb-4">
               <div class="card-header border-0 fw-bold d-flex align-items-center">
                 <i class="bi bi-telephone-outbound-fill me-2"></i> Información de Contacto & Redes
               </div>
@@ -271,20 +389,20 @@
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
                       <input
-                        formControlName="email"
+                        formControlName="contactEmail"
                         type="email"
                         class="form-control glass-input"
                         [class.is-invalid]="
-                          form.get('contact.email')?.invalid && form.get('contact.email')?.touched
+                          form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched
                         "
                         placeholder="hola@tuempresa.com"
                       />
                     </div>
-                    @if (form.get('contact.email')?.invalid && form.get('contact.email')?.touched) {
+                    @if (form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched) {
                       <div class="invalid-feedback d-block mt-2">
-                        @if (form.get('contact.email')?.errors?.['required']) {
+                        @if (form.get('contactEmail')?.errors?.['required']) {
                           El correo electrónico de contacto es obligatorio.
-                        } @else if (form.get('contact.email')?.errors?.['email']) {
+                        } @else if (form.get('contactEmail')?.errors?.['email']) {
                           Ingresá una dirección de correo válida.
                         }
                       </div>
@@ -298,16 +416,16 @@
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
                       <input
-                        formControlName="phone"
+                        formControlName="contactPhone"
                         type="tel"
                         class="form-control glass-input"
                         [class.is-invalid]="
-                          form.get('contact.phone')?.invalid && form.get('contact.phone')?.touched
+                          form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched
                         "
                         placeholder="+54 11 1234-5678"
                       />
                     </div>
-                    @if (form.get('contact.phone')?.invalid && form.get('contact.phone')?.touched) {
+                    @if (form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched) {
                       <div class="invalid-feedback d-block mt-2">
                         El teléfono de contacto es obligatorio.
                       </div>
@@ -321,7 +439,7 @@
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-whatsapp"></i></span>
                       <input
-                        formControlName="whatsApp"
+                        formControlName="whatsappNumber"
                         type="tel"
                         class="form-control glass-input"
                         placeholder="Ej: +5491112345678"
@@ -334,7 +452,7 @@
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-instagram"></i></span>
                       <input
-                        formControlName="instagram"
+                        formControlName="instagramUrl"
                         type="url"
                         class="form-control glass-input"
                         placeholder="https://instagram.com/tutienda"
@@ -347,7 +465,7 @@
                     <div class="input-group">
                       <span class="input-group-text"><i class="bi bi-facebook"></i></span>
                       <input
-                        formControlName="facebook"
+                        formControlName="facebookUrl"
                         type="url"
                         class="form-control glass-input"
                         placeholder="https://facebook.com/tutienda"
@@ -359,7 +477,7 @@
             </div>
 
             <!-- SEO Group -->
-            <div class="glass-card card-seo" formGroupName="seo">
+            <div class="glass-card card-seo">
               <div class="card-header border-0 fw-bold d-flex align-items-center">
                 <i class="bi bi-search me-2"></i> Optimización para Buscadores (SEO)
               </div>
@@ -378,15 +496,14 @@
                         class="form-control glass-input glass-textarea"
                         rows="3"
                         [class.is-invalid]="
-                          form.get('seo.metaDescription')?.invalid &&
-                          form.get('seo.metaDescription')?.touched
+                          form.get('metaDescription')?.invalid &&
+                          form.get('metaDescription')?.touched
                         "
                         placeholder="Escribí una meta descripción atractiva que aparecerá en los motores de búsqueda..."
                       ></textarea>
                     </div>
                     @if (
-                      form.get('seo.metaDescription')?.invalid &&
-                      form.get('seo.metaDescription')?.touched
+                      form.get('metaDescription')?.invalid && form.get('metaDescription')?.touched
                     ) {
                       <div class="invalid-feedback d-block mt-2">
                         La meta descripción para SEO es obligatoria.

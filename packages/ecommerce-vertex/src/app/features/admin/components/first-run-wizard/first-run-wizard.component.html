@@ -1,0 +1,297 @@
+<div class="wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="wizard-title">
+  <div class="wizard-card shadow-lg">
+    <!-- Header -->
+    <div class="text-center mb-4">
+      <h2 id="wizard-title" class="wizard-title">Configuración de Tu Tienda</h2>
+      <p class="text-muted small">
+        Configurá la identidad base de tu marca blanca en 3 simples pasos.
+      </p>
+    </div>
+
+    <!-- Stepper indicator -->
+    <div class="stepper-container">
+      <div
+        class="step-node"
+        [class.active]="currentStep() === 1"
+        [class.completed]="currentStep() > 1"
+      >
+        1
+      </div>
+      <div
+        class="step-node"
+        [class.active]="currentStep() === 2"
+        [class.completed]="currentStep() > 2"
+      >
+        2
+      </div>
+      <div
+        class="step-node"
+        [class.active]="currentStep() === 3"
+        [class.completed]="currentStep() > 3"
+      >
+        3
+      </div>
+    </div>
+
+    <form
+      [formGroup]="form"
+      (keydown.escape)="$event.stopPropagation()"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Paso 1: Identidad -->
+      @if (currentStep() === 1) {
+        <div class="step-content">
+          <h4 class="mb-3 text-white"><i class="bi bi-shop me-2"></i> Identidad Corporativa</h4>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Nombre Comercial de la Tienda *</label>
+            <input
+              type="text"
+              formControlName="storeName"
+              class="form-control glass-input"
+              [class.is-invalid]="form.get('storeName')?.invalid && form.get('storeName')?.touched"
+              placeholder="Ej: Mi Tienda Online"
+            />
+            @if (form.get('storeName')?.invalid && form.get('storeName')?.touched) {
+              <div class="invalid-feedback">El nombre comercial es obligatorio.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Tagline / Eslogan</label>
+            <input
+              type="text"
+              formControlName="tagline"
+              class="form-control glass-input"
+              placeholder="Ej: Estilo, calidad y diseño"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Logo de la Marca</label>
+            <div class="d-flex align-items-center gap-3">
+              <div
+                class="preview-box-mini border rounded d-flex justify-content-center align-items-center bg-black bg-opacity-20"
+                style="width: 70px; height: 70px; min-height: 70px; margin: 0"
+              >
+                @if (form.get('logoUrl')?.value) {
+                  <img
+                    [src]="form.get('logoUrl')?.value"
+                    alt="Logo preview"
+                    style="max-width: 100%; max-height: 100%; object-fit: contain"
+                  />
+                } @else {
+                  <i class="bi bi-image text-muted" style="font-size: 1.5rem"></i>
+                }
+              </div>
+              <div class="flex-grow-1">
+                <input
+                  type="file"
+                  (change)="onLogoUpload($event)"
+                  accept="image/*"
+                  class="form-control glass-input file-input"
+                  [disabled]="logoUploading()"
+                />
+                @if (logoUploading()) {
+                  <div class="progress mt-2 custom-progress">
+                    <div
+                      class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                      role="progressbar"
+                      [style.width.%]="logoProgress()"
+                      [attr.aria-valuenow]="logoProgress()"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      {{ logoProgress() }}%
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="button" class="btn btn-primary px-4 py-2" (click)="nextStep()">
+              Siguiente <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Paso 2: Paleta Cromática -->
+      @if (currentStep() === 2) {
+        <div class="step-content">
+          <h4 class="mb-3 text-white"><i class="bi bi-palette me-2"></i> Estilo & Colores</h4>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label text-soft">Color Primario</label>
+              <div class="color-input-wrapper">
+                <input type="color" formControlName="colorPrimary" class="color-picker" />
+                <input
+                  type="text"
+                  formControlName="colorPrimary"
+                  class="form-control glass-input text-uppercase font-monospace text-center p-1"
+                  style="font-size: 0.85rem"
+                />
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-soft">Color Acento</label>
+              <div class="color-input-wrapper">
+                <input type="color" formControlName="colorAccent" class="color-picker" />
+                <input
+                  type="text"
+                  formControlName="colorAccent"
+                  class="form-control glass-input text-uppercase font-monospace text-center p-1"
+                  style="font-size: 0.85rem"
+                />
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-soft">Color Fondo</label>
+              <div class="color-input-wrapper">
+                <input type="color" formControlName="colorBackground" class="color-picker" />
+                <input
+                  type="text"
+                  formControlName="colorBackground"
+                  class="form-control glass-input text-uppercase font-monospace text-center p-1"
+                  style="font-size: 0.85rem"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Live preview mini -->
+          <div
+            class="preview-box-mini border p-4 text-center text-white"
+            [style.background-color]="form.get('colorBackground')?.value"
+            style="
+              min-height: 140px;
+              border-style: solid;
+              border-color: rgba(255, 255, 255, 0.15) !important;
+            "
+          >
+            <h5 [style.color]="form.get('colorPrimary')?.value" class="fw-bold">
+              {{ form.get('storeName')?.value || 'Mi Tienda Online' }}
+            </h5>
+            <p class="text-muted small mb-3">
+              {{ form.get('tagline')?.value || 'Tu eslogan o tagline corporativo' }}
+            </p>
+            <button
+              type="button"
+              class="btn btn-sm px-3 text-white fw-bold shadow-sm"
+              [style.background-color]="form.get('colorAccent')?.value"
+              style="border: none"
+            >
+              Comprar
+            </button>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-outline-light px-4 py-2" (click)="prevStep()">
+              <i class="bi bi-arrow-left me-2"></i> Atrás
+            </button>
+            <button type="button" class="btn btn-primary px-4 py-2" (click)="nextStep()">
+              Siguiente <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Paso 3: Contacto & Pagos -->
+      @if (currentStep() === 3) {
+        <div class="step-content">
+          <h4 class="mb-3 text-white">
+            <i class="bi bi-telephone-fill me-2"></i> Contacto & Integraciones
+          </h4>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Email de Contacto *</label>
+            <input
+              type="email"
+              formControlName="contactEmail"
+              class="form-control glass-input"
+              [class.is-invalid]="
+                form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched
+              "
+              placeholder="contacto@mi-tienda.com"
+            />
+            @if (form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched) {
+              <div class="invalid-feedback">Ingresá un correo electrónico válido.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Teléfono de Contacto *</label>
+            <input
+              type="tel"
+              formControlName="contactPhone"
+              class="form-control glass-input"
+              [class.is-invalid]="
+                form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched
+              "
+              placeholder="+54 11 1234-5678"
+            />
+            @if (form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched) {
+              <div class="invalid-feedback">El teléfono de contacto es obligatorio.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Número de WhatsApp (Con código de país)</label>
+            <input
+              type="tel"
+              formControlName="whatsappNumber"
+              class="form-control glass-input"
+              placeholder="+5491112345678"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-soft">Mercado Pago Public Key (Opcional)</label>
+            <input
+              type="text"
+              formControlName="mercadoPagoPublicKey"
+              class="form-control glass-input font-monospace"
+              placeholder="TEST-... o APP_USR-..."
+            />
+            <div class="form-text text-muted" style="font-size: 0.75rem">
+              Podés configurarlo más tarde desde el panel administrativo.
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <button
+              type="button"
+              class="btn btn-outline-light px-4 py-2"
+              (click)="prevStep()"
+              [disabled]="isSubmitting"
+            >
+              <i class="bi bi-arrow-left me-2"></i> Atrás
+            </button>
+            <button
+              type="button"
+              class="btn btn-success px-4 py-2"
+              (click)="finishWizard()"
+              [disabled]="isSubmitting || form.invalid"
+            >
+              @if (isSubmitting) {
+                <span
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Guardando...
+              } @else {
+                Finalizar Configuración <i class="bi bi-check-circle ms-2"></i>
+              }
+            </button>
+          </div>
+        </div>
+      }
+    </form>
+  </div>
+</div>

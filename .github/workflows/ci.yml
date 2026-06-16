@@ -56,6 +56,9 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
+      - name: Build Contracts
+        run: npm run build --workspace=@vertex/contracts
+
       - name: Lint
         run: npm run lint
 
@@ -189,9 +192,24 @@ jobs:
             echo "::notice::No e2e:ci script found — skipping E2E run."
           fi
 
+      - name: Download Build Artifact
+        if: steps.check-e2e.outputs.has_e2e == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-${{ github.sha }}
+          path: vertex-platform/dist/vertex-platform/browser
+
+      - name: Start serve server
+        if: steps.check-e2e.outputs.has_e2e == 'true'
+        run: npx serve -s vertex-platform/dist/vertex-platform/browser -l 4200 &
+
+      - name: Wait for server to be ready
+        if: steps.check-e2e.outputs.has_e2e == 'true'
+        run: npx wait-on http://127.0.0.1:4200 --timeout 300000
+
       - name: Run E2E tests
         if: steps.check-e2e.outputs.has_e2e == 'true'
-        run: npm run e2e:ci
+        run: npx cypress run --project vertex-platform
 
       - name: Upload screenshots on failure
         if: failure()

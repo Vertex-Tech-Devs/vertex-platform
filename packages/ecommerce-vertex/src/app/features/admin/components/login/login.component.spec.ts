@@ -148,6 +148,15 @@ describe('LoginComponent', () => {
     expect(component.isGoogleSubmitting).toBeFalse();
   });
 
+  it('should handle raw string error on login with Google', () => {
+    authServiceSpy.loginWithGoogle.and.returnValue(throwError(() => 'auth/popup-blocked'));
+
+    component.onGoogleLogin();
+
+    expect(component.authErrorMessage).toContain('bloqueó');
+    expect(component.isGoogleSubmitting).toBeFalse();
+  });
+
   it('logout() should set isAlreadyLogged to false', async () => {
     authServiceSpy.logout = jasmine.createSpy('logout').and.returnValue(Promise.resolve());
     component.isAlreadyLogged = true;

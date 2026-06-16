@@ -33,6 +33,9 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
+      - name: Build Contracts
+        run: npm run build --workspace=@vertex/contracts
+
       - name: Lint
         run: npm run lint
 

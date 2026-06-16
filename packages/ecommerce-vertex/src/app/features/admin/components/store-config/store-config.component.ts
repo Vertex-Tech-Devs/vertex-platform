@@ -2,9 +2,9 @@ import type { OnInit } from '@angular/core';
 import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import type { FormGroup } from '@angular/forms';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { StoreConfigService, StoreConfigSchema } from '@core/services/store-config.service';
+import { StoreConfigService } from '@core/services/store-config.service';
+import { StoreConfigSchema } from '@vertex/contracts';
 import { StorageService } from '@core/services/storage.service';
 import { SweetAlertService } from '@core/services/sweet-alert.service';
 import { AuthService } from '@core/services/auth.service';
@@ -37,89 +37,66 @@ export class StoreConfigComponent implements OnInit {
   // Visibility toggle for keys
   showMpKey = signal<boolean>(false);
 
-  form: FormGroup = this.fb.group({
-    tenantId: [''],
-    storeId: ['white-label-store'],
+  form = this.fb.group({
+    setupCompleted: [true],
     storeName: ['', Validators.required],
-    tagline: ['', Validators.required],
+    tagline: [''],
     logoUrl: [''],
     faviconUrl: [''],
-    colors: this.fb.group({
-      primary: ['#ea580c', Validators.required],
-      accent: ['#ef4444', Validators.required],
-      background: ['#ffffff', Validators.required],
-    }),
-    payments: this.fb.group({
-      mercadoPagoPublicKey: [''],
-    }),
-    contact: this.fb.group({
-      phone: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      whatsApp: [''],
-      instagram: [''],
-      facebook: [''],
-    }),
-    seo: this.fb.group({
-      metaDescription: ['', Validators.required],
-    }),
-    setupCompleted: [true],
+    colorPrimary: ['#ea580c', Validators.required],
+    colorAccent: ['#ef4444', Validators.required],
+    colorBackground: ['#1a1a2e', Validators.required],
+    mercadoPagoPublicKey: [''],
+    contactPhone: ['', Validators.required],
+    contactEmail: ['', [Validators.required, Validators.email]],
+    whatsappNumber: [''],
+    instagramUrl: [''],
+    facebookUrl: [''],
+    metaDescription: ['', Validators.required],
   });
 
   ngOnInit(): void {
     const cfg = this.storeConfigService.storeConfig();
     if (cfg) {
       this.form.patchValue({
-        tenantId: cfg.tenantId || '',
-        storeId: cfg.storeId || 'white-label-store',
-        storeName: cfg.storeName || '',
-        tagline: cfg.tagline || 'La mejor tienda online',
-        logoUrl: cfg.logoUrl || '',
-        faviconUrl: cfg.faviconUrl || '',
-        colors: {
-          primary: cfg.colors?.primary || '#ea580c',
-          accent: cfg.colors?.accent || '#ef4444',
-          background: cfg.colors?.background || '#ffffff',
-        },
-        payments: {
-          mercadoPagoPublicKey: cfg.payments?.mercadoPagoPublicKey || '',
-        },
-        contact: {
-          phone: cfg.contact?.phone || '+54 11 1234-5678',
-          email: cfg.contact?.email || 'contacto@mitienda.com',
-          whatsApp: cfg.contact?.whatsApp || '',
-          instagram: cfg.contact?.instagram || '',
-          facebook: cfg.contact?.facebook || '',
-        },
-        seo: {
-          metaDescription: cfg.seo?.metaDescription || 'Bienvenidos a mi tienda virtual.',
-        },
         setupCompleted: cfg.setupCompleted ?? true,
+        storeName: cfg.storeName ?? '',
+        tagline: cfg.tagline ?? '',
+        logoUrl: cfg.logoUrl ?? '',
+        faviconUrl: cfg.faviconUrl ?? '',
+        colorPrimary: cfg.colorPrimary ?? '#ea580c',
+        colorAccent: cfg.colorAccent ?? '#ef4444',
+        colorBackground: cfg.colorBackground ?? '#1a1a2e',
+        mercadoPagoPublicKey: cfg.mercadoPagoPublicKey ?? '',
+        contactPhone: cfg.contactPhone ?? '',
+        contactEmail: cfg.contactEmail ?? '',
+        whatsappNumber: cfg.whatsappNumber ?? '',
+        instagramUrl: cfg.instagramUrl ?? '',
+        facebookUrl: cfg.facebookUrl ?? '',
+        metaDescription: cfg.metaDescription ?? '',
       });
     } else {
       this.form.patchValue({
+        setupCompleted: false,
         storeName: 'Mi Tienda',
         tagline: 'La mejor tienda online',
-        colors: {
-          primary: '#ea580c',
-          accent: '#ef4444',
-          background: '#ffffff',
-        },
-        contact: {
-          phone: '+54 11 1234-5678',
-          email: 'contacto@mitienda.com',
-          whatsApp: '',
-          instagram: '',
-          facebook: '',
-        },
-        seo: {
-          metaDescription: 'Bienvenidos a mi tienda virtual.',
-        },
+        colorPrimary: '#ea580c',
+        colorAccent: '#ef4444',
+        colorBackground: '#1a1a2e',
+        contactPhone: '+54 11 1234-5678',
+        contactEmail: 'contacto@mitienda.com',
+        metaDescription: 'Bienvenidos a mi tienda virtual.',
       });
     }
   }
 
   setTab(tab: 'identity' | 'colors' | 'payments' | 'contact-seo'): void {
     this.activeTab.set(tab);
+  }
+
+  derivedWebhookUrl(): string {
+    const origin = window.location.origin;
+    return `${origin}/api/mercadoPagoWebhookHandler`;
   }
 
   onLogoUpload(event: Event): void {
@@ -190,7 +167,6 @@ export class StoreConfigComponent implements OnInit {
     }
     this.isSubmitting = true;
     try {
-      // Validate form value at runtime using Zod
       const rawValue = this.form.value;
       const validatedData = StoreConfigSchema.parse(rawValue);
       await this.storeConfigService.saveConfig(validatedData as StoreConfig);

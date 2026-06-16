@@ -2,6 +2,7 @@ import type { Routes } from '@angular/router';
 import { AdminComponent } from './admin.component';
 
 import { OwnerGuard } from '@core/guards/owner.guard';
+import { SeedDataGuard } from '@core/guards/seed-data.guard';
 
 export const ADMIN_ROUTES: Routes = [
   {
@@ -137,6 +138,12 @@ export const ADMIN_ROUTES: Routes = [
           import('./components/store-config/store-config.component').then(
             (m) => m.StoreConfigComponent
           ),
+      },
+      {
+        path: '_dev',
+        canActivate: [SeedDataGuard],
+        loadComponent: () =>
+          import('./components/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'account',

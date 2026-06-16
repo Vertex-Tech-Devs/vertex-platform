@@ -1,9 +1,7 @@
 import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, addDoc, setDoc, doc } from '@angular/fire/firestore';
 import type { StoreConfig } from '@core/models/store-config.model';
-import { DEFAULT_STORE_CONFIG } from '@core/models/store-config.model';
 import { StoreConfigService } from './store-config.service';
-import { environment } from '../../../environments/environment';
 import { tenantPath } from '@core/utils/tenant';
 
 // ─── Image helpers ────────────────────────────────────────────────────────────
@@ -183,38 +181,21 @@ export class SeedContentService {
     const storeName = 'Mi Tienda Online';
     const email = 'contacto@mitiendaonline.com';
     const payload: StoreConfig = {
-      ...DEFAULT_STORE_CONFIG,
-      tenantId: environment.tenantId,
-      storeId: environment.tenantId,
+      setupCompleted: true,
       storeName,
       tagline: 'Tu tienda de moda de marca blanca',
-      colors: {
-        primary: '#ea580c',
-        accent: '#ef4444',
-        background: '#ffffff',
-      },
-      payments: {
-        mercadoPagoPublicKey: 'TEST-YOUR_PUBLIC_KEY',
-      },
-      contact: {
-        phone: '+54 11 4567-8900',
-        email,
-        whatsApp: 'https://wa.me/5491145678900',
-        instagram: 'https://instagram.com/mitiendaonline',
-        facebook: 'https://facebook.com/mitiendaonline',
-      },
-      seo: {
-        metaDescription: 'Bienvenido a nuestra tienda online de marca blanca.',
-      },
-      setupCompleted: true,
-
-      // Mapeo legacy para mantener compatibilidad
+      logoUrl: '',
+      faviconUrl: '',
+      colorPrimary: '#ea580c',
+      colorAccent: '#ef4444',
+      colorBackground: '#ffffff',
+      mercadoPagoPublicKey: 'TEST-YOUR_PUBLIC_KEY',
       contactPhone: '+54 11 4567-8900',
       contactEmail: email,
-      socialInstagramUrl: 'https://instagram.com/mitiendaonline',
-      socialFacebookUrl: 'https://facebook.com/mitiendaonline',
-      socialWhatsAppUrl: 'https://wa.me/5491145678900',
-      copyrightText: `© 2026 ${storeName}. Todos los derechos reservados.`,
+      whatsappNumber: 'https://wa.me/5491145678900',
+      instagramUrl: 'https://instagram.com/mitiendaonline',
+      facebookUrl: 'https://facebook.com/mitiendaonline',
+      metaDescription: 'Bienvenido a nuestra tienda online de marca blanca.',
     };
     await this.run(() =>
       setDoc(doc(this.firestore, tenantPath('configuracion'), 'store'), payload)

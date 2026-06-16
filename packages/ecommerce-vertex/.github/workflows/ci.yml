@@ -56,6 +56,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Build Contracts
+        run: npm run build --workspace=@vertex/contracts
+
       - name: Lint
         run: npm run lint
 
@@ -184,11 +187,16 @@ jobs:
         id: e2e-mode
         run: echo "mode=real" >> "$GITHUB_OUTPUT"
 
-      - name: Start Angular dev server
-        run: npm start -- --host 127.0.0.1 &
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/ecommerce-vertex/browser
+
+      - name: Start serve server
+        run: npx serve -s dist/ecommerce-vertex/browser -l 4200 &
         env:
           CI: true
-          NG_CLI_ANALYTICS: false
 
       - name: Wait for server to be ready
         run: npx wait-on http://127.0.0.1:4200 --timeout 300000

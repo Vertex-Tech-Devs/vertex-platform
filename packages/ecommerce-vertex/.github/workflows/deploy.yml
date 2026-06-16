@@ -36,6 +36,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Build Contracts
+        run: npm run build --workspace=@vertex/contracts
+
       - name: Lint
         run: npm run lint
 
