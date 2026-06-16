@@ -4,7 +4,7 @@ import path from 'node:path';
 const platformUrl = process.env['PLATFORM_BASE_URL'] ?? 'http://127.0.0.1:4200';
 const storefrontUrl = process.env['STOREFRONT_BASE_URL'] ?? 'http://127.0.0.1:4201';
 const platformRoot = path.resolve(__dirname, '..');
-const storefrontRoot = path.resolve(__dirname, '../../ecommerce-vertex');
+const storefrontRoot = path.resolve(__dirname, '../../packages/ecommerce-vertex');
 
 export default defineConfig({
   testDir: './specs',

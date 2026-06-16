@@ -7,6 +7,7 @@ import { from, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { convertTimestampsToDates } from '@core/utils/date-converter';
 import { tenantPath } from '@core/utils/tenant';
+import { StoreConfigSchema } from '@vertex/contracts';
 
 interface BaseEntity {
   id?: string;
@@ -29,7 +30,15 @@ export class FirestoreService<T extends BaseEntity> {
             ? (collectionData(legacyRef, { idField: 'id' }) as Observable<T[]>)
             : (collectionData(tenantRef, { idField: 'id' }) as Observable<T[]>)
         ),
-        map((items) => items.map((item) => convertTimestampsToDates(item) as T)),
+        map((items) =>
+          items.map((item) => {
+            const converted = convertTimestampsToDates(item);
+            if (collectionName === 'configuracion') {
+              StoreConfigSchema.parse(converted);
+            }
+            return converted as T;
+          })
+        ),
         catchError((err) => {
           console.warn(`Unable to load collection ${collectionName}:`, err);
           return of([]);
@@ -48,7 +57,16 @@ export class FirestoreService<T extends BaseEntity> {
             ? (docData(tenantDocRef, { idField: 'id' }) as Observable<T | undefined>)
             : (docData(legacyDocRef, { idField: 'id' }) as Observable<T | undefined>)
         ),
-        map((item) => (item ? (convertTimestampsToDates(item) as T) : undefined)),
+        map((item) => {
+          if (!item) {
+            return undefined;
+          }
+          const converted = convertTimestampsToDates(item);
+          if (collectionName === 'configuracion') {
+            StoreConfigSchema.parse(converted);
+          }
+          return converted as T;
+        }),
         catchError((err) => {
           console.warn(`Unable to load document ${id} from ${collectionName}:`, err);
           return of(undefined);

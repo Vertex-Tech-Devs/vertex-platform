@@ -63,9 +63,12 @@ jobs:
         run: npm run typecheck
 
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests - ${{ matrix.project }}
     runs-on: ubuntu-latest
     needs: validate
+    strategy:
+      matrix:
+        project: [vertex-platform, ecommerce-vertex]
     steps:
       - uses: actions/checkout@v6
 
@@ -76,23 +79,17 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
-      - name: Run frontend tests
-        run: npm run test
+      - name: Run Platform Tests
+        if: matrix.project == 'vertex-platform'
+        run: |
+          npm run test --workspace=vertex-platform
+          npm run test:coverage --prefix vertex-platform/functions
 
-      - name: Upload frontend coverage
-        uses: codecov/codecov-action@v6
-        continue-on-error: true
-        with:
-          files: ./coverage/vertex-platform/coverage-final.json
-          fail_ci_if_error: false
-
-      - name: Install backend dependencies
-        run: npm ci
-        working-directory: functions
-
-      - name: Run backend tests with coverage
-        run: npm run test:coverage
-        working-directory: functions
+      - name: Run Storefront Tests
+        if: matrix.project == 'ecommerce-vertex'
+        run: |
+          npm run test --workspace=packages/ecommerce-vertex
+          npm run test --prefix packages/ecommerce-vertex/functions
 
   build:
     name: Build Frontend
