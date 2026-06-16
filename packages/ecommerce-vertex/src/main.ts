@@ -50,7 +50,7 @@ function inferStoreNameFromHostname(): string {
     .join(' ');
 }
 
-const bootTitle = STORE_CONFIG.storeName?.trim() || inferStoreNameFromHostname();
+const bootTitle = STORE_CONFIG.storeName?.trim() ?? inferStoreNameFromHostname();
 if (bootTitle) {
   document.title = bootTitle;
 }
