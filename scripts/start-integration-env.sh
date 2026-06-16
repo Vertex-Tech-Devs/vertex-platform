@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STOREFRONT_DIR="${ROOT_DIR}/../ecommerce-vertex"
+STOREFRONT_DIR="${ROOT_DIR}/../packages/ecommerce-vertex"
 
 cd "${ROOT_DIR}"
 

@@ -125,7 +125,7 @@ async function main() {
   const s = p.spinner();
   s.start('Configurando e integrando parámetros multitenant...');
 
-  const ecommerceRoot = path.join(__dirname, '../../ecommerce-vertex');
+  const ecommerceRoot = path.join(__dirname, '../../packages/ecommerce-vertex');
   const tenantId = storeName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
 
   // Helper for safe file mutation without TOCTOU race conditions
