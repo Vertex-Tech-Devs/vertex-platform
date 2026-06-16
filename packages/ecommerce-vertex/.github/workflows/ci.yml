@@ -191,7 +191,7 @@ jobs:
           NG_CLI_ANALYTICS: false
 
       - name: Wait for server to be ready
-        run: npx wait-on http://127.0.0.1:4200 --timeout 60000
+        run: npx wait-on http://127.0.0.1:4200 --timeout 300000
 
       - name: Run E2E tests
         run: npm run e2e:ci
