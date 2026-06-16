@@ -54,7 +54,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Lint
         run: npm run lint
@@ -74,7 +74,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Run tests
         run: npm run test:ci
@@ -98,7 +98,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Generate stub environment file for build check
         run: cp src/environments/environment.example.ts src/environments/environment.prod.ts
@@ -128,7 +128,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: functions
 
       - run: npm run build
@@ -145,7 +145,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Audit frontend
         run: npm audit --audit-level=high
@@ -171,7 +171,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Generate stub environment file
         run: cp src/environments/environment.example.ts src/environments/environment.ts
@@ -184,11 +184,16 @@ jobs:
         id: e2e-mode
         run: echo "mode=real" >> "$GITHUB_OUTPUT"
 
-      - name: Start Angular dev server
-        run: npm start -- --host 127.0.0.1 &
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/ecommerce-vertex/browser
+
+      - name: Start serve server
+        run: npx serve -s dist/ecommerce-vertex/browser -l 4200 &
         env:
           CI: true
-          NG_CLI_ANALYTICS: false
 
       - name: Wait for server to be ready
         run: npx wait-on http://127.0.0.1:4200 --timeout 300000
@@ -219,7 +224,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Mark integration mode
         id: integration-mode
@@ -291,6 +296,7 @@ jobs:
           [ -n "$SA" ] && echo "available=true" >> "$GITHUB_OUTPUT" || echo "available=false" >> "$GITHUB_OUTPUT"
 
       - name: Deploy preview channel
+         # Se asume despliegue a Firebase Hosting para desarrollo de e-commerce
         if: steps.check.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
