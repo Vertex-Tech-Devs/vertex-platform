@@ -79,7 +79,7 @@ jobs:
       - name: Run Platform Tests
         run: |
           npm ci --prefix vertex-platform/functions --legacy-peer-deps
-          npm run test -- --watch=false --exclude="**/functions/**"
+          npm run test --workspace=vertex-platform -- --watch=false --exclude="**/functions/**"
           npm run test:coverage --prefix vertex-platform/functions
 
   build:
@@ -97,7 +97,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - name: Build production
-        run: npm run build:prod
+        run: npm run build:prod --workspace=vertex-platform
 
       - name: Check bundle size
         run: |
