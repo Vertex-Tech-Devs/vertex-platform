@@ -82,12 +82,14 @@ jobs:
       - name: Run Platform Tests
         if: matrix.project == 'vertex-platform'
         run: |
-          npm run test --workspace=vertex-platform -- --watch=false
+          npm ci --prefix vertex-platform/functions
+          npm run test --workspace=vertex-platform -- --watch=false --exclude="**/functions/**"
           npm run test:coverage --prefix vertex-platform/functions
 
       - name: Run Storefront Tests
         if: matrix.project == 'ecommerce-vertex'
         run: |
+          npm ci --prefix packages/ecommerce-vertex/functions
           npm run test --workspace=packages/ecommerce-vertex
           npm run test --prefix packages/ecommerce-vertex/functions
 
