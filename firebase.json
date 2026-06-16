@@ -1,53 +1,32 @@
 {
-  "hosting": [
+  "firestore": {
+    "rules": "vertex-platform/firestore.rules",
+    "indexes": "vertex-platform/firestore.indexes.json"
+  },
+  "functions": [
     {
-      "target": "prod",
-      "public": "dist/vertex-platform/browser",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [
-        { "source": "/api/log-error", "function": "logClientError" },
-        { "source": "**", "destination": "/index.html" }
-      ],
-      "headers": [
-        {
-          "source": "**/*.@(js|css|woff2|woff|ttf|eot|ico|png|jpg|svg)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-        },
-        {
-          "source": "**/*.html",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
-        }
-      ]
+      "source": "vertex-platform/functions",
+      "codebase": "vertex-platform"
     },
     {
-      "target": "dev",
-      "public": "dist/vertex-platform/browser",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [
-        { "source": "/api/log-error", "function": "logClientError" },
-        { "source": "**", "destination": "/index.html" }
-      ],
-      "headers": [
-        {
-          "source": "**/*.@(js|css|woff2|woff|ttf|eot|ico|png|jpg|svg)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-        },
-        {
-          "source": "**/*.html",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
-        }
-      ]
+      "source": "packages/ecommerce-vertex/functions",
+      "codebase": "ecommerce-vertex"
     }
   ],
-  "functions": {
-    "source": "functions",
-    "codebase": "vertex-platform"
-  },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "extensions": {
-    "firestore-send-email": "firebase/firestore-send-email@0.2.9"
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": false
   }
 }

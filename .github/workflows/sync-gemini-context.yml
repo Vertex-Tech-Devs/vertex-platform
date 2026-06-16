@@ -1,0 +1,41 @@
+name: Sync Gemini Context
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  sync:
+    name: Sync Context to Gemini
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Generate AI Context Markdown
+        run: npm run sync-context
+
+      - name: Sync with Gemini API
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "GEMINI_API_KEY is not set. Skipping upload."
+            exit 0
+          fi
+          
+          # Send generated markdown to Gemini API (Placeholder/Mock endpoint for upload)
+          curl -X POST "https://generativelanguage.googleapis.com/v1beta/files" \
+            -H "Authorization: Bearer $GEMINI_API_KEY" \
+            -H "Content-Type: text/markdown" \
+            --data-binary @docs/architecture-context.md

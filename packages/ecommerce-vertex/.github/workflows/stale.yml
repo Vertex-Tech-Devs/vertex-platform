@@ -1,0 +1,32 @@
+name: Stale PRs
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  stale:
+    name: Mark and close stale PRs
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v10
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # Only manage PRs, not issues
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          stale-pr-message: >
+            Este PR no ha tenido actividad en 30 días y fue marcado como stale.
+            Se cerrará automáticamente en 7 días si no hay actividad.
+            Agregá el label `no-stale` para mantenerlo abierto.
+          close-pr-message: >
+            Este PR fue cerrado automáticamente por inactividad.
+            Podés reabrirlo cuando estés listo para continuar.
+          stale-pr-label: "stale"
+          exempt-pr-labels: "work-in-progress,no-stale"
+          close-pr-label: "auto-closed"

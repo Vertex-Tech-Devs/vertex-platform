@@ -1,15 +1,14 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+dist/
+tmp/
+out-tsc/
+bazel-out/
 *.tsbuildinfo
+.angular/
 
 # Node
-/node_modules
-functions/node_modules
+node_modules/
+**/node_modules/
 npm-debug.log
 yarn-error.log
 
@@ -21,8 +20,6 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
-
-# Visual Studio Code
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -32,19 +29,21 @@ yarn-error.log
 .history/*
 
 # Miscellaneous
-/.angular/cache
 .sass-cache/
-/connect.lock
-/coverage
-functions/coverage/
-/libpeerconnection.log
+connect.lock
+coverage/
+**/coverage/
+libpeerconnection.log
 testem.log
-/typings
+typings/
 __screenshots__/
-
-# System files
-.DS_Store
-Thumbs.db
+playwright-report/
+test-results/
+.firebase/
+**/functions/lib/
+**/functions/dist/
+firebase-debug.log
+.runtimeconfig.json
 
 # Secrets & credentials (CRITICAL — never commit)
 .env
@@ -58,25 +57,19 @@ credentials.json
 *.pem
 *.p12
 *.p8
-.firebase/
-functions/.env
-functions/.env.*
-!functions/.env.example
-functions/lib/
-firebase-debug.log
-.runtimeconfig.json
+**/functions/.env
+**/functions/.env.*
+!**/functions/.env.example
 
 # Extension environment files (contain SMTP URIs, keep local only)
 extensions/
+**/extensions/
 
-# One-off utility scripts (operational, not for CI)
-scripts/check-owner-access.ts
-scripts/check-root-collections.ts
-scripts/inspect-prueba-tres.ts
-scripts/delete-prueba-tres.ts
-ext-params.env
-
-# Local exploratory and generated artifacts
+# One-off utility scripts / exploratory artifacts
 scratch/
-playwright-report/
-test-results/
+**/scratch/
+vertex-platform/scripts/check-owner-access.ts
+vertex-platform/scripts/check-root-collections.ts
+vertex-platform/scripts/inspect-prueba-tres.ts
+vertex-platform/scripts/delete-prueba-tres.ts
+vertex-platform/ext-params.env

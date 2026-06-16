@@ -1,0 +1,471 @@
+@use 'variables' as vars;
+@use 'sass:color';
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-management-wrapper {
+  width: 100%;
+  padding-bottom: 6rem;
+
+  .container-fluid {
+    @media (min-width: 768px) {
+      padding: 0 1.5rem;
+    }
+  }
+}
+
+.dashboard__header {
+  margin-bottom: var(--space-10);
+  animation: float-in 0.6s ease-out backwards;
+
+  hr {
+    border: 0;
+    height: 1px;
+    margin: 1.5rem 0;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15), transparent);
+  }
+}
+
+.dashboard__title {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.04em;
+}
+
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 32px;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
+  animation: float-in 0.6s ease-out backwards;
+
+  &.card-identity {
+    --glow-rgb: 56, 189, 248;
+    animation-delay: 0.1s;
+  }
+
+  &.card-contact {
+    --glow-rgb: 236, 72, 153;
+    animation-delay: 0.2s;
+  }
+
+  &.card-seo {
+    --glow-rgb: 168, 85, 247;
+    animation-delay: 0.3s;
+  }
+
+  &.card-regional {
+    --glow-rgb: 16, 185, 129;
+    animation-delay: 0.4s;
+  }
+
+  &.card-features {
+    --glow-rgb: 245, 158, 11;
+    animation-delay: 0.5s;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(var(--glow-rgb), 0.5);
+    box-shadow:
+      0 20px 40px -10px rgba(0, 0, 0, 0.6),
+      0 0 30px -5px rgba(var(--glow-rgb), 0.35);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(var(--glow-rgb), 0.15), transparent 50%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card-header,
+  .card-body {
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-header {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    i {
+      color: rgb(var(--glow-rgb));
+    }
+
+    @media (max-width: 768px) {
+      padding: 1.25rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .card-body {
+    padding: 2rem;
+
+    @media (max-width: 768px) {
+      padding: 1.25rem;
+    }
+  }
+}
+
+.text-label {
+  color: rgba(255, 255, 255, 0.4) !important;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.text-soft {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.input-group {
+  .input-group-text {
+    background-color: rgba(15, 23, 42, 0.6);
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    transition: all 0.3s ease;
+  }
+
+  .glass-input {
+    border-left-color: transparent !important;
+  }
+
+  &:focus-within {
+    .input-group-text {
+      border-color: #818cf8;
+      color: #818cf8;
+      background-color: rgba(15, 23, 42, 0.8);
+      box-shadow:
+        -4px 0 0 0 rgba(129, 140, 248, 0.15),
+        0 4px 0 0 rgba(129, 140, 248, 0.15),
+        0 -4px 0 0 rgba(129, 140, 248, 0.15);
+    }
+  }
+}
+
+.glass-input {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px;
+  padding: 0.8rem 1.2rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:focus {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    border-color: #818cf8 !important;
+    box-shadow:
+      4px 0 0 0 rgba(129, 140, 248, 0.15),
+      0 4px 0 0 rgba(129, 140, 248, 0.15),
+      0 -4px 0 0 rgba(129, 140, 248, 0.15) !important;
+  }
+}
+
+.glass-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.glass-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1.2rem center;
+  background-size: 16px 12px;
+  padding-right: 3rem;
+
+  option {
+    background-color: #0f172a;
+    color: #fff;
+  }
+}
+
+.glass-switches-container {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin: 0;
+}
+
+.custom-glass-switch {
+  .form-check-input {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.1);
+    height: 1.5rem;
+    width: 3rem;
+    cursor: pointer;
+    margin-top: 0;
+    transition: all 0.3s ease;
+
+    &:checked {
+      background-color: #10b981;
+      border-color: #10b981;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+
+    &:focus {
+      box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.25);
+    }
+  }
+
+  .form-check-label {
+    cursor: pointer;
+    margin-top: 2px;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.save-action-container {
+  display: flex;
+  animation: float-in 0.6s ease-out backwards;
+  animation-delay: 0.6s;
+
+  @media (min-width: 768px) {
+    justify-content: flex-end;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 767px) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem 1rem env(safe-area-inset-bottom, 1rem);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    z-index: 1000;
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.btn-save-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1rem 3rem;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+
+  @media (max-width: 767px) {
+    padding: 1rem;
+    border-radius: 12px;
+    flex: 1;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #818cf8;
+    color: #a5b4fc;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+
+    i {
+      color: #a5b4fc;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ─── Custom Tabs ──────────────────────────────────────────────────────────────
+.custom-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.5rem;
+
+  .nav-link {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &.active {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: #818cf8 rgba(255, 255, 255, 0.12) transparent;
+      color: #818cf8;
+      box-shadow: inset 0 3px 0 #818cf8;
+    }
+  }
+}
+
+.custom-tab-content {
+  animation: float-in 0.5s ease-out backwards;
+}
+
+// ─── Branding & Image Uploads ───────────────────────────────────────────────
+.avatar-preview-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+
+  &.favicon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+}
+
+.branding-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.25rem;
+
+  &.favicon-img {
+    padding: 0.15rem;
+  }
+}
+
+.file-input {
+  cursor: pointer;
+  &::file-selector-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    transition: all 0.2s ease;
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+.custom-progress {
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  .progress-bar {
+    font-size: 0.65rem;
+    line-height: 12px;
+    font-weight: bold;
+  }
+}
+
+// ─── Live Colors & Previews ──────────────────────────────────────────────────
+.color-input-group {
+  .color-picker-input {
+    width: 60px;
+    height: 46px;
+    padding: 0.2rem;
+    cursor: pointer;
+    flex-grow: 0;
+    border-radius: 12px 0 0 12px !important;
+  }
+  .input-group-text {
+    border-left: none !important;
+    background-color: rgba(15, 23, 42, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85rem;
+  }
+}
+
+.preview-theme-container {
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.05);
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+
+  .btn {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+    }
+  }
+}
+
+.glass-btn {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-left: none !important;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}

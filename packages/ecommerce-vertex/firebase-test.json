@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "public": "dist/ecommerce-vertex/browser",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "site": "vtx-prueba-tres"
+  }
+}

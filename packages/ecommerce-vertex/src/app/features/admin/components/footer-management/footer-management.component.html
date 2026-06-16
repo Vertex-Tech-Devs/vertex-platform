@@ -1,0 +1,202 @@
+<section class="footer-wrapper" aria-label="Gestión del footer">
+  <div class="container-fluid my-4">
+    <header class="dashboard__header text-center mb-5">
+      <h1 class="dashboard__title">Gestión del Footer de la Tienda</h1>
+      <hr />
+    </header>
+
+    @if (isLoading) {
+      <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando datos del footer...</span>
+        </div>
+      </div>
+    } @else {
+      <form [formGroup]="footerForm" (ngSubmit)="onSubmit()" novalidate>
+        <div class="glass-card mb-4 mb-md-5 card-contact">
+          <div class="card-header border-0 fw-bold d-flex align-items-center">
+            <div class="text-truncate pr-2">
+              <i class="bi bi-person-lines-fill me-2" aria-hidden="true"></i>1: Información de
+              Contacto
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-4">
+              <div class="col-md-6">
+                <label for="contactEmail" class="form-label text-label">Email de Contacto</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-envelope" aria-hidden="true"></i
+                  ></span>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    class="form-control glass-input"
+                    formControlName="contactEmail"
+                    [class.is-invalid]="email?.invalid && email?.touched"
+                  />
+                </div>
+                @if (email?.invalid && email?.touched) {
+                  <div class="invalid-feedback d-block mt-2">
+                    @if (email?.errors?.['required']) {
+                      <span>Email es obligatorio.</span>
+                    }
+                    @if (email?.errors?.['email']) {
+                      <span>Debe ser un email válido.</span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="col-md-6">
+                <label for="contactPhone" class="form-label text-label"
+                  >Teléfono (Texto libre)</label
+                >
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-telephone" aria-hidden="true"></i
+                  ></span>
+                  <input
+                    type="text"
+                    id="contactPhone"
+                    class="form-control glass-input"
+                    formControlName="contactPhone"
+                    placeholder="(Ej: +54 9 261..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card mb-4 mb-md-5 card-social">
+          <div class="card-header border-0 fw-bold d-flex align-items-center">
+            <div class="text-truncate pr-2">
+              <i class="bi bi-share me-2" aria-hidden="true"></i>2: Redes Sociales
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-4">
+              <div class="col-lg-4">
+                <label for="socialInstagramUrl" class="form-label text-label"
+                  >URL de Instagram</label
+                >
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-instagram" aria-hidden="true"></i
+                  ></span>
+                  <input
+                    type="url"
+                    id="socialInstagramUrl"
+                    class="form-control glass-input"
+                    formControlName="socialInstagramUrl"
+                    placeholder="https://instagram.com/usuario"
+                  />
+                </div>
+                @if (instagram?.invalid && instagram?.touched) {
+                  <div class="invalid-feedback d-block mt-2">
+                    La URL debe ser válida. Dejar vacío si no aplica.
+                  </div>
+                }
+              </div>
+              <div class="col-lg-4">
+                <label for="socialFacebookUrl" class="form-label text-label">URL de Facebook</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-facebook" aria-hidden="true"></i
+                  ></span>
+                  <input
+                    type="url"
+                    id="socialFacebookUrl"
+                    class="form-control glass-input"
+                    formControlName="socialFacebookUrl"
+                    placeholder="https://facebook.com/pagina"
+                  />
+                </div>
+                @if (facebook?.invalid && facebook?.touched) {
+                  <div class="invalid-feedback d-block mt-2">
+                    La URL debe ser válida. Dejar vacío si no aplica.
+                  </div>
+                }
+              </div>
+              <div class="col-lg-4">
+                <label for="socialWhatsAppUrl" class="form-label text-label">URL de WhatsApp</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-whatsapp" aria-hidden="true"></i
+                  ></span>
+                  <input
+                    type="url"
+                    id="socialWhatsAppUrl"
+                    class="form-control glass-input"
+                    formControlName="socialWhatsAppUrl"
+                    placeholder="https://wa.me/549..."
+                  />
+                </div>
+                @if (whatsapp?.invalid && whatsapp?.touched) {
+                  <div class="invalid-feedback d-block mt-2">
+                    La URL debe ser válida. Dejar vacío si no aplica.
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card mb-5 card-copyright">
+          <div class="card-header border-0 fw-bold d-flex align-items-center">
+            <div class="text-truncate pr-2">
+              <i class="bi bi-c-circle me-2" aria-hidden="true"></i>3: Contenido y Copyright
+            </div>
+          </div>
+          <div class="card-body">
+            <div>
+              <label for="copyrightText" class="form-label text-label">Texto de Copyright</label>
+              <input
+                type="text"
+                id="copyrightText"
+                class="form-control glass-input"
+                formControlName="copyrightText"
+                placeholder="Mi tienda. Todos los derechos reservados."
+              />
+              <div class="form-text mt-2 text-soft small">
+                El año (Ej: © 2025) se añadirá automáticamente en la tienda.
+              </div>
+              @if (copyright?.invalid && copyright?.touched) {
+                <div class="invalid-feedback d-block mt-2">
+                  El texto de copyright es obligatorio.
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="save-action-container">
+          <button
+            type="button"
+            class="btn-reset-secondary"
+            (click)="resetForm()"
+            [disabled]="!footerForm.dirty"
+          >
+            <i class="bi bi-arrow-counterclockwise me-2"></i> Deshacer
+          </button>
+
+          <button
+            type="submit"
+            class="btn-save-primary"
+            [disabled]="isSubmitting || footerForm.invalid || !footerForm.dirty"
+          >
+            @if (isSubmitting) {
+              <span
+                class="spinner-border spinner-border-sm me-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+            }
+            <i class="bi bi-check2-circle me-2" [class.d-none]="isSubmitting"></i>
+            {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>

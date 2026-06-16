@@ -1,0 +1,194 @@
+@use 'variables' as vars;
+@use 'sass:color';
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.account {
+  padding: var(--space-6, 1.5rem) var(--space-4, 1rem);
+  animation: float-in 0.4s ease-out;
+}
+
+.card-gradient-wrapper {
+  padding: 1px;
+  border-radius: var(--radius-xl, 14px);
+  background: linear-gradient(
+    135deg,
+    rgba(vars.$accent-purple, 0.12),
+    rgba(vars.$accent-blue, 0.08),
+    rgba(vars.$accent-purple, 0.12)
+  );
+  background-size: 200% 200%;
+  // animation removed for clean light theme
+  box-shadow: vars.$admin-card-shadow;
+}
+
+.card {
+  border: none;
+  border-radius: calc(var(--radius-xl, 14px) - 1px);
+  overflow: hidden;
+  background: vars.$glass-bg;
+  color: vars.$text-light;
+}
+
+.account-card-header {
+  background: transparent;
+  padding: var(--space-6, 1.5rem);
+  border-bottom: 1px solid vars.$glass-border;
+}
+
+.page-title {
+  font-weight: vars.$font-weight-bold;
+  background: linear-gradient(135deg, vars.$accent-purple, vars.$accent-blue);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 1.8rem;
+  letter-spacing: -0.01em;
+}
+
+.form-title {
+  color: rgba(vars.$text-light, 0.85);
+  font-weight: vars.$font-weight-medium;
+}
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(vars.$text-light, 0.45);
+  letter-spacing: 0.06em;
+}
+
+#save-changes-btn {
+  background: linear-gradient(
+    135deg,
+    vars.$accent-purple,
+    color.adjust(vars.$accent-purple, $lightness: -5%)
+  );
+  color: white;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: var(--radius-md, 8px);
+  border: none;
+  transition: all var(--transition-base, 0.3s ease);
+  box-shadow: 0 4px 15px rgba(vars.$accent-purple, 0.25);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(vars.$accent-purple, 0.12);
+    filter: brightness(1.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(vars.$accent-purple, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.form-divider {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, transparent, vars.$glass-border, transparent);
+  margin: var(--space-8, 2rem) 0;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid vars.$input-dark-border;
+  border-radius: var(--radius-md, 8px);
+  background-color: vars.$input-dark-bg;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  .form-control {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    color: vars.$input-dark-text;
+    flex-grow: 1;
+    padding-right: 2.75rem;
+
+    &::placeholder {
+      color: vars.$input-dark-placeholder;
+    }
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .password-toggle-icon {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: rgba(vars.$text-light, 0.35);
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: vars.$text-light;
+    }
+  }
+}
+
+.password-input-wrapper:focus-within {
+  border-color: vars.$accent-purple;
+  box-shadow: 0 0 0 3px rgba(vars.$accent-purple, 0.12);
+}
+
+.is-invalid-wrapper {
+  border-color: vars.$accent-red;
+  box-shadow: 0 0 0 3px rgba(vars.$accent-red, 0.12);
+
+  .password-toggle-icon {
+    color: vars.$accent-red;
+  }
+}
+
+.btn-outline-danger {
+  border-color: rgba(vars.$accent-red, 0.4);
+  color: vars.$accent-red;
+  border-radius: var(--radius-md, 8px);
+  transition: all var(--transition-base, 0.3s ease);
+  background: transparent;
+
+  &:hover {
+    background-color: rgba(vars.$accent-red, 0.08);
+    color: vars.$accent-red;
+    border-color: vars.$accent-red;
+  }
+}

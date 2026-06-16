@@ -1,0 +1,80 @@
+<section class="categories-list-wrapper" aria-label="Gestión de categorías">
+  <div class="container-fluid">
+    <div class="d-flex justify-content-center align-items-center mb-3 mb-md-4">
+      <h2 class="mb-0 page__title text-truncate text-center">Gestión de Categorías</h2>
+    </div>
+
+    <hr class="glass-divider mb-4 d-none d-md-block" />
+
+    <div class="glass-card mb-4 mb-md-5">
+      <div class="card-body p-3 p-md-4">
+        @if (categories$ | async; as categories) {
+          <div class="table-responsive">
+            <table class="table align-middle mb-0 glass-table">
+              <thead>
+                <tr>
+                  <th scope="col">Nombre</th>
+                  <th scope="col">Atributos Asignados</th>
+                  <th scope="col" class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (category of categories; track category.id) {
+                  <tr>
+                    <td data-label="Nombre" class="fw-bold">{{ category.name }}</td>
+                    <td data-label="Atributos Asignados">
+                      <span class="attributes-text">{{
+                        getAttributeNames(category.filterableAttributes)
+                      }}</span>
+                    </td>
+                    <td data-label="Acciones" class="text-end action-cell">
+                      <button
+                        class="btn-glass-primary me-2"
+                        (click)="openCategoryModal(category)"
+                        title="Editar"
+                      >
+                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                      </button>
+                      <button
+                        class="btn-glass-danger"
+                        (click)="onDelete(category)"
+                        title="Eliminar"
+                      >
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="text-center py-5 empty-state">
+                      <i class="bi bi-tags empty-icon mb-3" aria-hidden="true"></i>
+                      <p class="lead fw-bold text-white mb-1">Aún no hay categorías creadas.</p>
+                      <p class="text-white-50">
+                        ¡Crea la primera para empezar a organizar tus productos!
+                      </p>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<button
+  class="fab-glass"
+  (click)="openCategoryModal()"
+  title="Nueva Categoría"
+  aria-label="Crear nueva categoría"
+>
+  <i class="bi bi-plus-lg" aria-hidden="true"></i>
+</button>

@@ -1,0 +1,275 @@
+<div class="dashboard-wrapper">
+  <div class="dashboard">
+    <div class="container-fluid my-4">
+      <header class="dashboard__header">
+        <h1 class="dashboard__title">Dashboard del Administrador</h1>
+        <hr />
+      </header>
+
+      <section class="mb-5">
+        <h2 class="dashboard__section-title">Resumen Rápido</h2>
+        @if ({ monthly: monthlyMetrics$ | async, global: globalMetrics$ | async }; as metrics) {
+          @if (metrics.monthly && metrics.global) {
+            <div class="dashboard__summary-grid">
+              <div class="summary-card card-sales">
+                <div class="summary-card__icon"><i class="bi bi-currency-dollar"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Ventas Mes</span>
+                  <h3 class="summary-card__value">
+                    {{ metrics.monthly.sales | currency: 'ARS' : '$' : '1.0-0' }}
+                  </h3>
+                </div>
+              </div>
+              <div class="summary-card card-orders">
+                <div class="summary-card__icon"><i class="bi bi-cart-check"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Pedidos Mes</span>
+                  <h3 class="summary-card__value">{{ metrics.monthly.orders }}</h3>
+                </div>
+              </div>
+              <div class="summary-card card-clients">
+                <div class="summary-card__icon"><i class="bi bi-person-plus"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Nuevos Clientes</span>
+                  <h3 class="summary-card__value">{{ metrics.monthly.newClients }}</h3>
+                </div>
+              </div>
+              <div class="summary-card card-total-sales">
+                <div class="summary-card__icon"><i class="bi bi-graph-up-arrow"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Total Ventas</span>
+                  <h3 class="summary-card__value">
+                    {{ metrics.global.totalSales | currency: 'ARS' : '$' : '1.0-0' }}
+                  </h3>
+                </div>
+              </div>
+              <div class="summary-card card-total-orders">
+                <div class="summary-card__icon"><i class="bi bi-clipboard-data"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Total Pedidos</span>
+                  <h3 class="summary-card__value">{{ metrics.global.totalOrders }}</h3>
+                </div>
+              </div>
+              <div class="summary-card card-total-clients">
+                <div class="summary-card__icon"><i class="bi bi-people"></i></div>
+                <div class="summary-card__content">
+                  <span class="summary-card__label">Total Clientes</span>
+                  <h3 class="summary-card__value">{{ metrics.global.totalClients }}</h3>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="text-center p-5"><div class="spinner-border text-primary"></div></div>
+          }
+        }
+      </section>
+
+      <section class="mb-5">
+        <h2 class="dashboard__section-title">Tareas Pendientes</h2>
+        <div class="row g-4">
+          <div class="col-12 col-lg-6">
+            <div class="card glass-card card-pending">
+              <div class="card-header border-0 text-center fw-bold">
+                <i class="bi bi-box-seam me-2"></i>Pedidos por Enviar
+              </div>
+              <div class="card-body">
+                @if (pendingOrders$ | async; as pendingOrders) {
+                  <ul class="list-group list-group-flush">
+                    @for (order of pendingOrders | slice: 0 : 5; track order.id) {
+                      <li class="list-group-item bg-transparent">
+                        <div class="item-content text-truncate">
+                          <span class="fw-bold">{{ order.clientName }}</span>
+                          <small class="text-muted"
+                            >#{{ order.id }} - {{ order.orderDate | date: 'short' }}</small
+                          >
+                        </div>
+                        <span
+                          class="badge rounded-pill mx-2"
+                          [ngClass]="{
+                            'bg-warning text-dark': order.status === 'pending',
+                            'bg-primary': order.status === 'processing',
+                          }"
+                        >
+                          {{ order.status }}
+                        </span>
+                        <a
+                          [routerLink]="['/admin/orders', order.id]"
+                          class="btn btn-sm btn-outline-primary ms-auto"
+                          ><i class="bi bi-arrow-right-circle"></i
+                        ></a>
+                      </li>
+                    } @empty {
+                      <p class="text-center py-3 m-0 text-muted">¡Sin pendientes!</p>
+                    }
+                  </ul>
+                  @if (pendingOrders.length > 5) {
+                    <div class="card-footer-action">
+                      <a routerLink="/admin/orders" class="btn-view-more">Ver todos</a>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card glass-card card-stock">
+              <div class="card-header border-0 text-center fw-bold">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Poco Stock
+              </div>
+              <div class="card-body">
+                @if (lowStockProducts$ | async; as lowStockProducts) {
+                  <ul class="list-group list-group-flush">
+                    @for (product of lowStockProducts | slice: 0 : 5; track product.id) {
+                      <li class="list-group-item bg-transparent">
+                        <div class="item-content text-truncate">
+                          <span class="fw-bold">{{ product.name }}</span>
+                        </div>
+                        <span class="badge bg-danger rounded-pill mx-2"
+                          >{{ product.totalStock }} un.</span
+                        >
+                        <a
+                          [routerLink]="['/admin/products/edit', product.id]"
+                          class="btn btn-sm btn-outline-danger ms-auto"
+                          ><i class="bi bi-pencil"></i
+                        ></a>
+                      </li>
+                    } @empty {
+                      <p class="text-center py-3 m-0 text-muted">¡Stock al día!</p>
+                    }
+                  </ul>
+                  @if (lowStockProducts.length > 5) {
+                    <div class="card-footer-action">
+                      <a routerLink="/admin/products" class="btn-view-more">Ver inventario</a>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Actividad reciente">
+        <h2 class="dashboard__section-title">Actividad Reciente</h2>
+
+        <div class="activity-picker d-md-none">
+          <button [class.active-orders]="activeTab() === 'orders'" (click)="setTab('orders')">
+            Pedidos
+          </button>
+          <button [class.active-clients]="activeTab() === 'clients'" (click)="setTab('clients')">
+            Clientes
+          </button>
+          <button [class.active-products]="activeTab() === 'products'" (click)="setTab('products')">
+            Productos
+          </button>
+        </div>
+
+        <div class="row g-4 activity-container">
+          <div
+            class="col-12 col-md-6 col-xl-4"
+            [class.d-none]="isMobile() && activeTab() !== 'orders'"
+          >
+            <div class="card glass-card card-recent-orders" [class.active-glow]="isMobile()">
+              <div class="card-header border-0 text-center fw-bold d-none d-md-block">
+                <i class="bi bi-cart-check me-2"></i>Últimos Pedidos
+              </div>
+              <div class="card-body">
+                @if (latestOrders$ | async; as latestOrders) {
+                  <ul class="list-group list-group-flush">
+                    @for (order of latestOrders | slice: 0 : 5; track order.id) {
+                      <li class="list-group-item bg-transparent">
+                        <div class="item-content text-truncate">
+                          <span class="fw-bold">{{ order.clientName }}</span>
+                          <small class="text-muted"
+                            >{{ order.total | currency: 'ARS' : '$' : '1.0-0' }} -
+                            {{ order.orderDate | date: 'short' }}</small
+                          >
+                        </div>
+                        <a
+                          [routerLink]="['/admin/orders', order.id]"
+                          class="btn btn-sm btn-outline-info ms-auto"
+                          ><i class="bi bi-arrow-right-circle"></i
+                        ></a>
+                      </li>
+                    }
+                  </ul>
+                  <div class="card-footer-action">
+                    <a routerLink="/admin/orders" class="btn-view-more">Ver historial</a>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col-12 col-md-6 col-xl-4"
+            [class.d-none]="isMobile() && activeTab() !== 'clients'"
+          >
+            <div class="card glass-card card-recent-clients" [class.active-glow]="isMobile()">
+              <div class="card-header border-0 text-center fw-bold d-none d-md-block">
+                <i class="bi bi-people me-2"></i>Últimos Clientes
+              </div>
+              <div class="card-body">
+                @if (latestClients$ | async; as latestClients) {
+                  <ul class="list-group list-group-flush">
+                    @for (client of latestClients | slice: 0 : 5; track client.id) {
+                      <li class="list-group-item bg-transparent">
+                        <div class="item-content text-truncate">
+                          <span class="fw-bold">{{ client.fullName }}</span>
+                          <small class="text-truncate d-block">{{ client.email }}</small>
+                        </div>
+                        <a
+                          [routerLink]="['/admin/customers', client.email]"
+                          class="btn btn-sm btn-outline-primary ms-auto"
+                          ><i class="bi bi-person-fill"></i
+                        ></a>
+                      </li>
+                    }
+                  </ul>
+                  <div class="card-footer-action">
+                    <a routerLink="/admin/customers" class="btn-view-more">Ver base</a>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col-12 col-md-12 col-xl-4"
+            [class.d-none]="isMobile() && activeTab() !== 'products'"
+          >
+            <div class="card glass-card card-recent-products" [class.active-glow]="isMobile()">
+              <div class="card-header border-0 text-center fw-bold d-none d-md-block">
+                <i class="bi bi-box-seam me-2"></i>Últimos Productos
+              </div>
+              <div class="card-body">
+                @if (latestProducts$ | async; as latestProducts) {
+                  <ul class="list-group list-group-flush">
+                    @for (product of latestProducts | slice: 0 : 5; track product.id) {
+                      <li class="list-group-item bg-transparent">
+                        <div class="item-content text-truncate">
+                          <span class="fw-bold">{{ product.name }}</span>
+                          <small class="text-muted d-block">{{
+                            product.price | currency: 'ARS' : '$' : '1.0-0'
+                          }}</small>
+                        </div>
+                        <a
+                          [routerLink]="['/admin/products', product.id]"
+                          class="btn btn-sm btn-outline-success ms-auto"
+                          ><i class="bi bi-eye"></i
+                        ></a>
+                      </li>
+                    }
+                  </ul>
+                  <div class="card-footer-action">
+                    <a routerLink="/admin/products" class="btn-view-more">Ver catálogo</a>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

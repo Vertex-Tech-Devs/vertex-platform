@@ -1,0 +1,209 @@
+<div class="sidebar-overlay" [class.is-visible]="isSidebarOpen" (click)="toggleSidebar()"></div>
+
+<div class="catalog-page">
+  <h1 class="catalog__title">Nuestro Catálogo</h1>
+  <div class="catalog__layout">
+    <aside
+      class="filter-sidebar"
+      [class.is-open]="isSidebarOpen"
+      [formGroup]="filterForm"
+      aria-label="Filtros de productos"
+    >
+      <div class="filter-sidebar__content">
+        <div class="filter-sidebar__header">
+          <h3 class="filter-sidebar__title">Filtros</h3>
+          <button
+            class="filter-sidebar__close"
+            (click)="toggleSidebar()"
+            aria-label="Cerrar filtros"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="filter-group">
+          <h5 class="filter-group__title">Categorías</h5>
+          @if (categories$ | async; as categories) {
+            <div class="filter-check">
+              <input
+                class="filter-check__input"
+                type="radio"
+                name="category"
+                id="cat-all"
+                value="all"
+                formControlName="category"
+              />
+              <label class="filter-check__label" for="cat-all">Todas</label>
+            </div>
+            @for (cat of categories; track cat.id) {
+              <div class="filter-check">
+                <input
+                  class="filter-check__input"
+                  type="radio"
+                  name="category"
+                  [id]="'cat-' + cat.id"
+                  [value]="cat.id"
+                  formControlName="category"
+                />
+                <label class="filter-check__label" [for]="'cat-' + cat.id">{{ cat.name }}</label>
+              </div>
+            }
+          }
+        </div>
+
+        <div formGroupName="dynamicAttributes">
+          @if (activeAttributes().length > 0) {
+            @for (attr of activeAttributes(); track attr.id) {
+              @if (attr.id && filterForm.get('dynamicAttributes.' + attr.id)) {
+                <div class="filter-group" [formGroupName]="attr.id">
+                  <h5 class="filter-group__title">{{ attr.name }}</h5>
+                  @for (val of attr.values; track val) {
+                    <div class="filter-check">
+                      <input
+                        class="filter-check__input"
+                        type="checkbox"
+                        [id]="'attr-' + attr.id + '-' + val"
+                        [formControlName]="val"
+                      />
+                      <label class="filter-check__label" [for]="'attr-' + attr.id + '-' + val">{{
+                        val
+                      }}</label>
+                    </div>
+                  }
+                </div>
+              }
+            }
+          } @else {
+            @if (hasActiveFilters) {
+              <div class="filter-group">
+                <p class="filter-group__helper">Esta categoría no tiene filtros adicionales.</p>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="filter-group">
+          <h5 class="filter-group__title">Precio</h5>
+          <div class="filter-group__price-inputs">
+            <input
+              type="number"
+              class="filter-group__price-field"
+              placeholder="Mín"
+              formControlName="minPrice"
+              aria-label="Precio mínimo"
+            />
+            <span class="filter-group__price-sep">–</span>
+            <input
+              type="number"
+              class="filter-group__price-field"
+              placeholder="Máx"
+              formControlName="maxPrice"
+              aria-label="Precio máximo"
+            />
+          </div>
+        </div>
+
+        <button class="filter-sidebar__clear" (click)="clearFilters()">Limpiar Filtros</button>
+      </div>
+    </aside>
+
+    <main class="catalog__products">
+      <div class="catalog__toolbar">
+        <button class="catalog__filter-toggle" (click)="toggleSidebar()" aria-label="Abrir filtros">
+          <i class="bi bi-sliders" aria-hidden="true"></i>
+          <span>Filtros</span>
+        </button>
+        <div class="catalog__sort">
+          <select
+            class="catalog__sort-select"
+            (change)="onSortChange($event)"
+            aria-label="Ordenar productos"
+          >
+            <option value="newest">Lo más nuevo</option>
+            <option value="priceAsc">Precio: Menor a Mayor</option>
+            <option value="priceDesc">Precio: Mayor a Menor</option>
+          </select>
+        </div>
+      </div>
+
+      @if (paginatedProducts$ | async; as products) {
+        @if (products.length > 0) {
+          <div class="product-grid">
+            @for (product of products; track product.id) {
+              <a [routerLink]="['/shop/product', product.id]" class="product-card">
+                <div class="product-card__image-wrap">
+                  <img
+                    [src]="product.image"
+                    [alt]="product.name"
+                    class="product-card__image"
+                    loading="lazy"
+                  />
+                </div>
+                <div class="product-card__body">
+                  <h3 class="product-card__name">{{ product.name }}</h3>
+                  <p class="product-card__price">{{ product.price | currency: 'ARS' : '$' }}</p>
+                </div>
+              </a>
+            }
+          </div>
+
+          @if (totalPages > 1) {
+            <nav class="pagination" aria-label="Paginación de productos">
+              <ul class="pagination__list">
+                <li class="pagination__item" [class.pagination__item--disabled]="currentPage === 1">
+                  <a
+                    class="pagination__link"
+                    (click)="goToPage(currentPage - 1); $event.preventDefault()"
+                    aria-label="Anterior"
+                  >
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                  </a>
+                </li>
+                @for (page of pages; track page) {
+                  <li
+                    class="pagination__item"
+                    [class.pagination__item--active]="currentPage === page"
+                  >
+                    <a class="pagination__link" (click)="goToPage(page); $event.preventDefault()">{{
+                      page
+                    }}</a>
+                  </li>
+                }
+                <li
+                  class="pagination__item"
+                  [class.pagination__item--disabled]="currentPage === totalPages"
+                >
+                  <a
+                    class="pagination__link"
+                    (click)="goToPage(currentPage + 1); $event.preventDefault()"
+                    aria-label="Siguiente"
+                  >
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          }
+        } @else {
+          <div class="catalog__empty" role="status">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <p>No se encontraron productos con los filtros seleccionados.</p>
+          </div>
+        }
+      } @else {
+        <div class="catalog__loading product-grid" role="status" aria-label="Cargando productos">
+          @for (_ of [1, 2, 3, 4, 5, 6, 7, 8]; track $index) {
+            <div class="product-card product-card--skeleton">
+              <div class="product-card__image-wrap skeleton-box"></div>
+              <div class="product-card__body">
+                <div class="skeleton-box skeleton-box--title"></div>
+                <div class="skeleton-box skeleton-box--price"></div>
+              </div>
+            </div>
+          }
+          <span class="visually-hidden">Cargando productos...</span>
+        </div>
+      }
+    </main>
+  </div>
+</div>

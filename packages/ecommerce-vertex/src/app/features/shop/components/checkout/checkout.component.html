@@ -1,0 +1,215 @@
+<section class="checkout" aria-label="Finalizar compra">
+  <h1 class="checkout__title">Finalizar Compra</h1>
+  <div class="checkout__grid">
+    <div class="checkout__form-card">
+      <form [formGroup]="checkoutForm" (ngSubmit)="onSubmit()" novalidate>
+        <fieldset class="checkout__section">
+          <legend class="checkout__section-title">1. Información de Contacto</legend>
+          <div formGroupName="contactInfo" class="checkout__fields">
+            <div class="checkout__field checkout__field--half">
+              <label for="firstName" class="checkout__label">Nombre</label>
+              <input
+                type="text"
+                id="firstName"
+                formControlName="firstName"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    contactControls['firstName'].invalid && contactControls['firstName'].touched,
+                }"
+              />
+              @if (contactControls['firstName'].invalid && contactControls['firstName'].touched) {
+                <div class="checkout__error">
+                  @if (contactControls['firstName'].errors?.['required']) {
+                    <div>El nombre es requerido.</div>
+                  }
+                  @if (contactControls['firstName'].errors?.['minlength']) {
+                    <div>Debe tener al menos 2 caracteres.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field checkout__field--half">
+              <label for="lastName" class="checkout__label">Apellido</label>
+              <input
+                type="text"
+                id="lastName"
+                formControlName="lastName"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    contactControls['lastName'].invalid && contactControls['lastName'].touched,
+                }"
+              />
+              @if (contactControls['lastName'].invalid && contactControls['lastName'].touched) {
+                <div class="checkout__error">
+                  @if (contactControls['lastName'].errors?.['required']) {
+                    <div>El apellido es requerido.</div>
+                  }
+                  @if (contactControls['lastName'].errors?.['minlength']) {
+                    <div>Debe tener al menos 2 caracteres.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field">
+              <label for="email" class="checkout__label">Email</label>
+              <input
+                type="email"
+                id="email"
+                formControlName="email"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    contactControls['email'].invalid && contactControls['email'].touched,
+                }"
+              />
+              @if (contactControls['email'].invalid && contactControls['email'].touched) {
+                <div class="checkout__error">
+                  @if (contactControls['email'].errors?.['required']) {
+                    <div>El email es requerido.</div>
+                  }
+                  @if (contactControls['email'].errors?.['email']) {
+                    <div>El formato del email no es válido.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field">
+              <label for="phone" class="checkout__label">Teléfono</label>
+              <input
+                type="tel"
+                id="phone"
+                formControlName="phone"
+                class="checkout__input"
+                placeholder="Ej: 1122334455"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    contactControls['phone'].invalid && contactControls['phone'].touched,
+                }"
+              />
+              @if (contactControls['phone'].invalid && contactControls['phone'].touched) {
+                <div class="checkout__error">
+                  @if (contactControls['phone'].errors?.['required']) {
+                    <div>El teléfono es requerido.</div>
+                  }
+                  @if (contactControls['phone'].errors?.['pattern']) {
+                    <div>Ingresa un número de teléfono válido.</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="checkout__section">
+          <legend class="checkout__section-title">2. Dirección de Envío</legend>
+          <div formGroupName="shippingInfo" class="checkout__fields">
+            <div class="checkout__field">
+              <label for="address" class="checkout__label">Dirección</label>
+              <input
+                type="text"
+                id="address"
+                formControlName="address"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    shippingControls['address'].invalid && shippingControls['address'].touched,
+                }"
+              />
+              @if (shippingControls['address'].invalid && shippingControls['address'].touched) {
+                <div class="checkout__error">
+                  @if (shippingControls['address'].errors?.['required']) {
+                    <div>La dirección es requerida.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field checkout__field--half">
+              <label for="city" class="checkout__label">Ciudad</label>
+              <input
+                type="text"
+                id="city"
+                formControlName="city"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    shippingControls['city'].invalid && shippingControls['city'].touched,
+                }"
+              />
+              @if (shippingControls['city'].invalid && shippingControls['city'].touched) {
+                <div class="checkout__error">
+                  @if (shippingControls['city'].errors?.['required']) {
+                    <div>La ciudad es requerida.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field checkout__field--half">
+              <label for="zipCode" class="checkout__label">Código Postal</label>
+              <input
+                type="text"
+                id="zipCode"
+                formControlName="zipCode"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    shippingControls['zipCode'].invalid && shippingControls['zipCode'].touched,
+                }"
+              />
+              @if (shippingControls['zipCode'].invalid && shippingControls['zipCode'].touched) {
+                <div class="checkout__error">
+                  @if (shippingControls['zipCode'].errors?.['required']) {
+                    <div>El código postal es requerido.</div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="checkout__field">
+              <label for="province" class="checkout__label">Provincia</label>
+              <input
+                type="text"
+                id="province"
+                formControlName="province"
+                class="checkout__input"
+                [ngClass]="{
+                  'checkout__input--invalid':
+                    shippingControls['province'].invalid && shippingControls['province'].touched,
+                }"
+              />
+              @if (shippingControls['province'].invalid && shippingControls['province'].touched) {
+                <div class="checkout__error">
+                  @if (shippingControls['province'].errors?.['required']) {
+                    <div>La provincia es requerida.</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+
+    <aside class="checkout__summary-column">
+      <div class="checkout__summary-card">
+        <app-order-summary
+          [items]="cartService.cart().items"
+          [total]="cartService.cart().total"
+        ></app-order-summary>
+        <button
+          type="button"
+          class="checkout__pay-btn"
+          (click)="onSubmit()"
+          [disabled]="checkoutForm.invalid || isProcessingPayment()"
+        >
+          @if (isProcessingPayment()) {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>Procesando pago...</span>
+          } @else {
+            <span>Pagar con Mercado Pago</span>
+          }
+        </button>
+      </div>
+    </aside>
+  </div>
+</section>
