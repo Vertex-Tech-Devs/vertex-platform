@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isTenantAdmin(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.admin == true
+        && request.auth.token.tenantId == tenantId;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /tenants/{tenantId} {
+
+      match /products/{productId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+
+        match /variants/{variantId} {
+          allow read: if true;
+          allow write: if isTenantAdmin(tenantId);
+        }
+      }
+
+      match /categories/{categoryId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+      }
+
+      match /siteContent/{docId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+      }
+
+      match /pages/{docId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+      }
+
+      match /configuracion/{docId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+      }
+
+      match /settings/{docId} {
+        allow read, write: if isTenantAdmin(tenantId);
+      }
+
+      match /attributes/{docId} {
+        allow read: if true;
+        allow write: if isTenantAdmin(tenantId);
+      }
+
+      match /users/{userId} {
+        allow read: if isOwner(userId) || isTenantAdmin(tenantId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || isTenantAdmin(tenantId);
+        allow delete: if isTenantAdmin(tenantId);
+      }
+
+      match /clients/{clientId} {
+        allow read: if isTenantAdmin(tenantId);
+        allow write: if false;
+      }
+
+      match /orders/{orderId} {
+        allow get, create: if true;
+        allow list, update, delete: if isTenantAdmin(tenantId);
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAuthenticated()
+          && (resource.data.userId == request.auth.uid || isTenantAdmin(tenantId));
+      }
+
+      match /mail/{docId} {
+        allow read, write: if isTenantAdmin(tenantId);
+      }
+    }
+
+    // admin_roles is at the root level with composite key {tenantId}_{email}.
+    // The onRoleChange trigger in functions/role.functions.ts reads this collection
+    // and sets custom auth claims. Written exclusively by the platform via Admin SDK.
+    match /admin_roles/{compositeId} {
+      allow read: if isAuthenticated()
+        && request.auth.token.admin == true
+        && compositeId.matches(request.auth.token.tenantId + '_.*');
+      allow write: if false;
+    }
+
+    // Legacy flat-path rules — read-only fallback for stores provisioned before
+    // the tenants/{tenantId}/ namespace migration. New writes always go to the
+    // tenant namespace; these rules exist only so the frontend can display
+    // existing store data while a migration is pending.
+    match /products/{docId} {
+      allow read: if true;
+      match /variants/{variantId} {
+        allow read: if true;
+      }
+    }
+    match /categories/{docId} {
+      allow read: if true;
+    }
+    match /attributes/{docId} {
+      allow read: if true;
+    }
+    match /siteContent/{docId} {
+      allow read: if true;
+    }
+    match /pages/{docId} {
+      allow read: if true;
+    }
+    match /configuracion/{docId} {
+      allow read: if true;
+    }
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+    }
+    match /clients/{docId} {
+      allow read: if isAuthenticated();
+    }
+    match /orders/{orderId} {
+      allow get, create: if true;
+      allow list: if isAuthenticated();
+    }
+  }
+}
+

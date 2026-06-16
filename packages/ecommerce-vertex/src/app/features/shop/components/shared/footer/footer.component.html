@@ -1,0 +1,62 @@
+<footer class="shop-footer" role="contentinfo">
+  <div class="footer__container">
+    <div class="footer__contact">
+      <p class="footer__heading">Contacto</p>
+
+      @if (viewData().contactPhone) {
+        <address class="footer__item">
+          <i class="bi bi-telephone" aria-hidden="true"></i>
+          <a [href]="'tel:' + viewData().contactPhone">{{ viewData().contactPhone }}</a>
+        </address>
+      }
+
+      @if (viewData().contactEmail) {
+        <address class="footer__item">
+          <i class="bi bi-envelope" aria-hidden="true"></i>
+          <a [href]="'mailto:' + viewData().contactEmail">{{ viewData().contactEmail }}</a>
+        </address>
+      }
+    </div>
+
+    <div class="footer__copyright">
+      <p>&copy; {{ currentYear }} {{ viewData().copyrightText }}</p>
+      <p class="footer__watermark">Hecho con {{ storeName() }}</p>
+    </div>
+
+    <nav class="footer__social" aria-label="Redes sociales">
+      @if (viewData().socialInstagramUrl) {
+        <a
+          [href]="viewData().socialInstagramUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Instagram"
+          title="Instagram"
+        >
+          <i class="bi bi-instagram" aria-hidden="true"></i>
+        </a>
+      }
+      @if (viewData().socialFacebookUrl) {
+        <a
+          [href]="viewData().socialFacebookUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Facebook"
+          title="Facebook"
+        >
+          <i class="bi bi-facebook" aria-hidden="true"></i>
+        </a>
+      }
+      @if (viewData().socialWhatsAppUrl) {
+        <a
+          [href]="viewData().socialWhatsAppUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="WhatsApp"
+          title="WhatsApp"
+        >
+          <i class="bi bi-whatsapp" aria-hidden="true"></i>
+        </a>
+      }
+    </nav>
+  </div>
+</footer>

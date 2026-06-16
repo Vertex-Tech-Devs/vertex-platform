@@ -1,0 +1,94 @@
+@if (isVisible) {
+  <div class="modal-backdrop glass-backdrop fade show"></div>
+
+  <div
+    class="modal fade show custom-glass-modal"
+    style="display: block"
+    tabindex="-1"
+    (click)="onClose()"
+  >
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content glass-modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-white">
+            <i class="bi bi-link-45deg me-2" style="color: #38bdf8"></i> Enlace de la Imagen
+            {{ heroIndex + 1 }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="onClose()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-4">
+            <label class="form-label text-label">Acción al hacer clic</label>
+            <select
+              class="form-select glass-input glass-select"
+              [value]="heroImage.linkType || 'none'"
+              (change)="onTypeChange($event)"
+            >
+              <option value="none">Sin redirección (Solo decorativa)</option>
+              <option value="category">Ir a una Categoría</option>
+              <option value="product">Ir a un Producto</option>
+            </select>
+          </div>
+
+          @if (heroImage.linkType === 'category') {
+            <div class="mb-4">
+              <label class="form-label text-label">Seleccionar Categoría</label>
+              <select
+                class="form-select glass-input glass-select"
+                [value]="heroImage.linkId || ''"
+                (change)="onIdChange($event)"
+              >
+                <option value="" disabled selected>Elegir categoría...</option>
+                @for (cat of categories; track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (heroImage.linkType === 'product') {
+            <div class="mb-4">
+              <label class="form-label text-label">Seleccionar Producto</label>
+
+              <div class="position-relative mb-2">
+                <i
+                  class="bi bi-search position-absolute text-soft"
+                  style="top: 50%; left: 1rem; transform: translateY(-50%)"
+                ></i>
+                <input
+                  type="text"
+                  class="form-control glass-input"
+                  style="padding-left: 2.5rem"
+                  placeholder="Buscar producto por nombre..."
+                  [value]="productSearchTerm"
+                  (input)="onSearch($event)"
+                />
+              </div>
+
+              <select
+                class="form-select glass-input glass-select"
+                [value]="heroImage.linkId || ''"
+                (change)="onIdChange($event)"
+              >
+                <option value="" disabled selected>Elegir producto...</option>
+                @for (prod of filteredProducts; track prod.id) {
+                  <option [value]="prod.id">{{ prod.name }}</option>
+                }
+                @if (filteredProducts.length === 0) {
+                  <option value="" disabled>No se encontraron productos...</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer border-0">
+          <button type="button" class="btn-save-primary w-100 m-0" (click)="onClose()">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

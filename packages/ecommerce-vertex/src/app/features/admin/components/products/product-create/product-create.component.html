@@ -1,0 +1,353 @@
+<section class="product-create-wrapper" aria-label="Formulario de producto">
+  <div class="create-container">
+    <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 gap-2">
+      <button type="button" class="btn-glass-back" (click)="onCancel()" aria-label="Volver">
+        <i class="bi bi-chevron-left"></i>
+        <span class="d-none d-md-inline ms-2">{{
+          isEditMode ? 'Volver al Detalle' : 'Volver a la Lista'
+        }}</span>
+      </button>
+      <h2 class="mb-0 create__title text-end text-md-start text-truncate">
+        {{ pageTitle }}
+      </h2>
+    </div>
+
+    <hr class="glass-divider mb-4 d-none d-md-block" />
+
+    <div class="glass-card card-form mb-0 mb-md-4">
+      <div class="card-body p-3 p-md-5">
+        <form [formGroup]="productForm" (ngSubmit)="onSubmit()" novalidate>
+          <div class="row g-3 g-md-4 mb-3 mb-md-4">
+            <div class="col-md-6">
+              <label for="name" class="form-label">Nombre del Producto</label>
+              <input
+                type="text"
+                id="name"
+                class="form-control glass-input"
+                formControlName="name"
+                [ngClass]="{ 'is-invalid': name?.invalid && (name?.dirty || name?.touched) }"
+              />
+              @if (name?.invalid && (name?.dirty || name?.touched)) {
+                <div class="invalid-feedback">
+                  <div>El nombre es obligatorio (mín. 3 caracteres).</div>
+                </div>
+              }
+            </div>
+
+            <div class="col-md-6">
+              <label for="price" class="form-label">Precio Base (Requerido)</label>
+              <div class="input-group">
+                <span class="input-group-text glass-addon">$</span>
+                <input
+                  type="number"
+                  id="price"
+                  class="form-control glass-input"
+                  formControlName="price"
+                  [ngClass]="{ 'is-invalid': price?.invalid && (price?.dirty || price?.touched) }"
+                />
+              </div>
+              @if (price?.invalid && (price?.dirty || price?.touched)) {
+                <div class="invalid-feedback d-block mt-1">
+                  @if (price?.errors?.['required']) {
+                    <div>El precio es obligatorio.</div>
+                  }
+                  @if (price?.errors?.['min']) {
+                    <div>El precio debe ser mayor a 0.</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3 mb-md-4">
+            <label for="categoryId" class="form-label">Categoría</label>
+            <select
+              id="categoryId"
+              class="form-select glass-input hardware-accelerated"
+              formControlName="categoryId"
+              [ngClass]="{
+                'is-invalid': categoryId?.invalid && (categoryId?.dirty || categoryId?.touched),
+              }"
+            >
+              <option [ngValue]="null" disabled>Selecciona una categoría</option>
+              @if (categories$ | async; as categories) {
+                @for (cat of categories; track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              }
+            </select>
+            @if (categoryId?.invalid && (categoryId?.dirty || categoryId?.touched)) {
+              <div class="invalid-feedback mt-1">
+                <div>Debes seleccionar una categoría.</div>
+              </div>
+            }
+          </div>
+
+          <div class="mb-3 mb-md-4">
+            <label for="description" class="form-label">Descripción</label>
+            <textarea
+              id="description"
+              class="form-control glass-input"
+              formControlName="description"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <hr class="glass-divider my-4 my-md-5" />
+
+          <h4 class="section-subtitle mb-3 mb-md-4">
+            <i class="bi bi-images me-2"></i>Imágenes del Producto
+          </h4>
+
+          <div class="glass-upload-box mb-3 mb-md-4">
+            <label for="image" class="form-label">Imagen Principal</label>
+            <input
+              type="file"
+              id="image"
+              class="form-control glass-file-input"
+              (change)="onFileSelected($event)"
+              accept="image/*"
+              [ngClass]="{ 'is-invalid': image?.invalid && (image?.dirty || image?.touched) }"
+            />
+            @if (uploadProgress !== null) {
+              <div class="progress mt-3" style="height: 6px">
+                <div
+                  class="progress-bar custom-progress"
+                  role="progressbar"
+                  [style.width.%]="uploadProgress"
+                ></div>
+              </div>
+            }
+            @if (image?.value) {
+              <div class="image-preview-main mt-3">
+                <img [src]="image?.value" alt="Vista previa" />
+              </div>
+            }
+            @if (image?.invalid && (image?.dirty || image?.touched)) {
+              <div class="invalid-feedback mt-2">
+                <div>La imagen principal es obligatoria.</div>
+              </div>
+            }
+          </div>
+
+          <div formArrayName="images" class="glass-upload-box mb-4">
+            <div class="d-flex flex-row justify-content-between align-items-center mb-3 gap-2">
+              <label class="form-label mb-0">Imágenes Adicionales</label>
+              <button (click)="addImage()" type="button" class="btn-glass-success btn-sm">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span class="d-none d-sm-inline ms-1">Añadir imagen</span>
+              </button>
+            </div>
+
+            <div class="gallery-container">
+              @for (imageControl of images.controls; track i; let i = $index) {
+                <div class="gallery-item-row glass-panel p-2 p-md-3">
+                  <div class="gallery-preview">
+                    @if (imageControl.value) {
+                      <img [src]="imageControl.value" alt="Vista previa de galería" />
+                    } @else {
+                      <div class="gallery-placeholder">
+                        <i class="bi bi-image" aria-hidden="true"></i>
+                      </div>
+                    }
+                  </div>
+                  <div class="gallery-input">
+                    <input
+                      type="file"
+                      class="form-control glass-file-input"
+                      (change)="onGalleryFileSelected($event, i)"
+                      accept="image/*"
+                      [disabled]="
+                        galleryUploadProgress[i] !== null && galleryUploadProgress[i] !== undefined
+                      "
+                    />
+                    @if (
+                      galleryUploadProgress[i] !== null && galleryUploadProgress[i] !== undefined
+                    ) {
+                      <div class="progress mt-2" style="height: 6px">
+                        <div
+                          class="progress-bar custom-progress"
+                          role="progressbar"
+                          [style.width.%]="galleryUploadProgress[i]"
+                        ></div>
+                      </div>
+                    }
+                  </div>
+                  <div class="gallery-action">
+                    <button
+                      (click)="removeImage(i)"
+                      type="button"
+                      class="btn-glass-danger btn-sm"
+                      aria-label="Eliminar imagen"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <hr class="glass-divider my-4 my-md-5" />
+
+          <div
+            class="d-flex flex-row justify-content-between align-items-center mb-3 mb-md-4 gap-2"
+          >
+            <h4 class="section-subtitle mb-0"><i class="bi bi-tags me-2"></i>Atributos</h4>
+            <button (click)="openAttributeModal()" type="button" class="btn-glass-primary btn-sm">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i>
+              <span class="d-none d-sm-inline ms-1">Crear Atributo</span>
+            </button>
+          </div>
+
+          <div class="glass-panel p-3 p-md-4 mb-4 mb-md-5" formArrayName="variantAttributes">
+            <label class="form-label d-block mb-3">Atributos que definen este producto:</label>
+            <div class="d-flex flex-wrap gap-2">
+              @if (attributes$ | async; as attributes) {
+                @if (attributes.length > 0) {
+                  @for (attr of attributes; track attr.id) {
+                    @if (attr.id) {
+                      <div class="glass-chip-checkbox">
+                        <input
+                          type="checkbox"
+                          [id]="'attr-' + attr.id"
+                          [value]="attr.id"
+                          (change)="onAttributeCheckboxChange($event, attr.id!)"
+                          [checked]="variantAttributes.value.includes(attr.id)"
+                        />
+                        <label [for]="'attr-' + attr.id">{{ attr.name }}</label>
+                      </div>
+                    }
+                  }
+                } @else {
+                  <p class="text-white-50 small mb-0 w-100">
+                    No hay atributos creados. Haz clic en "Crear Atributo" para empezar.
+                  </p>
+                }
+              } @else {
+                <p class="text-white-50 small w-100">Cargando atributos...</p>
+              }
+            </div>
+          </div>
+
+          <div
+            class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-md-4 gap-3"
+          >
+            <h4 class="section-subtitle mb-0 flex-shrink-0">
+              <i class="bi bi-diagram-3 me-2"></i>Variantes y Stock
+            </h4>
+            <div class="d-flex gap-2 justify-content-end">
+              <button
+                (click)="generateVariantCombinations()"
+                type="button"
+                class="btn-glass-secondary btn-sm"
+                [disabled]="variantAttributes.length === 0"
+              >
+                <i class="bi bi-stars me-1" aria-hidden="true"></i> Generar
+              </button>
+              <button
+                (click)="addVariant()"
+                type="button"
+                class="btn-glass-success btn-sm"
+                [disabled]="variantAttributes.length === 0"
+              >
+                <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Manual
+              </button>
+            </div>
+          </div>
+
+          @if (productForm.get('variants')?.touched && productForm.get('variants')?.invalid) {
+            <div class="glass-alert-danger mb-4">
+              <i class="bi bi-exclamation-triangle me-2"></i> Debes añadir al menos una variante y
+              completar todos sus campos.
+            </div>
+          }
+
+          <div formArrayName="variants" class="variants-container">
+            @for (variantGroup of variants.controls; track i; let i = $index) {
+              <div
+                [formGroupName]="i"
+                class="variant-row glass-panel mb-3"
+                [class.variant-invalid]="variantGroup.invalid && variantGroup.touched"
+              >
+                <div class="variant-attributes-container" formGroupName="attributes">
+                  @if (attributes$ | async; as attributes) {
+                    @for (attr of attributes; track attr.id) {
+                      @if (attr.id && variantAttributes.value.includes(attr.id)) {
+                        <div class="variant-attribute-item">
+                          <label class="form-label">{{ attr.name }}</label>
+                          <select
+                            class="form-select glass-input hardware-accelerated"
+                            [formControlName]="attr.id"
+                            [ngClass]="{
+                              'is-invalid':
+                                variantGroup.get('attributes.' + attr.id)?.invalid &&
+                                variantGroup.get('attributes.' + attr.id)?.touched,
+                            }"
+                          >
+                            <option [ngValue]="null" disabled>Seleccionar...</option>
+                            @for (val of attr.values; track val) {
+                              <option [value]="val">{{ val }}</option>
+                            }
+                          </select>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+
+                <div class="variant-stock-item">
+                  <label class="form-label">Stock</label>
+                  <input
+                    type="number"
+                    class="form-control glass-input"
+                    formControlName="stock"
+                    placeholder="0"
+                    [ngClass]="{
+                      'is-invalid':
+                        variantGroup.get('stock')?.invalid && variantGroup.get('stock')?.touched,
+                    }"
+                  />
+                </div>
+
+                <div class="variant-action-item">
+                  <button
+                    (click)="removeVariant(i)"
+                    type="button"
+                    class="btn-glass-danger btn-sm"
+                    aria-label="Eliminar"
+                  >
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div
+            class="form-actions border-top-glass pt-3 mt-3 pt-md-4 mt-md-4 d-flex justify-content-end gap-2 gap-md-3"
+          >
+            <button type="button" class="btn-glass-secondary" (click)="onCancel()">Cancelar</button>
+            <button
+              type="submit"
+              class="btn-glass-primary"
+              [disabled]="productForm.invalid || isSubmitting"
+            >
+              @if (isSubmitting) {
+                <span
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+              }
+              @if (!isSubmitting) {
+                <i class="bi bi-save me-1 d-none d-sm-inline"></i>
+              }
+              {{ isSubmitting ? 'Guardando...' : isEditMode ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

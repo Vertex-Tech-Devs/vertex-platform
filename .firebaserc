@@ -1,35 +1,7 @@
 {
   "projects": {
-    "default": "vertex-platform-app",
+    "default": "vertex-platform-dev",
     "prod": "vertex-platform-app",
     "dev": "vertex-platform-dev"
-  },
-  "targets": {
-    "vertex-platform-app": {
-      "hosting": {
-        "prod": [
-          "vertex-platform-app"
-        ]
-      }
-    },
-    "vertex-platform-dev": {
-      "hosting": {
-        "dev": [
-          "vertex-platform-dev"
-        ]
-      }
-    }
-  },
-  "etags": {
-    "vertex-platform-dev": {
-      "extensionInstances": {
-        "firestore-send-email": "b6087e491f6ade4906ac49f4a12fca30bb7a20766fc54e8ddb26350cd80b4981"
-      }
-    },
-    "vertex-platform-app": {
-      "extensionInstances": {
-        "firestore-send-email": "ba990743b8e357d60438a20b1053bed98398e9ade0b92beab7b70ca7fb18669e"
-      }
-    }
   }
 }

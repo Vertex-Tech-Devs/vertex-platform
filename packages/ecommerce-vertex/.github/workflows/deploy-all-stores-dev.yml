@@ -1,0 +1,196 @@
+name: Deploy All Stores (Development)
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PLATFORM_FUNCTIONS_URL: "https://us-central1-vertex-platform-dev.cloudfunctions.net"
+
+jobs:
+  # ── 1. Build once ──────────────────────────────────────────────────────────
+  build:
+    name: Build template (dev)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint & type check
+        run: npm run lint && npm run typecheck
+
+      - name: Build (development)
+        run: |
+          echo '{}' > src/firebase-config.json
+          npm run build:dev
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-dev-${{ github.sha }}
+          path: dist/ecommerce-vertex/browser
+          retention-days: 1
+
+  # ── 2. Fetch active dev stores ────────────────────────────────────────────
+  get-stores:
+    name: Get active dev stores
+    runs-on: ubuntu-latest
+    outputs:
+      canary: ${{ steps.parse.outputs.canary }}
+      rest: ${{ steps.parse.outputs.rest }}
+      has_stores: ${{ steps.parse.outputs.has_stores }}
+    steps:
+      - name: Fetch from platform dev API
+        id: fetch
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "${{ env.PLATFORM_FUNCTIONS_URL }}/getActiveStores" \
+            -H "Content-Type: application/json" \
+            -d "{\"data\":{\"deployToken\":\"${{ secrets.PLATFORM_DEPLOY_TOKEN_DEV }}\"}}")
+          echo "response=$RESPONSE" >> "$GITHUB_OUTPUT"
+
+      - name: Parse stores into canary + rest
+        id: parse
+        run: |
+          STORES=$(echo '${{ steps.fetch.outputs.response }}' | jq -c '[.result.stores[]? | select(.autoUpdate == true)]')
+          COUNT=$(echo "$STORES" | jq 'length')
+
+          if [ "$COUNT" -eq "0" ]; then
+            echo "has_stores=false" >> "$GITHUB_OUTPUT"
+            echo "canary=[]" >> "$GITHUB_OUTPUT"
+            echo "rest=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_stores=true" >> "$GITHUB_OUTPUT"
+            CANARY=$(echo "$STORES" | jq -c '[.[0]]')
+            REST=$(echo "$STORES" | jq -c '.[1:]')
+            echo "canary=$CANARY" >> "$GITHUB_OUTPUT"
+            echo "rest=$REST" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── 3. Deploy canary first ────────────────────────────────────────────────
+  deploy-canary:
+    name: "🐤 Canary dev → ${{ matrix.store.storeName }}"
+    runs-on: ubuntu-latest
+    needs: [build, get-stores]
+    if: needs.get-stores.outputs.has_stores == 'true'
+    strategy:
+      matrix:
+        store: ${{ fromJson(needs.get-stores.outputs.canary) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-dev-${{ github.sha }}
+          path: dist/ecommerce-vertex/browser
+
+      - name: Inject firebase config
+        env:
+          FIREBASE_CONFIG_JSON: ${{ matrix.store.firebaseConfig }}
+        run: printf '%s' "$FIREBASE_CONFIG_JSON" > dist/ecommerce-vertex/browser/firebase-config.json
+
+      - name: Write minimal firebase.json for store deployment
+        run: |
+          python3 << 'PYEOF'
+          import os, json
+          site_id = os.environ.get("SITE_ID", "").strip()
+          payload = {
+            "hosting": {
+              "public": "dist/ecommerce-vertex/browser",
+              "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+              "rewrites": [{ "source": "**", "destination": "/index.html" }]
+            }
+          }
+          if site_id and site_id != "default":
+              payload["hosting"]["site"] = site_id
+          with open("firebase.json", "w") as f:
+              json.dump(payload, f, indent=2)
+          PYEOF
+        env:
+          SITE_ID: ${{ matrix.store.siteId }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
+
+      - name: Deploy
+        run: |
+          npx --yes firebase-tools deploy \
+            --project ${{ matrix.store.projectId }} \
+            --only hosting \
+            --non-interactive
+
+      - name: Health check (30s)
+        run: |
+          sleep 30
+          URL="https://${{ matrix.store.siteId }}.web.app"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Health check failed: HTTP $STATUS for $URL"
+            exit 1
+          fi
+          echo "✅ Health check passed: HTTP $STATUS for $URL"
+
+  # ── 4. Deploy rest in parallel (only if canary passed) ───────────────────
+  deploy-rest:
+    name: "→ dev ${{ matrix.store.storeName }}"
+    runs-on: ubuntu-latest
+    needs: [build, get-stores, deploy-canary]
+    if: needs.get-stores.outputs.rest != '[]' && needs.get-stores.outputs.rest != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        store: ${{ fromJson(needs.get-stores.outputs.rest) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-dev-${{ github.sha }}
+          path: dist/ecommerce-vertex/browser
+
+      - name: Inject firebase config
+        env:
+          FIREBASE_CONFIG_JSON: ${{ matrix.store.firebaseConfig }}
+        run: printf '%s' "$FIREBASE_CONFIG_JSON" > dist/ecommerce-vertex/browser/firebase-config.json
+
+      - name: Write minimal firebase.json for store deployment
+        run: |
+          python3 << 'PYEOF'
+          import os, json
+          site_id = os.environ.get("SITE_ID", "").strip()
+          payload = {
+            "hosting": {
+              "public": "dist/ecommerce-vertex/browser",
+              "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+              "rewrites": [{ "source": "**", "destination": "/index.html" }]
+            }
+          }
+          if site_id and site_id != "default":
+              payload["hosting"]["site"] = site_id
+          with open("firebase.json", "w") as f:
+              json.dump(payload, f, indent=2)
+          PYEOF
+        env:
+          SITE_ID: ${{ matrix.store.siteId }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
+
+      - name: Deploy
+        run: |
+          npx --yes firebase-tools deploy \
+            --project ${{ matrix.store.projectId }} \
+            --only hosting \
+            --non-interactive

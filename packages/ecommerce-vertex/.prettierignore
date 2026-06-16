@@ -1,0 +1,10 @@
+node_modules
+.angular
+dist
+coverage
+.firebase
+playwright-report
+test-results
+cypress/videos
+cypress/screenshots
+functions/lib

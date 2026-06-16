@@ -1,0 +1,357 @@
+<section class="about-us-wrapper" aria-label="Gestión de página nosotros">
+  <div class="container-fluid my-4">
+    <header class="dashboard__header text-center mb-5">
+      <h1 class="dashboard__title">Gestión de Página "Nosotros"</h1>
+      <hr />
+    </header>
+
+    @if (isLoading) {
+      <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando datos...</span>
+        </div>
+      </div>
+    } @else {
+      <form [formGroup]="aboutUsForm" (ngSubmit)="onSubmit()" novalidate>
+        <div
+          class="glass-card mb-4 mb-md-5 card-banner"
+          [class.mobile-collapsed]="mobileActiveSection !== 1"
+        >
+          <div
+            class="card-header border-0 fw-bold d-flex justify-content-between align-items-center"
+            (click)="toggleMobileSection(1)"
+          >
+            <div class="text-truncate pr-2">
+              <i class="bi bi-image me-2" aria-hidden="true"></i> Banner Principal
+            </div>
+            <i
+              class="bi bi-chevron-down d-md-none transition-icon flex-shrink-0"
+              [class.rotate]="mobileActiveSection === 1"
+            ></i>
+          </div>
+          <div class="card-body">
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="mb-4">
+                  <label for="bannerTitle" class="form-label text-label">Título Principal</label>
+                  <input
+                    type="text"
+                    id="bannerTitle"
+                    class="form-control glass-input"
+                    formControlName="bannerTitle"
+                    [class.is-invalid]="
+                      aboutUsForm.get('bannerTitle')?.invalid &&
+                      aboutUsForm.get('bannerTitle')?.touched
+                    "
+                  />
+                  @if (
+                    aboutUsForm.get('bannerTitle')?.invalid &&
+                    aboutUsForm.get('bannerTitle')?.touched
+                  ) {
+                    <div class="invalid-feedback d-block mt-2">
+                      El título del banner es obligatorio.
+                    </div>
+                  }
+                </div>
+                <div>
+                  <label for="bannerSubtitle" class="form-label text-label"
+                    >Subtítulo (Eslogan)</label
+                  >
+                  <input
+                    type="text"
+                    id="bannerSubtitle"
+                    class="form-control glass-input"
+                    formControlName="bannerSubtitle"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label text-label d-block">Imagen del Banner</label>
+                <div class="preview-wrapper mb-3">
+                  @if (bannerPreviewUrl) {
+                    <img
+                      [src]="bannerPreviewUrl"
+                      alt="Previsualización del nuevo banner"
+                      class="img-fluid"
+                    />
+                  } @else if (aboutUsForm.get('bannerImageUrl')?.value) {
+                    <img
+                      [src]="aboutUsForm.get('bannerImageUrl')?.value"
+                      alt="Banner actual"
+                      class="img-fluid"
+                    />
+                  } @else {
+                    <div class="no-preview-placeholder">
+                      <i class="bi bi-image"></i>
+                      <span>Sin imagen</span>
+                    </div>
+                  }
+                </div>
+                <label
+                  for="bannerImageUpload"
+                  class="btn-glass-action btn-change-image w-100 m-0 text-center d-block"
+                >
+                  <i class="bi bi-upload me-2" aria-hidden="true"></i> Cambiar Imagen
+                </label>
+                <input
+                  type="file"
+                  id="bannerImageUpload"
+                  class="d-none"
+                  (change)="onFileSelected($event, 'banner')"
+                  accept="image/png, image/jpeg, image/webp"
+                />
+                <div class="form-text mt-2 text-soft text-center small">
+                  WebP, JPG, PNG. Proporción 16:9 recomendada.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="glass-card mb-4 mb-md-5 card-central"
+          [class.mobile-collapsed]="mobileActiveSection !== 2"
+        >
+          <div
+            class="card-header border-0 fw-bold d-flex justify-content-between align-items-center"
+            (click)="toggleMobileSection(2)"
+          >
+            <div class="text-truncate pr-2">
+              <i class="bi bi-file-text me-2" aria-hidden="true"></i> Contenido Central
+            </div>
+            <i
+              class="bi bi-chevron-down d-md-none transition-icon flex-shrink-0"
+              [class.rotate]="mobileActiveSection === 2"
+            ></i>
+          </div>
+          <div class="card-body">
+            <div class="row g-4">
+              <div class="col-12">
+                <label for="centralTitle" class="form-label text-label">Título de la Sección</label>
+                <input
+                  type="text"
+                  id="centralTitle"
+                  class="form-control glass-input"
+                  formControlName="centralTitle"
+                  [class.is-invalid]="
+                    aboutUsForm.get('centralTitle')?.invalid &&
+                    aboutUsForm.get('centralTitle')?.touched
+                  "
+                />
+                @if (
+                  aboutUsForm.get('centralTitle')?.invalid &&
+                  aboutUsForm.get('centralTitle')?.touched
+                ) {
+                  <div class="invalid-feedback d-block mt-2">El título central es obligatorio.</div>
+                }
+              </div>
+
+              <div class="col-md-5 col-lg-4">
+                <label class="form-label text-label d-block">Imagen Lateral</label>
+                <div class="preview-wrapper mb-3 preview-wrapper--vertical">
+                  @if (centralPreviewUrl) {
+                    <img
+                      [src]="centralPreviewUrl"
+                      alt="Previsualización de imagen lateral"
+                      class="img-fluid"
+                    />
+                  } @else if (aboutUsForm.get('centralImageUrl')?.value) {
+                    <img
+                      [src]="aboutUsForm.get('centralImageUrl')?.value"
+                      alt="Imagen lateral actual"
+                      class="img-fluid"
+                    />
+                  } @else {
+                    <div class="no-preview-placeholder">
+                      <i class="bi bi-image"></i>
+                      <span>Sin imagen</span>
+                    </div>
+                  }
+                </div>
+                <label
+                  for="centralImageUpload"
+                  class="btn-glass-action btn-change-image w-100 m-0 text-center d-block"
+                >
+                  <i class="bi bi-upload me-2" aria-hidden="true"></i> Cambiar Imagen
+                </label>
+                <input
+                  type="file"
+                  id="centralImageUpload"
+                  class="d-none"
+                  (change)="onFileSelected($event, 'central')"
+                  accept="image/png, image/jpeg, image/webp"
+                />
+              </div>
+
+              <div class="col-md-7 col-lg-8">
+                <label for="centralDescription" class="form-label text-label"
+                  >Párrafo de Descripción</label
+                >
+                <textarea
+                  id="centralDescription"
+                  class="form-control glass-input"
+                  formControlName="centralDescription"
+                  rows="11"
+                  [class.is-invalid]="
+                    aboutUsForm.get('centralDescription')?.invalid &&
+                    aboutUsForm.get('centralDescription')?.touched
+                  "
+                ></textarea>
+                @if (
+                  aboutUsForm.get('centralDescription')?.invalid &&
+                  aboutUsForm.get('centralDescription')?.touched
+                ) {
+                  <div class="invalid-feedback d-block mt-2">
+                    @if (aboutUsForm.get('centralDescription')?.errors?.['required']) {
+                      <span>La descripción es obligatoria.</span>
+                    }
+                    @if (aboutUsForm.get('centralDescription')?.errors?.['minlength']) {
+                      <span>Debe tener al menos 50 caracteres.</span>
+                    }
+                    @if (aboutUsForm.get('centralDescription')?.errors?.['maxlength']) {
+                      <span>No debe exceder los 1000 caracteres.</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="glass-card mb-5 card-features"
+          [class.mobile-collapsed]="mobileActiveSection !== 3"
+        >
+          <div
+            class="card-header border-0 d-flex justify-content-between align-items-center fw-bold gap-3"
+            (click)="toggleMobileSection(3)"
+          >
+            <div class="d-flex align-items-center text-truncate">
+              <i class="bi bi-check2-circle me-2" aria-hidden="true"></i>
+              <span class="text-truncate">
+                Características<span class="d-none d-md-inline ms-1">(Máx. 2)</span>
+              </span>
+            </div>
+            <div class="d-flex align-items-center flex-shrink-0 gap-2">
+              <button
+                type="button"
+                class="btn-glass-action btn-add-success btn-sm-icon m-0"
+                (click)="$event.stopPropagation(); addFeatureCard()"
+                [disabled]="featureCards.length >= 2"
+              >
+                <i class="bi bi-plus-lg" aria-hidden="true"></i
+                ><span class="d-none d-md-inline ms-1">Añadir</span>
+              </button>
+              <i
+                class="bi bi-chevron-down d-md-none transition-icon"
+                [class.rotate]="mobileActiveSection === 3"
+              ></i>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="mb-4">
+              <label for="cardsSectionTitle" class="form-label text-label"
+                >Título General de las Características</label
+              >
+              <input
+                type="text"
+                id="cardsSectionTitle"
+                class="form-control glass-input"
+                formControlName="cardsSectionTitle"
+                [class.is-invalid]="
+                  aboutUsForm.get('cardsSectionTitle')?.invalid &&
+                  aboutUsForm.get('cardsSectionTitle')?.touched
+                "
+              />
+              @if (
+                aboutUsForm.get('cardsSectionTitle')?.invalid &&
+                aboutUsForm.get('cardsSectionTitle')?.touched
+              ) {
+                <div class="invalid-feedback d-block mt-2">Este título es obligatorio.</div>
+              }
+            </div>
+
+            <div formArrayName="featureCards">
+              <div class="features-scroll-wrapper">
+                @for (card of featureCards.controls; track $index; let i = $index) {
+                  <div class="feature-scroll-card">
+                    <div [formGroupName]="i" class="glass-inner-card h-100 position-relative mt-2">
+                      <button
+                        type="button"
+                        class="btn-delete-absolute"
+                        (click)="removeFeatureCard(i)"
+                        title="Eliminar Card"
+                        [disabled]="featureCards.length <= 1"
+                      >
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                      </button>
+
+                      <div class="mb-4 mt-2">
+                        <label [for]="'cardTitle' + i" class="form-label text-label"
+                          >Título de la Card {{ i + 1 }}</label
+                        >
+                        <input
+                          [id]="'cardTitle' + i"
+                          type="text"
+                          class="form-control glass-input"
+                          formControlName="title"
+                          [class.is-invalid]="
+                            card.get('title')?.invalid && card.get('title')?.touched
+                          "
+                        />
+                        @if (card.get('title')?.invalid && card.get('title')?.touched) {
+                          <div class="invalid-feedback d-block mt-2">Requerido.</div>
+                        }
+                      </div>
+                      <div>
+                        <label [for]="'cardContent' + i" class="form-label text-label"
+                          >Contenido de la Card</label
+                        >
+                        <textarea
+                          [id]="'cardContent' + i"
+                          class="form-control glass-input"
+                          formControlName="content"
+                          rows="4"
+                          [class.is-invalid]="
+                            card.get('content')?.invalid && card.get('content')?.touched
+                          "
+                        ></textarea>
+                        @if (card.get('content')?.invalid && card.get('content')?.touched) {
+                          <div class="invalid-feedback d-block mt-2">Requerido.</div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="empty-state py-4 w-100">
+                    <i class="bi bi-layout-text-sidebar empty-icon"></i>
+                    <p class="fs-6 mt-2 fw-bold text-soft">No hay cards configuradas.</p>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-action-container">
+          <button
+            type="submit"
+            class="btn-save-primary"
+            [disabled]="isSubmitting || aboutUsForm.invalid || !aboutUsForm.dirty"
+          >
+            @if (isSubmitting) {
+              <span
+                class="spinner-border spinner-border-sm me-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+            }
+            <i class="bi bi-check2-circle me-2" [class.d-none]="isSubmitting"></i>
+            {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>

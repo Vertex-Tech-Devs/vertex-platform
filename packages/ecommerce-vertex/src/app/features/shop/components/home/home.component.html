@@ -1,0 +1,111 @@
+<div class="home-page">
+  @if (bannerLoading()) {
+    <div class="hero-loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <span class="visually-hidden">Cargando banner...</span>
+    </div>
+  } @else if (heroBanner(); as banner) {
+    @if (banner.heroImages && banner.heroImages.length > 0) {
+      <section class="hero" aria-label="Banner principal">
+        @if (isCarousel(banner)) {
+          <app-carousel
+            [images]="banner.heroImages"
+            [interval]="banner.carouselSettings?.interval || 6000"
+            [showIndicators]="banner.carouselSettings?.showIndicators !== false"
+            [showArrows]="true"
+          ></app-carousel>
+        } @else {
+          <div class="hero__static">
+            <img
+              [src]="getStaticImage(banner)"
+              [alt]="banner.title || 'Hero banner'"
+              class="hero__image"
+              loading="eager"
+              decoding="sync"
+            />
+          </div>
+        }
+      </section>
+    }
+
+    @if (banner.featuredCategories && banner.featuredCategories.length > 0) {
+      <div class="home-container">
+        <section class="section" aria-label="Categorías destacadas">
+          <a routerLink="/shop/catalog" class="section__title-link">
+            <h2 class="section__title">Categorías Destacadas</h2>
+          </a>
+          <div
+            class="category-grid"
+            [ngClass]="{ 'category-grid--scroll': banner.featuredCategories.length > 2 }"
+          >
+            @for (category of banner.featuredCategories; track category.categoryId) {
+              <a
+                [routerLink]="['/shop/catalog']"
+                [queryParams]="{ category: category.categoryId }"
+                class="category-card"
+                [attr.aria-label]="'Ver categoría ' + category.name"
+              >
+                <div
+                  class="category-card__image"
+                  [style.backgroundImage]="'url(' + category.imageUrl + ')'"
+                  role="img"
+                  [attr.aria-label]="category.name"
+                ></div>
+                <span class="category-card__label">{{ category.name }}</span>
+              </a>
+            }
+          </div>
+        </section>
+      </div>
+    }
+  }
+
+  <div class="home-container">
+    <section class="section" aria-label="Nuevos ingresos">
+      <a routerLink="/shop/catalog" class="section__title-link">
+        <h2 class="section__title">Nuevos Ingresos</h2>
+      </a>
+
+      @if (productsLoading()) {
+        <div class="loading-state" role="status">
+          <div class="spinner-border text-primary" aria-hidden="true"></div>
+          <span class="visually-hidden">Cargando productos...</span>
+        </div>
+      } @else if (newArrivals()?.length) {
+        <div class="product-grid">
+          @for (product of newArrivals(); track product.id) {
+            <a
+              [routerLink]="['/shop/product', product.id]"
+              class="product-card"
+              [attr.aria-label]="product.name"
+            >
+              <div class="product-card__image-wrap">
+                <span class="product-card__badge">NUEVO</span>
+                <img
+                  [src]="product.image"
+                  [alt]="product.name"
+                  class="product-card__image"
+                  loading="lazy"
+                />
+                <button class="product-card__add-btn" aria-label="Agregar al carrito">
+                  <i class="bi bi-cart-plus"></i>
+                </button>
+              </div>
+              <div class="product-card__body">
+                <h3 class="product-card__name">{{ product.name }}</h3>
+                <p class="product-card__price">
+                  {{ product.price | currency: 'ARS' : '$' : '1.0-0' }}
+                </p>
+                <p class="product-card__shipping">Envío gratis</p>
+              </div>
+            </a>
+          }
+        </div>
+      } @else {
+        <p class="empty-state" role="status">
+          No hay productos nuevos para mostrar en este momento.
+        </p>
+      }
+    </section>
+  </div>
+</div>

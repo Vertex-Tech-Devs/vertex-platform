@@ -1,0 +1,12 @@
+# Global owners
+* @Vertex-Tech-Devs/vertex-core
+
+# CI/CD and governance
+.github/ @Vertex-Tech-Devs/vertex-core
+
+# Storefront and backend template
+src/ @Vertex-Tech-Devs/vertex-core
+functions/ @Vertex-Tech-Devs/vertex-core
+cypress/ @Vertex-Tech-Devs/vertex-core
+integration-tests/ @Vertex-Tech-Devs/vertex-core
+scripts/ @Vertex-Tech-Devs/vertex-core
