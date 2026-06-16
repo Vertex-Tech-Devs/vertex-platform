@@ -185,12 +185,13 @@ jobs:
         run: echo "mode=real" >> "$GITHUB_OUTPUT"
 
       - name: Start Angular dev server
-        run: npm start &
+        run: npm start -- --host 127.0.0.1 &
         env:
           CI: true
+          NG_CLI_ANALYTICS: false
 
       - name: Wait for server to be ready
-        run: npx wait-on http://localhost:4200 --timeout 60000
+        run: npx wait-on http://127.0.0.1:4200 --timeout 60000
 
       - name: Run E2E tests
         run: npm run e2e:ci
