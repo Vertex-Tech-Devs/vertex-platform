@@ -54,15 +54,15 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - name: Run frontend tests
-        run: npm run test
+        run: npm run test --workspace=vertex-platform -- --watch=false --exclude="**/functions/**"
 
       - name: Install backend dependencies
         run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Run backend tests with coverage
         run: npm run test:coverage
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
   build-dev:
     name: Build (Development)
@@ -80,12 +80,12 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - name: Build development
-        run: npm run build:dev
+        run: npm run build:dev --workspace=vertex-platform
 
       - uses: actions/upload-artifact@v7
         with:
           name: dist-dev-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
           retention-days: 1
 
   build-prod:
@@ -104,12 +104,12 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - name: Build production
-        run: npm run build:prod
+        run: npm run build:prod --workspace=vertex-platform
 
       - uses: actions/upload-artifact@v7
         with:
           name: dist-prod-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
           retention-days: 1
 
   functions-build:
@@ -124,10 +124,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
   deploy-dev:
     name: '→ Development'
@@ -148,17 +148,17 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Build Functions
         run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Download frontend build
         uses: actions/download-artifact@v8
         with:
           name: dist-dev-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -166,6 +166,7 @@ jobs:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
 
       - name: Deploy to Firebase Development
+        working-directory: vertex-platform
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-dev \
@@ -192,17 +193,17 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - run: npm ci
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Build Functions
         run: npm run build
-        working-directory: functions
+        working-directory: vertex-platform/functions
 
       - name: Download frontend build
         uses: actions/download-artifact@v8
         with:
           name: dist-prod-${{ github.sha }}
-          path: dist/vertex-platform/browser
+          path: vertex-platform/dist/vertex-platform/browser
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -210,6 +211,7 @@ jobs:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
 
       - name: Deploy to Firebase Production
+        working-directory: vertex-platform
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-app \

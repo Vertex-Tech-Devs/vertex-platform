@@ -49,8 +49,8 @@ jobs:
       has_stores: ${{ steps.parse.outputs.has_stores }}
     steps:
       - name: Fetch from platform API
-         id: fetch
-         run: |
+        id: fetch
+        run: |
           RESPONSE=$(curl -s -X POST \
             "${{ env.PLATFORM_FUNCTIONS_URL }}/getActiveStores" \
             -H "Content-Type: application/json" \
