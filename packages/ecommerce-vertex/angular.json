@@ -35,13 +35,13 @@
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
-              "node_modules/quill/dist/quill.snow.css",
+              "bootstrap/dist/css/bootstrap.min.css",
+              "bootstrap-icons/font/bootstrap-icons.css",
+              "quill/dist/quill.snow.css",
               "src/styles.scss"
             ],
             "scripts": [
-              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
+              "bootstrap/dist/js/bootstrap.bundle.min.js"
             ],
             "stylePreprocessorOptions": {
               "includePaths": [
