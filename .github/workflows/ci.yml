@@ -71,7 +71,7 @@ jobs:
     needs: validate
     strategy:
       matrix:
-        project: [vertex-platform, ecommerce-vertex]
+        project: [vertex-platform]
     steps:
       - uses: actions/checkout@v4
 
