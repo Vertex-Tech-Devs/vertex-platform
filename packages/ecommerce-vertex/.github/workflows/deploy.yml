@@ -27,9 +27,9 @@ jobs:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -47,9 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -74,9 +74,9 @@ jobs:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop' && inputs.environment == 'development')
     environment: development
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -108,7 +108,7 @@ jobs:
       - name: Build development
         run: npm run build:dev
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: dist-dev-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -121,9 +121,9 @@ jobs:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.environment == 'production')
     environment: production
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -155,7 +155,7 @@ jobs:
       - name: Build production
         run: npm run build
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: dist-prod-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -165,9 +165,9 @@ jobs:
     name: Functions Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -186,9 +186,9 @@ jobs:
       name: development
       url: https://ecommerce-vertex-dev.web.app
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -199,7 +199,7 @@ jobs:
         working-directory: functions
 
       - name: Download frontend build
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: dist-dev-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -231,9 +231,9 @@ jobs:
       name: production
       url: https://ecommerce-vertex.web.app
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -244,7 +244,7 @@ jobs:
         working-directory: functions
 
       - name: Download frontend build
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: dist-prod-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -279,11 +279,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'repository_dispatch' && (github.event.action == 'provision-store' || github.event.action == 'update-store-version')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'repository_dispatch' && (github.event.client_payload.ref || 'main') || github.ref }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm

@@ -16,9 +16,9 @@ jobs:
     name: Build template
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -33,7 +33,7 @@ jobs:
           echo '{}' > src/firebase-config.json
           npm run build
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -59,8 +59,10 @@ jobs:
 
       - name: Parse stores into canary + rest
         id: parse
+        env:
+          RESPONSE: ${{ steps.fetch.outputs.response }}
         run: |
-          STORES=$(echo '${{ steps.fetch.outputs.response }}' | jq -c '[.result.stores[]? | select(.autoUpdate == true)]')
+          STORES=$(echo "$RESPONSE" | jq -c '[.result.stores[]? | select(.autoUpdate == true)]')
           COUNT=$(echo "$STORES" | jq 'length')
 
           if [ "$COUNT" -eq "0" ]; then
@@ -86,9 +88,9 @@ jobs:
       matrix:
         store: ${{ fromJson(needs.get-stores.outputs.canary) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
@@ -151,9 +153,9 @@ jobs:
       matrix:
         store: ${{ fromJson(needs.get-stores.outputs.rest) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist-${{ github.sha }}
           path: dist/ecommerce-vertex/browser
