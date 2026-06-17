@@ -16,7 +16,26 @@
     "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "^21.4.0",
+    "@angular-eslint/eslint-plugin": "^21.4.0",
+    "@angular-eslint/eslint-plugin-template": "^21.4.0",
+    "@angular-eslint/template-parser": "^21.4.0",
+    "@angular/build": "21.2.15",
+    "@angular/cli": "21.2.15",
+    "@angular/common": "21.2.15",
+    "@angular/compiler": "21.2.15",
+    "@angular/compiler-cli": "21.2.15",
+    "@angular/core": "21.2.15",
+    "@angular/forms": "21.2.15",
+    "@angular/platform-browser": "21.2.15",
+    "@angular/router": "21.2.15",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^9.39.4",
+    "jsdom": "^28.1.0",
     "tsx": "^4.22.3",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.9"
   }
 }
