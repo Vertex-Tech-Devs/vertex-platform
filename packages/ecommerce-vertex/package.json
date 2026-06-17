@@ -27,6 +27,7 @@
     "prepare": "husky",
     "lint": "eslint src",
     "prebuild": "npm run build --workspace=@vertex/contracts --if-present",
+    "prebuild:dev": "npm run build --workspace=@vertex/contracts --if-present",
     "pretest": "npm run build --workspace=@vertex/contracts --if-present",
     "pretest:ci": "npm run build --workspace=@vertex/contracts --if-present",
     "pretypecheck": "npm run build --workspace=@vertex/contracts --if-present",
