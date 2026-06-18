@@ -12,7 +12,10 @@
     "sync-context": "tsx scripts/sync-ai-context.ts",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run build --workspace=@vertex/contracts --if-present && npm run typecheck --workspaces --if-present",
+    "qa:global": "npm run lint && npm run typecheck",
+    "test:global": "npm run test",
+    "build": "npm run build --workspace=vertex-platform && npm run build --prefix vertex-platform/functions"
   },
   "devDependencies": {
     "@angular/common": "21.2.17",
