@@ -1,5 +1,6 @@
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess, execSync } from 'node:child_process';
 import http from 'node:http';
+import fs from 'node:fs';
 
 const processes: ChildProcess[] = [];
 
@@ -82,6 +83,13 @@ async function main() {
   });
 
   try {
+    log('Orchestrator', 'Building contracts and Cloud Functions...');
+    execSync('npm run build --workspace=@vertex/contracts', { stdio: 'inherit' });
+    execSync('npm run build --prefix vertex-platform/functions', { stdio: 'inherit' });
+    if (fs.existsSync('packages/ecommerce-vertex/functions')) {
+      execSync('npm run build --prefix packages/ecommerce-vertex/functions', { stdio: 'inherit' });
+    }
+
     // 1. Start Firebase Emulators
     startProcess('npx', ['firebase', 'emulators:start'], process.cwd(), 'FirebaseEmulators');
     
@@ -90,18 +98,19 @@ async function main() {
     await waitPort(5001, 'Functions Emulator');
 
     // 2. Start Platform Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', '127.0.0.1', '--port', '4200'], 'vertex-platform', 'PlatformApp');
+    startProcess('npm', ['run', 'start', '--', '--host', 'localhost', '--port', '4200', '--open', 'false'], 'vertex-platform', 'PlatformApp');
 
     // 3. Start Storefront Template Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', '127.0.0.1', '--port', '4201'], 'packages/ecommerce-vertex', 'StorefrontApp');
+    startProcess('npm', ['run', 'start', '--', '--host', 'localhost', '--port', '4201', '--open', 'false'], 'packages/ecommerce-vertex', 'StorefrontApp');
 
     // Wait for frontends to be ready
     await waitPort(4200, 'Platform Frontend');
     await waitPort(4201, 'Storefront Frontend');
 
     log('Orchestrator', 'Opening application links in your default browser...');
-    spawn('open', ['http://127.0.0.1:4200']);
-    spawn('open', ['http://127.0.0.1:4201/?tenantId=tienda-dos']);
+    spawn('open', ['http://localhost:4200']);
+    spawn('open', ['http://localhost:4201/admin']);
+    spawn('open', ['http://localhost:4201/shop?tenantId=tienda-dos']);
 
     log('Orchestrator', 'All services launched. Press Ctrl+C to terminate.');
   } catch (error: any) {
