@@ -11,11 +11,20 @@ function log(service: string, message: string) {
 
 function checkPort(port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const req = http.request({ host: '127.0.0.1', port, path: '/', method: 'GET' }, () => {
+    // Try connecting to localhost first (supports IPv6 ::1/localhost on macOS)
+    const req = http.request({ hostname: 'localhost', port, path: '/', method: 'GET', timeout: 1000 }, () => {
       resolve(true);
       req.destroy();
     });
-    req.on('error', () => resolve(false));
+    req.on('error', () => {
+      // Fallback to explicit IPv4 127.0.0.1
+      const fallbackReq = http.request({ hostname: '127.0.0.1', port, path: '/', method: 'GET', timeout: 1000 }, () => {
+        resolve(true);
+        fallbackReq.destroy();
+      });
+      fallbackReq.on('error', () => resolve(false));
+      fallbackReq.end();
+    });
     req.end();
   });
 }
