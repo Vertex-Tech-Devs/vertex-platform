@@ -83,6 +83,12 @@ async function main() {
   });
 
   try {
+    log('Orchestrator', 'Installing Cloud Functions dependencies...');
+    execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'vertex-platform/functions', stdio: 'inherit' });
+    if (fs.existsSync('packages/ecommerce-vertex/functions')) {
+      execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'packages/ecommerce-vertex/functions', stdio: 'inherit' });
+    }
+
     log('Orchestrator', 'Building contracts and Cloud Functions...');
     execSync('npm run build --workspace=@vertex/contracts', { stdio: 'inherit' });
     execSync('npm run build --prefix vertex-platform/functions', { stdio: 'inherit' });
