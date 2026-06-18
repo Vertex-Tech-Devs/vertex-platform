@@ -749,24 +749,47 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
+      const configPath = runtimeMode === 'shared-shard'
+        ? `tenants/${tenantId}/configuracion/store`
+        : 'configuracion/store';
+
+      console.info(
+        `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
+      );
       await retry(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
             {
               method: 'PATCH',
               body: {
                 fields: {
+                  tenantId: { stringValue: tenantId },
+                  storeId: { stringValue: storeIdAttr },
                   storeName: { stringValue: name },
+                  tagline: { stringValue: '' },
                   strapline: { stringValue: '' },
-                  logoUrl: logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                  faviconUrl: { stringValue: '' },
+                  colors: {
+                    mapValue: {
+                      fields: {
+                        primary: { stringValue: '#ea580c' },
+                        accent: { stringValue: '#ef4444' },
+                        background: { stringValue: '#ffffff' },
+                      },
+                    },
+                  },
                   contact: {
                     mapValue: {
                       fields: {
                         email: { stringValue: ownerEmail },
                         phone: { stringValue: '' },
                         whatsapp: { stringValue: '' },
+                        whatsApp: { stringValue: '' },
+                        instagram: { stringValue: '' },
+                        facebook: { stringValue: '' },
                       },
                     },
                   },
@@ -790,6 +813,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   payments: {
                     mapValue: {
                       fields: {
+                        mercadoPagoPublicKey: { stringValue: '' },
                         mercadoPago: {
                           mapValue: {
                             fields: {
@@ -808,69 +832,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   currency: { stringValue: 'ARS' },
                   currencySymbol: { stringValue: '$' },
                   country: { stringValue: 'AR' },
+                  setupCompleted: { booleanValue: true },
                   createdAt: { timestampValue: now },
                   updatedAt: { timestampValue: now },
-                },
-              },
-            },
-          ),
-        5,
-        6000,
-      );
-
-      console.info(
-        `[provisioning:initFirestore] Writing initial branding config to tenants/${tenantId}/configuracion/store...`,
-      );
-      await retry(
-        () =>
-          apiFetch(
-            auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/configuracion/store`,
-            {
-              method: 'PATCH',
-              body: {
-                fields: {
-                  tenantId: { stringValue: tenantId },
-                  storeId: { stringValue: storeIdAttr },
-                  storeName: { stringValue: name },
-                  tagline: { stringValue: '' },
-                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
-                  faviconUrl: { stringValue: '' },
-                  colors: {
-                    mapValue: {
-                      fields: {
-                        primary: { stringValue: '#ea580c' },
-                        accent: { stringValue: '#ef4444' },
-                        background: { stringValue: '#ffffff' },
-                      },
-                    },
-                  },
-                  payments: {
-                    mapValue: {
-                      fields: {
-                        mercadoPagoPublicKey: { stringValue: '' },
-                      },
-                    },
-                  },
-                  contact: {
-                    mapValue: {
-                      fields: {
-                        phone: { stringValue: '' },
-                        email: { stringValue: ownerEmail },
-                        whatsApp: { stringValue: '' },
-                        instagram: { stringValue: '' },
-                        facebook: { stringValue: '' },
-                      },
-                    },
-                  },
-                  seo: {
-                    mapValue: {
-                      fields: {
-                        metaDescription: { stringValue: `Bienvenido a ${name}` },
-                      },
-                    },
-                  },
-                  setupCompleted: { booleanValue: true },
                 },
               },
               quotaProject: projectId,
