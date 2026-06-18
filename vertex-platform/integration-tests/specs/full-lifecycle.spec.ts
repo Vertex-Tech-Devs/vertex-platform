@@ -139,12 +139,12 @@ function makeJwt(payload: Record<string, unknown>): string {
 }
 
 async function stubStorefrontData(page: Page): Promise<void> {
-  await page.route('**/documents/settings/storeConfig**', async (route) => {
+  await page.route('**/documents/**/configuracion/store**', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        name: 'projects/test/databases/(default)/documents/settings/storeConfig',
+        name: 'projects/test/databases/(default)/documents/configuracion/store',
         fields: {
           storeName: { stringValue: String(storePayload['name']) },
           currency: { stringValue: 'ARS' },
