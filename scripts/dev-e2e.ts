@@ -87,6 +87,16 @@ async function main() {
     execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'vertex-platform/functions', stdio: 'inherit' });
     if (fs.existsSync('packages/ecommerce-vertex/functions')) {
       execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'packages/ecommerce-vertex/functions', stdio: 'inherit' });
+
+      const envPath = 'packages/ecommerce-vertex/functions/.env.local';
+      if (!fs.existsSync(envPath) && !fs.existsSync('packages/ecommerce-vertex/functions/.env')) {
+        log('Orchestrator', 'Writing default environment variables to storefront functions...');
+        const devEnvContent = `MERCADOPAGO_ACCESSTOKEN=TEST-DEVELOPMENT-ACCESS-TOKEN-VALUE
+MERCADOPAGO_WEBHOOK_URL=http://localhost:5001/ecommerce-vertex-dev/us-central1/mercadoPagoWebhookHandler
+SITE_URL=http://localhost:4201
+`;
+        fs.writeFileSync(envPath, devEnvContent, 'utf-8');
+      }
     }
 
     log('Orchestrator', 'Building contracts and Cloud Functions...');
