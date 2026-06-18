@@ -123,19 +123,26 @@ SITE_URL=http://localhost:4201
     await waitPort(5001, 'Functions Emulator');
 
     // 2. Start Platform Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', 'localhost', '--port', '4200', '--open', 'false'], 'vertex-platform', 'PlatformApp');
+    const ngServeFlags = ['run', 'start', '--', '--host', '0.0.0.0', '--port', '4200', '--poll', '2000', '--open', 'false'];
+    startProcess('npm', ngServeFlags, 'vertex-platform', 'PlatformApp');
 
     // 3. Start Storefront Template Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', 'localhost', '--port', '4201', '--open', 'false'], 'packages/ecommerce-vertex', 'StorefrontApp');
+    const sfServeFlags = ['run', 'start', '--', '--host', '0.0.0.0', '--port', '4201', '--poll', '2000', '--open', 'false'];
+    startProcess('npm', sfServeFlags, 'packages/ecommerce-vertex', 'StorefrontApp');
 
     // Wait for frontends to be ready
     await waitPort(4200, 'Platform Frontend');
     await waitPort(4201, 'Storefront Frontend');
 
-    log('Orchestrator', 'Opening application links in your default browser...');
-    spawn('open', ['http://localhost:4200']);
-    spawn('open', ['http://localhost:4201/admin']);
-    spawn('open', ['http://localhost:4201/shop?tenantId=tienda-dos']);
+    // Open browser tabs — skip when running inside Docker (host script handles it)
+    if (!process.env['DOCKER']) {
+      log('Orchestrator', 'Opening application links in your default browser...');
+      spawn('open', ['http://localhost:4200']);
+      spawn('open', ['http://localhost:4201/admin']);
+      spawn('open', ['http://localhost:4201/shop?tenantId=tienda-dos']);
+    } else {
+      log('Orchestrator', 'Running in Docker — open http://localhost:4200 and http://localhost:4201/admin in your browser.');
+    }
 
     log('Orchestrator', 'All services launched. Press Ctrl+C to terminate.');
   } catch (error: any) {

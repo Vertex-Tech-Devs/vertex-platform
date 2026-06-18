@@ -1,0 +1,67 @@
+name: vertex-stack
+
+# ── Vertex Stack – Docker Compose ─────────────────────────────────────────────
+#
+# Usage:
+#   1. First time (or after code changes that affect deps):
+#        docker compose up --build
+#
+#   2. Quick restart (deps already cached in volumes):
+#        docker compose up
+#
+#   3. Stop everything:
+#        docker compose down
+#
+#   4. Full reset (clears all caches):
+#        docker compose down -v && docker compose up --build
+#
+# The STOREFRONT_PATH env var lets you override where ecommerce-vertex lives.
+# Default: ../storefront   (matches the standard clone setup)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      # ── Platform source (hot reload) ──────────────────────────────────────
+      - .:/workspace/platform
+
+      # ── Storefront source mounted where the orchestrator expects it ───────
+      # Mirrors the symlink: platform/packages/ecommerce-vertex -> ../../storefront
+      - ${STOREFRONT_PATH:-../storefront}:/workspace/platform/packages/ecommerce-vertex
+
+      # ── Named volumes for node_modules ────────────────────────────────────
+      # These persist between restarts so npm install only runs once.
+      - platform_root_nm:/workspace/platform/node_modules
+      - vertex_platform_nm:/workspace/platform/vertex-platform/node_modules
+      - functions_nm:/workspace/platform/vertex-platform/functions/node_modules
+      - storefront_nm:/workspace/platform/packages/ecommerce-vertex/node_modules
+      - storefront_fn_nm:/workspace/platform/packages/ecommerce-vertex/functions/node_modules
+
+    ports:
+      - "4000:4000"   # Firebase Emulator UI
+      - "4200:4200"   # Platform Admin
+      - "4201:4201"   # Storefront (Admin + Shop)
+      - "5001:5001"   # Cloud Functions Emulator
+      - "8080:8080"   # Firestore Emulator
+      - "9099:9099"   # Auth Emulator (informational only — not connected by app)
+
+    environment:
+      - DOCKER=true   # Tells the orchestrator to skip browser auto-open
+
+    # Keep STDIN open for Ctrl+C propagation
+    stdin_open: true
+    tty: true
+
+    # Restart on crash (not on explicit docker compose down)
+    restart: unless-stopped
+
+volumes:
+  platform_root_nm:
+  vertex_platform_nm:
+  functions_nm:
+  storefront_nm:
+  storefront_fn_nm:
