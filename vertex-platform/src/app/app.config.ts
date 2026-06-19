@@ -10,6 +10,7 @@ import { provideFirebaseApp } from '@angular/fire/app';
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 import { environment } from '@environments/environment';
@@ -24,10 +25,11 @@ const isLocal = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 if (isLocal) {
-  // Auth uses real Google servers — emulator breaks signInWithPopup (Google SSO).
   connectFirestoreEmulator(db, 'localhost', 8080);
   const fns = getFunctions(firebaseApp);
   connectFunctionsEmulator(fns, 'localhost', 5001);
+  const auth = getAuth(firebaseApp);
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
 }
 
 if (!environment.production) {

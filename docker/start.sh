@@ -24,6 +24,11 @@ if ! docker info > /dev/null 2>&1; then
   exit 1
 fi
 
+echo "🧹  Limpiando caché de compilación de Angular (.angular/cache y dist)..."
+rm -rf vertex-platform/.angular/cache vertex-platform/dist
+rm -rf ../storefront/.angular/cache ../storefront/dist
+echo ""
+
 # Build + start en background
 echo "🔨  Building and starting containers..."
 docker compose up -d --build
