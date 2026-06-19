@@ -22,6 +22,17 @@ install_if_missing() {
 
   echo "Installing ${label} dependencies..."
   (cd "${package_dir}" && eval "${install_command}")
+
+  # If running as root, fix ownership of node_modules to match the parent directory owner to prevent host permission lockout
+  if [[ $EUID -eq 0 ]]; then
+    local host_uid host_gid
+    host_uid=$(stat -c '%u' "${package_dir}")
+    host_gid=$(stat -c '%g' "${package_dir}")
+    if [[ "${host_uid}" -ne 0 ]]; then
+      echo "Fixing ownership for ${label} dependencies to ${host_uid}:${host_gid}..."
+      chown -R "${host_uid}:${host_gid}" "${package_dir}/node_modules" 2>/dev/null || true
+    fi
+  fi
 }
 
 # Create relative symlink so storefront can resolve @vertex/contracts locally inside the container
