@@ -132,7 +132,7 @@ SITE_URL=http://localhost:4201
     }
 
     // 1. Start Firebase Emulators
-    startProcess('npx', ['firebase', 'emulators:start'], process.cwd(), 'FirebaseEmulators');
+    startProcess('npx', ['firebase', 'emulators:start', '--project', 'demo-vertex'], process.cwd(), 'FirebaseEmulators');
     
     // Wait for Firestore (8080) and Functions (5001)
     await waitPort(8080, 'Firestore Emulator');
