@@ -82,3 +82,8 @@ walkthrough.md
 # OS files
 .DS_Store
 Thumbs.db
+
+# Agent/IDE configurations & logs
+.antigravitycli/
+firestore-debug.log
+packages/platform

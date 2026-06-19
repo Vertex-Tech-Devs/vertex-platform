@@ -1,7 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { getGitHubPat, ALLOWED_ORIGINS, PLATFORM_PROJECT } from './helpers';
+import { getGitHubPat, ALLOWED_ORIGINS, PLATFORM_PROJECT, getDeployToken } from './helpers';
 
 interface GitHubRelease {
   tag_name: string;
@@ -123,11 +122,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
 
     const firebaseConfig = configSnap.data() as Record<string, string>;
 
-    const secrets = new SecretManagerServiceClient();
-    const [secretVersion] = await secrets.accessSecretVersion({
-      name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-    });
-    const deployToken = secretVersion.payload!.data!.toString().trim();
+    const deployToken = await getDeployToken();
 
     const res = await fetch(
       'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
@@ -181,11 +176,7 @@ export const completeVersionUpdate = onCall<{
     throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
   }
 
-  const secrets = new SecretManagerServiceClient();
-  const [secretVersion] = await secrets.accessSecretVersion({
-    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-  });
-  const expected = secretVersion.payload!.data!.toString().trim();
+  const expected = await getDeployToken();
   if (deployToken !== expected) {
     throw new HttpsError('permission-denied', 'Invalid deploy token.');
   }

@@ -1,12 +1,12 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import {
   ALLOWED_ORIGINS,
   PLATFORM_PROJECT,
   getOwnerOAuthClient,
   getGitHubPat,
+  getDeployToken,
   apiFetch,
   retry,
   listProvisioningOwnerCandidates,
@@ -1003,11 +1003,7 @@ export const getActiveStores = onCall(
     const isAdmin = !!request.auth?.token['platformAdmin'];
 
     if (!isAdmin && deployToken) {
-      const secrets = new SecretManagerServiceClient();
-      const [version] = await secrets.accessSecretVersion({
-        name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-      });
-      const expected = version.payload!.data!.toString().trim();
+      const expected = await getDeployToken();
       if (deployToken !== expected) {
         throw new HttpsError('permission-denied', 'Invalid deploy token.');
       }

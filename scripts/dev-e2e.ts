@@ -1,6 +1,7 @@
 import { spawn, ChildProcess, execSync } from 'node:child_process';
 import http from 'node:http';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const processes: ChildProcess[] = [];
 
@@ -92,10 +93,25 @@ async function main() {
   });
 
   try {
-    log('Orchestrator', 'Installing Cloud Functions dependencies...');
-    execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'vertex-platform/functions', stdio: 'inherit' });
+    log('Orchestrator', 'Checking Cloud Functions dependencies...');
+    const installIfMissing = (cwd: string, label: string) => {
+      const nmPath = path.join(cwd, 'node_modules');
+      if (fs.existsSync(nmPath) && fs.existsSync(path.join(nmPath, '.package-lock.json'))) {
+        log('Orchestrator', `Reusing cached ${label} dependencies.`);
+        return;
+      }
+      if (fs.existsSync(nmPath) && fs.readdirSync(nmPath).filter(f => f !== '.bin').length > 0) {
+        log('Orchestrator', `Reusing cached ${label} dependencies.`);
+        return;
+      }
+      log('Orchestrator', `Installing ${label} dependencies...`);
+      execSync('npm ci --legacy-peer-deps --loglevel=error', { cwd, stdio: 'inherit' });
+    };
+
+    installIfMissing('vertex-platform/functions', 'vertex-platform functions');
+
     if (fs.existsSync('packages/ecommerce-vertex/functions')) {
-      execSync('npm install --legacy-peer-deps --loglevel=error', { cwd: 'packages/ecommerce-vertex/functions', stdio: 'inherit' });
+      installIfMissing('packages/ecommerce-vertex/functions', 'ecommerce-vertex functions');
 
       const envPath = 'packages/ecommerce-vertex/functions/.env.local';
       if (!fs.existsSync(envPath) && !fs.existsSync('packages/ecommerce-vertex/functions/.env')) {
