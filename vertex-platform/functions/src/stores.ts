@@ -7,7 +7,6 @@ import {
   getOwnerOAuthClient,
   getGitHubPat,
   getDeployToken,
-  secretsClient,
   apiFetch,
   retry,
   listProvisioningOwnerCandidates,
