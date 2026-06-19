@@ -7,7 +7,7 @@ import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
 import { z } from 'zod';
 
-const PROTECTED_SUPER_ADMINS = new Set(['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com']);
+const PROTECTED_SUPER_ADMINS = new Set(['juan.l.espeche@gmail.com', 'leivalihue@gmail.com', 'vertex.tech.dev@gmail.com']);
 
 const ensureProtectedSuperAdmins = async (db: FirebaseFirestore.Firestore): Promise<void> => {
   for (const email of PROTECTED_SUPER_ADMINS) {
