@@ -38,6 +38,13 @@ Sigue estos pasos para configurar e iniciar la plataforma localmente en tu entor
    npm run lint && npm run typecheck
    ```
 
+5. **Arranque con Docker (opcional):**
+   Si tenés Docker Desktop disponible, podés levantar el stack completo desde la raíz de `platform/` con:
+   ```bash
+   bash docker/start.sh
+   ```
+   En el primer arranque el contenedor instala dependencias del root, `vertex-platform` y el storefront montado; después reutiliza los volúmenes de `node_modules`.
+
 ---
 
 ## 📁 Contenidos y Arquitectura

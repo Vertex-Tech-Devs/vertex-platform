@@ -25,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
+    entrypoint: bash /workspace/platform/docker/entrypoint.sh
     volumes:
       # ── Platform source (hot reload) ──────────────────────────────────────
       - .:/workspace/platform

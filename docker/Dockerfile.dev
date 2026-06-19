@@ -26,6 +26,9 @@ RUN npm install -g firebase-tools@14 --loglevel=error
 
 WORKDIR /workspace/platform
 
+COPY docker/entrypoint.sh /usr/local/bin/vertex-entrypoint.sh
+RUN chmod +x /usr/local/bin/vertex-entrypoint.sh
+
 # Expose all service ports
 EXPOSE 4000 4200 4201 5001 8080 9099
 
@@ -33,4 +36,5 @@ EXPOSE 4000 4200 4201 5001 8080 9099
 # DOCKER=true tells it to skip the browser auto-open (handled by docker/start.sh on the host).
 ENV DOCKER=true
 
-CMD ["npm", "start"]
+ENTRYPOINT ["vertex-entrypoint.sh"]
+CMD []
