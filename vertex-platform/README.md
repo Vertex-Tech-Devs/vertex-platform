@@ -182,9 +182,7 @@ El repositorio sigue un esquema estricto de flujo continuo para asegurar la esta
 ## 📚 Índice de Documentación Técnica
 
 Para un análisis a profundidad sobre componentes y arquitectura técnica, consulta los siguientes archivos:
-* [docs/development.md](docs/development.md): Guía de desarrollo del agente de IA y estándares de código de backend.
-* [docs/testing-unified.md](docs/testing-unified.md): Guía de unificación de suites de test unitarios e integración.
+* [agent.md](../agent.md): Guía universal de estándares, pruebas y comandos para agentes de IA y desarrolladores.
 * [docs/scalability-roadmap.md](docs/scalability-roadmap.md): Hoja de ruta para la migración del modelo legacy de GCP a Shard Compartido.
 * [docs/github-rulesets.md](docs/github-rulesets.md): Detalle de Branch Rulesets programáticos activos para la seguridad en Git.
 * [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md): Guía de contribución y convenciones de Git.
-* [SECURITY.md](SECURITY.md): Políticas de divulgación y reporte de vulnerabilidades.
