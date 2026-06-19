@@ -257,6 +257,58 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
   }
 });
 
+/**
+ * Callable that syncs platformAdmin claims for the authenticated caller.
+ * Called from the login flow if the user doesn't yet have a platformAdmin claim,
+ * to handle the race condition where onPlatformUserCreated ran before the user existed in Auth.
+ */
+export const refreshMyPlatformAdminClaim = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be signed in.');
+  }
+
+  const email = request.auth.token.email;
+  if (!email) {
+    throw new HttpsError('invalid-argument', 'User account has no email.');
+  }
+
+  const uid = request.auth.uid;
+  const emailLower = String(email).trim().toLowerCase();
+  const db = getFirestore();
+  const auth = getAuth();
+  const isProtectedAdmin = PROTECTED_SUPER_ADMINS.has(emailLower);
+
+  try {
+    const docRef = db.collection('platformAdmins').doc(emailLower);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists && isProtectedAdmin) {
+      await ensureProtectedSuperAdmins(db);
+    }
+
+    if (docSnap.exists || isProtectedAdmin) {
+      const role = isProtectedAdmin ? 'superAdmin' : docSnap.data()?.['role'] || 'platformAdmin';
+      console.log(
+        `refreshMyPlatformAdminClaim: Auto-setting claims for user: ${emailLower} with role: ${role} (UID: ${uid})`,
+      );
+      const user = await auth.getUser(uid);
+      const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
+      await auth.setCustomUserClaims(uid, {
+        ...currentClaims,
+        platformAdmin: true,
+        superAdmin: role === 'superAdmin',
+      });
+      return { granted: true };
+    }
+  } catch (err) {
+    console.error(`Error in refreshMyPlatformAdminClaim for ${emailLower}:`, err);
+    throw new HttpsError('internal', 'An error occurred while verifying claims.');
+  }
+
+  console.log(`refreshMyPlatformAdminClaim: no platformAdmins entry for ${emailLower}`);
+  return { granted: false };
+});
+
 const provisionStoreAdminSchema = z.object({
   email: z.string().email(),
   storeName: z.string().min(1),

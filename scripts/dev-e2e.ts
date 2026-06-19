@@ -138,6 +138,16 @@ SITE_URL=http://localhost:4201
     await waitPort(8080, 'Firestore Emulator');
     await waitPort(5001, 'Functions Emulator');
 
+    log('Orchestrator', 'Seeding local database...');
+    execSync('npx tsx scripts/seed-local.ts', {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        FIRESTORE_EMULATOR_HOST: 'localhost:8080',
+        FIREBASE_AUTH_EMULATOR_HOST: 'localhost:9099'
+      }
+    });
+
     // 2. Start Platform Frontend
     const ngServeFlags = ['run', 'start', '--', '--host', '0.0.0.0', '--port', '4200', '--poll', '2000', '--open', 'false'];
     startProcess('npm', ngServeFlags, 'vertex-platform', 'PlatformApp');

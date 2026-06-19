@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   getIdTokenResult,
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { User } from 'firebase/auth';
 
 export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
@@ -26,12 +27,23 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     onAuthStateChanged(this.auth, async (u) => {
       if (u) {
-        const token = await getIdTokenResult(u, true);
+        let token = await getIdTokenResult(u, true);
         if (!token.claims['platformAdmin']) {
-          await signOut(this.auth);
-          this.authError.set('unauthorized');
-          this.isSuperAdmin.set(false);
-          return;
+          try {
+            const fns = getFunctions();
+            const refreshClaim = httpsCallable(fns, 'refreshMyPlatformAdminClaim');
+            await refreshClaim();
+            token = await getIdTokenResult(u, true);
+          } catch (e) {
+            console.error('[Auth] Failed to refresh platformAdmin claim', e);
+          }
+
+          if (!token.claims['platformAdmin']) {
+            await signOut(this.auth);
+            this.authError.set('unauthorized');
+            this.isSuperAdmin.set(false);
+            return;
+          }
         }
         this.isSuperAdmin.set(token.claims['superAdmin'] === true);
       } else {
@@ -45,13 +57,24 @@ export class AuthService {
     this.authError.set(null);
     try {
       const result = await signInWithPopup(this.auth, new GoogleAuthProvider());
-      const token = await getIdTokenResult(result.user, true);
+      let token = await getIdTokenResult(result.user, true);
 
       if (!token.claims['platformAdmin']) {
-        await signOut(this.auth);
-        this.authError.set('unauthorized');
-        this.isSuperAdmin.set(false);
-        return;
+        try {
+          const fns = getFunctions();
+          const refreshClaim = httpsCallable(fns, 'refreshMyPlatformAdminClaim');
+          await refreshClaim();
+          token = await getIdTokenResult(result.user, true);
+        } catch (e) {
+          console.error('[Auth] Failed to refresh platformAdmin claim after login', e);
+        }
+
+        if (!token.claims['platformAdmin']) {
+          await signOut(this.auth);
+          this.authError.set('unauthorized');
+          this.isSuperAdmin.set(false);
+          return;
+        }
       }
       this.isSuperAdmin.set(token.claims['superAdmin'] === true);
       this.user.set(result.user);
