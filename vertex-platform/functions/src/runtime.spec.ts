@@ -113,6 +113,42 @@ describe('summarizeShardCapacity', () => {
     expect(summary.availableSharedSlots).toBe(0);
     expect(summary.recommendedRuntimeMode).toBe('dedicated-project');
   });
+
+  it('correctly sorts shards with same status but different available capacity', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shared-low', activeStores: 80, maxStores: 100 }), // available: 15 (maxStores: 100 - activeStores: 80 - reservedStores: 5)
+      makeShard({ id: 'shared-high', activeStores: 30, maxStores: 100 }), // available: 65
+    ]);
+
+    expect(summary.shards[0]?.id).toBe('shared-high');
+    expect(summary.shards[1]?.id).toBe('shared-low');
+  });
+
+  it('correctly sorts shards with same status and same available capacity alphabetically by ID', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shared-b', activeStores: 30, maxStores: 100 }), // available: 65
+      makeShard({ id: 'shared-a', activeStores: 30, maxStores: 100 }), // available: 65
+    ]);
+
+    expect(summary.shards[0]?.id).toBe('shared-a');
+    expect(summary.shards[1]?.id).toBe('shared-b');
+  });
+
+  it('handles shards with zero maxStores correctly (covers occupancyRatio fallback)', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shared-zero', maxStores: 0, activeStores: 0 }),
+    ]);
+    expect(summary.shards[0]?.occupancyRatio).toBe(1);
+  });
+
+  it('correctly sorts shards with active and inactive statuses', () => {
+    const summary = summarizeShardCapacity([
+      makeShard({ id: 'shared-inactive', status: 'maintenance' }),
+      makeShard({ id: 'shared-active', status: 'active' }),
+    ]);
+    expect(summary.shards[0]?.id).toBe('shared-active');
+    expect(summary.shards[1]?.id).toBe('shared-inactive');
+  });
 });
 
 describe('reconcileActiveStores scheduler', () => {
@@ -125,11 +161,13 @@ describe('reconcileActiveStores scheduler', () => {
       { id: 'store-1', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-2', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-3', shardId: 'shard-2', runtimeMode: 'shared-shard', status: 'active' },
+      { id: 'store-no-shard', runtimeMode: 'shared-shard', status: 'active' }, // Falsy shardId to cover skip branch
     ];
 
     const mockShards = [
       { id: 'shard-1', activeStores: 5 }, // Should be corrected to 2
       { id: 'shard-2', activeStores: 1 }, // Correct
+      { id: 'shard-3' }, // Undefined activeStores and 0 physical stores
     ];
 
     const updatedShards: Record<string, number> = {};
@@ -194,6 +232,35 @@ describe('reconcileActiveStores scheduler', () => {
     expect(auditLogs[0].severity).toBe('WARNING');
     expect(auditLogs[0].details.newValue).toBe(2);
     expect(auditLogs[1].severity).toBe('INFO');
+  });
+
+  it('handles and logs errors during reconciliation', async () => {
+    const auditLogs: any[] = [];
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'audit_logs') {
+          return {
+            add: vi.fn().mockImplementation((log) => {
+              auditLogs.push(log);
+              return Promise.resolve();
+            }),
+          };
+        }
+        throw 'Firestore query failed with raw string';
+      }),
+    };
+
+    vi.mocked(getFirestore).mockReturnValue(dbMock as any);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const handler = reconcileActiveStores as unknown as (event: any) => Promise<void>;
+    await handler({});
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(auditLogs.length).toBe(1);
+    expect(auditLogs[0].severity).toBe('ERROR');
+    expect(auditLogs[0].message).toContain('Firestore query failed');
+    consoleErrorSpy.mockRestore();
   });
 });
 
