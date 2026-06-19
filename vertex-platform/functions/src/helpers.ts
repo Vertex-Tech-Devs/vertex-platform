@@ -34,7 +34,7 @@ let cachedGitHubPat: string | null = null;
 let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token: string } | null =
   null;
 let cachedOwnerPool: ProvisioningOwnerCredentials[] | null = null;
-const secretsClient = new SecretManagerServiceClient();
+export const secretsClient = new SecretManagerServiceClient();
 
 function isMissingSecretError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -161,6 +161,7 @@ export async function listProvisioningOwnerCandidates(
 
   return available.map((candidate) => candidate.owner);
 }
+let cachedDeployToken: string | null = null;
 
 export async function getGitHubPat(): Promise<string> {
   if (cachedGitHubPat) return cachedGitHubPat;
@@ -169,6 +170,15 @@ export async function getGitHubPat(): Promise<string> {
   });
   cachedGitHubPat = version.payload!.data!.toString().trim();
   return cachedGitHubPat;
+}
+
+export async function getDeployToken(): Promise<string> {
+  if (cachedDeployToken) return cachedDeployToken;
+  const [version] = await secretsClient.accessSecretVersion({
+    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+  });
+  cachedDeployToken = version.payload!.data!.toString().trim();
+  return cachedDeployToken;
 }
 
 export async function apiFetch(

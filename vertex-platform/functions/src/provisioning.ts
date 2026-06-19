@@ -1,7 +1,6 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
 import type {
   CreateStorePayload,
@@ -15,6 +14,8 @@ import {
   PLATFORM_PROJECT,
   getOwnerOAuthClient,
   getGitHubPat,
+  getDeployToken,
+  secretsClient,
   apiFetch,
   retry,
   pollOperation,
@@ -30,7 +31,7 @@ const CURRENT_TEMPLATE_VERSION = '1.0.0';
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 export const provisionStore = onCall<CreateStorePayload>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
@@ -950,7 +951,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('installEmailExtension')) {
     await setStep('installEmailExtension', 'running');
     try {
-      const secretsClient = new SecretManagerServiceClient();
       const [pwVersion] = await secretsClient.accessSecretVersion({
         name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
       });
@@ -1355,11 +1355,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action
-      const secrets = new SecretManagerServiceClient();
-      const [version] = await secrets.accessSecretVersion({
-        name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-      });
-      const deployTokenValue = version.payload!.data!.toString().trim();
+      const deployTokenValue = await getDeployToken();
 
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
       const targetRef = env === 'production' ? 'main' : 'develop';
@@ -1399,7 +1395,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 }
 
 export const runProvisioning = onDocumentCreated(
-  { document: 'stores/{storeId}', timeoutSeconds: 540, memory: '512MiB' },
+  { document: 'stores/{storeId}', timeoutSeconds: 540, memory: '1GiB' },
   async (event) => {
     const data = event.data?.data();
     if (!data || data['status'] !== 'provisioning') return;
@@ -1491,11 +1487,7 @@ export const completeStoreDeployment = onCall<{
   }
 
   // 1. Verify the deploy token using Secret Manager
-  const secrets = new SecretManagerServiceClient();
-  const [version] = await secrets.accessSecretVersion({
-    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-  });
-  const expected = version.payload!.data!.toString().trim();
+  const expected = await getDeployToken();
   if (deployToken !== expected) {
     throw new HttpsError('permission-denied', 'Invalid deploy token.');
   }
