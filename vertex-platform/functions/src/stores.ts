@@ -40,7 +40,7 @@ function isOwnerOrSuperAdmin(
   ownerEmail: string | undefined,
 ): boolean {
   if (!authEmail) return false;
-  const superAdmins = ['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com'];
+  const superAdmins = ['juan.l.espeche@gmail.com', 'leivalihue@gmail.com', 'vertex.tech.dev@gmail.com'];
   return superAdmins.includes(authEmail) || authEmail === ownerEmail;
 }
 
