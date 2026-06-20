@@ -1246,8 +1246,8 @@ export async function seedStoreData(
     variantAttributes: string[];
   }> = [];
 
-  // Limit to first 15 products (3 per category) to keep seed lean during testing
-  const productsToSeed = seed.products.slice(0, 15);
+  // Seed all products if mock data is requested, otherwise start with a clean empty catalog for the client
+  const productsToSeed = includeMockData ? seed.products : [];
   for (const prod of productsToSeed) {
     const discount = prod.discount ?? 0;
     const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
@@ -1387,8 +1387,8 @@ export async function seedStoreData(
     // 6. Seed Clients (from CLIENT_DATA)
     const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
     let clientIdx = 0;
-    // Limit to 10 clients to keep seed lean during testing
-    for (const client of CLIENT_DATA.slice(0, 10)) {
+    // Seed all clients from CLIENT_DATA
+    for (const client of CLIENT_DATA) {
       const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
       const clientDocId = `cli-${clientIdx}`;
       const clientPayload = {
@@ -1428,8 +1428,8 @@ export async function seedStoreData(
 
     // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
     let orderIdx = 0;
-    // Limit to 10 orders to keep seed lean during testing
-    for (const order of ORDER_DATA.slice(0, 10)) {
+    // Seed all orders from ORDER_DATA
+    for (const order of ORDER_DATA) {
       const cl = seededClients[order.clientIdx % seededClients.length];
       const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
       const orderDocId = `ord-${orderIdx++}`;
