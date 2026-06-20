@@ -273,7 +273,7 @@ jobs:
       - name: Check develop is not behind main
         run: |
           git fetch origin main develop
-          DIFF=$(git diff origin/develop..origin/main -- '*.ts' '*.html' '*.scss' '*.json' 2>/dev/null | head -c 500)
+          DIFF=$(git diff origin/develop...origin/main -- '*.ts' '*.html' '*.scss' '*.json' 2>/dev/null | head -c 500)
           if [ -n "$DIFF" ]; then
             echo "::warning::develop está desincronizado de main. Ejecutar el Back-Merge obligatorio:"
             echo "::warning::  git checkout develop && git pull origin develop && git merge origin/main && git push origin develop"
