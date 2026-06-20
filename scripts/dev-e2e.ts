@@ -131,8 +131,8 @@ SITE_URL=http://localhost:4201
       execSync('npm run build --prefix packages/ecommerce-vertex/functions', { stdio: 'inherit' });
     }
 
-    // 1. Start Firebase Emulators
-    startProcess('npx', ['firebase', 'emulators:start', '--project', 'demo-vertex'], process.cwd(), 'FirebaseEmulators');
+    // 1. Start Firebase Emulators with import/export to persist local DB changes between restarts
+    startProcess('npx', ['firebase', 'emulators:start', '--project', 'demo-vertex', '--import=./emulator-data', '--export-on-exit=./emulator-data'], process.cwd(), 'FirebaseEmulators');
     
     // Wait for Firestore (8080) and Functions (5001)
     await waitPort(8080, 'Firestore Emulator');

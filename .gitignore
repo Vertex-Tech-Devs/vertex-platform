@@ -87,3 +87,6 @@ Thumbs.db
 .antigravitycli/
 firestore-debug.log
 packages/platform
+
+# Local emulator persistence
+emulator-data/
