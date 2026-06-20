@@ -31,7 +31,7 @@ async function seed() {
     console.log(`[Seed] Seeded superAdmin claim for: ${email}`);
   }
 
-  // 2. Ensure tienda-dos exists so Storefront doesn't crash
+  // 2. Ensure tienda-dos (now named Tienda Uno) exists so Storefront doesn't crash
   const tiendaDosRef = db.collection('stores').doc('tienda-dos');
   const doc = await tiendaDosRef.get();
   
@@ -39,8 +39,8 @@ async function seed() {
     await tiendaDosRef.set({
       tenantId: 'tienda-dos',
       slug: 'tienda-dos',
-      name: 'Tienda Dos',
-      description: 'Tienda autogenerada para desarrollo local',
+      name: 'Tienda Uno',
+      description: 'Tienda de demostración local con catálogo completo',
       status: 'active',
       plan: 'pro',
       ownerEmail: 'juan.l.espeche@gmail.com',
@@ -54,9 +54,9 @@ async function seed() {
         timezone: 'America/Argentina/Buenos_Aires',
         locale: 'es-AR',
         colors: {
-          primary: '#2563eb',
-          secondary: '#475569',
-          accent: '#38bdf8',
+          primary: '#3b82f6',
+          secondary: '#1e293b',
+          accent: '#60a5fa',
           background: '#ffffff',
           surface: '#f8fafc',
           text: '#0f172a',
@@ -64,26 +64,29 @@ async function seed() {
         }
       },
       contact: {
-        email: 'vertex.tech.dev@gmail.com',
-        phone: '123456789'
+        email: 'juan.l.espeche@gmail.com',
+        phone: '+54 11 4567-8900'
       }
     });
-    console.log('[Seed] Created default store: Tienda Dos (tienda-dos)');
+    console.log('[Seed] Created default store: Tienda Uno (tienda-dos)');
   } else {
     // Make sure name and slug match even if it exists
     await tiendaDosRef.update({
-      name: 'Tienda Dos',
+      name: 'Tienda Uno',
       slug: 'tienda-dos',
       firebaseProjectId: 'demo-vertex',
       runtimeProjectId: 'demo-vertex',
+      ownerEmail: 'juan.l.espeche@gmail.com',
     });
-    console.log('[Seed] Store tienda-dos already exists. Updated name, slug, and projectIds.');
+    console.log('[Seed] Store tienda-dos already exists. Updated name to Tienda Uno, slug, and projectIds.');
   }
 
   // Seed Mock Catalog for tienda-dos
   const categories = [
-    { id: 'remeras', name: 'Remeras', slug: 'remeras', parentId: null, filterableAttributes: [] },
-    { id: 'pantalones', name: 'Pantalones', slug: 'pantalones', parentId: null, filterableAttributes: [] }
+    { id: 'remeras', name: 'Remeras', slug: 'remeras', parentId: null, filterableAttributes: ['talle-ropa', 'color'] },
+    { id: 'pantalones', name: 'Pantalones', slug: 'pantalones', parentId: null, filterableAttributes: ['talle-pantalon'] },
+    { id: 'zapatillas', name: 'Zapatillas', slug: 'zapatillas', parentId: null, filterableAttributes: ['talle-calzado'] },
+    { id: 'camperas', name: 'Camperas', slug: 'camperas', parentId: null, filterableAttributes: ['talle-ropa', 'color'] }
   ];
 
   for (const cat of categories) {
@@ -102,26 +105,60 @@ async function seed() {
       finalPrice: 12000,
       image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800',
       images: ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800'],
-      totalStock: 50,
-      variantAttributes: [],
-      inStockAttributes: {},
+      totalStock: 120,
+      variantAttributes: ['talle-ropa', 'color'],
+      inStockAttributes: { 'talle-ropa': ['S', 'M', 'L', 'XL'], 'color': ['Negro', 'Blanco'] },
       featured: true,
       active: true,
       createdAt: new Date()
     },
     {
       id: 'pantalon-jeans',
-      name: 'Jean Classic Fit',
-      description: 'Jean clásico de calce recto y cómodo.',
+      name: 'Jean Classic Fit Straight',
+      description: 'Jean clásico de calce recto y cómodo en denim de 12 oz.',
       categoryId: 'pantalones',
       price: 25000,
       discount: 10,
       finalPrice: 22500,
       image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=800',
       images: ['https://images.unsplash.com/photo-1542272604-787c3835535d?w=800'],
-      totalStock: 30,
-      variantAttributes: [],
-      inStockAttributes: {},
+      totalStock: 80,
+      variantAttributes: ['talle-pantalon'],
+      inStockAttributes: { 'talle-pantalon': ['30', '32', '34', '36'] },
+      featured: true,
+      active: true,
+      createdAt: new Date()
+    },
+    {
+      id: 'zapas-run',
+      name: 'Zapatillas Running Pro',
+      description: 'Zapatillas de running de alto rendimiento con amortiguación premium.',
+      categoryId: 'zapatillas',
+      price: 48000,
+      discount: 15,
+      finalPrice: 40800,
+      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
+      images: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800'],
+      totalStock: 60,
+      variantAttributes: ['talle-calzado'],
+      inStockAttributes: { 'talle-calzado': ['40', '41', '42', '43'] },
+      featured: true,
+      active: true,
+      createdAt: new Date()
+    },
+    {
+      id: 'campera-puffer',
+      name: 'Campera Puffer ColdShield',
+      description: 'Campera acolchada térmica con relleno sintético y repelente al agua.',
+      categoryId: 'camperas',
+      price: 65000,
+      discount: 0,
+      finalPrice: 65000,
+      image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?w=800',
+      images: ['https://images.unsplash.com/photo-1547949003-9792a18a2601?w=800'],
+      totalStock: 45,
+      variantAttributes: ['talle-ropa', 'color'],
+      inStockAttributes: { 'talle-ropa': ['M', 'L', 'XL'], 'color': ['Negro', 'Azul'] },
       featured: true,
       active: true,
       createdAt: new Date()
@@ -131,27 +168,147 @@ async function seed() {
   for (const prod of products) {
     await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).set(prod, { merge: true });
     
-    // Seed default variant
-    await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).collection('variants').doc('variant-default').set({
-      id: 'variant-default',
-      productId: prod.id,
-      price: prod.price,
-      stock: prod.totalStock,
-      attributes: {},
-      createdAt: new Date()
-    });
+    // Seed variants based on variant attributes
+    if (prod.id === 'remera-vertex') {
+      const sizes = ['S', 'M', 'L', 'XL'];
+      const colors = ['Negro', 'Blanco'];
+      let vIdx = 0;
+      for (const size of sizes) {
+        for (const color of colors) {
+          const varId = `var-${vIdx++}`;
+          await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).collection('variants').doc(varId).set({
+            id: varId,
+            productId: prod.id,
+            sku: `REM-VTX-${size}-${color.toUpperCase()}`,
+            price: prod.price,
+            stock: 15,
+            attributes: { 'talle-ropa': size, 'color': color },
+            createdAt: new Date()
+          });
+        }
+      }
+    } else if (prod.id === 'pantalon-jeans') {
+      const sizes = ['30', '32', '34', '36'];
+      let vIdx = 0;
+      for (const size of sizes) {
+        const varId = `var-${vIdx++}`;
+        await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).collection('variants').doc(varId).set({
+          id: varId,
+          productId: prod.id,
+          sku: `JEAN-CLS-${size}`,
+          price: prod.price,
+          stock: 20,
+          attributes: { 'talle-pantalon': size },
+          createdAt: new Date()
+        });
+      }
+    } else if (prod.id === 'zapas-run') {
+      const sizes = ['40', '41', '42', '43'];
+      let vIdx = 0;
+      for (const size of sizes) {
+        const varId = `var-${vIdx++}`;
+        await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).collection('variants').doc(varId).set({
+          id: varId,
+          productId: prod.id,
+          sku: `ZAP-RUN-${size}`,
+          price: prod.price,
+          stock: 15,
+          attributes: { 'talle-calzado': size },
+          createdAt: new Date()
+        });
+      }
+    } else if (prod.id === 'campera-puffer') {
+      const sizes = ['M', 'L', 'XL'];
+      const colors = ['Negro', 'Azul'];
+      let vIdx = 0;
+      for (const size of sizes) {
+        for (const color of colors) {
+          const varId = `var-${vIdx++}`;
+          await db.collection('tenants').doc('tienda-dos').collection('products').doc(prod.id).collection('variants').doc(varId).set({
+            id: varId,
+            productId: prod.id,
+            sku: `PUFF-CSD-${size}-${color.toUpperCase()}`,
+            price: prod.price,
+            stock: 10,
+            attributes: { 'talle-ropa': size, 'color': color },
+            createdAt: new Date()
+          });
+        }
+      }
+    }
   }
-  console.log('[Seed] Seeded mock products and default variants for tienda-dos');
+  console.log('[Seed] Seeded mock products and specific variants for tienda-dos');
+
+  // Seed mock clients
+  const mockClients = [
+    { id: 'cli-0', fullName: 'Valentina García', email: 'valenti.garcia@gmail.com', phone: '+54 9 11 4523-8801' },
+    { id: 'cli-1', fullName: 'Mateo Rodríguez', email: 'mateo.rodriguez@gmail.com', phone: '+54 9 11 5634-9912' },
+    { id: 'cli-2', fullName: 'Camila López', email: 'camila.lopez@outlook.com', phone: '+54 9 11 4712-3345' }
+  ];
+  for (const client of mockClients) {
+    await db.collection('tenants').doc('tienda-dos').collection('clients').doc(client.id).set(client, { merge: true });
+  }
+  console.log('[Seed] Seeded mock clients for tienda-dos');
+
+  // Seed mock orders
+  const mockOrders = [
+    {
+      id: 'ord-0',
+      clientEmail: 'valenti.garcia@gmail.com',
+      clientName: 'Valentina García',
+      clientPhone: '+54 9 11 4523-8801',
+      createdAt: new Date(Date.now() - 2 * 86400000),
+      status: 'processing',
+      paymentMethod: 'MercadoPago',
+      shippingAddress: {
+        street: 'Av. Corrientes 4531',
+        city: 'Buenos Aires',
+        state: 'Buenos Aires',
+        zip: '1414'
+      },
+      items: [
+        { productId: 'remera-vertex', name: 'Remera Vertex Classic', price: 12000, qty: 2, attributes: { 'talle-ropa': 'M', 'color': 'Negro' } }
+      ],
+      shippingCost: 1500,
+      subtotal: 24000,
+      total: 25500
+    },
+    {
+      id: 'ord-1',
+      clientEmail: 'mateo.rodriguez@gmail.com',
+      clientName: 'Mateo Rodríguez',
+      clientPhone: '+54 9 11 5634-9912',
+      createdAt: new Date(Date.now() - 5 * 86400000),
+      status: 'delivered',
+      paymentMethod: 'Tarjeta de crédito',
+      shippingAddress: {
+        street: 'San Martín 882',
+        city: 'Córdoba',
+        state: 'Córdoba',
+        zip: '5000'
+      },
+      items: [
+        { productId: 'pantalon-jeans', name: 'Jean Classic Fit Straight', price: 25000, qty: 1, attributes: { 'talle-pantalon': '32' } }
+      ],
+      shippingCost: 1800,
+      subtotal: 22500,
+      total: 24300
+    }
+  ];
+  for (const order of mockOrders) {
+    await db.collection('tenants').doc('tienda-dos').collection('orders').doc(order.id).set(order, { merge: true });
+  }
+  console.log('[Seed] Seeded mock orders for tienda-dos');
 
   // Seed store config
   const storeConfig = {
-    storeName: 'Tienda Dos',
-    contactPhone: '123456789',
-    contactEmail: 'vertex.tech.dev@gmail.com',
-    socialInstagramUrl: 'https://instagram.com/vertex',
+    storeName: 'Tienda Uno',
+    contactPhone: '+54 11 4567-8900',
+    contactEmail: 'juan.l.espeche@gmail.com',
+    socialInstagramUrl: 'https://instagram.com/tiendauno',
     socialFacebookUrl: '',
     socialWhatsAppUrl: '',
-    copyrightText: '© 2026 Tienda Dos. Todos los derechos reservados.'
+    copyrightText: '© 2026 Tienda Uno. Todos los derechos reservados.'
   };
   await db.collection('tenants').doc('tienda-dos').collection('configuracion').doc('store').set(storeConfig, { merge: true });
   console.log('[Seed] Seeded store configuration for tienda-dos');
