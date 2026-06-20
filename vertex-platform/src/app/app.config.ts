@@ -21,7 +21,8 @@ import { GlobalErrorHandler } from '@core/services/error-reporter';
 export const firebaseApp = initializeApp(environment.firebaseConfig);
 const db = initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true });
 
-const isLocal = typeof window !== 'undefined' &&
+const isLocal =
+  typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 if (isLocal) {
@@ -30,6 +31,11 @@ if (isLocal) {
   connectFunctionsEmulator(fns, 'localhost', 5001);
   const auth = getAuth(firebaseApp);
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+  if (typeof window !== 'undefined') {
+    import('firebase/auth').then(({ signInWithCustomToken }) => {
+      (window as unknown as Record<string, unknown>)['loginWithCustomToken'] = (token: string) => signInWithCustomToken(auth, token);
+    }).catch(err => console.error('Error loading signInWithCustomToken', err));
+  }
 }
 
 if (!environment.production) {

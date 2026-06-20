@@ -40,7 +40,11 @@ function isOwnerOrSuperAdmin(
   ownerEmail: string | undefined,
 ): boolean {
   if (!authEmail) return false;
-  const superAdmins = ['juan.l.espeche@gmail.com', 'leivalihue@gmail.com', 'vertex.tech.dev@gmail.com'];
+  const superAdmins = [
+    'juan.l.espeche@gmail.com',
+    'leivalihue@gmail.com',
+    'vertex.tech.dev@gmail.com',
+  ];
   return superAdmins.includes(authEmail) || authEmail === ownerEmail;
 }
 
@@ -74,6 +78,7 @@ export async function checkRateLimit(
   maxCalls: number,
   windowMinutes: number,
 ): Promise<void> {
+  if (process.env.FUNCTIONS_EMULATOR === 'true') return;
   if (!uid) return;
   const db = getFirestore();
   const now = new Date();
@@ -932,6 +937,18 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       throw new HttpsError('permission-denied', 'You do not have permission to manage this store.');
     }
 
+    if (process.env.FUNCTIONS_EMULATOR === 'true') {
+      await db.collection('stores').doc(storeId).update({
+        customDomain: domain,
+        updatedAt: new Date(),
+      });
+      const dnsRecords = [
+        { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
+        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${storeId}.web.app`, requiredAction: 'ADD' }
+      ];
+      return { success: true, dnsRecords };
+    }
+
     const projectId = resolveRuntimeProjectId(store);
     if (!projectId) {
       throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
@@ -1286,42 +1303,59 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       createdAt: new Date(),
     });
 
-    let auth;
-    try {
-      auth = await getOwnerOAuthClient();
-    } catch (err) {
-      console.error('[inviteStaff] Failed to load GCP owner credentials.', err);
-      throw new HttpsError(
-        'failed-precondition',
-        'No se pudo enviar la invitación real porque faltan credenciales de aprovisionamiento.',
-      );
-    }
+    let auth: any;
+    if (process.env.FUNCTIONS_EMULATOR === 'true') {
+      const compositeKey = `${tenantId}_${normalizedEmail}`;
+      await db.collection('admin_roles').doc(compositeKey).set({
+        role: normalizedRole,
+        tenantId: tenantId,
+        source: 'vertex-platform-invite',
+        updatedAt: new Date(),
+      });
+      const mockUid = `mock-uid-${normalizedEmail.replace(/[^a-zA-Z0-9]/g, '-')}`;
+      await db.collection('users').doc(mockUid).set({
+        email: normalizedEmail,
+        role: normalizedRole,
+        displayName: 'Invited Staff (Mock)',
+        joinedAt: new Date(),
+      });
+    } else {
+      try {
+        auth = await getOwnerOAuthClient();
+      } catch (err) {
+        console.error('[inviteStaff] Failed to load GCP owner credentials.', err);
+        throw new HttpsError(
+          'failed-precondition',
+          'No se pudo enviar la invitación real porque faltan credenciales de aprovisionamiento.',
+        );
+      }
 
-    try {
-      const encodedEmail = encodeURIComponent(normalizedEmail);
-      const compositeKey = `${tenantId}_${encodedEmail}`;
-      await apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${compositeKey}`,
-        {
-          method: 'PATCH',
-          body: {
-            fields: {
-              role: { stringValue: normalizedRole },
-              tenantId: { stringValue: tenantId },
-              source: { stringValue: 'vertex-platform-invite' },
-              updatedAt: { timestampValue: new Date().toISOString() },
+      try {
+        const encodedEmail = encodeURIComponent(normalizedEmail);
+        const compositeKey = `${tenantId}_${encodedEmail}`;
+        await apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${compositeKey}`,
+          {
+            method: 'PATCH',
+            body: {
+              fields: {
+                role: { stringValue: normalizedRole },
+                tenantId: { stringValue: tenantId },
+                source: { stringValue: 'vertex-platform-invite' },
+                updatedAt: { timestampValue: new Date().toISOString() },
+              },
             },
+            quotaProject: projectId,
           },
-          quotaProject: projectId,
-        },
-      );
-    } catch (err) {
-      console.error(`[inviteStaff] Failed to write admin_roles in ${projectId}:`, err);
-      throw new HttpsError(
-        'internal',
-        'No se pudo preautorizar el correo en la tienda destino para OAuth de Google.',
-      );
+        );
+      } catch (err) {
+        console.error(`[inviteStaff] Failed to write admin_roles in ${projectId}:`, err);
+        throw new HttpsError(
+          'internal',
+          'No se pudo preautorizar el correo en la tienda destino para OAuth de Google.',
+        );
+      }
     }
 
     let inviteEmailSent = true;
@@ -1355,7 +1389,20 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       `;
 
       try {
-        if (projectId === PLATFORM_PROJECT) {
+        if (process.env.FUNCTIONS_EMULATOR === 'true') {
+          await db.collection('tenants').doc(tenantId).collection('mail').add({
+            to: [normalizedEmail],
+            message: {
+              subject: emailSubject,
+              html: emailHtml,
+              text: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+            },
+            createdAt: new Date(),
+          });
+          console.info(
+            `[inviteStaff] Staff invitation email successfully written to emulator storefront tenant mail collection.`
+          );
+        } else if (projectId === PLATFORM_PROJECT) {
           await sendDirectEmail(
             normalizedEmail,
             emailSubject,
@@ -1479,34 +1526,52 @@ export const getStoreStaff = onCall<{ storeId: string }>(
       displayName?: string;
       joinedAt?: string;
     }> = [];
-    try {
-      const auth = await getOwnerOAuthClient();
-      const usersRes = (await apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`,
-        { quotaProject: projectId },
-      )) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
-
-      if (usersRes.documents) {
-        users = usersRes.documents.map((doc) => {
-          const parts = doc.name.split('/');
-          const uid = parts[parts.length - 1];
-          const fields = doc.fields;
-
+    if (process.env.FUNCTIONS_EMULATOR === 'true') {
+      try {
+        const usersSnap = await db.collection('users').get();
+        users = usersSnap.docs.map((d) => {
+          const data = d.data();
           return {
-            uid,
-            email: fields['email']?.stringValue || '',
-            role: fields['role']?.stringValue || '',
-            displayName: fields['displayName']?.stringValue || '',
-            joinedAt: fields['joinedAt']?.timestampValue || '',
+            uid: d.id,
+            email: data['email'] || '',
+            role: data['role'] || '',
+            displayName: data['displayName'] || '',
+            joinedAt: data['joinedAt'] instanceof Date ? data['joinedAt'].toISOString() : (data['joinedAt'] || ''),
           };
         });
+      } catch (err) {
+        console.error('[getStoreStaff] Failed to load local users in emulator:', err);
       }
-    } catch (err) {
-      console.warn(
-        `[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`,
-        err,
-      );
+    } else {
+      try {
+        const auth = await getOwnerOAuthClient();
+        const usersRes = (await apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`,
+          { quotaProject: projectId },
+        )) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
+
+        if (usersRes.documents) {
+          users = usersRes.documents.map((doc) => {
+            const parts = doc.name.split('/');
+            const uid = parts[parts.length - 1];
+            const fields = doc.fields;
+
+            return {
+              uid,
+              email: fields['email']?.stringValue || '',
+              role: fields['role']?.stringValue || '',
+              displayName: fields['displayName']?.stringValue || '',
+              joinedAt: fields['joinedAt']?.timestampValue || '',
+            };
+          });
+        }
+      } catch (err) {
+        console.warn(
+          `[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`,
+          err,
+        );
+      }
     }
 
     let invitations: any[] = [];
@@ -1568,6 +1633,14 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     const authEmail = request.auth?.token.email as string | undefined;
     if (!isOwnerOrSuperAdmin(authEmail, store.ownerEmail)) {
       throw new HttpsError('permission-denied', 'You do not have permission to manage this store.');
+    }
+
+    if (process.env.FUNCTIONS_EMULATOR === 'true') {
+      const dnsRecords = [
+        { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
+        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${storeId}.web.app`, requiredAction: 'ADD' }
+      ];
+      return { success: true, status: 'live', dnsRecords };
     }
 
     const projectId = resolveRuntimeProjectId(store);

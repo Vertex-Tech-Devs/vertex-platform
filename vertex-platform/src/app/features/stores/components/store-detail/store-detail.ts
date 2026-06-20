@@ -52,6 +52,17 @@ export class StoreDetail implements OnInit, OnDestroy {
     return this.storesService.stores().find((s) => s.id === id) ?? null;
   });
 
+  readonly storeUrl = computed(() => {
+    const s = this.store();
+    if (!s) {
+      return '';
+    }
+    if (window.location.hostname === 'localhost') {
+      return `http://localhost:4201/shop?tenantId=${s.slug}`;
+    }
+    return s.defaultUrl;
+  });
+
   readonly orderedSteps = computed(() => {
     const steps = this.store()?.provisioningSteps ?? {};
     return STEP_ORDER.filter((id) => id in steps);
@@ -108,7 +119,7 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   private pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
-  domainInput = '';
+  readonly domainInput = signal('');
   deleteConfirmInput = '';
   sleepConfirmInput = '';
   private readonly optionalUrlRegex = /^(|https?:\/\/[^\s$.?#].[^\s]*)$/i;
@@ -197,7 +208,7 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly wantsRootOrWwwReady = signal(false);
   readonly canConnectDomain = computed(
     () =>
-      !!this.domainInput.trim() &&
+      !!this.domainInput().trim() &&
       this.hasDomainOwnership() &&
       this.hasDnsAccess() &&
       this.wantsRootOrWwwReady(),
@@ -340,7 +351,7 @@ export class StoreDetail implements OnInit, OnDestroy {
       await this.loadStaff();
     } else if (tab === 'dominios') {
       if (s.customDomain) {
-        this.domainInput = s.customDomain;
+        this.domainInput.set(s.customDomain);
         await this.verifyDNS(true);
       }
     }
@@ -607,7 +618,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     if (!s) {
       return;
     }
-    const domain = s.customDomain || this.domainInput;
+    const domain = s.customDomain || this.domainInput();
     if (!domain) {
       return;
     }
@@ -803,14 +814,14 @@ export class StoreDetail implements OnInit, OnDestroy {
 
   async connectDomain(): Promise<void> {
     const id = this.store()?.id;
-    if (!id || !this.domainInput) {
+    if (!id || !this.domainInput()) {
       return;
     }
     this.isConnectingDomain.set(true);
     this.dnsVerificationError.set('');
     this.dnsVerificationSuccess.set('');
     try {
-      const result = await this.storesService.connectDomain(id, this.domainInput.trim());
+      const result = await this.storesService.connectDomain(id, this.domainInput().trim());
       this.dnsRecords.set(result.dnsRecords);
       this.domainStatus.set('pending');
       this.showDomainForm.set(false);

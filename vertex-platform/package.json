@@ -22,6 +22,7 @@
     "qa": "tsx scripts/qa.ts",
     "qa:full": "tsx scripts/qa.ts --full",
     "e2e": "cypress open",
+    "e2e:run": "cypress run --spec 'cypress/e2e/saas-integration.cy.ts'",
     "e2e:ci": "start-server-and-test start http-get://127.0.0.1:4200 'cypress run'",
     "test:integration": "playwright test --config integration-tests/playwright.config.ts",
     "test:integration:ui": "playwright test --ui --config integration-tests/playwright.config.ts",

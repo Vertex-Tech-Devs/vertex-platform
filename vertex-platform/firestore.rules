@@ -25,6 +25,23 @@ service cloud.firestore {
         (isAuthenticated() && get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'admin');
     }
 
+    // Reglas para colecciones legacy a nivel raíz (públicas para evitar caídas por fallback)
+    match /products/{id} {
+      allow read: if true;
+      match /{allChildren=**} {
+        allow read: if true;
+      }
+    }
+    match /categories/{id} {
+      allow read: if true;
+    }
+    match /attributes/{id} {
+      allow read: if true;
+    }
+    match /siteContent/{id} {
+      allow read: if true;
+    }
+
     // 2. Regla para Entornos Compartidos (Multi-Tenant Shards)
     match /tenants/{tenantId} {
       allow read, write: if isPlatformAdmin();
@@ -38,6 +55,52 @@ service cloud.firestore {
         allow read: if isAuthenticated() && (request.auth.token.email == email || isPlatformAdmin());
         allow write: if isPlatformAdmin();
       }
+
+      // Public read rules for Storefront visitors
+      match /products/{productId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+
+        match /{allChildren=**} {
+          allow read: if true;
+          allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+        }
+      }
+
+      match /categories/{categoryId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /attributes/{attributeId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /siteContent/{docId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /footerContent/{docId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /aboutUs/{docId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /orders/{orderId} {
+        allow get, create: if true;
+        allow list, update, delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+    }
+
+    match /orders/{orderId} {
+      allow get, create: if true;
+      allow list: if isPlatformAdmin();
     }
     
     // Protección por defecto de la factoría

@@ -42,6 +42,9 @@ services:
       - storefront_nm:/workspace/platform/packages/ecommerce-vertex/node_modules
       - storefront_fn_nm:/workspace/platform/packages/ecommerce-vertex/functions/node_modules
 
+      # ── Google Cloud Credentials (ADC for Secret Manager) ─────────────────
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+
     ports:
       - "4000:4000"   # Firebase Emulator UI
       - "4200:4200"   # Platform Admin

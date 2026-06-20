@@ -21,8 +21,11 @@ export interface ProvisioningOwnerCredentials {
   maxProjects?: number;
 }
 
-export const PLATFORM_PROJECT =
-  process.env['GCLOUD_PROJECT'] ?? process.env['GOOGLE_CLOUD_PROJECT'] ?? 'vertex-platform-app';
+export const PLATFORM_PROJECT = (() => {
+  const p =
+    process.env['GCLOUD_PROJECT'] ?? process.env['GOOGLE_CLOUD_PROJECT'] ?? 'vertex-platform-app';
+  return p === 'demo-vertex' ? 'vertex-platform-dev' : p;
+})();
 
 export const ALLOWED_ORIGINS = [
   'https://vertex-platform-app.web.app',

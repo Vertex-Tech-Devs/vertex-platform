@@ -218,6 +218,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     isNewShard,
     tenantId,
     id: storeIdAttr,
+    shardId,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -232,6 +233,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     isNewShard?: boolean;
     tenantId: string;
     id: string;
+    shardId?: string;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -750,9 +752,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      const configPath = runtimeMode === 'shared-shard'
-        ? `tenants/${tenantId}/configuracion/store`
-        : 'configuracion/store';
+      const configPath =
+        runtimeMode === 'shared-shard'
+          ? `tenants/${tenantId}/configuracion/store`
+          : 'configuracion/store';
 
       console.info(
         `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
@@ -1352,6 +1355,41 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
     await setStep('triggerDeploy', 'running');
     try {
+      if (process.env.FUNCTIONS_EMULATOR === 'true') {
+        console.log(
+          `[provisioning:triggerDeploy] Local emulator detected. Auto-completing deploy for store: ${storeId}`,
+        );
+        await storeRef.update({
+          'provisioningSteps.triggerDeploy.status': 'done',
+          'provisioningSteps.triggerDeploy.error': null,
+          status: 'active',
+          lastDeployedAt: new Date(),
+          templateVersion: CURRENT_TEMPLATE_VERSION,
+          schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
+          updatedAt: new Date(),
+        });
+        if (runtimeMode === 'shared-shard' && shardId) {
+          const shardRef = db.collection('shards').doc(shardId);
+          try {
+            await db.runTransaction(async (transaction) => {
+              const shardSnap = await transaction.get(shardRef);
+              if (shardSnap.exists) {
+                const currentActive = shardSnap.data()?.activeStores || 0;
+                transaction.update(shardRef, {
+                  activeStores: currentActive + 1,
+                  updatedAt: new Date(),
+                });
+              }
+            });
+          } catch (err) {
+            console.error(
+              `[provisioning:triggerDeploy] Failed to increment activeStores on shard ${shardId}:`,
+              err,
+            );
+          }
+        }
+        return;
+      }
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action

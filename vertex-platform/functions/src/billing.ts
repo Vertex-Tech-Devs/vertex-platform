@@ -61,28 +61,30 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
       );
     }
 
-    const auth = await getOwnerOAuthClient();
-    try {
-      await apiFetch(
-        auth,
-        `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}`,
-      );
-    } catch (err) {
-      console.error('addBillingAccount verification error:', err);
-      throw new HttpsError(
-        'not-found',
-        `Billing account ${normalizedId} not found or not accessible.`,
-      );
-    }
+    if (process.env.FUNCTIONS_EMULATOR !== 'true') {
+      const auth = await getOwnerOAuthClient();
+      try {
+        await apiFetch(
+          auth,
+          `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}`,
+        );
+      } catch (err) {
+        console.error('addBillingAccount verification error:', err);
+        throw new HttpsError(
+          'not-found',
+          `Billing account ${normalizedId} not found or not accessible.`,
+        );
+      }
 
-    try {
-      await apiFetch(
-        auth,
-        `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
-        { method: 'PATCH', body: { displayName: name } },
-      );
-    } catch {
-      /* silently skip if user lacks billing.accounts.update */
+      try {
+        await apiFetch(
+          auth,
+          `https://cloudbilling.googleapis.com/v1/billingAccounts/${normalizedId}?updateMask=displayName`,
+          { method: 'PATCH', body: { displayName: name } },
+        );
+      } catch {
+        /* silently skip if user lacks billing.accounts.update */
+      }
     }
 
     await db.collection('billingAccounts').doc(normalizedId).set({
@@ -123,7 +125,7 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
 
     await docRef.update(updates);
 
-    if (name !== undefined) {
+    if (name !== undefined && process.env.FUNCTIONS_EMULATOR !== 'true') {
       try {
         const auth = await getOwnerOAuthClient();
         await apiFetch(
