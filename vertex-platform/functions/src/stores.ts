@@ -944,7 +944,12 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       });
       const dnsRecords = [
         { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${storeId}.web.app`, requiredAction: 'ADD' }
+        {
+          domainName: `www.${domain}`,
+          type: 'CNAME',
+          rdata: `${storeId}.web.app`,
+          requiredAction: 'ADD',
+        },
       ];
       return { success: true, dnsRecords };
     }
@@ -1390,17 +1395,21 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
       try {
         if (process.env.FUNCTIONS_EMULATOR === 'true') {
-          await db.collection('tenants').doc(tenantId).collection('mail').add({
-            to: [normalizedEmail],
-            message: {
-              subject: emailSubject,
-              html: emailHtml,
-              text: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
-            },
-            createdAt: new Date(),
-          });
+          await db
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('mail')
+            .add({
+              to: [normalizedEmail],
+              message: {
+                subject: emailSubject,
+                html: emailHtml,
+                text: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+              },
+              createdAt: new Date(),
+            });
           console.info(
-            `[inviteStaff] Staff invitation email successfully written to emulator storefront tenant mail collection.`
+            `[inviteStaff] Staff invitation email successfully written to emulator storefront tenant mail collection.`,
           );
         } else if (projectId === PLATFORM_PROJECT) {
           await sendDirectEmail(
@@ -1536,7 +1545,10 @@ export const getStoreStaff = onCall<{ storeId: string }>(
             email: data['email'] || '',
             role: data['role'] || '',
             displayName: data['displayName'] || '',
-            joinedAt: data['joinedAt'] instanceof Date ? data['joinedAt'].toISOString() : (data['joinedAt'] || ''),
+            joinedAt:
+              data['joinedAt'] instanceof Date
+                ? data['joinedAt'].toISOString()
+                : data['joinedAt'] || '',
           };
         });
       } catch (err) {
@@ -1638,7 +1650,12 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     if (process.env.FUNCTIONS_EMULATOR === 'true') {
       const dnsRecords = [
         { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${storeId}.web.app`, requiredAction: 'ADD' }
+        {
+          domainName: `www.${domain}`,
+          type: 'CNAME',
+          rdata: `${storeId}.web.app`,
+          requiredAction: 'ADD',
+        },
       ];
       return { success: true, status: 'live', dnsRecords };
     }

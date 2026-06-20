@@ -32,9 +32,12 @@ if (isLocal) {
   const auth = getAuth(firebaseApp);
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   if (typeof window !== 'undefined') {
-    import('firebase/auth').then(({ signInWithCustomToken }) => {
-      (window as unknown as Record<string, unknown>)['loginWithCustomToken'] = (token: string) => signInWithCustomToken(auth, token);
-    }).catch(err => console.error('Error loading signInWithCustomToken', err));
+    import('firebase/auth')
+      .then(({ signInWithCustomToken }) => {
+        (window as unknown as Record<string, unknown>)['loginWithCustomToken'] = (token: string) =>
+          signInWithCustomToken(auth, token);
+      })
+      .catch((err) => console.error('Error loading signInWithCustomToken', err));
   }
 }
 
