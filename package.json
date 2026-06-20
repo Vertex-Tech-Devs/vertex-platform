@@ -19,7 +19,8 @@
     "qa:full": "npm run lint && npm run typecheck && npm run test",
     "e2e": "npm run e2e --workspace=vertex-platform",
     "e2e:run": "npm run e2e:run --workspace=vertex-platform",
-    "build": "npm run build --workspace=vertex-platform && npm run build --prefix vertex-platform/functions"
+    "build": "npm run build --workspace=vertex-platform && npm run build --prefix vertex-platform/functions",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@angular/common": "21.2.17",
@@ -36,6 +37,7 @@
     "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.39.4",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "tsx": "^4.22.3",
     "typescript": "~5.9.2",
