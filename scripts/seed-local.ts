@@ -313,6 +313,116 @@ async function seed() {
   await db.collection('tenants').doc('tienda-dos').collection('configuracion').doc('store').set(storeConfig, { merge: true });
   console.log('[Seed] Seeded store configuration for tienda-dos');
 
+  // Seed siteContent/homePage (Hero Banners and settings)
+  const u = (id: string, w: number, h: number) => `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&q=80&auto=format`;
+  const HERO_IDS = [
+    '1558769132-cb1aea458c5e',
+    '1483985988355-763728e1935b',
+    '1469334031218-e382a71b716b',
+    '1445205170230-053b83016050',
+    '1490481651871-ab68de25d43d',
+  ];
+  await db.collection('tenants').doc('tienda-dos').collection('siteContent').doc('homePage').set({
+    heroImages: HERO_IDS.map((id) => u(id, 1920, 700)),
+    carouselSettings: { interval: 4500, showIndicators: true },
+    title: 'Nueva Colección 2026',
+    buttonText: 'Explorar todo',
+    buttonLink: '/shop/catalog',
+    featuredCategories: [
+      {
+        categoryId: 'remeras',
+        name: 'Remeras',
+        slug: 'remeras',
+        imageUrl: u('1523381240423-59b6e0c53abe', 600, 400),
+      },
+      {
+        categoryId: 'camperas',
+        name: 'Camperas',
+        slug: 'camperas',
+        imageUrl: u('1551537482-f2075a1d41f2', 600, 400),
+      },
+      {
+        categoryId: 'zapatillas',
+        name: 'Zapatillas',
+        slug: 'zapatillas',
+        imageUrl: u('1491553895911-0055eca6402d', 600, 400),
+      },
+    ],
+    lastUpdated: FieldValue.serverTimestamp(),
+  });
+  console.log('[Seed] Seeded homePage siteContent (Hero Banner) for tienda-dos');
+
+  // Seed pages/aboutUs
+  await db.collection('tenants').doc('tienda-dos').collection('pages').doc('aboutUs').set({
+    bannerTitle: 'Quiénes Somos',
+    bannerSubtitle: 'Moda argentina con identidad propia y alcance nacional.',
+    bannerImageUrl: u('1558769132-cb1aea458c5e', 1920, 600),
+    centralTitle: 'Nuestra Historia',
+    centralImageUrl: u('1483985988355-763728e1935b', 800, 600),
+    centralDescription:
+      'Tienda Uno nació con un objetivo claro: ' +
+      'democratizar la moda de calidad. Trabajamos exclusivamente con proveedores certificados, ' +
+      'materiales de primera línea y diseños propios que reflejan la identidad urbana argentina.\n\n' +
+      'Hoy somos un gran equipo, despachamos a todo el país y contamos con miles de ' +
+      'clientes activos que nos eligen por la calidad, el servicio y los precios justos.',
+    cardsSectionTitle: '¿Por qué elegirnos?',
+    featureCards: [
+      {
+        title: 'Calidad sin compromiso',
+        content:
+          'Cada prenda pasa por tres etapas de control de calidad antes de llegar a tus manos. Solo trabajamos con materiales de primera línea y proveedores certificados.',
+      },
+      {
+        title: 'Envíos en 24-72 hs',
+        content:
+          'Despachamos a cualquier punto de Argentina en 24 a 72 horas hábiles con seguimiento en tiempo real. Envío sin costo en compras superiores a $30.000.',
+      },
+      {
+        title: 'Cambios sin burocracia',
+        content:
+          'Si el talle no es el correcto o algo no te convenció, gestionamos el cambio o devolución en menos de 48 horas sin preguntas ni costos adicionales.',
+      },
+      {
+        title: 'Producción responsable',
+        content:
+          'Embalajes 100% reciclables, tintas a base de agua y apoyo activo a marcas locales y talleres de producción justa.',
+      },
+    ],
+  });
+  console.log('[Seed] Seeded aboutUs page content for tienda-dos');
+
+  // Seed attributes
+  const attributesList = [
+    { id: 'talle-ropa', name: 'Talle (ropa)', values: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+    { id: 'talle-calzado', name: 'Talle (calzado)', values: ['36', '37', '38', '39', '40', '41', '42', '43', '44'] },
+    { id: 'talle-pantalon', name: 'Talle (pantalón)', values: ['28', '30', '32', '34', '36', '38'] },
+    {
+      id: 'color',
+      name: 'Color',
+      values: [
+        'Negro',
+        'Blanco',
+        'Gris',
+        'Azul',
+        'Rojo',
+        'Verde',
+        'Beige',
+        'Marrón',
+        'Rosa',
+        'Caqui',
+      ],
+    },
+    { id: 'material', name: 'Material', values: ['Algodón', 'Poliéster', 'Lino', 'Cuero', 'Denim', 'Lana'] },
+  ];
+  for (const attr of attributesList) {
+    await db.collection('tenants').doc('tienda-dos').collection('attributes').doc(attr.id).set({
+      name: attr.name,
+      values: attr.values,
+    });
+  }
+  console.log('[Seed] Seeded attributes list for tienda-dos');
+
+
   // 3. Ensure a default active billing account exists
   const billingAccountId = '012345-6789AB-CDEF01';
   await db.collection('billingAccounts').doc(billingAccountId).set({
