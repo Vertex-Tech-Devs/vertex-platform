@@ -9,7 +9,7 @@ service cloud.firestore {
 
     function isPlatformAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.platformAdmin == true || request.auth.token.superAdmin == true);
+        (request.auth.token.get('platformAdmin', false) == true || request.auth.token.get('superAdmin', false) == true);
     }
 
     function isTenantAdmin(tenantId) {
