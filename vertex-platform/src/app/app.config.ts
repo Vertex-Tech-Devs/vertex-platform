@@ -13,7 +13,7 @@ import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
-import { environment } from '@environments/environment';
+import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
