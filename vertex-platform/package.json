@@ -71,7 +71,7 @@
     "@angular/cli": "21.2.16",
     "@angular/compiler-cli": "21.2.17",
 
-    "@clack/prompts": "^1.5.0",
+    "@clack/prompts": "^1.6.0",
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
