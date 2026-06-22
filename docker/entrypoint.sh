@@ -41,6 +41,10 @@ install_if_missing() {
 mkdir -p packages
 ln -sfn .. packages/platform
 
+# Create symlink so scripts in /workspace/platform/scripts can resolve '../../storefront' to storefront
+ln -sfn platform/packages/ecommerce-vertex /workspace/storefront
+
+
 install_if_missing "." "npm ci --legacy-peer-deps --loglevel=error" "root workspace"
 install_if_missing "vertex-platform" "npm ci --legacy-peer-deps --loglevel=error" "vertex-platform"
 install_if_missing "packages/ecommerce-vertex" "CI=true npm ci --legacy-peer-deps --loglevel=error" "ecommerce-vertex"
