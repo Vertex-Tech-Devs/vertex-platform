@@ -29,6 +29,11 @@ rm -rf vertex-platform/.angular/cache vertex-platform/dist
 rm -rf ../storefront/.angular/cache ../storefront/dist
 echo ""
 
+# Apagar contenedores previos para liberar puertos e iniciar limpios
+echo "🛑  Stopping active containers if any..."
+docker compose down
+echo ""
+
 # Build + start en background
 echo "🔨  Building and starting containers..."
 docker compose up -d --build
