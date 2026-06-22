@@ -1754,7 +1754,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, tenantId, verticalId, store.name, includeMockData !== false);
+      await seedStoreData(auth, projectId, tenantId, verticalId, store.name, includeMockData !== false, true);
       return { success: true };
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1773,6 +1773,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
             verticalId,
             store.name,
             includeMockData !== false,
+            true,
           );
           await db.collection('stores').doc(storeId).update({
             runtimeProjectId: fallbackProjectId,
