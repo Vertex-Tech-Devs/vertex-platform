@@ -12,6 +12,10 @@ service cloud.firestore {
         (request.auth.token.get('platformAdmin', false) == true || request.auth.token.get('superAdmin', false) == true);
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function isTenantAdmin(tenantId) {
       return isAuthenticated() && (
         (request.auth.token.get('admin', false) == true && request.auth.token.get('tenantId', '') == tenantId) ||
@@ -97,6 +101,43 @@ service cloud.firestore {
       match /orders/{orderId} {
         allow get, create: if true;
         allow list, update, delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /pages/{docId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /configuracion/{docId} {
+        allow read: if true;
+        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /settings/{docId} {
+        allow read, write: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /users/{userId} {
+        allow read: if isOwner(userId) || isPlatformAdmin() || isTenantAdmin(tenantId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || isPlatformAdmin() || isTenantAdmin(tenantId);
+        allow delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
+      }
+
+      match /clients/{clientId} {
+        allow read: if isPlatformAdmin() || isTenantAdmin(tenantId);
+        allow write: if isPlatformAdmin();
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isPlatformAdmin() || (isAuthenticated()
+          && (resource.data.userId == request.auth.uid || isTenantAdmin(tenantId)));
+      }
+
+      match /mail/{docId} {
+        allow read, write: if isPlatformAdmin() || isTenantAdmin(tenantId);
       }
     }
 

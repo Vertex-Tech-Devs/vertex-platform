@@ -59,6 +59,9 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
+      - name: Validate Firestore rules alignment
+        run: npm run validate:rules --prefix vertex-platform
+
       - name: Lint
         run: npm run lint
 

@@ -20,6 +20,10 @@ echo ""
 echo "Running strict platform pre-push quality gates..."
 echo ""
 
+# 0. Firestore Rules check
+echo "Validating Firestore rules structural alignment..."
+npm run validate:rules --prefix vertex-platform
+
 # 1. Prettier check
 echo "Checking formatting with Prettier..."
 npx prettier --check "vertex-platform/src/**/*.{ts,html,scss}" "vertex-platform/functions/src/**/*.ts"

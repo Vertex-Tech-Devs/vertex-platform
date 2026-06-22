@@ -19,6 +19,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "typecheck": "tsc --noEmit",
+    "validate:rules": "tsx scripts/validate-firestore-rules.ts",
     "qa": "tsx scripts/qa.ts",
     "qa:full": "tsx scripts/qa.ts --full",
     "e2e": "cypress open",
