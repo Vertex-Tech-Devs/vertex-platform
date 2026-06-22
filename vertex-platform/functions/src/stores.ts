@@ -1737,6 +1737,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
 
     const store = storeSnap.data() as {
       name: string;
+      slug: string;
       firebaseProjectId?: string;
       runtimeProjectId?: string;
       verticalId?: string;
@@ -1747,12 +1748,13 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
         ? store.firebaseProjectId
         : null;
     const verticalId = store.verticalId || 'retail';
+    const tenantId = store.slug;
 
     const auth = await getOwnerOAuthClient();
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, verticalId, store.name, includeMockData !== false);
+      await seedStoreData(auth, projectId, tenantId, verticalId, store.name, includeMockData !== false);
       return { success: true };
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1767,6 +1769,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
           await seedStoreData(
             auth,
             fallbackProjectId,
+            tenantId,
             verticalId,
             store.name,
             includeMockData !== false,
