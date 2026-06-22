@@ -13,9 +13,11 @@ service cloud.firestore {
     }
 
     function isTenantAdmin(tenantId) {
-      return isAuthenticated() && 
-        resource.data.tenantId == tenantId &&
-        get(/databases/$(database)/documents/tenants/$(tenantId)/admin_roles/$(request.auth.token.email)).data.role == 'admin';
+      return isAuthenticated() && (
+        (request.auth.token.get('admin', false) == true && request.auth.token.get('tenantId', '') == tenantId) ||
+        (exists(/databases/$(database)/documents/tenants/$(tenantId)/admin_roles/$(request.auth.token.email)) &&
+         get(/databases/$(database)/documents/tenants/$(tenantId)/admin_roles/$(request.auth.token.email)).data.role == 'admin')
+      );
     }
 
     // 1. Regla para Entornos Dedicados (Single Tenant / Enterprise)
