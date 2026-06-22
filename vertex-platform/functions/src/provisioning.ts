@@ -1496,7 +1496,16 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     await storeRef.update(updates);
 
     try {
-      await executeProvisioningSteps(storeId);
+      // Trigger execution in the background to avoid 504 Gateway Timeout on the HTTP call
+      void executeProvisioningSteps(storeId).catch(async (err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[retryProvisioning:background] Unexpected error for store ${storeId}:`, err);
+        await storeRef.update({
+          status: 'error',
+          updatedAt: new Date(),
+          unhandledProvisioningError: message.slice(0, 800),
+        });
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await storeRef.update({
@@ -1506,7 +1515,7 @@ export const retryProvisioning = onCall<{ storeId: string }>(
       });
       throw new HttpsError(
         'internal',
-        'Provisioning retry failed unexpectedly. Review provisioning error details and try again.',
+        'Failed to trigger provisioning. Review error details and try again.',
       );
     }
     return { success: true };
