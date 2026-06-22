@@ -52,6 +52,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout storefront repo
+        uses: actions/checkout@v4
+        with:
+          repository: Vertex-Tech-Devs/ecommerce-vertex
+          path: ../storefront
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
