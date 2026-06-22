@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
+  appCheckDebugToken: false as boolean | string,
   // TODO: Register reCAPTCHA v3 in Firebase Console → App Check → Apps → Register,
   // then paste the site key here. Leave empty to skip App Check enforcement.
   appCheckSiteKey: '',
