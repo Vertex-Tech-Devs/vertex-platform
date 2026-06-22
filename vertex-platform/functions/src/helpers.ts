@@ -189,22 +189,47 @@ export async function apiFetch(
   url: string,
   options: { method?: string; body?: unknown; quotaProject?: string } = {},
 ): Promise<unknown> {
-  const tokenRes = await auth.getAccessToken();
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${tokenRes.token}`,
-    'Content-Type': 'application/json',
-  };
-  headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
-  const res = await fetch(url, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  const maxAttempts = 5;
+  let delayMs = 2000;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const tokenRes = await auth.getAccessToken();
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${tokenRes.token}`,
+        'Content-Type': 'application/json',
+      };
+      headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
+      const res = await fetch(url, {
+        method: options.method ?? 'GET',
+        headers,
+        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      });
+      if (res.status === 429 && i < maxAttempts - 1) {
+        console.warn(
+          `[apiFetch] Rate limited (429) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${delayMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${res.status} ${res.statusText}: ${text}`);
+      }
+      return res.json();
+    } catch (err) {
+      if (i < maxAttempts - 1 && String(err).includes('429')) {
+        console.warn(
+          `[apiFetch] Encountered rate limit error on ${url}: ${String(err)}. Retrying in ${delayMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      throw err;
+    }
   }
-  return res.json();
+  throw new Error(`Max retry attempts reached for apiFetch: ${url}`);
 }
 
 export async function retry<T>(
