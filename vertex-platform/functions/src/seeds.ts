@@ -1212,12 +1212,26 @@ export async function seedStoreData(
 
   // 4. Seed Categories
   for (const cat of seed.categories) {
+    const categoryImages: Record<string, string> = {
+      remeras: '1521572163474-6864f9cf17ab',
+      pantalones: '1542272604-787c3835535d',
+      zapatillas: '1542291026-7eec264c27ff',
+      accesorios: '1511499767150-a48a237f0083',
+      camperas: '1551028719-00167b16eac5',
+      hamburguesas: '1568901346375-23c9450c58cd',
+      acompanamientos: '1573080496219-bb080dd4f877',
+      bebidas: '1513558161293-cdaf765ed2fd',
+      hogar: '1507473885765-e6ed057f782c',
+      tecnologia: '1595225476474-87563907a212',
+      papeleria: '1531346878377-a5be20888e57',
+    };
+    const photoId = categoryImages[cat.slug] || '1521572163474-6864f9cf17ab';
     const docData = {
       name: cat.name,
       slug: cat.slug,
       parentId: cat.parentId,
       filterableAttributes: cat.filterableAttributes,
-      imageUrl: cat.slug ? u(cat.slug, 400, 400) : null,
+      imageUrl: u(photoId, 400, 400),
       createdAt: new Date(),
     };
     await retry(
