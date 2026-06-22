@@ -1305,6 +1305,7 @@ export async function seedStoreData(
           }
         });
 
+        const variantDocId = `var-${varIdx}`;
         const variantData = {
           productId: prod.id,
           sku: `${prod.id.toUpperCase()}-${varIdx++}`,
@@ -1316,7 +1317,7 @@ export async function seedStoreData(
           () =>
             apiFetch(
               auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/v${varIdx}`)}`,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/${variantDocId}`)}`,
               {
                 method: 'PATCH',
                 body: toFirestoreFields(variantData),

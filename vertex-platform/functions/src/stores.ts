@@ -1747,7 +1747,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       store.firebaseProjectId && store.firebaseProjectId !== projectId
         ? store.firebaseProjectId
         : null;
-    const verticalId = store.verticalId || 'retail';
+    const verticalId = store.verticalId || 'indumentaria';
     const tenantId = store.slug;
 
     const auth = await getOwnerOAuthClient();

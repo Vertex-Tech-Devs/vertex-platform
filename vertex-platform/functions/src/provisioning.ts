@@ -848,7 +848,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      const effectiveVerticalId = verticalId || 'retail';
+      const effectiveVerticalId = verticalId || 'indumentaria';
       const hasMockData = includeMockData !== false;
       await seedStoreData(auth, projectId, tenantId, effectiveVerticalId, name, hasMockData, true);
 
