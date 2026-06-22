@@ -1614,7 +1614,7 @@ export async function seedStoreData(
         ];
 
   const homePagePayload = {
-    heroImages,
+    heroImages: heroImages.map((url) => ({ imageUrl: url })),
     carouselSettings: { interval: 4500, showIndicators: true },
     title: bannerTitle,
     buttonText: 'Explorar todo',

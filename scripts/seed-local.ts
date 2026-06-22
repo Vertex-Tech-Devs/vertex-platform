@@ -65,7 +65,7 @@ async function seed() {
   await tiendaDosRef.set({
     tenantId: 'tienda-dos',
     slug: 'tienda-dos',
-    name: 'Tienda Uno',
+    name: 'Tienda Dos',
     description: 'Tienda de demostración local con catálogo completo',
     status: 'active',
     plan: 'pro',
@@ -309,13 +309,13 @@ async function seed() {
 
   // 9. Seed Store Configuration
   const storeConfig = {
-    storeName: 'Tienda Uno',
+    storeName: 'Tienda Dos',
     contactPhone: '+54 11 4567-8900',
     contactEmail: 'juan.l.espeche@gmail.com',
     socialInstagramUrl: 'https://instagram.com/tiendauno',
     socialFacebookUrl: '',
     socialWhatsAppUrl: '',
-    copyrightText: '© 2026 Tienda Uno. Todos los derechos reservados.'
+    copyrightText: '© 2026 Tienda Dos. Todos los derechos reservados.'
   };
   await tenantRef.collection('configuracion').doc('store').set(storeConfig);
   console.log('[Seed] Seeded store configuration');
@@ -329,7 +329,7 @@ async function seed() {
     '1490481651871-ab68de25d43d',
   ];
   await tenantRef.collection('siteContent').doc('homePage').set({
-    heroImages: HERO_IDS.map((id) => u(id, 1920, 700)),
+    heroImages: HERO_IDS.map((id) => ({ imageUrl: u(id, 1920, 700) })),
     carouselSettings: { interval: 4500, showIndicators: true },
     title: 'Nueva Colección 2026',
     buttonText: 'Explorar todo',
@@ -366,7 +366,7 @@ async function seed() {
     centralTitle: 'Nuestra Historia',
     centralImageUrl: u('1483985988355-763728e1935b', 800, 600),
     centralDescription:
-      'Tienda Uno nació con un objetivo claro: ' +
+      'Tienda Dos nació con un objetivo claro: ' +
       'democratizar la moda de calidad. Trabajamos exclusivamente con proveedores certificados, ' +
       'materiales de primera línea y diseños propios que reflejan la identidad urbana argentina.\n\n' +
       'Hoy somos un gran equipo, despachamos a todo el país y contamos con miles de ' +
