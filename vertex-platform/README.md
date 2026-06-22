@@ -83,6 +83,7 @@ La plataforma cuenta con dos entornos principales administrados de forma aislada
 | `npm run build:prod` | Compila el frontend optimizado para producción |
 | `npm run lint` | Analiza el código con ESLint en búsqueda de errores de formato y estilo |
 | `npm run typecheck` | Ejecuta la verificación estricta de tipos de TypeScript |
+| `npm run validate:rules` | Valida que las reglas de seguridad de Firestore estén sincronizadas entre storefront y platform |
 | `npm test` | Corre las pruebas unitarias de la aplicación frontend |
 | `npm run e2e:ci` | Corre las pruebas integrales de punta a punta en Cypress (modo headless) |
 | `npm run qa` | Ejecuta de forma integrada el análisis estático y pruebas unitarias básicas |

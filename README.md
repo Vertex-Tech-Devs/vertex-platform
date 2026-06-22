@@ -111,7 +111,10 @@ Una vez levantado el entorno con Docker o el orquestador nativo, los siguientes 
 ### QA Local Automatizado
 Antes de commitear o abrir un PR, es obligatorio verificar que la suite de QA unificada esté limpia:
 ```bash
-# Ejecutar verificación de linter y compilación estricta de TypeScript
+# Validar la alineación estructural de reglas de seguridad de Firestore
+npm run validate:rules
+
+# Ejecutar verificación de linter, compilación estricta de TypeScript y reglas de Firestore
 npm run qa:global
 
 # Ejecutar tests unitarios de las Cloud Functions v2
