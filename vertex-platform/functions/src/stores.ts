@@ -1720,7 +1720,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
 );
 
 export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can seed store data.');
