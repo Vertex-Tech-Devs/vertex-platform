@@ -1261,8 +1261,8 @@ export async function seedStoreData(
     variantAttributes: string[];
   }> = [];
 
-  // Seed all products if mock data is requested, otherwise start with a clean empty catalog for the client
-  const productsToSeed = includeMockData ? seed.products : [];
+  // Products are always seeded as they are editable catalog data
+  const productsToSeed = seed.products;
   for (const prod of productsToSeed) {
     const discount = prod.discount ?? 0;
     const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
