@@ -568,6 +568,7 @@ export const redeployStore = onCall<{ storeId: string }>(
       firebaseProjectId?: string;
       runtimeProjectId?: string;
       name: string;
+      slug: string;
       templateVersion?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
