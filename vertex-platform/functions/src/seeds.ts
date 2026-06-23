@@ -1131,6 +1131,7 @@ export async function seedStoreData(
   storeName?: string,
   includeMockData = true,
   bypassSafety = false,
+  storeId?: string,
 ): Promise<void> {
   // Builds a tenant-namespaced Firestore path segment
   const tp = (path: string) => `tenants/${tenantId}/${path}`;
@@ -1739,6 +1740,53 @@ export async function seedStoreData(
   // 10. Seed Footer (configuracion/footer)
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const footerPayload = {
+    tenantId,
+    storeId: storeId || tenantId,
+    storeName: sName,
+    tagline: 'Tu tienda de moda de marca blanca',
+    strapline: '',
+    logoUrl: '',
+    faviconUrl: '',
+    colors: {
+      primary: '#ea580c',
+      accent: '#ef4444',
+      background: '#ffffff',
+    },
+    contact: {
+      phone: '+54 11 4567-8900',
+      email: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
+      whatsApp: 'https://wa.me/5491145678900',
+      instagram: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
+      facebook: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
+    },
+    seo: {
+      metaTitle: sName,
+      metaDescription: `Bienvenido a nuestra tienda online ${sName}.`,
+    },
+    features: {
+      reviewsEnabled: false,
+      wishlistEnabled: false,
+      blogEnabled: false,
+    },
+    payments: {
+      mercadoPagoPublicKey: '',
+      mercadoPago: {
+        publicKey: '',
+        accessTokenSecret: 'mp-access-token',
+        accessTokenMasked: '',
+        webhookUrl: '',
+        validationStatus: 'pending',
+        validationMessage: 'Sin token configurado.',
+      },
+    },
+    currency: 'ARS',
+    currencySymbol: '$',
+    country: 'AR',
+    setupCompleted: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+
+    // Legacy fields mapping for backwards compatibility
     contactPhone: '+54 11 4567-8900',
     contactEmail: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
     socialInstagramUrl: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
@@ -1751,7 +1799,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}?updateMask.fieldPaths=contactPhone&updateMask.fieldPaths=contactEmail&updateMask.fieldPaths=socialInstagramUrl&updateMask.fieldPaths=socialFacebookUrl&updateMask.fieldPaths=socialWhatsAppUrl&updateMask.fieldPaths=copyrightText`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),
