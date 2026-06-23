@@ -1754,7 +1754,16 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
     const { seedStoreData } = require('./seeds');
 
     try {
-      await seedStoreData(auth, projectId, tenantId, verticalId, store.name, includeMockData !== false, true, storeId);
+      await seedStoreData(
+        auth,
+        projectId,
+        tenantId,
+        verticalId,
+        store.name,
+        includeMockData !== false,
+        true,
+        storeId,
+      );
       return { success: true };
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
