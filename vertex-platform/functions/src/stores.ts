@@ -598,6 +598,7 @@ export const redeployStore = onCall<{ storeId: string }>(
           event_type: 'provision-store',
           client_payload: {
             store_id: storeId,
+            tenant_id: store.slug,
             project_id: projectId,
             firebase_config: JSON.stringify(firebaseConfig),
             store_name: store.name,
