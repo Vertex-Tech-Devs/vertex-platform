@@ -28,6 +28,15 @@ import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '1.0.0';
+
+function normalizeStorageBucket(projectId: string, storageBucket: string | undefined): string {
+  const bucket = storageBucket?.trim() ?? '';
+  const bucketProject = bucket.split('.')[0] ?? '';
+  if (!bucket || bucketProject !== projectId) {
+    return `${projectId}.appspot.com`;
+  }
+  return bucket;
+}
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 export const provisionStore = onCall<CreateStorePayload>(
@@ -717,7 +726,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         apiKey: configRes['apiKey'],
         authDomain: configRes['authDomain'],
         projectId: configRes['projectId'],
-        storageBucket: configRes['storageBucket'],
+        storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
         messagingSenderId: configRes['messagingSenderId'],
         appId: configRes['appId'],
       };
@@ -1421,6 +1430,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             event_type: 'provision-store',
             client_payload: {
               store_id: storeId,
+              tenant_id: tenantId,
               project_id: projectId,
               site_id: runtimeSiteId || 'default',
               firebase_config: JSON.stringify(firebaseConfig),
