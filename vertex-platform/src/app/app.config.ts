@@ -19,7 +19,7 @@ import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
-const db = initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true });
+const db = initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true, forceLongPolling: true });
 
 const isLocal =
   typeof window !== 'undefined' &&

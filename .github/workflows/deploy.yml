@@ -172,7 +172,7 @@ jobs:
       - name: Deploy to Firebase Development
         working-directory: vertex-platform
         run: |
-          npx --yes firebase-tools deploy \
+          npx --yes firebase-tools@14 deploy \
             --project vertex-platform-dev \
             --only hosting:dev,functions,firestore \
             --non-interactive \
@@ -217,7 +217,7 @@ jobs:
       - name: Deploy to Firebase Production
         working-directory: vertex-platform
         run: |
-          npx --yes firebase-tools deploy \
+          npx --yes firebase-tools@14 deploy \
             --project vertex-platform-app \
             --only hosting:prod,functions,firestore \
             --non-interactive \
