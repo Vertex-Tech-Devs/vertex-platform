@@ -324,6 +324,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          firebaseToolsVersion: '14'
           projectId: vertex-platform-dev
           target: dev
           channelId: pr-${{ github.event.pull_request.number }}
