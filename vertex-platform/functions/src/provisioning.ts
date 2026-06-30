@@ -110,7 +110,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = (selectedShard as StoreShard).siteId || 'default';
         isNewShard = false;
       } else {
         // Generate a new shared-shard project autonomously!
@@ -119,7 +119,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = 'default';
       }
     }
 
@@ -181,7 +181,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         firebaseProjectId: projectId,
         defaultUrl:
           runtimeMode === 'shared-shard'
-            ? `https://${runtimeSiteId}.web.app`
+            ? `https://${projectId}.web.app?tenantId=${slug}`
             : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
@@ -648,7 +648,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
-      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
+      if (runtimeMode === 'shared-shard' && runtimeSiteId && runtimeSiteId !== 'default') {
         try {
           await apiFetch(
             auth,
