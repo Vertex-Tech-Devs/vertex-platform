@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: '24.18.0'
   NODE_OPTIONS: '--no-warnings'
   NPM_CONFIG_LOGLEVEL: 'error'
   NPM_CONFIG_AUDIT: 'false'
