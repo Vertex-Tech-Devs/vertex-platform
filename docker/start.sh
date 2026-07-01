@@ -27,6 +27,8 @@ fi
 echo "🧹  Limpiando caché de compilación de Angular (.angular/cache y dist)..."
 rm -rf vertex-platform/.angular/cache vertex-platform/dist
 rm -rf ../storefront/.angular/cache ../storefront/dist
+# Remove named Angular cache volumes so Vite starts fresh (avoids 504 stale-dep errors)
+docker volume rm vertex-stack_angular_cache_platform vertex-stack_angular_cache_storefront 2>/dev/null || true
 echo ""
 
 # Apagar contenedores previos para liberar puertos e iniciar limpios

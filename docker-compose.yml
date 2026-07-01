@@ -42,6 +42,12 @@ services:
       - storefront_nm:/workspace/platform/packages/ecommerce-vertex/node_modules
       - storefront_fn_nm:/workspace/platform/packages/ecommerce-vertex/functions/node_modules
 
+      # ── Named volume for Angular/Vite dep-optimization cache ──────────────
+      # Keeps the cache between restarts but allows full wipe via `down -v`.
+      # Without this, stale cache in the container layer causes 504 errors.
+      - angular_cache_platform:/workspace/platform/vertex-platform/.angular/cache
+      - angular_cache_storefront:/workspace/platform/packages/ecommerce-vertex/.angular/cache
+
       # ── Google Cloud Credentials (ADC for Secret Manager) ─────────────────
       - ~/.config/gcloud:/root/.config/gcloud:ro
 
@@ -69,3 +75,5 @@ volumes:
   functions_nm:
   storefront_nm:
   storefront_fn_nm:
+  angular_cache_platform:
+  angular_cache_storefront:
