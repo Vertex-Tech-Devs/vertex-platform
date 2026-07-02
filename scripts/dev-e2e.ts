@@ -114,13 +114,19 @@ async function main() {
       installIfMissing('packages/ecommerce-vertex/functions', 'ecommerce-vertex functions');
 
       const envPath = 'packages/ecommerce-vertex/functions/.env.local';
-      if (!fs.existsSync(envPath) && !fs.existsSync('packages/ecommerce-vertex/functions/.env')) {
+      if (!fs.existsSync('packages/ecommerce-vertex/functions/.env')) {
         log('Orchestrator', 'Writing default environment variables to storefront functions...');
         const devEnvContent = `MERCADOPAGO_ACCESSTOKEN=TEST-DEVELOPMENT-ACCESS-TOKEN-VALUE
 MERCADOPAGO_WEBHOOK_URL=http://localhost:5001/ecommerce-vertex-dev/us-central1/mercadoPagoWebhookHandler
 SITE_URL=http://localhost:4201
 `;
-        fs.writeFileSync(envPath, devEnvContent, 'utf-8');
+        try {
+          fs.writeFileSync(envPath, devEnvContent, { encoding: 'utf-8', flag: 'wx' });
+        } catch (err: any) {
+          if (err.code !== 'EEXIST') {
+            throw err;
+          }
+        }
       }
     }
 
