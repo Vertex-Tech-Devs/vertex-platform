@@ -15,9 +15,9 @@ jobs:
     name: Sync Context to Gemini
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # v4
+      - uses: actions/checkout@v7 # v4
 
-      - uses: actions/setup-node@v4 # v4
+      - uses: actions/setup-node@v6 # v4
         with:
           node-version: '24'
           cache: npm
