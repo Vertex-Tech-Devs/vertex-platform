@@ -1131,6 +1131,7 @@ export async function seedStoreData(
   storeName?: string,
   includeMockData = true,
   bypassSafety = false,
+  storeId?: string,
 ): Promise<void> {
   // Builds a tenant-namespaced Firestore path segment
   const tp = (path: string) => `tenants/${tenantId}/${path}`;
@@ -1212,12 +1213,26 @@ export async function seedStoreData(
 
   // 4. Seed Categories
   for (const cat of seed.categories) {
+    const categoryImages: Record<string, string> = {
+      remeras: '1521572163474-6864f9cf17ab',
+      pantalones: '1542272604-787c3835535d',
+      zapatillas: '1542291026-7eec264c27ff',
+      accesorios: '1511499767150-a48a237f0083',
+      camperas: '1551028719-00167b16eac5',
+      hamburguesas: '1568901346375-23c9450c58cd',
+      acompanamientos: '1573080496219-bb080dd4f877',
+      bebidas: '1513558161293-cdaf765ed2fd',
+      hogar: '1507473885765-e6ed057f782c',
+      tecnologia: '1595225476474-87563907a212',
+      papeleria: '1531346878377-a5be20888e57',
+    };
+    const photoId = categoryImages[cat.slug] || '1521572163474-6864f9cf17ab';
     const docData = {
       name: cat.name,
       slug: cat.slug,
       parentId: cat.parentId,
       filterableAttributes: cat.filterableAttributes,
-      imageUrl: cat.slug ? u(cat.slug, 400, 400) : null,
+      imageUrl: u(photoId, 400, 400),
       createdAt: new Date(),
     };
     await retry(
@@ -1246,8 +1261,8 @@ export async function seedStoreData(
     variantAttributes: string[];
   }> = [];
 
-  // Limit to first 15 products (3 per category) to keep seed lean during testing
-  const productsToSeed = seed.products.slice(0, 15);
+  // Products are always seeded as they are editable catalog data
+  const productsToSeed = seed.products;
   for (const prod of productsToSeed) {
     const discount = prod.discount ?? 0;
     const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
@@ -1305,6 +1320,7 @@ export async function seedStoreData(
           }
         });
 
+        const variantDocId = `var-${varIdx}`;
         const variantData = {
           productId: prod.id,
           sku: `${prod.id.toUpperCase()}-${varIdx++}`,
@@ -1316,7 +1332,7 @@ export async function seedStoreData(
           () =>
             apiFetch(
               auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/v${varIdx}`)}`,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/${variantDocId}`)}`,
               {
                 method: 'PATCH',
                 body: toFirestoreFields(variantData),
@@ -1387,8 +1403,8 @@ export async function seedStoreData(
     // 6. Seed Clients (from CLIENT_DATA)
     const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
     let clientIdx = 0;
-    // Limit to 10 clients to keep seed lean during testing
-    for (const client of CLIENT_DATA.slice(0, 10)) {
+    // Seed all clients from CLIENT_DATA
+    for (const client of CLIENT_DATA) {
       const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
       const clientDocId = `cli-${clientIdx}`;
       const clientPayload = {
@@ -1428,8 +1444,8 @@ export async function seedStoreData(
 
     // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
     let orderIdx = 0;
-    // Limit to 10 orders to keep seed lean during testing
-    for (const order of ORDER_DATA.slice(0, 10)) {
+    // Seed all orders from ORDER_DATA
+    for (const order of ORDER_DATA) {
       const cl = seededClients[order.clientIdx % seededClients.length];
       const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
       const orderDocId = `ord-${orderIdx++}`;
@@ -1614,7 +1630,7 @@ export async function seedStoreData(
         ];
 
   const homePagePayload = {
-    heroImages,
+    heroImages: heroImages.map((url) => ({ imageUrl: url })),
     carouselSettings: { interval: 4500, showIndicators: true },
     title: bannerTitle,
     buttonText: 'Explorar todo',
@@ -1724,6 +1740,53 @@ export async function seedStoreData(
   // 10. Seed Footer (configuracion/footer)
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const footerPayload = {
+    tenantId,
+    storeId: storeId || tenantId,
+    storeName: sName,
+    tagline: 'Tu tienda de moda de marca blanca',
+    strapline: '',
+    logoUrl: '',
+    faviconUrl: '',
+    colors: {
+      primary: '#ea580c',
+      accent: '#ef4444',
+      background: '#ffffff',
+    },
+    contact: {
+      phone: '+54 11 4567-8900',
+      email: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
+      whatsApp: 'https://wa.me/5491145678900',
+      instagram: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
+      facebook: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
+    },
+    seo: {
+      metaTitle: sName,
+      metaDescription: `Bienvenido a nuestra tienda online ${sName}.`,
+    },
+    features: {
+      reviewsEnabled: false,
+      wishlistEnabled: false,
+      blogEnabled: false,
+    },
+    payments: {
+      mercadoPagoPublicKey: '',
+      mercadoPago: {
+        publicKey: '',
+        accessTokenSecret: 'mp-access-token',
+        accessTokenMasked: '',
+        webhookUrl: '',
+        validationStatus: 'pending',
+        validationMessage: 'Sin token configurado.',
+      },
+    },
+    currency: 'ARS',
+    currencySymbol: '$',
+    country: 'AR',
+    setupCompleted: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+
+    // Legacy fields mapping for backwards compatibility
     contactPhone: '+54 11 4567-8900',
     contactEmail: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
     socialInstagramUrl: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
@@ -1736,7 +1799,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}?updateMask.fieldPaths=contactPhone&updateMask.fieldPaths=contactEmail&updateMask.fieldPaths=socialInstagramUrl&updateMask.fieldPaths=socialFacebookUrl&updateMask.fieldPaths=socialWhatsAppUrl&updateMask.fieldPaths=copyrightText`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),

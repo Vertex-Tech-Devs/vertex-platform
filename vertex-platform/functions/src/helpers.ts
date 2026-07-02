@@ -21,8 +21,11 @@ export interface ProvisioningOwnerCredentials {
   maxProjects?: number;
 }
 
-export const PLATFORM_PROJECT =
-  process.env['GCLOUD_PROJECT'] ?? process.env['GOOGLE_CLOUD_PROJECT'] ?? 'vertex-platform-app';
+export const PLATFORM_PROJECT = (() => {
+  const p =
+    process.env['GCLOUD_PROJECT'] ?? process.env['GOOGLE_CLOUD_PROJECT'] ?? 'vertex-platform-app';
+  return p === 'demo-vertex' ? 'vertex-platform-dev' : p;
+})();
 
 export const ALLOWED_ORIGINS = [
   'https://vertex-platform-app.web.app',
@@ -34,7 +37,7 @@ let cachedGitHubPat: string | null = null;
 let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token: string } | null =
   null;
 let cachedOwnerPool: ProvisioningOwnerCredentials[] | null = null;
-const secretsClient = new SecretManagerServiceClient();
+export const secretsClient = new SecretManagerServiceClient();
 
 function isMissingSecretError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -161,6 +164,7 @@ export async function listProvisioningOwnerCandidates(
 
   return available.map((candidate) => candidate.owner);
 }
+let cachedDeployToken: string | null = null;
 
 export async function getGitHubPat(): Promise<string> {
   if (cachedGitHubPat) return cachedGitHubPat;
@@ -171,27 +175,61 @@ export async function getGitHubPat(): Promise<string> {
   return cachedGitHubPat;
 }
 
+export async function getDeployToken(): Promise<string> {
+  if (cachedDeployToken) return cachedDeployToken;
+  const [version] = await secretsClient.accessSecretVersion({
+    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
+  });
+  cachedDeployToken = version.payload!.data!.toString().trim();
+  return cachedDeployToken;
+}
+
 export async function apiFetch(
   auth: OAuth2Client,
   url: string,
   options: { method?: string; body?: unknown; quotaProject?: string } = {},
 ): Promise<unknown> {
-  const tokenRes = await auth.getAccessToken();
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${tokenRes.token}`,
-    'Content-Type': 'application/json',
-  };
-  headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
-  const res = await fetch(url, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  const maxAttempts = 5;
+  let delayMs = 2000;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const tokenRes = await auth.getAccessToken();
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${tokenRes.token}`,
+        'Content-Type': 'application/json',
+      };
+      headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
+      const res = await fetch(url, {
+        method: options.method ?? 'GET',
+        headers,
+        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      });
+      if (res.status === 429 && i < maxAttempts - 1) {
+        console.warn(
+          `[apiFetch] Rate limited (429) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${delayMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${res.status} ${res.statusText}: ${text}`);
+      }
+      return res.json();
+    } catch (err) {
+      if (i < maxAttempts - 1 && String(err).includes('429')) {
+        console.warn(
+          `[apiFetch] Encountered rate limit error on ${url}: ${String(err)}. Retrying in ${delayMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      throw err;
+    }
   }
-  return res.json();
+  throw new Error(`Max retry attempts reached for apiFetch: ${url}`);
 }
 
 export async function retry<T>(

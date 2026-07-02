@@ -73,3 +73,20 @@ vertex-platform/scripts/check-root-collections.ts
 vertex-platform/scripts/inspect-prueba-tres.ts
 vertex-platform/scripts/delete-prueba-tres.ts
 vertex-platform/ext-params.env
+
+# Operational tracking files
+task.md
+implementation_plan.md
+walkthrough.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Agent/IDE configurations & logs
+.antigravitycli/
+firestore-debug.log
+packages/platform
+
+# Local emulator persistence
+emulator-data/

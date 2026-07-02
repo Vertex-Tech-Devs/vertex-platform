@@ -1,0 +1,45 @@
+#!/bin/sh
+set -e
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "develop" ]; then
+  if [ "$ALLOW_DIRECT_PUSH" != "true" ]; then
+    echo ""
+    echo "✖ Direct push to $BRANCH is not allowed."
+    echo "  Please open a PR from a feature branch."
+    echo "  To bypass this protection (for automation/agent), set ALLOW_DIRECT_PUSH=true."
+    echo ""
+    exit 1
+  else
+    echo "✔ ALLOW_DIRECT_PUSH=true detected. Bypassing branch protection."
+  fi
+fi
+
+echo ""
+echo "Running strict platform pre-push quality gates..."
+echo ""
+
+# 0. Firestore Rules check
+echo "Validating Firestore rules structural alignment..."
+npm run validate:rules --prefix vertex-platform
+
+# 1. Prettier check
+echo "Checking formatting with Prettier..."
+npx prettier --check "vertex-platform/src/**/*.{ts,html,scss}" "vertex-platform/functions/src/**/*.ts"
+
+# 2. Lint check
+echo "Running ESLint..."
+npm run lint
+
+# 3. Typecheck
+echo "Running type check..."
+npm run typecheck
+
+# 4. Tests
+echo "Running tests..."
+npm run test
+
+echo ""
+echo "✔ All platform quality gates passed! Proceeding with push."
+echo ""

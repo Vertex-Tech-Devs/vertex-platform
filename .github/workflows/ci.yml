@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '24.18.0'
   NODE_OPTIONS: '--no-warnings'
   NPM_CONFIG_LOGLEVEL: 'error'
   NPM_CONFIG_AUDIT: 'false'
@@ -52,12 +52,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout storefront repo
+        run: git clone https://github.com/Vertex-Tech-Devs/ecommerce-vertex.git ../storefront
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - run: npm ci --legacy-peer-deps
+
+      - name: Validate Firestore rules alignment
+        run: npm run validate:rules --prefix vertex-platform
 
       - name: Lint
         run: npm run lint
@@ -92,9 +98,9 @@ jobs:
       - name: Run Storefront Tests
         if: matrix.project == 'ecommerce-vertex'
         run: |
-          npm ci --prefix packages/ecommerce-vertex/functions
-          npm run test:ci --workspace=packages/ecommerce-vertex
-          npm run test --prefix packages/ecommerce-vertex/functions
+          npm ci --prefix ../storefront/functions
+          npm run test:ci --prefix ../storefront
+          npm run test --prefix ../storefront/functions
 
   build:
     name: Build Frontend
@@ -273,7 +279,7 @@ jobs:
       - name: Check develop is not behind main
         run: |
           git fetch origin main develop
-          DIFF=$(git diff origin/develop..origin/main -- '*.ts' '*.html' '*.scss' '*.json' 2>/dev/null | head -c 500)
+          DIFF=$(git diff origin/develop...origin/main -- '*.ts' '*.html' '*.scss' '*.json' 2>/dev/null | head -c 500)
           if [ -n "$DIFF" ]; then
             echo "::warning::develop está desincronizado de main. Ejecutar el Back-Merge obligatorio:"
             echo "::warning::  git checkout develop && git pull origin develop && git merge origin/main && git push origin develop"
@@ -318,6 +324,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          firebaseToolsVersion: '15.22.2'
           projectId: vertex-platform-dev
           target: dev
           channelId: pr-${{ github.event.pull_request.number }}

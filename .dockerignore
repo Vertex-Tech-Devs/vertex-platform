@@ -1,0 +1,39 @@
+# ── node_modules ──────────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+**/dist/
+**/lib/
+.angular/
+**/.angular/
+
+# ── Firebase ──────────────────────────────────────────────────────────────────
+.firebase/
+**/.firebase/
+firebase-debug.log
+firestore-debug.log
+*-debug.log
+
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+coverage/
+**/coverage/
+cypress/videos/
+cypress/screenshots/
+
+# ── OS / IDE ──────────────────────────────────────────────────────────────────
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# ── Environment files (sensitive) ─────────────────────────────────────────────
+.env
+.env.local
+**/functions/.env
+**/functions/.env.local
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore

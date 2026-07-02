@@ -8,16 +8,39 @@ import {
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideFirebaseApp } from '@angular/fire/app';
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
-import { environment } from '@environments/environment';
+import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { AuthService } from '@core/services/auth';
 import { GlobalErrorHandler } from '@core/services/error-reporter';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
-initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true, forceLongPolling: true } as any);
+
+const isLocal =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+if (isLocal) {
+  connectFirestoreEmulator(db, 'localhost', 8080);
+  const fns = getFunctions(firebaseApp);
+  connectFunctionsEmulator(fns, 'localhost', 5001);
+  const auth = getAuth(firebaseApp);
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+  if (typeof window !== 'undefined') {
+    import('firebase/auth')
+      .then(({ signInWithCustomToken }) => {
+        (window as unknown as Record<string, unknown>)['loginWithCustomToken'] = (token: string) =>
+          signInWithCustomToken(auth, token);
+      })
+      .catch((err) => console.error('Error loading signInWithCustomToken', err));
+  }
+}
 
 if (!environment.production) {
   (

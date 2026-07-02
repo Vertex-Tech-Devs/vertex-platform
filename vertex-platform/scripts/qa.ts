@@ -39,7 +39,13 @@ async function main() {
 
   const results: Record<string, { success: boolean; duration: number }> = {};
 
-  // 1. Prettier Format Check
+  // 1. Firestore Rules Validation
+  results['Firestore Rules Alignment'] = runStep(
+    'Firestore Rules Validation',
+    'npx tsx scripts/validate-firestore-rules.ts'
+  );
+
+  // 2. Prettier Format Check
   results['Code Formatting (Prettier)'] = runStep(
     'Code Formatting',
     'npx prettier --check "src/**/*.{ts,html,scss}" "functions/src/**/*.ts"'

@@ -7,6 +7,11 @@
  * never make real network requests.
  */
 beforeEach(() => {
+  // Only apply mock intercepts for mocked tests (not for real integration tests)
+  if (Cypress.spec.name.includes('saas-integration')) {
+    return;
+  }
+
   // Intercept googleapis Auth REST (identitytoolkit, securetoken)
   cy.intercept('POST', 'https://identitytoolkit.googleapis.com/**', (req) => {
     req.reply({

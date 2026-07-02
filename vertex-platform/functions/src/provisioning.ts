@@ -1,7 +1,6 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import type { OAuth2Client } from 'google-auth-library';
 import type {
   CreateStorePayload,
@@ -15,6 +14,8 @@ import {
   PLATFORM_PROJECT,
   getOwnerOAuthClient,
   getGitHubPat,
+  getDeployToken,
+  secretsClient,
   apiFetch,
   retry,
   pollOperation,
@@ -27,10 +28,19 @@ import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '1.0.0';
+
+function normalizeStorageBucket(projectId: string, storageBucket: string | undefined): string {
+  const bucket = storageBucket?.trim() ?? '';
+  const bucketProject = bucket.split('.')[0] ?? '';
+  if (!bucket || bucketProject !== projectId) {
+    return `${projectId}.appspot.com`;
+  }
+  return bucket;
+}
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 export const provisionStore = onCall<CreateStorePayload>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can provision stores.');
@@ -100,7 +110,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = (selectedShard as StoreShard).siteId || 'default';
         isNewShard = false;
       } else {
         // Generate a new shared-shard project autonomously!
@@ -109,7 +119,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = 'default';
       }
     }
 
@@ -171,7 +181,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         firebaseProjectId: projectId,
         defaultUrl:
           runtimeMode === 'shared-shard'
-            ? `https://${runtimeSiteId}.web.app`
+            ? `https://${projectId}.web.app?tenantId=${slug}`
             : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
@@ -217,6 +227,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     isNewShard,
     tenantId,
     id: storeIdAttr,
+    shardId,
   } = currentData as {
     name: string;
     logoUrl: string | null;
@@ -231,6 +242,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     isNewShard?: boolean;
     tenantId: string;
     id: string;
+    shardId?: string;
   };
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
@@ -636,7 +648,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
-      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
+      if (runtimeMode === 'shared-shard' && runtimeSiteId && runtimeSiteId !== 'default') {
         try {
           await apiFetch(
             auth,
@@ -714,7 +726,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         apiKey: configRes['apiKey'],
         authDomain: configRes['authDomain'],
         projectId: configRes['projectId'],
-        storageBucket: configRes['storageBucket'],
+        storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
         messagingSenderId: configRes['messagingSenderId'],
         appId: configRes['appId'],
       };
@@ -749,24 +761,48 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
+      const configPath =
+        runtimeMode === 'shared-shard'
+          ? `tenants/${tenantId}/configuracion/store`
+          : 'configuracion/store';
+
+      console.info(
+        `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
+      );
       await retry(
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/storeConfig`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
             {
               method: 'PATCH',
               body: {
                 fields: {
+                  tenantId: { stringValue: tenantId },
+                  storeId: { stringValue: storeIdAttr },
                   storeName: { stringValue: name },
+                  tagline: { stringValue: '' },
                   strapline: { stringValue: '' },
-                  logoUrl: logoUrl ? { stringValue: logoUrl } : { nullValue: null },
+                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                  faviconUrl: { stringValue: '' },
+                  colors: {
+                    mapValue: {
+                      fields: {
+                        primary: { stringValue: '#ea580c' },
+                        accent: { stringValue: '#ef4444' },
+                        background: { stringValue: '#ffffff' },
+                      },
+                    },
+                  },
                   contact: {
                     mapValue: {
                       fields: {
                         email: { stringValue: ownerEmail },
                         phone: { stringValue: '' },
                         whatsapp: { stringValue: '' },
+                        whatsApp: { stringValue: '' },
+                        instagram: { stringValue: '' },
+                        facebook: { stringValue: '' },
                       },
                     },
                   },
@@ -790,6 +826,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   payments: {
                     mapValue: {
                       fields: {
+                        mercadoPagoPublicKey: { stringValue: '' },
                         mercadoPago: {
                           mapValue: {
                             fields: {
@@ -808,69 +845,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   currency: { stringValue: 'ARS' },
                   currencySymbol: { stringValue: '$' },
                   country: { stringValue: 'AR' },
+                  setupCompleted: { booleanValue: true },
                   createdAt: { timestampValue: now },
                   updatedAt: { timestampValue: now },
-                },
-              },
-            },
-          ),
-        5,
-        6000,
-      );
-
-      console.info(
-        `[provisioning:initFirestore] Writing initial branding config to tenants/${tenantId}/configuracion/store...`,
-      );
-      await retry(
-        () =>
-          apiFetch(
-            auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/configuracion/store`,
-            {
-              method: 'PATCH',
-              body: {
-                fields: {
-                  tenantId: { stringValue: tenantId },
-                  storeId: { stringValue: storeIdAttr },
-                  storeName: { stringValue: name },
-                  tagline: { stringValue: '' },
-                  logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
-                  faviconUrl: { stringValue: '' },
-                  colors: {
-                    mapValue: {
-                      fields: {
-                        primary: { stringValue: '#ea580c' },
-                        accent: { stringValue: '#ef4444' },
-                        background: { stringValue: '#ffffff' },
-                      },
-                    },
-                  },
-                  payments: {
-                    mapValue: {
-                      fields: {
-                        mercadoPagoPublicKey: { stringValue: '' },
-                      },
-                    },
-                  },
-                  contact: {
-                    mapValue: {
-                      fields: {
-                        phone: { stringValue: '' },
-                        email: { stringValue: ownerEmail },
-                        whatsApp: { stringValue: '' },
-                        instagram: { stringValue: '' },
-                        facebook: { stringValue: '' },
-                      },
-                    },
-                  },
-                  seo: {
-                    mapValue: {
-                      fields: {
-                        metaDescription: { stringValue: `Bienvenido a ${name}` },
-                      },
-                    },
-                  },
-                  setupCompleted: { booleanValue: true },
                 },
               },
               quotaProject: projectId,
@@ -880,9 +857,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
-      const effectiveVerticalId = verticalId || 'retail';
+      const effectiveVerticalId = verticalId || 'indumentaria';
       const hasMockData = includeMockData !== false;
-      await seedStoreData(auth, projectId, tenantId, effectiveVerticalId, name, hasMockData, true);
+      await seedStoreData(
+        auth,
+        projectId,
+        tenantId,
+        effectiveVerticalId,
+        name,
+        hasMockData,
+        true,
+        storeIdAttr,
+      );
 
       await setStep('initFirestore', 'done');
     } catch (err) {
@@ -986,7 +972,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('installEmailExtension')) {
     await setStep('installEmailExtension', 'running');
     try {
-      const secretsClient = new SecretManagerServiceClient();
       const [pwVersion] = await secretsClient.accessSecretVersion({
         name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
       });
@@ -1388,17 +1373,49 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
     await setStep('triggerDeploy', 'running');
     try {
+      if (process.env.FUNCTIONS_EMULATOR === 'true') {
+        console.log(
+          `[provisioning:triggerDeploy] Local emulator detected. Auto-completing deploy for store: ${storeId}`,
+        );
+        await storeRef.update({
+          'provisioningSteps.triggerDeploy.status': 'done',
+          'provisioningSteps.triggerDeploy.error': null,
+          status: 'active',
+          lastDeployedAt: new Date(),
+          templateVersion: CURRENT_TEMPLATE_VERSION,
+          schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
+          updatedAt: new Date(),
+        });
+        if (runtimeMode === 'shared-shard' && shardId) {
+          const shardRef = db.collection('shards').doc(shardId);
+          try {
+            await db.runTransaction(async (transaction) => {
+              const shardSnap = await transaction.get(shardRef);
+              if (shardSnap.exists) {
+                const currentActive = shardSnap.data()?.activeStores || 0;
+                transaction.update(shardRef, {
+                  activeStores: currentActive + 1,
+                  updatedAt: new Date(),
+                });
+              }
+            });
+          } catch (err) {
+            console.error(
+              `[provisioning:triggerDeploy] Failed to increment activeStores on shard ${shardId}:`,
+              err,
+            );
+          }
+        }
+        return;
+      }
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action
-      const secrets = new SecretManagerServiceClient();
-      const [version] = await secrets.accessSecretVersion({
-        name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-      });
-      const deployTokenValue = version.payload!.data!.toString().trim();
+      const deployTokenValue = await getDeployToken();
 
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-      const targetRef = env === 'production' ? 'main' : 'develop';
+      const isLocalOrDev = env === 'development' || process.env.FUNCTIONS_EMULATOR === 'true' || !process.env.GCLOUD_PROJECT || !process.env.GOOGLE_CLOUD_PROJECT;
+      const targetRef = isLocalOrDev ? 'develop' : 'main';
 
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
@@ -1414,6 +1431,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             event_type: 'provision-store',
             client_payload: {
               store_id: storeId,
+              tenant_id: tenantId,
               project_id: projectId,
               site_id: runtimeSiteId || 'default',
               firebase_config: JSON.stringify(firebaseConfig),
@@ -1435,7 +1453,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 }
 
 export const runProvisioning = onDocumentCreated(
-  { document: 'stores/{storeId}', timeoutSeconds: 540, memory: '512MiB' },
+  { document: 'stores/{storeId}', timeoutSeconds: 540, memory: '1GiB' },
   async (event) => {
     const data = event.data?.data();
     if (!data || data['status'] !== 'provisioning') return;
@@ -1498,7 +1516,16 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     await storeRef.update(updates);
 
     try {
-      await executeProvisioningSteps(storeId);
+      // Trigger execution in the background to avoid 504 Gateway Timeout on the HTTP call
+      void executeProvisioningSteps(storeId).catch(async (err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[retryProvisioning:background] Unexpected error for store ${storeId}:`, err);
+        await storeRef.update({
+          status: 'error',
+          updatedAt: new Date(),
+          unhandledProvisioningError: message.slice(0, 800),
+        });
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await storeRef.update({
@@ -1508,7 +1535,7 @@ export const retryProvisioning = onCall<{ storeId: string }>(
       });
       throw new HttpsError(
         'internal',
-        'Provisioning retry failed unexpectedly. Review provisioning error details and try again.',
+        'Failed to trigger provisioning. Review error details and try again.',
       );
     }
     return { success: true };
@@ -1527,11 +1554,7 @@ export const completeStoreDeployment = onCall<{
   }
 
   // 1. Verify the deploy token using Secret Manager
-  const secrets = new SecretManagerServiceClient();
-  const [version] = await secrets.accessSecretVersion({
-    name: `projects/${PLATFORM_PROJECT}/secrets/deploy-token/versions/latest`,
-  });
-  const expected = version.payload!.data!.toString().trim();
+  const expected = await getDeployToken();
   if (deployToken !== expected) {
     throw new HttpsError('permission-denied', 'Invalid deploy token.');
   }

@@ -87,6 +87,7 @@ function makeDb(slugExists = false, mockShards: any[] = []) {
         limit: vi.fn().mockReturnThis(),
         get: vi.fn().mockResolvedValue({ empty: true }),
         doc: vi.fn(() => docMock),
+        add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
       };
     }),
   };
@@ -166,6 +167,7 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({ empty: true }),
             doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         return {
@@ -173,6 +175,7 @@ describe('provisionStore handler', () => {
           limit: vi.fn().mockReturnThis(),
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
+          add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
         };
       }),
     };
@@ -215,6 +218,7 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({ empty: true }),
             doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         if (colName === 'shards') {
@@ -229,6 +233,7 @@ describe('provisionStore handler', () => {
               })),
             }),
             doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         return {
@@ -236,6 +241,7 @@ describe('provisionStore handler', () => {
           limit: vi.fn().mockReturnThis(),
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
+          add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
         };
       }),
     };
@@ -263,6 +269,7 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({ empty: true }),
             doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         if (colName === 'shards') {
@@ -271,6 +278,7 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
             doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         return {
@@ -278,6 +286,7 @@ describe('provisionStore handler', () => {
           limit: vi.fn().mockReturnThis(),
           get: vi.fn().mockResolvedValue({ empty: true }),
           doc: vi.fn(() => docMock),
+          add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
         };
       }),
     };

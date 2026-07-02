@@ -1,0 +1,40 @@
+# ── Vertex Stack – Development Container ──────────────────────────────────────
+# Requires: Docker 24+ with Docker Compose v2
+#
+# What's inside:
+#   - Node 20 LTS
+#   - Java 17 (required by Firebase emulators)
+#   - Firebase CLI (latest)
+#
+# The existing dev-e2e.ts orchestrator handles:
+#   - npm install for all packages
+#   - Building @vertex/contracts
+#   - Starting Firebase emulators
+#   - Starting both Angular dev servers
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM node:24-slim
+
+# Install Java runtime (Firebase emulators require JRE) + curl (health checks)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        default-jre-headless \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Firebase CLI globally (pinned to a known-stable version)
+RUN npm install -g firebase-tools@14 --loglevel=error
+
+WORKDIR /workspace/platform
+
+COPY docker/entrypoint.sh /usr/local/bin/vertex-entrypoint.sh
+RUN chmod +x /usr/local/bin/vertex-entrypoint.sh
+
+# Expose all service ports
+EXPOSE 4000 4200 4201 5001 8080 9099
+
+# The orchestrator installs deps, builds contracts, and starts all services.
+# DOCKER=true tells it to skip the browser auto-open (handled by docker/start.sh on the host).
+ENV DOCKER=true
+
+ENTRYPOINT ["vertex-entrypoint.sh"]
+CMD []

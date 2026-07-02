@@ -26,7 +26,7 @@
           </button>
         }
         @if (store()!.status === 'active') {
-          <a [href]="store()!.defaultUrl" target="_blank" class="btn btn-primary">
+          <a [href]="storeUrl()" target="_blank" class="btn btn-primary">
             <i class="bi bi-box-arrow-up-right"></i> Abrir tienda
           </a>
         }
@@ -164,7 +164,7 @@
                 </dd>
                 <dt>URL Temporal</dt>
                 <dd>
-                  <a [href]="store()!.defaultUrl" target="_blank">{{ store()!.defaultUrl }}</a>
+                  <a [href]="storeUrl()" target="_blank">{{ storeUrl() }}</a>
                 </dd>
                 @if (store()!.customDomain) {
                   <dt>Dominio Custom</dt>
@@ -1004,7 +1004,8 @@
                         <span class="input-addon__pre">https://</span>
                         <input
                           class="form-control"
-                          [(ngModel)]="domainInput"
+                          [ngModel]="domainInput()"
+                          (ngModelChange)="domainInput.set($event)"
                           placeholder="tienda.com o tienda.com.ar"
                           type="text"
                         />

@@ -102,7 +102,7 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
                 <h3 class="store-card__name">{{ store.name }}</h3>
                 <span class="badge badge--{{ store.status }}">{{ statusLabel(store.status) }}</span>
               </div>
-              <p class="store-card__url">{{ store.defaultUrl }}</p>
+              <p class="store-card__url">{{ getStoreUrl(store) }}</p>
               <p class="store-card__meta">
                 {{ store.ownerEmail }}
               </p>
@@ -157,6 +157,13 @@ export class StoresList {
       return matchesSearch && matchesStatus;
     });
   });
+
+  getStoreUrl(store: Store): string {
+    if (window.location.hostname === 'localhost') {
+      return `http://localhost:4201/shop?tenantId=${store.slug}`;
+    }
+    return store.defaultUrl;
+  }
 
   statusLabel(s: Store['status']): string {
     return STATUS_LABELS[s];

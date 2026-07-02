@@ -1,5 +1,7 @@
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess, execSync } from 'node:child_process';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const processes: ChildProcess[] = [];
 
@@ -10,11 +12,20 @@ function log(service: string, message: string) {
 
 function checkPort(port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const req = http.request({ host: '127.0.0.1', port, path: '/', method: 'GET' }, () => {
+    // Try connecting to localhost first (supports IPv6 ::1/localhost on macOS)
+    const req = http.request({ hostname: 'localhost', port, path: '/', method: 'GET', timeout: 1000 }, () => {
       resolve(true);
       req.destroy();
     });
-    req.on('error', () => resolve(false));
+    req.on('error', () => {
+      // Fallback to explicit IPv4 127.0.0.1
+      const fallbackReq = http.request({ hostname: '127.0.0.1', port, path: '/', method: 'GET', timeout: 1000 }, () => {
+        resolve(true);
+        fallbackReq.destroy();
+      });
+      fallbackReq.on('error', () => resolve(false));
+      fallbackReq.end();
+    });
     req.end();
   });
 }
@@ -82,26 +93,82 @@ async function main() {
   });
 
   try {
-    // 1. Start Firebase Emulators
-    startProcess('npx', ['firebase', 'emulators:start'], process.cwd(), 'FirebaseEmulators');
+    log('Orchestrator', 'Checking Cloud Functions dependencies...');
+    const installIfMissing = (cwd: string, label: string) => {
+      const nmPath = path.join(cwd, 'node_modules');
+      if (fs.existsSync(nmPath) && fs.existsSync(path.join(nmPath, '.package-lock.json'))) {
+        log('Orchestrator', `Reusing cached ${label} dependencies.`);
+        return;
+      }
+      if (fs.existsSync(nmPath) && fs.readdirSync(nmPath).filter(f => f !== '.bin').length > 0) {
+        log('Orchestrator', `Reusing cached ${label} dependencies.`);
+        return;
+      }
+      log('Orchestrator', `Installing ${label} dependencies...`);
+      execSync('npm ci --legacy-peer-deps --loglevel=error', { cwd, stdio: 'inherit' });
+    };
+
+    installIfMissing('vertex-platform/functions', 'vertex-platform functions');
+
+    if (fs.existsSync('packages/ecommerce-vertex/functions')) {
+      installIfMissing('packages/ecommerce-vertex/functions', 'ecommerce-vertex functions');
+
+      const envPath = 'packages/ecommerce-vertex/functions/.env.local';
+      if (!fs.existsSync(envPath) && !fs.existsSync('packages/ecommerce-vertex/functions/.env')) {
+        log('Orchestrator', 'Writing default environment variables to storefront functions...');
+        const devEnvContent = `MERCADOPAGO_ACCESSTOKEN=TEST-DEVELOPMENT-ACCESS-TOKEN-VALUE
+MERCADOPAGO_WEBHOOK_URL=http://localhost:5001/ecommerce-vertex-dev/us-central1/mercadoPagoWebhookHandler
+SITE_URL=http://localhost:4201
+`;
+        fs.writeFileSync(envPath, devEnvContent, 'utf-8');
+      }
+    }
+
+    log('Orchestrator', 'Building contracts and Cloud Functions...');
+    execSync('npm run build --workspace=@vertex/contracts', { stdio: 'inherit' });
+    execSync('npm run build --prefix vertex-platform/functions', { stdio: 'inherit' });
+    if (fs.existsSync('packages/ecommerce-vertex/functions')) {
+      execSync('npm run build --prefix packages/ecommerce-vertex/functions', { stdio: 'inherit' });
+    }
+
+    // 1. Start Firebase Emulators with import/export to persist local DB changes between restarts
+    startProcess('npx', ['firebase', 'emulators:start', '--project', 'demo-vertex', '--import=./emulator-data', '--export-on-exit=./emulator-data'], process.cwd(), 'FirebaseEmulators');
     
     // Wait for Firestore (8080) and Functions (5001)
     await waitPort(8080, 'Firestore Emulator');
     await waitPort(5001, 'Functions Emulator');
 
+    log('Orchestrator', 'Seeding local database...');
+    execSync('npx tsx scripts/seed-local.ts', {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        FIRESTORE_EMULATOR_HOST: 'localhost:8080',
+        FIREBASE_AUTH_EMULATOR_HOST: 'localhost:9099'
+      }
+    });
+
     // 2. Start Platform Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', '127.0.0.1', '--port', '4200'], 'vertex-platform', 'PlatformApp');
+    const ngServeFlags = ['run', 'start', '--', '--host', '0.0.0.0', '--port', '4200', '--poll', '2000', '--open', 'false'];
+    startProcess('npm', ngServeFlags, 'vertex-platform', 'PlatformApp');
 
     // 3. Start Storefront Template Frontend
-    startProcess('npm', ['run', 'start', '--', '--host', '127.0.0.1', '--port', '4201'], 'packages/ecommerce-vertex', 'StorefrontApp');
+    const sfServeFlags = ['run', 'start', '--', '--host', '0.0.0.0', '--port', '4201', '--poll', '2000', '--open', 'false'];
+    startProcess('npm', sfServeFlags, 'packages/ecommerce-vertex', 'StorefrontApp');
 
     // Wait for frontends to be ready
     await waitPort(4200, 'Platform Frontend');
     await waitPort(4201, 'Storefront Frontend');
 
-    log('Orchestrator', 'Opening application links in your default browser...');
-    spawn('open', ['http://127.0.0.1:4200']);
-    spawn('open', ['http://127.0.0.1:4201/?tenantId=tienda-dos']);
+    // Open browser tabs — skip when running inside Docker (host script handles it)
+    if (!process.env['DOCKER']) {
+      log('Orchestrator', 'Opening application links in your default browser...');
+      spawn('open', ['http://localhost:4200']);
+      spawn('open', ['http://localhost:4201/admin']);
+      spawn('open', ['http://localhost:4201/shop?tenantId=tienda-dos']);
+    } else {
+      log('Orchestrator', 'Running in Docker — open http://localhost:4200 and http://localhost:4201/admin in your browser.');
+    }
 
     log('Orchestrator', 'All services launched. Press Ctrl+C to terminate.');
   } catch (error: any) {

@@ -1,26 +1,30 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 
-const mockUnsub = vi.fn();
-const mockOnSnapshot = vi.fn();
-const mockGetFirestore = vi.fn(() => ({}));
-const mockCollection = vi.fn();
-const mockGetFunctions = vi.fn(() => ({}));
-const mockHttpsCallable = vi.fn();
+const mocks = vi.hoisted(() => ({
+  mockUnsub: vi.fn(),
+  mockOnSnapshot: vi.fn(),
+  mockGetFirestore: vi.fn(() => ({})),
+  mockCollection: vi.fn(),
+  mockGetFunctions: vi.fn(() => ({})),
+  mockHttpsCallable: vi.fn(),
+}));
 
 vi.mock('firebase/firestore', () => ({
-  getFirestore: mockGetFirestore,
-  collection: mockCollection,
-  onSnapshot: mockOnSnapshot,
+  getFirestore: mocks.mockGetFirestore,
+  collection: mocks.mockCollection,
+  onSnapshot: mocks.mockOnSnapshot,
   doc: vi.fn(),
   updateDoc: vi.fn(),
   serverTimestamp: vi.fn(),
 }));
 
 vi.mock('firebase/functions', () => ({
-  getFunctions: mockGetFunctions,
-  httpsCallable: mockHttpsCallable,
+  getFunctions: mocks.mockGetFunctions,
+  httpsCallable: mocks.mockHttpsCallable,
 }));
+
+const { mockUnsub, mockOnSnapshot, mockCollection, mockHttpsCallable } = mocks;
 
 import { AuthService } from './auth';
 import { signal } from '@angular/core';
