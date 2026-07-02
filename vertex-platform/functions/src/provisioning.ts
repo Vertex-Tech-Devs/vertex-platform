@@ -1414,7 +1414,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const deployTokenValue = await getDeployToken();
 
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-      const targetRef = env === 'production' ? 'main' : 'develop';
+      const isLocalOrDev = env === 'development' || process.env.FUNCTIONS_EMULATOR === 'true' || !process.env.GCLOUD_PROJECT || !process.env.GOOGLE_CLOUD_PROJECT;
+      const targetRef = isLocalOrDev ? 'develop' : 'main';
 
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
