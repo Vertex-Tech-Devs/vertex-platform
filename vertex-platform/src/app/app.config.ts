@@ -22,7 +22,7 @@ export const firebaseApp = initializeApp(environment.firebaseConfig);
 const db = initializeFirestore(firebaseApp, {
   experimentalAutoDetectLongPolling: true,
   forceLongPolling: true,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any);
 
 const isLocal =
