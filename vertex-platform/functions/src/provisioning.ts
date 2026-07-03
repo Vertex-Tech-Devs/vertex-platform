@@ -98,19 +98,19 @@ export const provisionStore = onCall<CreateStorePayload>(
     let runtimeMode: StoreRuntimeMode;
     let shardId: string | null = null;
     let projectId = `vtx-${slug}`.slice(0, 30);
-    let runtimeSiteId = 'default';
+    let runtimeSiteId = `${slug}-vtx`;
     let isNewShard = false;
 
     if (dedicatedProject === true) {
       runtimeMode = 'dedicated-project';
       projectId = `vtx-${slug}`.slice(0, 30);
-      runtimeSiteId = 'default';
+      runtimeSiteId = `${slug}-vtx`;
     } else {
       if (selectedShard) {
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = (selectedShard as StoreShard).siteId || 'default';
+        runtimeSiteId = `${slug}-vtx`;
         isNewShard = false;
       } else {
         // Generate a new shared-shard project autonomously!
@@ -119,7 +119,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = 'default';
+        runtimeSiteId = `${slug}-vtx`;
       }
     }
 
@@ -179,10 +179,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeProjectId: projectId,
         runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl:
-          runtimeMode === 'shared-shard'
-            ? `https://${projectId}.web.app?tenantId=${slug}`
-            : `https://${projectId}.web.app`,
+        defaultUrl: `https://${runtimeSiteId}.web.app`,
         billingAccountId,
         isNewShard,
         includeMockData: includeMockData !== false,
@@ -648,7 +645,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
-      if (runtimeMode === 'shared-shard' && runtimeSiteId && runtimeSiteId !== 'default') {
+      if (runtimeSiteId && runtimeSiteId !== 'default') {
         try {
           await apiFetch(
             auth,
