@@ -377,24 +377,6 @@ describe('StoresService', () => {
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'retryProvisioning');
     expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc' });
   });
-
-  it('getDeploymentHistory calls getStoreDeploymentHistory cloud function', async () => {
-    const mockFn = vi
-      .fn()
-      .mockResolvedValue({ data: { history: [{ id: 1, runNumber: 42, status: 'completed' }] } });
-    mockHttpsCallable.mockReturnValue(mockFn);
-
-    const { StoresService } = await import('./stores');
-    TestBed.configureTestingModule({ providers: [StoresService] });
-    const service = TestBed.inject(StoresService);
-
-    const history = await service.getDeploymentHistory('project-123');
-    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getStoreDeploymentHistory');
-    expect(mockFn).toHaveBeenCalledWith({ projectId: 'project-123' });
-    expect(history).toHaveLength(1);
-    expect(history[0].runNumber).toBe(42);
-  });
-
   it('updateStoreConfig calls updateStoreConfig cloud function', async () => {
     const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
     mockHttpsCallable.mockReturnValue(mockFn);

@@ -27,7 +27,7 @@ import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
-const CURRENT_TEMPLATE_VERSION = '1.0.0';
+const CURRENT_TEMPLATE_VERSION = '0.1.0';
 
 function normalizeStorageBucket(projectId: string, storageBucket: string | undefined): string {
   const bucket = storageBucket?.trim() ?? '';
@@ -98,19 +98,19 @@ export const provisionStore = onCall<CreateStorePayload>(
     let runtimeMode: StoreRuntimeMode;
     let shardId: string | null = null;
     let projectId = `vtx-${slug}`.slice(0, 30);
-    let runtimeSiteId = `${slug}-vtx`;
+    let runtimeSiteId = 'default';
     let isNewShard = false;
 
     if (dedicatedProject === true) {
       runtimeMode = 'dedicated-project';
       projectId = `vtx-${slug}`.slice(0, 30);
-      runtimeSiteId = `${slug}-vtx`;
+      runtimeSiteId = 'default';
     } else {
       if (selectedShard) {
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `${slug}-vtx`;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
         isNewShard = false;
       } else {
         // Generate a new shared-shard project autonomously!
@@ -119,7 +119,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `${slug}-vtx`;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
       }
     }
 
@@ -179,7 +179,10 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeProjectId: projectId,
         runtimeSiteId,
         firebaseProjectId: projectId,
-        defaultUrl: `https://${runtimeSiteId}.web.app`,
+        defaultUrl:
+          runtimeMode === 'shared-shard'
+            ? `https://${runtimeSiteId}.web.app`
+            : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
         includeMockData: includeMockData !== false,
@@ -645,7 +648,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
-      if (runtimeSiteId && runtimeSiteId !== 'default') {
+      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
         try {
           await apiFetch(
             auth,
@@ -758,10 +761,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      const configPath =
-        runtimeMode === 'shared-shard'
-          ? `tenants/${tenantId}/configuracion/store`
-          : 'configuracion/store';
+      const configPath = `tenants/${tenantId}/configuracion/store`;
 
       console.info(
         `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
@@ -1411,8 +1411,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const deployTokenValue = await getDeployToken();
 
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-      const isLocalOrDev = env === 'development' || process.env.FUNCTIONS_EMULATOR === 'true' || !process.env.GCLOUD_PROJECT || !process.env.GOOGLE_CLOUD_PROJECT;
-      const targetRef = isLocalOrDev ? 'develop' : 'main';
+      const targetRef = env === 'production' ? 'main' : 'develop';
 
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',

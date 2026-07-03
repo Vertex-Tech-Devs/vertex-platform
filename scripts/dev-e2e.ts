@@ -132,9 +132,9 @@ SITE_URL=http://localhost:4201
 
     log('Orchestrator', 'Building contracts and Cloud Functions...');
     execSync('npm run build --workspace=@vertex/contracts', { stdio: 'inherit' });
-    execSync('npm run build --prefix vertex-platform/functions', { stdio: 'inherit' });
+    execSync('npm --prefix vertex-platform/functions run build', { stdio: 'inherit' });
     if (fs.existsSync('packages/ecommerce-vertex/functions')) {
-      execSync('npm run build --prefix packages/ecommerce-vertex/functions', { stdio: 'inherit' });
+      execSync('npm --prefix packages/ecommerce-vertex/functions run build', { stdio: 'inherit' });
     }
 
     // 1. Start Firebase Emulators with import/export to persist local DB changes between restarts

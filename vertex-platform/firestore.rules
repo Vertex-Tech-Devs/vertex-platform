@@ -31,22 +31,7 @@ service cloud.firestore {
         (isAuthenticated() && get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'admin');
     }
 
-    // Reglas para colecciones legacy a nivel raíz (públicas para evitar caídas por fallback)
-    match /products/{id} {
-      allow read: if true;
-      match /{allChildren=**} {
-        allow read: if true;
-      }
-    }
-    match /categories/{id} {
-      allow read: if true;
-    }
-    match /attributes/{id} {
-      allow read: if true;
-    }
-    match /siteContent/{id} {
-      allow read: if true;
-    }
+
 
     // 2. Regla para Entornos Compartidos (Multi-Tenant Shards)
     match /tenants/{tenantId} {
