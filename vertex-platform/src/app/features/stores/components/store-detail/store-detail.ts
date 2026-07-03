@@ -224,7 +224,6 @@ export class StoreDetail implements OnInit {
     void this.loadVersions();
   }
 
-
   async loadVersions(): Promise<void> {
     this.isLoadingVersions.set(true);
     try {
@@ -259,9 +258,7 @@ export class StoreDetail implements OnInit {
         `Actualización a v${version} iniciada. El deploy puede tardar unos minutos.`,
       );
     } catch (err: unknown) {
-      this.versionUpdateError.set(
-        errorMessage(err, 'Error al iniciar la actualización.'),
-      );
+      this.versionUpdateError.set(errorMessage(err, 'Error al iniciar la actualización.'));
     } finally {
       this.isUpdatingVersion.set(false);
     }

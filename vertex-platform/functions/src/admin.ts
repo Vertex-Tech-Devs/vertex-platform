@@ -10,11 +10,13 @@ import { z } from 'zod';
 // Protected super-admin emails — configurable via PROTECTED_SUPER_ADMINS env var.
 // Falls back to Vertex factory admin list if not set.
 const PROTECTED_SUPER_ADMINS = new Set(
-  (process.env.PROTECTED_SUPER_ADMINS ||
-    'juan.l.espeche@gmail.com,leivalihue@gmail.com,vertex.tech.dev@gmail.com')
+  (
+    process.env.PROTECTED_SUPER_ADMINS ||
+    'juan.l.espeche@gmail.com,leivalihue@gmail.com,vertex.tech.dev@gmail.com'
+  )
     .split(',')
     .map((e) => e.trim())
-    .filter(Boolean)
+    .filter(Boolean),
 );
 
 const ensureProtectedSuperAdmins = async (db: FirebaseFirestore.Firestore): Promise<void> => {
