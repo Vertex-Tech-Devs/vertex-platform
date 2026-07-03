@@ -6,7 +6,6 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { StoresService } from '@core/services/stores';
 import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
-import type { DeploymentHistoryItem } from '@core/services/stores';
 import type {
   ProvisioningStep,
   StoreConfig,
@@ -114,10 +113,6 @@ export class StoreDetail implements OnInit, OnDestroy {
   readonly actionSuccess = signal('');
   readonly saveError = signal('');
   readonly dnsRecords = signal<DnsRecord[]>([]);
-  readonly deploymentHistory = signal<DeploymentHistoryItem[]>([]);
-  readonly isLoadingHistory = signal(false);
-
-  private pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
   readonly domainInput = signal('');
   deleteConfirmInput = '';
@@ -215,42 +210,10 @@ export class StoreDetail implements OnInit, OnDestroy {
   );
 
   ngOnInit(): void {
-    void this.loadHistory();
     void this.loadVersions();
-    this.startPolling();
   }
 
   ngOnDestroy(): void {
-    this.stopPolling();
-  }
-
-  async loadHistory(silent = false): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    const projectId = s.firebaseProjectId;
-    if (!projectId) {
-      return;
-    }
-
-    if (!silent) {
-      this.isLoadingHistory.set(true);
-    }
-    try {
-      const history = await this.storesService.getDeploymentHistory(
-        projectId,
-        s.id,
-        s.runtimeSiteId,
-      );
-      this.deploymentHistory.set(history);
-    } catch (err) {
-      console.error('Error loading deployment history:', err);
-    } finally {
-      if (!silent) {
-        this.isLoadingHistory.set(false);
-      }
-    }
   }
 
   async loadVersions(): Promise<void> {
@@ -311,30 +274,6 @@ export class StoreDetail implements OnInit, OnDestroy {
     }
   }
 
-  startPolling(): void {
-    this.stopPolling();
-    this.pollIntervalId = setInterval(() => {
-      if (this.activeTab() !== 'orquestacion') {
-        return;
-      }
-      if (document.hidden) {
-        return;
-      }
-      const s = this.store();
-      if (!s) {
-        return;
-      }
-      void this.loadHistory(true);
-    }, 15000);
-  }
-
-  stopPolling(): void {
-    if (this.pollIntervalId) {
-      clearInterval(this.pollIntervalId);
-      this.pollIntervalId = null;
-    }
-  }
-
   // Dynamic Tabs switching
   async setTab(tab: 'orquestacion' | 'config' | 'equipo' | 'dominios'): Promise<void> {
     this.activeTab.set(tab);
@@ -343,9 +282,7 @@ export class StoreDetail implements OnInit, OnDestroy {
       return;
     }
 
-    if (tab === 'orquestacion') {
-      void this.loadHistory();
-    } else if (tab === 'config') {
+    if (tab === 'config') {
       await this.loadConfig();
     } else if (tab === 'equipo') {
       await this.loadStaff();
@@ -757,7 +694,6 @@ export class StoreDetail implements OnInit, OnDestroy {
     this.actionError.set('');
     try {
       await this.storesService.redeployStore(id);
-      setTimeout(() => void this.loadHistory(), 2000);
     } catch {
       this.actionError.set('No se pudo iniciar el redeploy. Intentá de nuevo.');
     } finally {

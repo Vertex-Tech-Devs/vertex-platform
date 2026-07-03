@@ -7,6 +7,5 @@ export * from './provisioning';
 export * from './stores';
 export * from './billing';
 export * from './monitoring';
-export * from './github';
 export * from './versioning';
 export * from './runtime';

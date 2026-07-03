@@ -28,16 +28,6 @@ export interface DnsRecord {
   requiredAction: string;
 }
 
-export interface DeploymentHistoryItem {
-  id: number;
-  runNumber: number;
-  status: string;
-  conclusion: string | null;
-  htmlUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  displayTitle: string;
-}
 
 export interface RuntimeShardCapacity {
   id: string;
@@ -145,18 +135,6 @@ export class StoresService {
     await fn({ storeId });
   }
 
-  async getDeploymentHistory(
-    projectId: string,
-    storeId?: string,
-    siteId?: string,
-  ): Promise<DeploymentHistoryItem[]> {
-    const fn = httpsCallable<
-      { projectId: string; storeId?: string; siteId?: string },
-      { history: DeploymentHistoryItem[] }
-    >(this.fns, 'getStoreDeploymentHistory');
-    const result = await fn({ projectId, storeId, siteId });
-    return result.data.history;
-  }
 
   async updateStoreConfig(storeId: string, config: Partial<StoreConfig>): Promise<void> {
     const fn = httpsCallable<
