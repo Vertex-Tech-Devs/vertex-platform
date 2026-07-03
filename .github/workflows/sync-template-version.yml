@@ -1,0 +1,96 @@
+name: Sync Storefront Version
+
+on:
+  repository_dispatch:
+    types: [storefront-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '24.18.0'
+  NODE_OPTIONS: '--no-warnings'
+
+jobs:
+  update-template-version:
+    name: Update CURRENT_TEMPLATE_VERSION → v${{ github.event.client_payload.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Validate payload
+        run: |
+          VERSION="${{ github.event.client_payload.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "::error::Missing version in dispatch payload"
+            exit 1
+          fi
+          # Validate semver format (x.y.z)
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Invalid version format: $VERSION (expected x.y.z)"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "✅ Received storefront release: v$VERSION"
+
+      - name: Update CURRENT_TEMPLATE_VERSION in provisioning.ts
+        run: |
+          FILE="vertex-platform/functions/src/provisioning.ts"
+          CURRENT=$(grep "CURRENT_TEMPLATE_VERSION" "$FILE" | grep -o "'[^']*'" | tr -d "'")
+          echo "Current version: $CURRENT → New version: $VERSION"
+
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "::notice::CURRENT_TEMPLATE_VERSION is already $VERSION. No changes needed."
+            echo "ALREADY_UP_TO_DATE=true" >> "$GITHUB_ENV"
+          else
+            sed -i "s/const CURRENT_TEMPLATE_VERSION = '[^']*'/const CURRENT_TEMPLATE_VERSION = '$VERSION'/" "$FILE"
+            echo "ALREADY_UP_TO_DATE=false" >> "$GITHUB_ENV"
+            echo "✅ Updated CURRENT_TEMPLATE_VERSION to $VERSION"
+          fi
+
+      - name: Create PR with version bump
+        if: env.ALREADY_UP_TO_DATE == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="chore/update-template-version-${VERSION}"
+          git checkout -b "$BRANCH"
+          git add vertex-platform/functions/src/provisioning.ts
+          git commit -m "chore(versioning): update CURRENT_TEMPLATE_VERSION to ${VERSION}
+
+          Storefront released v${VERSION} (${{ github.event.client_payload.tag }}).
+          This PR updates the default template version used when provisioning new stores.
+
+          Triggered automatically by the storefront release workflow."
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --title "chore(versioning): update CURRENT_TEMPLATE_VERSION to v${VERSION}" \
+            --body "## Actualización automática de versión de template
+
+          El storefront publicó la versión **v${VERSION}**.
+
+          Este PR actualiza \`CURRENT_TEMPLATE_VERSION\` en \`provisioning.ts\` para que las nuevas tiendas se provisionen con esta versión.
+
+          ### Cambios
+          - \`provisioning.ts\`: \`CURRENT_TEMPLATE_VERSION\` → \`'${VERSION}'\`
+
+          ### ⚠️ Revisión requerida
+          Antes de mergear, verificar que:
+          - [ ] La versión \`v${VERSION}\` del storefront está desplegada y estable
+          - [ ] Las tiendas existentes no se ven afectadas por breaking changes
+          - [ ] Los tests de provisioning pasan correctamente
+
+          _Generado automáticamente por el workflow \`sync-template-version.yml\`_" \
+            --base develop \
+            --head "$BRANCH" \
+            --label "versioning" || echo "::warning::Could not create PR (label may not exist). PR created without label."
