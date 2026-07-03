@@ -12,6 +12,7 @@ concurrency:
 
 env:
   NODE_VERSION: '24.18.0'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   NODE_OPTIONS: '--no-warnings'
   NPM_CONFIG_LOGLEVEL: 'error'
   NPM_CONFIG_AUDIT: 'false'
