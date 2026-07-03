@@ -6,7 +6,8 @@ import { StoresService, type RuntimeCapacitySummary } from '@core/services/store
 
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
 
-const SLUG_RE = /^[a-z0-9-]+$/;
+// Must match backend: 3-20 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
 const DOMAIN_RE =
   /^$|^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
