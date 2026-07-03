@@ -20,7 +20,10 @@ import { GlobalErrorHandler } from '@core/services/error-reporter';
 
 export const firebaseApp = initializeApp(environment.firebaseConfig);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true, forceLongPolling: true } as any);
+const db = initializeFirestore(firebaseApp, {
+  experimentalAutoDetectLongPolling: true,
+  forceLongPolling: true,
+} as any);
 
 const isLocal =
   typeof window !== 'undefined' &&

@@ -28,7 +28,6 @@ export interface DnsRecord {
   requiredAction: string;
 }
 
-
 export interface RuntimeShardCapacity {
   id: string;
   projectId: string;
@@ -134,7 +133,6 @@ export class StoresService {
     );
     await fn({ storeId });
   }
-
 
   async updateStoreConfig(storeId: string, config: Partial<StoreConfig>): Promise<void> {
     const fn = httpsCallable<

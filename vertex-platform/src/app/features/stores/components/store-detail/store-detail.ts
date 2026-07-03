@@ -213,8 +213,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     void this.loadVersions();
   }
 
-  ngOnDestroy(): void {
-  }
+  ngOnDestroy(): void {}
 
   async loadVersions(): Promise<void> {
     this.isLoadingVersions.set(true);
