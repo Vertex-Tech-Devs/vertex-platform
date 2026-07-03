@@ -43,17 +43,20 @@ function mockMercadoPagoWebhook(tenantId: string, orderId: string, status: strin
   });
 
   req.on('error', (e) => {
-    console.error(`[MP Mock] Error sending webhook: ${e.message}`);
+    const safeMsg = e.message.replace(/[\r\n]/g, '');
+    console.error(`[MP Mock] Error sending webhook: ${safeMsg}`);
   });
 
   req.write(postData);
   req.end();
 }
 
+const sanitize = (val: string) => val.replace(/[\r\n]/g, '');
+
 // Check command line arguments
 const args = process.argv.slice(2);
-const tenant = args[0] || 'tienda-dos';
-const order = args[1] || 'order-dev-123';
-const paymentStatus = args[2] || 'approved';
+const tenant = sanitize(args[0] || 'tienda-dos');
+const order = sanitize(args[1] || 'order-dev-123');
+const paymentStatus = sanitize(args[2] || 'approved');
 
 mockMercadoPagoWebhook(tenant, order, paymentStatus);
