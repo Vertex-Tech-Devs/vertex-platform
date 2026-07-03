@@ -1,0 +1,9 @@
+{
+  "github-actions.workflows.pinnedVersionWarning": "ignore",
+  "github-actions.validation.enabled": false,
+  "yaml.schemaStore.enable": false,
+  "yaml.schemas": {
+    "http://json.schemastore.org/github-workflow": []
+  },
+  "yaml.validate": false
+}

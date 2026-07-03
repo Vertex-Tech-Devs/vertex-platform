@@ -6,7 +6,7 @@ const typescriptParser = require('@typescript-eslint/parser');
 
 module.exports = [
   {
-    ignores: ['dist/**/*', 'coverage/**/*', 'node_modules/**/*', '.angular/**/*'],
+    ignores: ['dist/**/*', 'coverage/**/*', 'node_modules/**/*', '.angular/**/*', 'functions/vitest.config.ts', 'functions/lib/**/*', 'functions/coverage/**/*'],
   },
   // Application source — Angular + TypeScript strict rules
   {
@@ -88,6 +88,26 @@ module.exports = [
     },
     rules: {
       '@angular-eslint/template/no-negated-async': 'error',
+    },
+  },
+  // Cloud Functions source code
+  {
+    files: ['functions/src/**/*.ts', 'functions/*.ts'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: ['functions/tsconfig.json'],
+        createDefaultProgram: true,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescriptEslintPlugin,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-debugger': 'error',
+      'prefer-const': 'off',
     },
   },
 ];
