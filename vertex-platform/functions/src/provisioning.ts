@@ -27,7 +27,7 @@ import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
-const CURRENT_TEMPLATE_VERSION = '1.0.0';
+const CURRENT_TEMPLATE_VERSION = '0.1.0';
 
 function normalizeStorageBucket(projectId: string, storageBucket: string | undefined): string {
   const bucket = storageBucket?.trim() ?? '';
