@@ -5,16 +5,22 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import type { BillingAccount } from '@core/models/billing-account';
+import { errorMessage } from '@core/utils/error.util';
 
 @Component({
   selector: 'app-billing',
   standalone: true,
   imports: [RouterLink, FormsModule, DatePipe],
   templateUrl: './billing.html',
-  styleUrls: ['./billing.scss'],
+  styleUrl: './billing.scss',
 })
 export class Billing implements OnInit {
   readonly svc = inject(BillingAccountsService);
+
+  /** Type-safe input value extractor for templates */
+  iv(event: Event): string {
+    return (event.target as HTMLInputElement).value;
+  }
 
   readonly addId = signal('');
   readonly addName = signal('');
@@ -85,7 +91,7 @@ export class Billing implements OnInit {
       this.addId.set('');
       this.addName.set('');
     } catch (err: unknown) {
-      this.addError.set(err instanceof Error ? err.message : 'Error al agregar cuenta.');
+      this.addError.set(errorMessage(err, 'Error al agregar cuenta.'));
     } finally {
       this.isAdding.set(false);
     }
@@ -114,7 +120,7 @@ export class Billing implements OnInit {
       });
       this.editingId.set(null);
     } catch (err: unknown) {
-      this.saveError.set(err instanceof Error ? err.message : 'Error al guardar.');
+      this.saveError.set(errorMessage(err, 'Error al guardar.'));
     } finally {
       this.isSaving.set(false);
     }
@@ -134,7 +140,7 @@ export class Billing implements OnInit {
     try {
       await this.svc.removeAccount(a.id);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar.');
+      alert(errorMessage(err, 'Error al eliminar.'));
     } finally {
       this.removingId.set(null);
     }

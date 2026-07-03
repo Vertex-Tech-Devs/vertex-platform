@@ -20,14 +20,14 @@
         class="form-control"
         placeholder="email@dominio.com"
         [value]="newEmail()"
-        (input)="newEmail.set($any($event.target).value)"
+        (input)="newEmail.set(iv($event))"
         (keydown.enter)="addAdmin()"
       />
       <select
         class="form-control"
         style="max-width: 180px; margin: 0 0.5rem"
         [value]="newRole()"
-        (change)="newRole.set($any($event.target).value)"
+        (change)="onRoleChange($event)"
       >
         <option value="platformAdmin">Platform Admin</option>
         <option value="superAdmin">Super Admin</option>

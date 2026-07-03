@@ -15,7 +15,7 @@ const DOMAIN_RE =
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './store-create.html',
-  styleUrls: ['./store-create.scss'],
+  styleUrl: './store-create.scss',
 })
 export class StoreCreate implements OnInit {
   private fb = inject(FormBuilder);

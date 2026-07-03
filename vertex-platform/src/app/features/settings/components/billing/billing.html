@@ -19,7 +19,7 @@
         <input
           class="form-control"
           [value]="addId()"
-          (input)="addId.set($any($event.target).value)"
+          (input)="addId.set(iv($event))"
           placeholder="XXXXXX-XXXXXX-XXXXXX o billingAccounts/XXXXXX-XXXXXX-XXXXXX"
           (focus)="startAdd()"
         />
@@ -29,7 +29,7 @@
         <input
           class="form-control"
           [value]="addName()"
-          (input)="addName.set($any($event.target).value)"
+          (input)="addName.set(iv($event))"
           placeholder="Vertex Billing Account Five"
         />
       </div>
@@ -41,7 +41,7 @@
           min="1"
           max="100"
           [value]="addMax()"
-          (input)="addMax.set(+$any($event.target).value)"
+          (input)="addMax.set(+iv($event))"
         />
       </div>
       <div class="form-group form-group--action">
@@ -87,7 +87,7 @@
                     <input
                       class="form-control form-control--sm"
                       [value]="editName()"
-                      (input)="editName.set($any($event.target).value)"
+                      (input)="editName.set(iv($event))"
                     />
                   </div>
                   <div class="form-group">
@@ -97,7 +97,7 @@
                       type="number"
                       min="1"
                       [value]="editMax()"
-                      (input)="editMax.set(+$any($event.target).value)"
+                      (input)="editMax.set(+iv($event))"
                     />
                   </div>
                 </div>

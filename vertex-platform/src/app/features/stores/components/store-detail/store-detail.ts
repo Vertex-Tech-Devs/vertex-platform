@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
-import type { OnInit, OnDestroy } from '@angular/core';
+import { errorMessage } from '@core/utils/error.util';
+import type { OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -33,15 +34,25 @@ const STEP_ORDER = [
   standalone: true,
   imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule],
   templateUrl: './store-detail.html',
-  styleUrls: ['./store-detail.scss'],
+  styleUrl: './store-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StoreDetail implements OnInit, OnDestroy {
+export class StoreDetail implements OnInit {
   private storesService = inject(StoresService);
   readonly auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+
+  /** Type-safe input value extractor for templates */
+  iv(event: Event): string {
+    return (event.target as HTMLInputElement).value;
+  }
+
+  /** Type-safe checkbox checked extractor for templates */
+  ic(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
+  }
 
   // Tab management
   readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios'>('orquestacion');
@@ -213,7 +224,6 @@ export class StoreDetail implements OnInit, OnDestroy {
     void this.loadVersions();
   }
 
-  ngOnDestroy(): void {}
 
   async loadVersions(): Promise<void> {
     this.isLoadingVersions.set(true);
@@ -250,7 +260,7 @@ export class StoreDetail implements OnInit, OnDestroy {
       );
     } catch (err: unknown) {
       this.versionUpdateError.set(
-        err instanceof Error ? err.message : 'Error al iniciar la actualización.',
+        errorMessage(err, 'Error al iniciar la actualización.'),
       );
     } finally {
       this.isUpdatingVersion.set(false);
@@ -504,7 +514,7 @@ export class StoreDetail implements OnInit, OnDestroy {
       await this.loadStaff();
     } catch (err) {
       console.error('Error inviting staff:', err);
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = errorMessage(err);
       this.inviteError.set(msg || 'No se pudo enviar la invitación. Intentá de nuevo.');
     } finally {
       this.isInvitingStaff.set(false);
@@ -530,7 +540,7 @@ export class StoreDetail implements OnInit, OnDestroy {
         this.inviteError.set('No se pudo obtener el enlace de acceso manual.');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al generar link de acceso.';
+      const msg = errorMessage(err, 'Error al generar link de acceso.');
       this.actionError.set(msg);
       this.inviteError.set(msg);
     } finally {
@@ -583,7 +593,7 @@ export class StoreDetail implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Error verifying DNS:', err);
       if (!silent) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = errorMessage(err);
         this.dnsVerificationError.set(
           msg || 'No se pudo verificar el estado DNS. Intentá de nuevo.',
         );
@@ -720,7 +730,7 @@ export class StoreDetail implements OnInit, OnDestroy {
         '¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.',
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = errorMessage(err);
       this.actionError.set('Error al semillar datos: ' + msg);
     } finally {
       this.isSeeding.set(false);

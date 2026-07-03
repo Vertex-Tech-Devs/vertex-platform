@@ -40,11 +40,12 @@ function isOwnerOrSuperAdmin(
   ownerEmail: string | undefined,
 ): boolean {
   if (!authEmail) return false;
-  const superAdmins = [
-    'juan.l.espeche@gmail.com',
-    'leivalihue@gmail.com',
-    'vertex.tech.dev@gmail.com',
-  ];
+  // Super-admin emails — configurable via PROTECTED_SUPER_ADMINS env var
+  const superAdmins = (process.env.PROTECTED_SUPER_ADMINS ||
+    'juan.l.espeche@gmail.com,leivalihue@gmail.com,vertex.tech.dev@gmail.com')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
   return superAdmins.includes(authEmail) || authEmail === ownerEmail;
 }
 

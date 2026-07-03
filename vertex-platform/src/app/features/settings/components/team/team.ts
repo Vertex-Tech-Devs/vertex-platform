@@ -1,4 +1,5 @@
 import type { OnInit } from '@angular/core';
+import { errorMessage } from '@core/utils/error.util';
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,11 +11,21 @@ import { AuthService } from '@core/services/auth';
   standalone: true,
   imports: [RouterLink, FormsModule],
   templateUrl: './team.html',
-  styleUrls: ['./team.scss'],
+  styleUrl: './team.scss',
 })
 export class Team implements OnInit {
   readonly adminsService = inject(AdminsService);
   readonly auth = inject(AuthService);
+
+  /** Type-safe input value extractor for templates */
+  iv(event: Event): string {
+    return (event.target as HTMLInputElement).value;
+  }
+
+  /** Handle role select change — properly typed for strict union signals */
+  onRoleChange(event: Event): void {
+    this.newRole.set((event.target as HTMLSelectElement).value as 'superAdmin' | 'platformAdmin');
+  }
 
   readonly newEmail = signal('');
   readonly newRole = signal<'superAdmin' | 'platformAdmin'>('platformAdmin');
@@ -38,7 +49,7 @@ export class Team implements OnInit {
       this.newEmail.set('');
       this.newRole.set('platformAdmin');
     } catch (err: unknown) {
-      this.addError.set(err instanceof Error ? err.message : 'Error al agregar admin.');
+      this.addError.set(errorMessage(err, 'Error al agregar admin.'));
     } finally {
       this.isAdding.set(false);
     }
