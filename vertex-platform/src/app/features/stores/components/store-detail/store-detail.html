@@ -249,7 +249,7 @@
                     <select
                       class="form-select"
                       [value]="selectedVersion()"
-                      (change)="selectedVersion.set($any($event.target).value)"
+                      (change)="selectedVersion.set(iv($event))"
                       [disabled]="
                         isUpdatingVersion() || store()!.versionUpdateStatus === 'updating'
                       "
@@ -1285,7 +1285,7 @@
             type="checkbox"
             style="width: 1.25rem; height: 1.25rem; cursor: pointer"
             [checked]="seedIncludeMock()"
-            (change)="seedIncludeMock.set($any($event.target).checked)"
+            (change)="seedIncludeMock.set(ic($event))"
           />
           <label
             for="seedIncludeMock"

@@ -126,7 +126,7 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
       }
     </div>
   `,
-  styleUrls: ['./stores-list.scss'],
+  styleUrl: './stores-list.scss',
 })
 export class StoresList {
   readonly stores = inject(StoresService);

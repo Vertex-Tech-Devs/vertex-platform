@@ -16,7 +16,6 @@ module.exports = [
       parser: typescriptParser,
       parserOptions: {
         project: ['tsconfig.app.json'],
-        createDefaultProgram: true,
       },
     },
     plugins: {
@@ -64,7 +63,6 @@ module.exports = [
       parser: typescriptParser,
       parserOptions: {
         project: ['tsconfig.spec.json'],
-        createDefaultProgram: true,
       },
     },
     plugins: {
@@ -97,7 +95,6 @@ module.exports = [
       parser: typescriptParser,
       parserOptions: {
         project: ['functions/tsconfig.json'],
-        createDefaultProgram: true,
       },
     },
     plugins: {

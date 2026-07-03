@@ -26,6 +26,7 @@ service cloud.firestore {
 
     // 1. Regla para Entornos Dedicados (Single Tenant / Enterprise)
     match /configuracion/store {
+      // Public read for storefront config (theme, colors, payment public key)
       allow read: if true;
       allow write: if isPlatformAdmin() || 
         (isAuthenticated() && get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'admin');
@@ -84,7 +85,8 @@ service cloud.firestore {
       }
 
       match /orders/{orderId} {
-        allow get, create: if true;
+        allow get: if true;
+        allow create: if true;
         allow list, update, delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
       }
 
@@ -127,7 +129,8 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow get, create: if true;
+      allow get: if true;
+      allow create: if true;
       allow list: if isPlatformAdmin();
     }
     

@@ -7,11 +7,17 @@ import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
 import { z } from 'zod';
 
-const PROTECTED_SUPER_ADMINS = new Set([
-  'juan.l.espeche@gmail.com',
-  'leivalihue@gmail.com',
-  'vertex.tech.dev@gmail.com',
-]);
+// Protected super-admin emails — configurable via PROTECTED_SUPER_ADMINS env var.
+// Falls back to Vertex factory admin list if not set.
+const PROTECTED_SUPER_ADMINS = new Set(
+  (
+    process.env.PROTECTED_SUPER_ADMINS ||
+    'juan.l.espeche@gmail.com,leivalihue@gmail.com,vertex.tech.dev@gmail.com'
+  )
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean),
+);
 
 const ensureProtectedSuperAdmins = async (db: FirebaseFirestore.Firestore): Promise<void> => {
   for (const email of PROTECTED_SUPER_ADMINS) {
@@ -330,8 +336,13 @@ const provisionStoreAdminSchema = z.object({
 });
 
 export const provisionStoreAdmin = onCall(
-  { cors: true, invoker: 'public', maxInstances: 5 },
+  { cors: ALLOWED_ORIGINS, invoker: 'public', maxInstances: 5 },
   async (request) => {
+    // Require authentication — only platform or store admins can provision admin users
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debes iniciar sesión para crear un administrador.');
+    }
+
     let parsedData;
     try {
       parsedData = provisionStoreAdminSchema.parse(request.data);
