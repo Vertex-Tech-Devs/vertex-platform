@@ -63,6 +63,20 @@ describe('resolvePlatformEnvironment', () => {
   it('defaults to production for non-dev projects', () => {
     expect(resolvePlatformEnvironment('vertex-platform-app')).toBe('production');
   });
+
+  it('returns local when running inside the emulator', () => {
+    const originalEmulator = process.env['FUNCTIONS_EMULATOR'];
+    process.env['FUNCTIONS_EMULATOR'] = 'true';
+    try {
+      expect(resolvePlatformEnvironment('vertex-platform-dev')).toBe('local');
+    } finally {
+      if (originalEmulator === undefined) {
+        delete process.env['FUNCTIONS_EMULATOR'];
+      } else {
+        process.env['FUNCTIONS_EMULATOR'] = originalEmulator;
+      }
+    }
+  });
 });
 
 describe('getAvailableShardSlots', () => {

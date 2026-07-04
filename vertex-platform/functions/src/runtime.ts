@@ -3,7 +3,7 @@ import type { StoreShard } from './types';
 import * as functions from 'firebase-functions/v1';
 import { getFirestore } from 'firebase-admin/firestore';
 
-export type PlatformEnvironment = 'development' | 'production';
+export type PlatformEnvironment = 'development' | 'production' | 'local';
 
 export interface RuntimeShardCapacity {
   id: string;
@@ -28,6 +28,9 @@ export interface RuntimeCapacitySummary {
 }
 
 export function resolvePlatformEnvironment(projectId = PLATFORM_PROJECT): PlatformEnvironment {
+  if (process.env.FUNCTIONS_EMULATOR === 'true' || projectId.includes('local')) {
+    return 'local';
+  }
   return projectId === 'vertex-platform-dev' ? 'development' : 'production';
 }
 
