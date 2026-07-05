@@ -1078,6 +1078,89 @@ export const getActiveStores = onCall(
   },
 );
 
+export const redeployStore = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can redeploy stores.');
+    }
+
+    const { storeId } = request.data;
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId is required.');
+    }
+
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+
+    const store = storeSnap.data() as {
+      id: string;
+      name: string;
+      slug?: string;
+      tenantId?: string;
+      runtimeSiteId?: string;
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      runtimeMode?: string;
+    };
+
+    const projectId = resolveRuntimeProjectId(store);
+    const runtimeSiteId = store.runtimeSiteId || store.id;
+    const tenantId = store.slug || store.tenantId || store.id;
+
+    const configSnap = await db
+      .collection('stores')
+      .doc(storeId)
+      .collection('private')
+      .doc('firebaseConfig')
+      .get();
+
+    if (!configSnap.exists) {
+      throw new HttpsError('failed-precondition', 'Store firebase config is not found.');
+    }
+    const firebaseConfig = configSnap.data();
+
+    const pat = await getGitHubPat();
+    const deployTokenValue = await getDeployToken();
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const targetRef = env === 'production' ? 'main' : (env === 'local' ? 'local' : 'develop');
+
+    const res = await fetch(
+      'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${pat}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event_type: 'provision-store',
+          client_payload: {
+            store_id: storeId,
+            tenant_id: tenantId,
+            project_id: projectId,
+            site_id: runtimeSiteId,
+            firebase_config: JSON.stringify(firebaseConfig),
+            store_name: store.name,
+            platform_project_id: PLATFORM_PROJECT,
+            deploy_token: deployTokenValue,
+            ref: targetRef,
+          },
+        }),
+      },
+    );
+
+    if (!res.ok && res.status !== 204) {
+      throw new HttpsError('internal', `GitHub API: ${res.status} ${await res.text()}`);
+    }
+
+    return { success: true };
+  },
+);
+
 export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
