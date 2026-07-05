@@ -187,6 +187,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         isNewShard,
         includeMockData: includeMockData !== false,
         status: 'provisioning',
+        autoUpdate: true,
         provisioningSteps: steps,
         createdAt: new Date(),
         updatedAt: new Date(),
