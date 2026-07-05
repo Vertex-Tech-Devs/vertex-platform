@@ -55,6 +55,32 @@ export const listTemplateVersions = onCall(
         notes: r.body ?? undefined,
       }));
 
+      if (versions.length === 0) {
+        const tagsRes = await fetch(
+          'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/tags?per_page=20',
+          {
+            headers: {
+              Authorization: `Bearer ${pat}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          },
+        );
+        if (tagsRes.ok) {
+          const tags = (await tagsRes.json()) as { name: string }[];
+          const tagVersions: TemplateVersion[] = tags
+            .filter((t) => t.name.startsWith('v'))
+            .map((t, i) => ({
+              version: t.name.replace(/^v/, ''),
+              tag: t.name,
+              publishedAt: new Date().toISOString(),
+              isLatest: i === 0,
+              notes: 'Git tag release fallback',
+            }));
+          return { versions: tagVersions };
+        }
+      }
+
       return { versions };
     } catch (err) {
       console.warn('[listTemplateVersions] Failed to fetch releases:', err);
