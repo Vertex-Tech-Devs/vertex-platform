@@ -230,14 +230,6 @@ export class StoresService {
     );
     await fn({ storeId, version });
   }
-
-  async redeployStore(storeId: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
-      this.fns,
-      'redeployStore',
-    );
-    await fn({ storeId });
-  }
 }
 
 interface RawDnsRecord {
