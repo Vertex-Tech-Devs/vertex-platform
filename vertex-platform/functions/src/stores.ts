@@ -563,19 +563,29 @@ export const redeployStore = onCall<{ storeId: string }>(
     }
 
     const { storeId } = request.data;
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId is required.');
+    }
+
     const db = getFirestore();
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
     const store = storeSnap.data() as {
+      id: string;
+      name: string;
+      slug?: string;
+      tenantId?: string;
+      runtimeSiteId?: string;
       firebaseProjectId?: string;
       runtimeProjectId?: string;
-      name: string;
-      slug: string;
+      runtimeMode?: string;
       templateVersion?: string;
     };
+
     const projectId = resolveRuntimeProjectId(store);
-    const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : undefined;
+    const runtimeSiteId = store.runtimeSiteId || store.id;
+    const tenantId = store.slug || store.tenantId || store.id;
 
     const configSnap = await db
       .collection('stores')
@@ -583,10 +593,17 @@ export const redeployStore = onCall<{ storeId: string }>(
       .collection('private')
       .doc('firebaseConfig')
       .get();
-    if (!configSnap.exists) throw new HttpsError('not-found', 'Firebase config not found.');
 
-    const firebaseConfig = configSnap.data() as Record<string, string>;
+    if (!configSnap.exists) {
+      throw new HttpsError('failed-precondition', 'Store firebase config is not found.');
+    }
+    const firebaseConfig = configSnap.data();
+
     const pat = await getGitHubPat();
+    const deployTokenValue = await getDeployToken();
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const targetRef = env === 'production' ? 'main' : (env === 'local' ? 'local' : 'develop');
+    const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
 
     const res = await fetch(
       'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
@@ -602,10 +619,13 @@ export const redeployStore = onCall<{ storeId: string }>(
           event_type: 'provision-store',
           client_payload: {
             store_id: storeId,
-            tenant_id: store.slug,
+            tenant_id: tenantId,
             project_id: projectId,
+            site_id: runtimeSiteId,
             firebase_config: JSON.stringify(firebaseConfig),
             store_name: store.name,
+            platform_project_id: PLATFORM_PROJECT,
+            deploy_token: deployTokenValue,
             ref: ref,
           },
         }),
