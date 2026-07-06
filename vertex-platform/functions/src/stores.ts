@@ -1076,7 +1076,13 @@ export const getActiveStores = onCall(
           runtimeSiteId?: string;
           autoUpdate?: boolean;
         };
-        const projectId = resolveRuntimeProjectId(store);
+        let projectId: string;
+        try {
+          projectId = resolveRuntimeProjectId(store);
+        } catch (e) {
+          console.warn(`Store ${store.id} is active but has no runtime project configured. Skipping.`, e);
+          return null;
+        }
 
         const configSnap = await db
           .collection('stores')
@@ -1097,7 +1103,11 @@ export const getActiveStores = onCall(
       }),
     );
 
-    return { stores: stores.filter((s) => s.firebaseConfig !== null) };
+    return {
+      stores: stores.filter(
+        (s): s is NonNullable<typeof s> => s !== null && s.firebaseConfig !== null,
+      ),
+    };
   },
 );
 
