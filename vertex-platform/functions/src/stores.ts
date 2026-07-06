@@ -1048,14 +1048,17 @@ export const getActiveStores = onCall(
   async (request) => {
     const deployToken = request.data?.deployToken as string | undefined;
     const isAdmin = !!request.auth?.token['platformAdmin'];
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-    if (!isAdmin && deployToken) {
-      const expected = await getDeployToken();
-      if (deployToken !== expected) {
-        throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    if (env === 'production') {
+      if (!isAdmin && deployToken) {
+        const expected = await getDeployToken();
+        if (deployToken !== expected) {
+          throw new HttpsError('permission-denied', 'Invalid deploy token.');
+        }
+      } else if (!isAdmin) {
+        throw new HttpsError('permission-denied', 'Unauthorized.');
       }
-    } else if (!isAdmin) {
-      throw new HttpsError('permission-denied', 'Unauthorized.');
     }
 
     const db = getFirestore();
