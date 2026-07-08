@@ -53,7 +53,7 @@ export class StoreDetail implements OnInit {
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
-  readonly deployHistory = signal<any[]>([]);
+  readonly deployHistory = signal<Record<string, unknown>[]>([]);
 
   /** Type-safe input value extractor for templates */
   iv(event: Event): string {
