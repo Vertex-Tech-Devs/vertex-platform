@@ -104,10 +104,10 @@ export class StoresService {
     await fn({ storeId });
   }
 
-  getStoreDeploymentHistory(storeId: string): Observable<any[]> {
+  getStoreDeploymentHistory(storeId: string): Observable<Record<string, unknown>[]> {
     const deploysRef = collection(this.db, 'stores', storeId, 'deploys');
     const q = query(deploysRef, orderBy('timestamp', 'desc'), limit(50));
-    return new Observable<any[]>((subscriber) => {
+    return new Observable<Record<string, unknown>[]>((subscriber) => {
       return onSnapshot(
         q,
         (snap) => {
