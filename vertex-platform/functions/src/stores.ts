@@ -602,7 +602,7 @@ export const redeployStore = onCall<{ storeId: string }>(
     const pat = await getGitHubPat();
     const deployTokenValue = await getDeployToken();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-    const targetRef = env === 'production' ? 'main' : (env === 'local' ? 'local' : 'develop');
+    const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
     const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
 
     const res = await fetch(
@@ -1048,14 +1048,17 @@ export const getActiveStores = onCall(
   async (request) => {
     const deployToken = request.data?.deployToken as string | undefined;
     const isAdmin = !!request.auth?.token['platformAdmin'];
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-    if (!isAdmin && deployToken) {
-      const expected = await getDeployToken();
-      if (deployToken !== expected) {
-        throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    if (env === 'production') {
+      if (!isAdmin && deployToken) {
+        const expected = await getDeployToken();
+        if (deployToken !== expected) {
+          throw new HttpsError('permission-denied', 'Invalid deploy token.');
+        }
+      } else if (!isAdmin) {
+        throw new HttpsError('permission-denied', 'Unauthorized.');
       }
-    } else if (!isAdmin) {
-      throw new HttpsError('permission-denied', 'Unauthorized.');
     }
 
     const db = getFirestore();
@@ -1073,7 +1076,16 @@ export const getActiveStores = onCall(
           runtimeSiteId?: string;
           autoUpdate?: boolean;
         };
-        const projectId = resolveRuntimeProjectId(store);
+        let projectId: string;
+        try {
+          projectId = resolveRuntimeProjectId(store);
+        } catch (e) {
+          console.warn(
+            `Store ${store.id} is active but has no runtime project configured. Skipping.`,
+            e,
+          );
+          return null;
+        }
 
         const configSnap = await db
           .collection('stores')
@@ -1094,7 +1106,11 @@ export const getActiveStores = onCall(
       }),
     );
 
-    return { stores: stores.filter((s) => s.firebaseConfig !== null) };
+    return {
+      stores: stores.filter(
+        (s): s is NonNullable<typeof s> => s !== null && s.firebaseConfig !== null,
+      ),
+    };
   },
 );
 

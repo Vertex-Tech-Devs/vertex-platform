@@ -22,11 +22,6 @@ export class Team implements OnInit {
     return (event.target as HTMLInputElement).value;
   }
 
-  /** Handle role select change — properly typed for strict union signals */
-  onRoleChange(event: Event): void {
-    this.newRole.set((event.target as HTMLSelectElement).value as 'superAdmin' | 'platformAdmin');
-  }
-
   readonly newEmail = signal('');
   readonly newRole = signal<'superAdmin' | 'platformAdmin'>('platformAdmin');
   readonly isAdding = signal(false);

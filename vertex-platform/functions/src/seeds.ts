@@ -1799,7 +1799,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/footer')}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),
@@ -1809,6 +1809,6 @@ export async function seedStoreData(
     5,
     6000,
   );
-  console.log(`[SeedEngine] Seeded configuracion/store successfully.`);
+  console.log(`[SeedEngine] Seeded configuracion/footer successfully.`);
   console.log(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }

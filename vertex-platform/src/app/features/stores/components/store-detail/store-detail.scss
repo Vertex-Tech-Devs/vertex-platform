@@ -1679,3 +1679,84 @@
     cursor: not-allowed;
   }
 }
+
+// ─── Deploy History Tab ────────────────────────────────────────────────────
+
+.deploy-history-container {
+  margin-top: 0.5rem;
+}
+
+.deploy-history-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--platform-card-border);
+}
+
+.deploy-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+
+  thead tr {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--platform-card-border);
+  }
+
+  th {
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--platform-text-secondary);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.15s ease;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  td {
+    padding: 0.6rem 1rem;
+    color: var(--platform-text-primary);
+    vertical-align: middle;
+  }
+}
+
+.deploy-date {
+  white-space: nowrap;
+  color: var(--platform-text-secondary) !important;
+  font-size: 0.8rem;
+}
+
+.deploy-code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  color: #a78bfa;
+}
+
+.deploy-sha {
+  cursor: default;
+}
+
+.deploy-message {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--platform-text-secondary) !important;
+  font-size: 0.82rem;
+}
