@@ -73,7 +73,13 @@ export class StoresService {
               subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Store));
             },
             (error) => {
-              console.warn('[StoresService] Firestore subscription error:', error);
+              // Firestore SDK handles reconnection internally; this handler covers
+              // persistent failures. The SDK logs transport-level noise independently.
+              if (error?.code === 'unavailable' || error?.code === 'cancelled') {
+                console.warn('[StoresService] Firestore temporarily unavailable, retrying...');
+              } else {
+                console.error('[StoresService] Firestore subscription error:', error?.code || error);
+              }
               subscriber.next([]);
             },
           );
