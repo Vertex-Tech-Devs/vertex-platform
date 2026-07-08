@@ -53,7 +53,7 @@ export class StoreDetail implements OnInit {
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
-  readonly deployHistory = signal<any[]>([])  // eslint-disable-line @typescript-eslint/no-explicit-any;
+  readonly deployHistory = signal<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any;
 
   /** Type-safe input value extractor for templates */
   iv(event: Event): string {
