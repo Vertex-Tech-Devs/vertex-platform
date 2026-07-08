@@ -1809,6 +1809,30 @@ export async function seedStoreData(
     5,
     6000,
   );
+  
+  // Re-write configuracion/store with the store config data
+  // (seedStoreData deletes this document earlier; the storefront reads from this path)
+  const storeConfigPayload = {
+    ...footerPayload,
+    setupCompleted: true,
+  };
+
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
+        {
+          method: 'PATCH',
+          body: toFirestoreFields(storeConfigPayload),
+          quotaProject: projectId,
+        },
+      ),
+    5,
+    6000,
+  );
+
+  console.log(`[SeedEngine] Seeded configuracion/store successfully.`);
   console.log(`[SeedEngine] Seeded configuracion/footer successfully.`);
   console.log(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }
