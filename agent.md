@@ -101,6 +101,14 @@ const secretCache = new Map<string, string>();
 - `provisionStore`, `runProvisioning`: `512MiB` / `300s` timeout
 - Resto: defaults
 
+### Runtime de Cloud Functions
+- **Versión de Node.js**: Debe ser **Node.js 22** (`"engines": { "node": "22" }` en `package.json` de functions).
+  - *Razón*: La plataforma contiene Cloud Functions heredadas de Generación 1 (como `onPlatformUserCreated` y `reconcileActiveStores`), las cuales no son compatibles con Node.js 24. El uso de Node.js 22 es compatible con ambas generaciones (Gen 1 y Gen 2).
+
+### Estrategia de Caché en Hosting
+- **Cabeceras de Control**: Se debe configurar `Cache-Control` en el archivo `firebase.json` de Hosting aplicando por defecto la regla `no-cache, no-store, must-revalidate` a todas las rutas (`"source": "**"`).
+  - *Razón*: Al ser una Single Page Application (SPA), las solicitudes a rutas limpias del lado del cliente (ej. `/stores`) son reescritas a `/index.html` internamente. Si no se asocia `no-cache` a todas las rutas (`**`), Firebase servirá el punto de entrada con almacenamiento en caché por defecto del navegador/CDN (ej. `max-age=3600`), previniendo que los usuarios vean actualizaciones inmediatas tras un deploy. Los recursos estáticos con huella digital en sus nombres (JS, CSS, tipografías) sí se deben cachear permanentemente (`public, max-age=31536000, immutable`).
+
 ---
 
 ## 🛡️ Acceso y Permisos
