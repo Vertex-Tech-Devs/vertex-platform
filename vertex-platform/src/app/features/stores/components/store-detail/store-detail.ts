@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, computed, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import type { OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -43,6 +44,9 @@ export class StoreDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
+
+  readonly deployHistory = signal<any[]>([]);
 
   /** Type-safe input value extractor for templates */
   iv(event: Event): string {
@@ -55,7 +59,7 @@ export class StoreDetail implements OnInit {
   }
 
   // Tab management
-  readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios'>('orquestacion');
+  readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
 
   readonly store = computed(() => {
     const id = this.route.snapshot.paramMap.get('id');
@@ -222,6 +226,15 @@ export class StoreDetail implements OnInit {
 
   ngOnInit(): void {
     void this.loadVersions();
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.storesService
+        .getStoreDeploymentHistory(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((history) => {
+          this.deployHistory.set(history);
+        });
+    }
   }
 
   async loadVersions(): Promise<void> {
@@ -281,7 +294,7 @@ export class StoreDetail implements OnInit {
   }
 
   // Dynamic Tabs switching
-  async setTab(tab: 'orquestacion' | 'config' | 'equipo' | 'dominios'): Promise<void> {
+  async setTab(tab: 'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'): Promise<void> {
     this.activeTab.set(tab);
     const s = this.store();
     if (!s) {
@@ -766,7 +779,6 @@ export class StoreDetail implements OnInit {
       const result = await this.storesService.connectDomain(id, this.domainInput().trim());
       this.dnsRecords.set(result.dnsRecords);
       this.domainStatus.set('pending');
-      this.showDomainForm.set(false);
       // Wait a moment and verify domain silently
       setTimeout(() => void this.verifyDNS(true), 1500);
     } catch {

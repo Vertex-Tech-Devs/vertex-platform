@@ -136,6 +136,13 @@
         >
           <i class="bi bi-globe"></i> Dominios (DNS)
         </button>
+        <button
+          class="tab-button"
+          [class.is-active]="activeTab() === 'historial'"
+          (click)="setTab('historial')"
+        >
+          <i class="bi bi-clock-history"></i> Historial
+        </button>
       </div>
 
       <!-- Tab Content Area -->
@@ -436,11 +443,28 @@
                       <div class="form-group">
                         <label class="form-label">Logo URL</label>
                         <input
+                          #logoUrlInput
                           formControlName="logoUrl"
                           type="url"
                           class="form-control"
                           placeholder="https://..."
                         />
+                        @if (configForm.get('logoUrl')?.value) {
+                          <div class="logo-preview-wrapper">
+                            <img
+                              [src]="configForm.get('logoUrl')?.value"
+                              alt="Logo preview"
+                              class="logo-preview-img"
+                              (error)="logoPreviewError.set(true); ($event.target as HTMLImageElement).style.display='none'"
+                              (load)="logoPreviewError.set(false); ($event.target as HTMLImageElement).style.display='block'"
+                            />
+                            @if (logoPreviewError()) {
+                              <p class="logo-preview-error">
+                                <i class="bi bi-exclamation-triangle"></i> URL inválida o imagen no accesible
+                              </p>
+                            }
+                          </div>
+                        }
                       </div>
 
                       <div class="form-group">
@@ -1094,6 +1118,66 @@
                       }
                     }
                   </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Tab 5: Historial de Despliegues -->
+        @if (activeTab() === 'historial') {
+          <div class="deploy-history-container">
+            <div class="detail-card">
+              <h2 class="detail-card__title">
+                <i class="bi bi-clock-history"></i> Historial de Despliegues
+              </h2>
+              <p style="font-size:0.85rem; color:var(--platform-text-secondary); margin-bottom:1.25rem; line-height:1.4;">
+                Registro de los últimos despliegues automáticos de esta tienda, ordenados por fecha descendente.
+              </p>
+
+              @if (deployHistory().length === 0) {
+                <div class="empty-state" style="padding: 2rem 0; text-align: center;">
+                  <i class="bi bi-inbox" style="font-size:2rem; color:var(--platform-text-secondary); opacity:.5;"></i>
+                  <p style="margin-top:.75rem; color:var(--platform-text-secondary); font-size:.9rem;">
+                    Aún no hay despliegues registrados para esta tienda.
+                  </p>
+                </div>
+              } @else {
+                <div class="deploy-history-table-wrapper">
+                  <table class="deploy-history-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Versión</th>
+                        <th>Rama</th>
+                        <th>Commit</th>
+                        <th>Mensaje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (deploy of deployHistory(); track deploy.timestamp) {
+                        <tr>
+                          <td class="deploy-date">
+                            {{ deploy.timestamp?.toDate ? (deploy.timestamp.toDate() | date:'dd/MM/yy HH:mm') : '—' }}
+                          </td>
+                          <td>
+                            <span class="badge badge--{{ deploy.success ? 'active' : 'error' }}">
+                              {{ deploy.success ? 'Éxito' : 'Error' }}
+                            </span>
+                          </td>
+                          <td><code class="deploy-code">{{ deploy.version || '—' }}</code></td>
+                          <td><code class="deploy-code">{{ deploy.ref || '—' }}</code></td>
+                          <td>
+                            <code class="deploy-code deploy-sha" [title]="deploy.commitSha || ''">
+                              {{ deploy.commitSha ? deploy.commitSha.substring(0, 7) : '—' }}
+                            </code>
+                          </td>
+                          <td class="deploy-message">{{ deploy.commitMessage || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
                 </div>
               }
             </div>

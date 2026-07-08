@@ -6,6 +6,9 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
+  query,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
@@ -99,6 +102,23 @@ export class StoresService {
   async redeployStore(storeId: string): Promise<void> {
     const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'redeployStore');
     await fn({ storeId });
+  }
+
+  getStoreDeploymentHistory(storeId: string): Observable<any[]> {
+    const deploysRef = collection(this.db, 'stores', storeId, 'deploys');
+    const q = query(deploysRef, orderBy('timestamp', 'desc'), limit(50));
+    return new Observable<any[]>((subscriber) => {
+      return onSnapshot(
+        q,
+        (snap) => {
+          subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        },
+        (error) => {
+          console.warn('[StoresService] error fetching deploy history:', error);
+          subscriber.next([]);
+        }
+      );
+    });
   }
 
   async deleteStore(storeId: string): Promise<void> {

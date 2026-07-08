@@ -885,7 +885,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/settings/emailTemplates`,
             {
               method: 'PATCH',
               body: {
@@ -933,7 +933,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/settings/emailEngine`,
             {
               method: 'PATCH',
               body: {
@@ -956,7 +956,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       console.info(
-        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates y settings/emailEngine para el proyecto ${projectId}.`,
+        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en tenants/${tenantId}/settings/emailTemplates y tenants/${tenantId}/settings/emailEngine para el proyecto ${projectId}.`,
       );
 
       await setStep('configureEmail', 'done');
@@ -1228,7 +1228,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         `;
 
         try {
-          if (projectId === PLATFORM_PROJECT) {
+          // Always try SMTP first (works in both DEV and PROD without requiring
+          // the firestore-send-email extension on the store's project).
+          try {
             await sendDirectEmail(
               ownerEmail,
               emailSubject,
@@ -1236,9 +1238,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
             );
             console.info(
-              `[provisioning:initAdmin] Welcome email successfully sent directly to ${ownerEmail} using SMTP.`,
+              `[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`,
             );
-          } else {
+          } catch (smtpErr) {
+            // SMTP failed — try writing to the store's mail collection as fallback
+            // (requires firestore-send-email extension to be installed in the store project)
+            console.error(
+              `[provisioning:initAdmin] SMTP failed, attempting mail collection fallback for ${ownerEmail}:`,
+              smtpErr,
+            );
             const mailDocFields = {
               to: {
                 arrayValue: {
@@ -1271,15 +1279,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               },
             );
             console.info(
-              `[provisioning:initAdmin] Welcome email successfully queued in new store ${projectId}'s mail collection.`,
+              `[provisioning:initAdmin] Welcome email queued in store ${projectId}'s mail collection.`,
             );
           }
         } catch (mailErr) {
-          console.warn(
-            `[provisioning:initAdmin] Failed to queue welcome email in ${projectId}'s mail collection, falling back to central mail queue:`,
+          console.error(
+            `[provisioning:initAdmin] All email delivery methods failed for ${ownerEmail}, falling back to central platform mail queue:`,
             mailErr,
           );
-          // Fallback to central platform mail collection
+          // Final fallback: central platform mail collection
           try {
             await db.collection('mail').add({
               to: [ownerEmail],
@@ -1543,8 +1551,12 @@ export const completeStoreDeployment = onCall<{
   storeId: string;
   success: boolean;
   deployToken: string;
+  commitSha?: string;
+  commitMessage?: string;
+  ref?: string;
+  version?: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
-  const { storeId, success, deployToken } = request.data;
+  const { storeId, success, deployToken, commitSha, commitMessage, ref, version } = request.data;
 
   if (!storeId || !deployToken) {
     throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
@@ -1564,12 +1576,22 @@ export const completeStoreDeployment = onCall<{
   }
 
   const storeData = snap.data()!;
-  if (storeData['status'] === 'active') {
-    return { success: true };
-  }
+  
+  // Create a deployment history log entry
+  const deployLogRef = storeRef.collection('deploys').doc();
+  await deployLogRef.set({
+    timestamp: new Date(),
+    success,
+    commitSha: commitSha || '',
+    commitMessage: commitMessage || '',
+    ref: ref || '',
+    version: version || CURRENT_TEMPLATE_VERSION,
+    error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.'
+  });
 
-  if (storeData['status'] !== 'provisioning' && storeData['status'] !== 'error') {
-    throw new HttpsError('failed-precondition', 'Store is not in provisioning or error status.');
+  if (storeData['status'] === 'active' && success) {
+    // If it's already active and successful, just return
+    return { success: true };
   }
 
   if (success) {
@@ -1578,7 +1600,7 @@ export const completeStoreDeployment = onCall<{
       'provisioningSteps.triggerDeploy.error': null,
       status: 'active',
       lastDeployedAt: new Date(),
-      templateVersion: CURRENT_TEMPLATE_VERSION,
+      templateVersion: version || CURRENT_TEMPLATE_VERSION,
       schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
       updatedAt: new Date(),
     });
