@@ -1833,5 +1833,6 @@ export async function seedStoreData(
   );
 
   console.log(`[SeedEngine] Seeded configuracion/store successfully.`);
+  console.log(`[SeedEngine] Seeded configuracion/footer successfully.`);
   console.log(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }
