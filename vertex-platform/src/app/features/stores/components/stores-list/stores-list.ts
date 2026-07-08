@@ -177,8 +177,24 @@ export class StoresList {
       if (sort === 'name-desc') {
         return b.name.localeCompare(a.name);
       }
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const getMs = (date: unknown) => {
+        if (!date) {
+          return 0;
+        }
+        if (date instanceof Date) {
+          return date.getTime();
+        }
+        const d = date as Record<string, unknown>;
+        if (typeof d['toDate'] === 'function') {
+          return (d['toDate'] as () => Date)().getTime();
+        }
+        if (typeof d['seconds'] === 'number') {
+          return d['seconds'] * 1000;
+        }
+        return new Date(date as string | number).getTime() || 0;
+      };
+      const dateA = getMs(a.createdAt);
+      const dateB = getMs(b.createdAt);
       if (sort === 'created-asc') {
         return dateA - dateB;
       }
