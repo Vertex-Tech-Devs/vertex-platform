@@ -455,8 +455,8 @@
                               [src]="configForm.get('logoUrl')?.value"
                               alt="Logo preview"
                               class="logo-preview-img"
-                              (error)="logoPreviewError.set(true); ($event.target as HTMLImageElement).style.display='none'"
-                              (load)="logoPreviewError.set(false); ($event.target as HTMLImageElement).style.display='block'"
+                              (error)="logoPreviewError.set(true); $any($event.target).style.display='none'"
+                              (load)="logoPreviewError.set(false); $any($event.target).style.display='block'"
                             />
                             @if (logoPreviewError()) {
                               <p class="logo-preview-error">
