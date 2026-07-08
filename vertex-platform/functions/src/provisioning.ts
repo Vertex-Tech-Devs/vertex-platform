@@ -1321,6 +1321,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
         ]),
       );
+      const cicdServiceAccounts = [
+        `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
+        `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+        `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+      ];
       const tokenRes = await auth.getAccessToken();
 
       const policyRes = await fetch(
@@ -1349,6 +1354,20 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         const member = `serviceAccount:${sa}`;
         if (!ownerBinding.members.includes(member)) {
           ownerBinding.members.push(member);
+        }
+      }
+
+      let rulesBinding = policy.bindings?.find((b) => b.role === 'roles/firebaserules.admin');
+      if (!rulesBinding) {
+        rulesBinding = { role: 'roles/firebaserules.admin', members: [] };
+        policy.bindings = [...(policy.bindings ?? []), rulesBinding];
+      }
+
+      const allRulesSAs = [...serviceAccounts, ...cicdServiceAccounts];
+      for (const sa of allRulesSAs) {
+        const member = `serviceAccount:${sa}`;
+        if (!rulesBinding.members.includes(member)) {
+          rulesBinding.members.push(member);
         }
       }
 
