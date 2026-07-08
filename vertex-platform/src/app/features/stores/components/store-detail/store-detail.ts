@@ -826,4 +826,18 @@ export class StoreDetail implements OnInit {
       this.deleteConfirmInput = '';
     }
   }
+
+
+  refreshDeployHistory(): void {
+    this.deployHistory.set([]);
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.storesService
+        .getStoreDeploymentHistory(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((history) => {
+          this.deployHistory.set(history);
+        });
+    }
+  }
 }
