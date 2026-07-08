@@ -17,11 +17,6 @@ import { errorMessage } from '@core/utils/error.util';
 export class Billing implements OnInit {
   readonly svc = inject(BillingAccountsService);
 
-  /** Type-safe input value extractor for templates */
-  iv(event: Event): string {
-    return (event.target as HTMLInputElement).value;
-  }
-
   readonly addId = signal('');
   readonly addName = signal('');
   readonly addMax = signal(15);

@@ -55,16 +55,6 @@ export class StoreDetail implements OnInit {
 
   readonly deployHistory = signal<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-  /** Type-safe input value extractor for templates */
-  iv(event: Event): string {
-    return (event.target as HTMLInputElement).value;
-  }
-
-  /** Type-safe checkbox checked extractor for templates */
-  ic(event: Event): boolean {
-    return (event.target as HTMLInputElement).checked;
-  }
-
   // Tab management
   readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>(
     'orquestacion',
