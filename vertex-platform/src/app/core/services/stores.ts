@@ -116,7 +116,7 @@ export class StoresService {
         (error) => {
           console.warn('[StoresService] error fetching deploy history:', error);
           subscriber.next([]);
-        }
+        },
       );
     });
   }

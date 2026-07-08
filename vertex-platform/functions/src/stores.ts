@@ -602,7 +602,7 @@ export const redeployStore = onCall<{ storeId: string }>(
     const pat = await getGitHubPat();
     const deployTokenValue = await getDeployToken();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-    const targetRef = env === 'production' ? 'main' : (env === 'local' ? 'local' : 'develop');
+    const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
     const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
 
     const res = await fetch(
@@ -1080,7 +1080,10 @@ export const getActiveStores = onCall(
         try {
           projectId = resolveRuntimeProjectId(store);
         } catch (e) {
-          console.warn(`Store ${store.id} is active but has no runtime project configured. Skipping.`, e);
+          console.warn(
+            `Store ${store.id} is active but has no runtime project configured. Skipping.`,
+            e,
+          );
           return null;
         }
 

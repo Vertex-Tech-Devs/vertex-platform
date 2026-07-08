@@ -1237,9 +1237,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               emailHtml,
               `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
             );
-            console.info(
-              `[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`,
-            );
+            console.info(`[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`);
           } catch (smtpErr) {
             // SMTP failed — try writing to the store's mail collection as fallback
             // (requires firestore-send-email extension to be installed in the store project)
@@ -1420,7 +1418,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const deployTokenValue = await getDeployToken();
 
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-      const targetRef = env === 'production' ? 'main' : (env === 'local' ? 'local' : 'develop');
+      const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
 
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
@@ -1576,7 +1574,7 @@ export const completeStoreDeployment = onCall<{
   }
 
   const storeData = snap.data()!;
-  
+
   // Create a deployment history log entry
   const deployLogRef = storeRef.collection('deploys').doc();
   await deployLogRef.set({
@@ -1586,7 +1584,7 @@ export const completeStoreDeployment = onCall<{
     commitMessage: commitMessage || '',
     ref: ref || '',
     version: version || CURRENT_TEMPLATE_VERSION,
-    error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.'
+    error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.',
   });
 
   if (storeData['status'] === 'active' && success) {

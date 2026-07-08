@@ -73,7 +73,11 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
           />
         </div>
         <div class="filter-controls" style="display: flex; gap: 1rem;">
-          <select class="filter-select" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+          <select
+            class="filter-select"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)"
+          >
             <option value="all">Todos los estados</option>
             <option value="active">Activa</option>
             <option value="provisioning">Provisionando</option>

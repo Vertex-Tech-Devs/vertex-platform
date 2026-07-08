@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, computed, signal, DestroyRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  computed,
+  signal,
+  DestroyRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import type { OnInit } from '@angular/core';
@@ -59,7 +66,9 @@ export class StoreDetail implements OnInit {
   }
 
   // Tab management
-  readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
+  readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>(
+    'orquestacion',
+  );
 
   readonly store = computed(() => {
     const id = this.route.snapshot.paramMap.get('id');
@@ -294,7 +303,9 @@ export class StoreDetail implements OnInit {
   }
 
   // Dynamic Tabs switching
-  async setTab(tab: 'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'): Promise<void> {
+  async setTab(
+    tab: 'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial',
+  ): Promise<void> {
     this.activeTab.set(tab);
     const s = this.store();
     if (!s) {
