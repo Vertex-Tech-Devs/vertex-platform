@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
@@ -68,16 +68,25 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
             class="search-input"
             type="text"
             placeholder="Buscar por nombre, email o slug…"
-            [(ngModel)]="searchQuery"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
           />
         </div>
-        <select class="filter-select" [(ngModel)]="statusFilter">
-          <option value="all">Todos los estados</option>
-          <option value="active">Activa</option>
-          <option value="provisioning">Provisionando</option>
-          <option value="suspended">Suspendida</option>
-          <option value="error">Error</option>
-        </select>
+        <div class="filter-controls" style="display: flex; gap: 1rem;">
+          <select class="filter-select" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            <option value="all">Todos los estados</option>
+            <option value="active">Activa</option>
+            <option value="provisioning">Provisionando</option>
+            <option value="suspended">Suspendida</option>
+            <option value="error">Error</option>
+          </select>
+          <select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+            <option value="created-desc">Más recientes primero</option>
+            <option value="created-asc">Más antiguas primero</option>
+            <option value="name-asc">Nombre (A-Z)</option>
+            <option value="name-desc">Nombre (Z-A)</option>
+          </select>
+        </div>
       </div>
 
       <!-- Results -->
@@ -131,8 +140,9 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
 export class StoresList {
   readonly stores = inject(StoresService);
 
-  searchQuery = '';
-  statusFilter: StoreStatus | 'all' = 'all';
+  searchQuery = signal('');
+  statusFilter = signal<StoreStatus | 'all'>('all');
+  sortBy = signal<'created-desc' | 'created-asc' | 'name-asc' | 'name-desc'>('created-desc');
 
   readonly counts = computed(() => {
     const all = this.stores.stores();
@@ -146,15 +156,34 @@ export class StoresList {
   });
 
   readonly filteredStores = computed(() => {
-    const q = this.searchQuery.toLowerCase().trim();
-    return this.stores.stores().filter((s) => {
+    const q = this.searchQuery().toLowerCase().trim();
+    const status = this.statusFilter();
+    const sort = this.sortBy();
+
+    const filtered = this.stores.stores().filter((s) => {
       const matchesSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
         s.ownerEmail.toLowerCase().includes(q) ||
         s.slug.toLowerCase().includes(q);
-      const matchesStatus = this.statusFilter === 'all' || s.status === this.statusFilter;
+      const matchesStatus = status === 'all' || s.status === status;
       return matchesSearch && matchesStatus;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sort === 'name-asc') {
+        return a.name.localeCompare(b.name);
+      }
+      if (sort === 'name-desc') {
+        return b.name.localeCompare(a.name);
+      }
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (sort === 'created-asc') {
+        return dateA - dateB;
+      }
+      // default: created-desc
+      return dateB - dateA;
     });
   });
 
