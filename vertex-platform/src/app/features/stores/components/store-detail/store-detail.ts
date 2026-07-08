@@ -127,10 +127,10 @@ export class StoreDetail implements OnInit {
   // Confirmation modales
   readonly showDeleteConfirm = signal(false);
   readonly showSleepConfirm = signal(false);
-  readonly showDomainForm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
   readonly seedIncludeMock = signal(true);
+  readonly logoPreviewError = signal(false);
 
   // Error/Success state signals
   readonly actionError = signal('');
