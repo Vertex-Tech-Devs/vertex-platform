@@ -169,15 +169,6 @@ jobs:
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
 
-      - name: Grant Firestore Rules Admin role to SA
-        run: |
-          SA_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format='value(account)')
-          gcloud projects add-iam-policy-binding vertex-platform-dev \
-            --member="serviceAccount:$SA_EMAIL" \
-            --role="roles/firebaserules.admin" \
-            --condition=None \
-            --quiet 2>&1 || echo "Role already exists or not needed"
-
       - name: Deploy to Firebase Development
         working-directory: vertex-platform
         run: |
@@ -222,15 +213,6 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-
-      - name: Grant Firestore Rules Admin role to SA
-        run: |
-          SA_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format='value(account)')
-          gcloud projects add-iam-policy-binding vertex-platform-app \
-            --member="serviceAccount:$SA_EMAIL" \
-            --role="roles/firebaserules.admin" \
-            --condition=None \
-            --quiet 2>&1 || echo "Role already exists or not needed"
 
       - name: Deploy to Firebase Production
         working-directory: vertex-platform
