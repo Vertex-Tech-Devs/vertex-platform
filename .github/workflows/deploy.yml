@@ -174,7 +174,7 @@ jobs:
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-dev \
-            --only hosting:dev,functions,firestore \
+            --only hosting:dev,functions \
             --non-interactive \
             --force
 
@@ -219,6 +219,6 @@ jobs:
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-app \
-            --only hosting:prod,functions,firestore \
+            --only hosting:prod,functions \
             --non-interactive \
             --force
