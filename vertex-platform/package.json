@@ -85,7 +85,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "cypress": "^15.17.0",
     "eslint": "^9.39.4",
-    "firebase-admin": "^14.0.0",
+    "firebase-admin": "^14.1.0",
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^17.0.7",
