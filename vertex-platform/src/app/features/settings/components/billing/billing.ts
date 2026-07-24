@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { BillingAccountsService } from '@core/services/billing-accounts';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import type { BillingAccount } from '@core/models/billing-account';
 import { errorMessage } from '@core/utils/error.util';
