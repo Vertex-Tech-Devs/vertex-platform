@@ -206,6 +206,11 @@ export async function apiFetch(
           headers['x-goog-user-project'] = match[1];
         }
       }
+      // If retrying after a 429 quota exhaustion, fallback to removing x-goog-user-project
+      // so Google uses the Service Account's own project quota instead of hitting a depleted quota project.
+      if (i > 1) {
+        delete headers['x-goog-user-project'];
+      }
       const res = await fetch(url, {
         method: options.method ?? 'GET',
         headers,

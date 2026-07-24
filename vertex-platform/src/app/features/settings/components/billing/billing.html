@@ -1,17 +1,28 @@
 <div class="billing-page">
   <div class="page-top">
     <div>
-      <h1 class="page-title">Facturación</h1>
-      <p class="page-sub">Billing accounts de Google Cloud asignadas a Vertex Platform</p>
+      <h1 class="page-title">Facturación Google Cloud</h1>
+      <p class="page-sub">Gestión de Cuentas de Facturación para el Aprovisionamiento de Tiendas SaaS</p>
     </div>
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
+  <!-- Explainers banner -->
+  <div class="add-card" style="background: rgba(234, 88, 12, 0.05); border-color: rgba(234, 88, 12, 0.2); margin-bottom: 1.5rem;">
+    <h2 class="add-card__title" style="font-size: 1.1rem; color: #ea580c; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="bi bi-info-circle-fill"></i> ¿Para qué sirve esta sección?
+    </h2>
+    <p style="font-size: 0.88rem; line-height: 1.5; color: #475569; margin-top: 0.5rem;">
+      Cada tienda que creas en modo <strong>Pro/Enterprise (Shard independiente)</strong> requiere un proyecto de Google Cloud con facturación activa para habilitar sus recursos (Firestore, Cloud Storage, Hosting y Functions). 
+      Google Cloud impone un límite de proyectos asociados por cuenta de facturación. Aquí asignas las cuentas de facturación de GCP que la Plataforma utilizará automáticamente para rotar y aprovisionar tiendas sin alcanzar el tope por cuenta.
+    </p>
+  </div>
+
   <!-- Add account card -->
   <div class="add-card">
-    <h2 class="add-card__title">Agregar billing account</h2>
+    <h2 class="add-card__title">Agregar cuenta de facturación GCP</h2>
     <p class="add-card__hint">
-      La cuenta debe existir en Google Cloud y tu usuario debe tener acceso a ella.
+      Introduce la ID de la cuenta (ej. <code>012345-6789AB-CDEF01</code>). La cuenta debe estar activa en GCP Console.
     </p>
     <div class="add-grid">
       <div class="form-group">
