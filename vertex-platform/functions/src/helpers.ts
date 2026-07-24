@@ -189,8 +189,8 @@ export async function apiFetch(
   url: string,
   options: { method?: string; body?: unknown; quotaProject?: string } = {},
 ): Promise<unknown> {
-  const maxAttempts = 5;
-  let delayMs = 2000;
+  const maxAttempts = 10;
+  let delayMs = 3000;
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const tokenRes = await auth.getAccessToken();
@@ -204,26 +204,41 @@ export async function apiFetch(
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       });
-      if (res.status === 429 && i < maxAttempts - 1) {
+      if ((res.status === 429 || res.status === 503) && i < maxAttempts - 1) {
+        const jitter = Math.floor(Math.random() * 1000);
+        const currentDelay = delayMs + jitter;
         console.warn(
-          `[apiFetch] Rate limited (429) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${delayMs}ms...`,
+          `[apiFetch] Rate limited / Service unavailable (${res.status}) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
         );
-        await new Promise((r) => setTimeout(r, delayMs));
-        delayMs *= 2;
+        await new Promise((r) => setTimeout(r, currentDelay));
+        delayMs = Math.min(delayMs * 2, 45000);
         continue;
       }
       if (!res.ok) {
         const text = await res.text();
+        if ((res.status === 429 || text.includes('RESOURCE_EXHAUSTED') || text.includes('429')) && i < maxAttempts - 1) {
+          const jitter = Math.floor(Math.random() * 1000);
+          const currentDelay = delayMs + jitter;
+          console.warn(
+            `[apiFetch] Quota/Rate limit exhausted on ${url}: ${text}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
+          );
+          await new Promise((r) => setTimeout(r, currentDelay));
+          delayMs = Math.min(delayMs * 2, 45000);
+          continue;
+        }
         throw new Error(`${res.status} ${res.statusText}: ${text}`);
       }
       return res.json();
     } catch (err) {
-      if (i < maxAttempts - 1 && String(err).includes('429')) {
+      const errStr = String(err);
+      if (i < maxAttempts - 1 && (errStr.includes('429') || errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('503'))) {
+        const jitter = Math.floor(Math.random() * 1000);
+        const currentDelay = delayMs + jitter;
         console.warn(
-          `[apiFetch] Encountered rate limit error on ${url}: ${String(err)}. Retrying in ${delayMs}ms...`,
+          `[apiFetch] Encountered rate limit error on ${url}: ${errStr}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
         );
-        await new Promise((r) => setTimeout(r, delayMs));
-        delayMs *= 2;
+        await new Promise((r) => setTimeout(r, currentDelay));
+        delayMs = Math.min(delayMs * 2, 45000);
         continue;
       }
       throw err;
