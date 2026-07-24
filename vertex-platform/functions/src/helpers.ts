@@ -198,18 +198,8 @@ export async function apiFetch(
         Authorization: `Bearer ${tokenRes.token}`,
         'Content-Type': 'application/json',
       };
-      headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
-      // Extract target project from GCP API URL if available (e.g. /projects/projectId/...)
-      if (!options.quotaProject) {
-        const match = url.match(/\/projects\/([a-z0-9-]+)/i);
-        if (match && match[1] && !match[1].includes('.')) {
-          headers['x-goog-user-project'] = match[1];
-        }
-      }
-      // If retrying after a 429 quota exhaustion, fallback to removing x-goog-user-project
-      // so Google uses the Service Account's own project quota instead of hitting a depleted quota project.
-      if (i > 1) {
-        delete headers['x-goog-user-project'];
+      if (options.quotaProject) {
+        headers['x-goog-user-project'] = options.quotaProject;
       }
       const res = await fetch(url, {
         method: options.method ?? 'GET',
