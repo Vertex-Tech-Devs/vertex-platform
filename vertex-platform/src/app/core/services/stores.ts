@@ -97,12 +97,12 @@ export class StoresService {
   }
 
   async getRuntimeCapacitySummary(): Promise<RuntimeCapacitySummary> {
-    const fn = httpsCallable<Record<string, never>, { summary: RuntimeCapacitySummary }>(
-      this.fns,
-      'getRuntimeCapacitySummary',
-    );
+    const fn = httpsCallable<
+      Record<string, never>,
+      { summary?: RuntimeCapacitySummary } & RuntimeCapacitySummary
+    >(this.fns, 'getRuntimeCapacitySummary');
     const result = await fn({});
-    return result.data.summary;
+    return result.data.summary ?? (result.data as RuntimeCapacitySummary);
   }
 
   async redeployStore(storeId: string): Promise<void> {
