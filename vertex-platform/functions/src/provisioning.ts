@@ -664,11 +664,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409') && !msg.includes('429') && !msg.includes('RESOURCE_EXHAUSTED')) {
+          if (!msg.includes('already exists') && !msg.includes('409')) {
             throw err;
           }
           console.info(
-            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} creation handled (exists or quota fallback) on shard ${projectId}: ${msg}`,
+            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
           );
         }
       }
