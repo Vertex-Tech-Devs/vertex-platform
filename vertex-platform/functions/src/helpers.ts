@@ -199,6 +199,13 @@ export async function apiFetch(
         'Content-Type': 'application/json',
       };
       headers['x-goog-user-project'] = options.quotaProject ?? PLATFORM_PROJECT;
+      // Extract target project from GCP API URL if available (e.g. /projects/projectId/...)
+      if (!options.quotaProject) {
+        const match = url.match(/\/projects\/([a-z0-9-]+)/i);
+        if (match && match[1] && !match[1].includes('.')) {
+          headers['x-goog-user-project'] = match[1];
+        }
+      }
       const res = await fetch(url, {
         method: options.method ?? 'GET',
         headers,
