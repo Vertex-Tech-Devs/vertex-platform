@@ -1415,9 +1415,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             await db.runTransaction(async (transaction) => {
               const shardSnap = await transaction.get(shardRef);
               if (shardSnap.exists) {
-                const currentActive = shardSnap.data()?.activeStores || 0;
+                const data = shardSnap.data();
+                const currentActive = data?.activeStores || 0;
+                const maxStores = data?.maxStores || 100;
+                const newActive = currentActive + 1;
+                const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
                 transaction.update(shardRef, {
-                  activeStores: currentActive + 1,
+                  activeStores: newActive,
+                  status: newStatus,
                   updatedAt: new Date(),
                 });
               }
@@ -1628,11 +1633,19 @@ export const completeStoreDeployment = onCall<{
         await db.runTransaction(async (transaction) => {
           const shardSnap = await transaction.get(shardRef);
           if (shardSnap.exists) {
-            const currentActive = shardSnap.data()?.activeStores || 0;
+            const data = shardSnap.data();
+            const currentActive = data?.activeStores || 0;
+            const maxStores = data?.maxStores || 100;
+            const newActive = currentActive + 1;
+            const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
             transaction.update(shardRef, {
-              activeStores: currentActive + 1,
+              activeStores: newActive,
+              status: newStatus,
               updatedAt: new Date(),
             });
+            if (newStatus === 'full') {
+              console.info(`[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxStores}). Marked as 'full'.`);
+            }
           }
         });
         console.info(
