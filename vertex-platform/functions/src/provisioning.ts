@@ -664,45 +664,60 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409')) {
+          if (!msg.includes('already exists') && !msg.includes('409') && !msg.includes('429') && !msg.includes('RESOURCE_EXHAUSTED')) {
             throw err;
           }
           console.info(
-            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
+            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} creation handled (exists or quota fallback) on shard ${projectId}: ${msg}`,
           );
         }
       }
 
-      let appId: string;
+      let appId: string | undefined;
 
       if (runtimeMode === 'shared-shard') {
-        // Shared-shard stores share the same Firebase project, so they can reuse the same
-        // Web App registration. Creating a new one per store hits the 30-app project limit.
-        const appsRes = (await apiFetch(
-          auth,
-          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-        )) as { apps: Array<{ appId: string }> };
-
-        if (appsRes.apps?.length) {
-          appId = appsRes.apps[0].appId;
-          console.info(
-            `[provisioning:createWebApp] Reusing existing Web App ${appId} on shard ${projectId}`,
-          );
+        const shardDoc = await db.collection('shards').doc(shardId!).get();
+        const shardData = shardDoc.data();
+        if (shardData?.['firebaseConfig']) {
+          firebaseConfig = shardData['firebaseConfig'] as Record<string, string>;
+          console.info(`[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`);
         } else {
-          const appOp = (await apiFetch(
-            auth,
-            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-            { method: 'POST', body: { displayName: `${projectId}-shard` } },
-          )) as { name: string };
-          await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
-          const refreshed = (await apiFetch(
+          const appsRes = (await apiFetch(
             auth,
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
           )) as { apps: Array<{ appId: string }> };
-          appId = refreshed.apps[0].appId;
-          console.info(
-            `[provisioning:createWebApp] Created first Web App ${appId} on shard ${projectId}`,
-          );
+
+          if (appsRes.apps?.length) {
+            appId = appsRes.apps[0].appId;
+          } else {
+            const appOp = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+              { method: 'POST', body: { displayName: `${projectId}-shard` } },
+            )) as { name: string };
+            await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+            const refreshed = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+            )) as { apps: Array<{ appId: string }> };
+            appId = refreshed.apps[0].appId;
+          }
+
+          const configRes = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+          )) as Record<string, string>;
+
+          firebaseConfig = {
+            apiKey: configRes['apiKey'],
+            authDomain: configRes['authDomain'],
+            projectId: configRes['projectId'],
+            storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+            messagingSenderId: configRes['messagingSenderId'],
+            appId: configRes['appId'],
+          };
+
+          await db.collection('shards').doc(shardId!).update({ firebaseConfig });
         }
       } else {
         const appOp = (await apiFetch(
@@ -716,21 +731,21 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
         )) as { apps: Array<{ appId: string }> };
         appId = appsRes.apps[0].appId;
+
+        const configRes = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+        )) as Record<string, string>;
+
+        firebaseConfig = {
+          apiKey: configRes['apiKey'],
+          authDomain: configRes['authDomain'],
+          projectId: configRes['projectId'],
+          storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+          messagingSenderId: configRes['messagingSenderId'],
+          appId: configRes['appId'],
+        };
       }
-
-      const configRes = (await apiFetch(
-        auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
-      )) as Record<string, string>;
-
-      firebaseConfig = {
-        apiKey: configRes['apiKey'],
-        authDomain: configRes['authDomain'],
-        projectId: configRes['projectId'],
-        storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
-        messagingSenderId: configRes['messagingSenderId'],
-        appId: configRes['appId'],
-      };
 
       await db
         .collection('stores')
