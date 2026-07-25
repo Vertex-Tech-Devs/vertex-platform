@@ -225,6 +225,30 @@ export const provisionStore = onCall<CreateStorePayload>(
         updatedAt: new Date(),
       });
 
+    if (isNewShard && shardId) {
+      const shardRef = db.collection('shards').doc(shardId);
+      await shardRef.set(
+        {
+          id: shardId,
+          environment: env,
+          runtimeMode: 'shared-shard',
+          projectId: projectId,
+          siteId: 'default',
+          region: 'us-central1',
+          status: 'active',
+          maxStores: DEFAULT_MAX_STORES_PER_SHARD,
+          activeStores: 0,
+          reservedStores: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      console.info(
+        `[provisionStore] Pre-registered new shared shard ${shardId} in Firestore shards collection.`,
+      );
+    }
+
     await logAuditAction(
       request.auth?.uid || 'unknown',
       request.auth?.token.email as string | undefined,
@@ -752,7 +776,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             appId: configRes['appId'],
           };
 
-          await db.collection('shards').doc(shardId!).update({ firebaseConfig });
+          await db.collection('shards').doc(shardId!).set({ firebaseConfig }, { merge: true });
         }
       } else {
         const appOp = (await apiFetch(
