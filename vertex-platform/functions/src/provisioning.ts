@@ -24,7 +24,7 @@ import {
   sendDirectEmail,
 } from './helpers';
 import { seedStoreData } from './seeds';
-import { resolvePlatformEnvironment, getAvailableShardSlots, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
+import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
@@ -83,12 +83,28 @@ export const provisionStore = onCall<CreateStorePayload>(
       .where('status', '==', 'active')
       .get();
 
+    const allActiveShards: StoreShard[] = (shardsSnap?.docs || []).map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<StoreShard, 'id'>),
+    }));
+
+    // Aggregate usage per underlying GCP projectId to respect GCP's physical 35-site limit per project
+    const projectUsageMap: Record<string, number> = {};
+    allActiveShards.forEach((s) => {
+      projectUsageMap[s.projectId] =
+        (projectUsageMap[s.projectId] || 0) + (s.activeStores || 0) + (s.reservedStores || 0);
+    });
+
     let selectedShard: StoreShard | null = null;
     let maxAvailableSlots = 0;
 
-    (shardsSnap?.docs || []).forEach((doc) => {
-      const shard = { id: doc.id, ...doc.data() } as StoreShard;
-      const availableSlots = getAvailableShardSlots(shard);
+    allActiveShards.forEach((shard) => {
+      const projectUsage = projectUsageMap[shard.projectId] || 0;
+      const projectCap = Math.min(
+        shard.maxStores || DEFAULT_MAX_STORES_PER_SHARD,
+        DEFAULT_MAX_STORES_PER_SHARD,
+      );
+      const availableSlots = Math.max(0, projectCap - projectUsage);
       if (availableSlots > maxAvailableSlots) {
         maxAvailableSlots = availableSlots;
         selectedShard = shard;
