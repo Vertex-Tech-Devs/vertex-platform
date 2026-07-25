@@ -14,18 +14,22 @@
           @if (runtimeSummary()!.recommendedRuntimeMode === 'shared-shard') {
             Shared-shard disponible
           } @else {
-            Shared-shard sin cupo activo
+            Auto-escalado listo (Nuevo Shard)
           }
         </h2>
         <p class="runtime-summary__body">
-          {{ runtimeSummary()!.activeSharedShardCount }} shard{{
-            runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : ''
-          }}
-          activa{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} con
-          {{ runtimeSummary()!.availableSharedSlots }} lugar{{
-            runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : ''
-          }}
-          libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}. La tienda se alojará instantáneamente en la infraestructura compartida sin consumir límites de proyectos de Google Cloud.
+          @if (runtimeSummary()!.recommendedRuntimeMode === 'shared-shard') {
+            {{ runtimeSummary()!.activeSharedShardCount }} shard{{
+              runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : ''
+            }}
+            activa{{ runtimeSummary()!.activeSharedShardCount !== 1 ? 's' : '' }} con
+            {{ runtimeSummary()!.availableSharedSlots }} lugar{{
+              runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : ''
+            }}
+            libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}. La tienda se alojará de forma inmediata en la infraestructura compartida.
+          } @else {
+            Los shards compartidos actuales alcanzaron su capacidad máxima (35 tiendas). Se aprovisionará automáticamente un nuevo shard/proyecto en Google Cloud de forma transparente.
+          }
         </p>
       </div>
       <div
@@ -33,7 +37,7 @@
           runtimeSummary()!.recommendedRuntimeMode
         }}"
       >
-        {{ runtimeSummary()!.recommendedRuntimeMode === 'shared-shard' ? 'Ready' : 'Fallback' }}
+        {{ runtimeSummary()!.recommendedRuntimeMode === 'shared-shard' ? 'Ready' : 'Auto-Scale' }}
       </div>
     </section>
   } @else if (runtimeSummaryError()) {
