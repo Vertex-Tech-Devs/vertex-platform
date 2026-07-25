@@ -664,11 +664,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409') && !msg.includes('429') && !msg.includes('RESOURCE_EXHAUSTED')) {
+          if (!msg.includes('already exists') && !msg.includes('409')) {
             throw err;
           }
           console.info(
-            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} creation handled (exists or deferred to storefront deploy CLI fallback) on shard ${projectId}: ${msg}`,
+            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
           );
         }
       }
@@ -1451,6 +1451,29 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
         return;
       }
+      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
+        try {
+          await apiFetch(
+            auth,
+            `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+            {
+              method: 'POST',
+              body: { type: 'USER_SITE' },
+            },
+          );
+          console.info(
+            `[provisioning:triggerDeploy] Ensured custom hosting site ${runtimeSiteId} exists on shard ${projectId}`,
+          );
+        } catch (err: any) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('already exists') && !msg.includes('409')) {
+            console.warn(
+              `[provisioning:triggerDeploy] Warning: custom hosting site ${runtimeSiteId} check failed on shard ${projectId}: ${msg}`,
+            );
+          }
+        }
+      }
+
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action
