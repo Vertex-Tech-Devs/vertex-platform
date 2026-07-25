@@ -24,7 +24,7 @@ import {
   sendDirectEmail,
 } from './helpers';
 import { seedStoreData } from './seeds';
-import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
+import { resolvePlatformEnvironment, getAvailableShardSlots, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
@@ -624,7 +624,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         siteId: 'default',
         region: 'us-central1',
         status: 'active',
-        maxStores: 100, // Capacity for the new shard
+        maxStores: DEFAULT_MAX_STORES_PER_SHARD, // Capacity for the new shard (capped at GCP Firebase Hosting limit of 35 user sites)
         activeStores: 0,
         reservedStores: 0,
         createdAt: new Date(),
@@ -1432,7 +1432,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               if (shardSnap.exists) {
                 const data = shardSnap.data();
                 const currentActive = data?.activeStores || 0;
-                const maxStores = data?.maxStores || 100;
+                const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
                 const newActive = currentActive + 1;
                 const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
                 transaction.update(shardRef, {
@@ -1673,7 +1673,7 @@ export const completeStoreDeployment = onCall<{
           if (shardSnap.exists) {
             const data = shardSnap.data();
             const currentActive = data?.activeStores || 0;
-            const maxStores = data?.maxStores || 100;
+            const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
             const newActive = currentActive + 1;
             const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
             transaction.update(shardRef, {
