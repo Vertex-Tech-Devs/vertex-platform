@@ -37,6 +37,22 @@ function normalizeStorageBucket(projectId: string, storageBucket: string | undef
   }
   return bucket;
 }
+
+export function formatProjectDisplayName(
+  name: string,
+  isNewShard?: boolean,
+  shardId?: string | null,
+): string {
+  if (isNewShard) {
+    const raw = `Vertex Shard ${shardId ?? ''}`.trim();
+    return raw.slice(0, 30);
+  }
+  const trimmed = name.trim();
+  if (trimmed.length < 4) {
+    return `Store ${trimmed}`.slice(0, 30);
+  }
+  return trimmed.slice(0, 30);
+}
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 export const provisionStore = onCall<CreateStorePayload>(
@@ -424,7 +440,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'https://cloudresourcemanager.googleapis.com/v3/projects',
               {
                 method: 'POST',
-                body: { projectId, displayName: name },
+                body: {
+                  projectId,
+                  displayName: formatProjectDisplayName(name, isNewShard, shardId),
+                },
               },
             )) as { name: string };
             await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
