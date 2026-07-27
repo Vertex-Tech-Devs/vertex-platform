@@ -152,7 +152,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         if (!warmSnap.empty) {
           const warmDoc = warmSnap.docs[0];
           const warmData = warmDoc.data() as StoreShard;
-          selectedShard = { id: warmDoc.id, ...warmData };
+          selectedShard = { ...warmData, id: warmDoc.id };
           // Promote warm shard to active
           await db.collection('shards').doc(warmDoc.id).update({
             status: 'active',
