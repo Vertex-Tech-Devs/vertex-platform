@@ -22,6 +22,7 @@ import {
   pickBillingAccount,
   listProvisioningOwnerCandidates,
   sendDirectEmail,
+  getPlatformServiceAccountOAuthClient,
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
@@ -1385,64 +1386,82 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
+async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Promise<void> {
+  const serviceAccounts = Array.from(
+    new Set([
+      `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
+      `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+      `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
+      `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
+      `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+      `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+      `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
+      `vertex-platform-dev@appspot.gserviceaccount.com`,
+      `vertex-platform-app@appspot.gserviceaccount.com`,
+      `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
+      `ecommerce-vertex@appspot.gserviceaccount.com`,
+    ]),
+  );
+
+  let activeAuth = auth;
+  try {
+    const platformAuth = await getPlatformServiceAccountOAuthClient();
+    if (platformAuth) activeAuth = platformAuth;
+  } catch (authErr) {
+    console.warn('[ensureShardProjectIam] Using user auth fallback:', authErr);
+  }
+
+  const policy = (await apiFetch(
+    activeAuth,
+    `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+    { method: 'POST', body: {} },
+  )) as {
+    bindings: Array<{ role: string; members: string[] }>;
+    etag: string;
+  };
+
+  const rolesToEnsure = [
+    'roles/owner',
+    'roles/editor',
+    'roles/firebasehosting.admin',
+    'roles/firebaserules.admin',
+  ];
+
+  let modified = false;
+  for (const roleName of rolesToEnsure) {
+    let binding = policy.bindings?.find((b) => b.role === roleName);
+    if (!binding) {
+      binding = { role: roleName, members: [] };
+      policy.bindings = [...(policy.bindings ?? []), binding];
+    }
+    for (const sa of serviceAccounts) {
+      const member = `serviceAccount:${sa}`;
+      if (!binding.members.includes(member)) {
+        binding.members.push(member);
+        modified = true;
+      }
+    }
+  }
+
+  if (modified) {
+    await apiFetch(
+      activeAuth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+      { method: 'POST', body: { policy } },
+    );
+    console.info(`[ensureShardProjectIam] Defensively granted IAM roles on ${projectId}`);
+  }
+}
+
   // ── Step 8: Grant platform SA deploy access ────────────────────────────
   if (!isDone('grantAccess')) {
     await setStep('grantAccess', 'running');
     try {
-      const serviceAccounts = Array.from(
-        new Set([
-          `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-          `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-          `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
-          `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
-          `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-          `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-          `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
-          `vertex-platform-dev@appspot.gserviceaccount.com`,
-          `vertex-platform-app@appspot.gserviceaccount.com`,
-          `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
-          `ecommerce-vertex@appspot.gserviceaccount.com`,
-        ]),
-      );
-      const policy = (await apiFetch(
-        auth,
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-        { method: 'POST', body: {} },
-      )) as {
-        bindings: Array<{ role: string; members: string[] }>;
-        etag: string;
-      };
-
-      const rolesToEnsure = [
-        'roles/owner',
-        'roles/editor',
-        'roles/firebasehosting.admin',
-        'roles/firebaserules.admin',
-      ];
-
-      for (const roleName of rolesToEnsure) {
-        let binding = policy.bindings?.find((b) => b.role === roleName);
-        if (!binding) {
-          binding = { role: roleName, members: [] };
-          policy.bindings = [...(policy.bindings ?? []), binding];
-        }
-        for (const sa of serviceAccounts) {
-          const member = `serviceAccount:${sa}`;
-          if (!binding.members.includes(member)) {
-            binding.members.push(member);
-          }
-        }
-      }
-
-      await apiFetch(
-        auth,
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-        { method: 'POST', body: { policy } },
-      );
+      await ensureShardProjectIam(auth, projectId);
       await setStep('grantAccess', 'done');
     } catch (err) {
       await fail('grantAccess', err);
@@ -1522,64 +1541,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
       try {
-        const serviceAccounts = Array.from(
-          new Set([
-            `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-            `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-            `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
-            `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
-            `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-            `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-            `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
-            `vertex-platform-dev@appspot.gserviceaccount.com`,
-            `vertex-platform-app@appspot.gserviceaccount.com`,
-            `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
-            `ecommerce-vertex@appspot.gserviceaccount.com`,
-          ]),
-        );
-        const policy = (await apiFetch(
-          auth,
-          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-          { method: 'POST', body: {} },
-        )) as {
-          bindings: Array<{ role: string; members: string[] }>;
-          etag: string;
-        };
-        const rolesToEnsure = [
-          'roles/owner',
-          'roles/editor',
-          'roles/firebasehosting.admin',
-          'roles/firebaserules.admin',
-        ];
-        let modified = false;
-        for (const roleName of rolesToEnsure) {
-          let binding = policy.bindings?.find((b) => b.role === roleName);
-          if (!binding) {
-            binding = { role: roleName, members: [] };
-            policy.bindings = [...(policy.bindings ?? []), binding];
-          }
-          for (const sa of serviceAccounts) {
-            const member = `serviceAccount:${sa}`;
-            if (!binding.members.includes(member)) {
-              binding.members.push(member);
-              modified = true;
-            }
-          }
-        }
-        if (modified) {
-          await apiFetch(
-            auth,
-            `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-            { method: 'POST', body: { policy } },
-          );
-          console.info(
-            `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
-          );
-        }
+        await ensureShardProjectIam(auth, projectId);
       } catch (iamErr) {
         console.warn(
           `[provisioning:triggerDeploy] Defensive IAM policy check warning on ${projectId}:`,
