@@ -1392,18 +1392,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const serviceAccounts = Array.from(
         new Set([
           `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
           `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
           `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
           `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
           `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
           `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+          `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
         ]),
       );
-      const cicdServiceAccounts = [
-        `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
-        `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-        `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-      ];
       const tokenRes = await auth.getAccessToken();
 
       const policyRes = await fetch(
@@ -1422,30 +1422,24 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         etag: string;
       };
 
-      let ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
-      if (!ownerBinding) {
-        ownerBinding = { role: 'roles/owner', members: [] };
-        policy.bindings = [...(policy.bindings ?? []), ownerBinding];
-      }
+      const rolesToEnsure = [
+        'roles/owner',
+        'roles/editor',
+        'roles/firebasehosting.admin',
+        'roles/firebaserules.admin',
+      ];
 
-      for (const sa of serviceAccounts) {
-        const member = `serviceAccount:${sa}`;
-        if (!ownerBinding.members.includes(member)) {
-          ownerBinding.members.push(member);
+      for (const roleName of rolesToEnsure) {
+        let binding = policy.bindings?.find((b) => b.role === roleName);
+        if (!binding) {
+          binding = { role: roleName, members: [] };
+          policy.bindings = [...(policy.bindings ?? []), binding];
         }
-      }
-
-      let rulesBinding = policy.bindings?.find((b) => b.role === 'roles/firebaserules.admin');
-      if (!rulesBinding) {
-        rulesBinding = { role: 'roles/firebaserules.admin', members: [] };
-        policy.bindings = [...(policy.bindings ?? []), rulesBinding];
-      }
-
-      const allRulesSAs = [...serviceAccounts, ...cicdServiceAccounts];
-      for (const sa of allRulesSAs) {
-        const member = `serviceAccount:${sa}`;
-        if (!rulesBinding.members.includes(member)) {
-          rulesBinding.members.push(member);
+        for (const sa of serviceAccounts) {
+          const member = `serviceAccount:${sa}`;
+          if (!binding.members.includes(member)) {
+            binding.members.push(member);
+          }
         }
       }
 
@@ -1537,16 +1531,21 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
-      // Defensively ensure IAM owner permissions are granted on the target project before dispatching GitHub Action
+      // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
       try {
         const serviceAccounts = Array.from(
           new Set([
             `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
             `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
             `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
             `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
             `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
             `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+            `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
           ]),
         );
         const tokenRes = await auth.getAccessToken();
@@ -1566,17 +1565,25 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             bindings: Array<{ role: string; members: string[] }>;
             etag: string;
           };
-          let ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
-          if (!ownerBinding) {
-            ownerBinding = { role: 'roles/owner', members: [] };
-            policy.bindings = [...(policy.bindings ?? []), ownerBinding];
-          }
+          const rolesToEnsure = [
+            'roles/owner',
+            'roles/editor',
+            'roles/firebasehosting.admin',
+            'roles/firebaserules.admin',
+          ];
           let modified = false;
-          for (const sa of serviceAccounts) {
-            const member = `serviceAccount:${sa}`;
-            if (!ownerBinding.members.includes(member)) {
-              ownerBinding.members.push(member);
-              modified = true;
+          for (const roleName of rolesToEnsure) {
+            let binding = policy.bindings?.find((b) => b.role === roleName);
+            if (!binding) {
+              binding = { role: roleName, members: [] };
+              policy.bindings = [...(policy.bindings ?? []), binding];
+            }
+            for (const sa of serviceAccounts) {
+              const member = `serviceAccount:${sa}`;
+              if (!binding.members.includes(member)) {
+                binding.members.push(member);
+                modified = true;
+              }
             }
           }
           if (modified) {
@@ -1592,7 +1599,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               },
             );
             console.info(
-              `[provisioning:triggerDeploy] Defensively updated IAM owner policy on ${projectId}`,
+              `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
             );
           }
         }
