@@ -1537,6 +1537,72 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
+      // Defensively ensure IAM owner permissions are granted on the target project before dispatching GitHub Action
+      try {
+        const serviceAccounts = Array.from(
+          new Set([
+            `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+            `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
+            `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+            `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+          ]),
+        );
+        const tokenRes = await auth.getAccessToken();
+        const policyRes = await fetch(
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${tokenRes.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          },
+        );
+        if (policyRes.ok) {
+          const policy = (await policyRes.json()) as {
+            bindings: Array<{ role: string; members: string[] }>;
+            etag: string;
+          };
+          let ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
+          if (!ownerBinding) {
+            ownerBinding = { role: 'roles/owner', members: [] };
+            policy.bindings = [...(policy.bindings ?? []), ownerBinding];
+          }
+          let modified = false;
+          for (const sa of serviceAccounts) {
+            const member = `serviceAccount:${sa}`;
+            if (!ownerBinding.members.includes(member)) {
+              ownerBinding.members.push(member);
+              modified = true;
+            }
+          }
+          if (modified) {
+            await fetch(
+              `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${tokenRes.token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ policy }),
+              },
+            );
+            console.info(
+              `[provisioning:triggerDeploy] Defensively updated IAM owner policy on ${projectId}`,
+            );
+          }
+        }
+      } catch (iamErr) {
+        console.warn(
+          `[provisioning:triggerDeploy] Defensive IAM policy check warning on ${projectId}:`,
+          iamErr,
+        );
+      }
+
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action
