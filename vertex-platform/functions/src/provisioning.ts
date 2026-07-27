@@ -798,16 +798,20 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
           )) as Record<string, string>;
 
+          const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+          const masterAuthDomain =
+            currentPlatformEnv === 'development'
+              ? 'ecommerce-vertex-dev.firebaseapp.com'
+              : 'ecommerce-vertex.firebaseapp.com';
+
           firebaseConfig = {
             apiKey: configRes['apiKey'],
-            authDomain: configRes['authDomain'],
+            authDomain: masterAuthDomain || configRes['authDomain'],
             projectId: configRes['projectId'],
             storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
             messagingSenderId: configRes['messagingSenderId'],
             appId: configRes['appId'],
           };
-
-          await db.collection('shards').doc(shardId!).set({ firebaseConfig }, { merge: true });
         }
       } else {
         const appOp = (await apiFetch(
@@ -827,9 +831,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
         )) as Record<string, string>;
 
+        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const masterAuthDomain =
+          currentPlatformEnv === 'development'
+            ? 'ecommerce-vertex-dev.firebaseapp.com'
+            : 'ecommerce-vertex.firebaseapp.com';
+
         firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: configRes['authDomain'],
+          authDomain: masterAuthDomain || configRes['authDomain'],
           projectId: configRes['projectId'],
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
@@ -1254,6 +1264,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         const requiredDomains = new Set<string>([
           `${projectId}.firebaseapp.com`,
           `${projectId}.web.app`,
+          'ecommerce-vertex-dev.firebaseapp.com',
+          'ecommerce-vertex.firebaseapp.com',
+          'vertex-platform-dev.firebaseapp.com',
+          'vertex-platform-app.firebaseapp.com',
+          'localhost',
+          '127.0.0.1',
         ]);
         if (runtimeSiteId) {
           requiredDomains.add(`${runtimeSiteId}.web.app`);
