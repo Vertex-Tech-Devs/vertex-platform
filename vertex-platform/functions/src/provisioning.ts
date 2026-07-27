@@ -1404,20 +1404,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
         ]),
       );
-      const tokenRes = await auth.getAccessToken();
-
-      const policyRes = await fetch(
+      const policy = (await apiFetch(
+        auth,
         `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${tokenRes.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        },
-      );
-      const policy = (await policyRes.json()) as {
+        { method: 'POST', body: {} },
+      )) as {
         bindings: Array<{ role: string; members: string[] }>;
         etag: string;
       };
@@ -1443,16 +1434,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
-      await fetch(
+      await apiFetch(
+        auth,
         `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${tokenRes.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ policy }),
-        },
+        { method: 'POST', body: { policy } },
       );
       await setStep('grantAccess', 'done');
     } catch (err) {
@@ -1548,60 +1533,44 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
           ]),
         );
-        const tokenRes = await auth.getAccessToken();
-        const policyRes = await fetch(
+        const policy = (await apiFetch(
+          auth,
           `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${tokenRes.token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-          },
-        );
-        if (policyRes.ok) {
-          const policy = (await policyRes.json()) as {
-            bindings: Array<{ role: string; members: string[] }>;
-            etag: string;
-          };
-          const rolesToEnsure = [
-            'roles/owner',
-            'roles/editor',
-            'roles/firebasehosting.admin',
-            'roles/firebaserules.admin',
-          ];
-          let modified = false;
-          for (const roleName of rolesToEnsure) {
-            let binding = policy.bindings?.find((b) => b.role === roleName);
-            if (!binding) {
-              binding = { role: roleName, members: [] };
-              policy.bindings = [...(policy.bindings ?? []), binding];
-            }
-            for (const sa of serviceAccounts) {
-              const member = `serviceAccount:${sa}`;
-              if (!binding.members.includes(member)) {
-                binding.members.push(member);
-                modified = true;
-              }
+          { method: 'POST', body: {} },
+        )) as {
+          bindings: Array<{ role: string; members: string[] }>;
+          etag: string;
+        };
+        const rolesToEnsure = [
+          'roles/owner',
+          'roles/editor',
+          'roles/firebasehosting.admin',
+          'roles/firebaserules.admin',
+        ];
+        let modified = false;
+        for (const roleName of rolesToEnsure) {
+          let binding = policy.bindings?.find((b) => b.role === roleName);
+          if (!binding) {
+            binding = { role: roleName, members: [] };
+            policy.bindings = [...(policy.bindings ?? []), binding];
+          }
+          for (const sa of serviceAccounts) {
+            const member = `serviceAccount:${sa}`;
+            if (!binding.members.includes(member)) {
+              binding.members.push(member);
+              modified = true;
             }
           }
-          if (modified) {
-            await fetch(
-              `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${tokenRes.token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ policy }),
-              },
-            );
-            console.info(
-              `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
-            );
-          }
+        }
+        if (modified) {
+          await apiFetch(
+            auth,
+            `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+            { method: 'POST', body: { policy } },
+          );
+          console.info(
+            `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
+          );
         }
       } catch (iamErr) {
         console.warn(
