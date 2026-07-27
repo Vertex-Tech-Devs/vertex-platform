@@ -297,7 +297,8 @@ describe('provisionStore handler', () => {
     expect(result.projectId).toContain('vtx-sd-');
 
     expect(docMock.set).toHaveBeenCalled();
-    const savedData = docMock.set.mock.calls[0][0] as any;
+    const storeCall = docMock.set.mock.calls.find((call: any[]) => call[0]?.ownerEmail === VALID_PAYLOAD.ownerEmail);
+    const savedData = storeCall ? storeCall[0] : docMock.set.mock.calls[0][0];
     expect(savedData.runtimeMode).toBe('shared-shard');
     expect(savedData.shardId).toContain('shard-development-');
     expect(savedData.isNewShard).toBe(true);
