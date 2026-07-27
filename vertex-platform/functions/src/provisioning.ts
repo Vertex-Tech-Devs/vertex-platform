@@ -22,9 +22,11 @@ import {
   pickBillingAccount,
   listProvisioningOwnerCandidates,
   sendDirectEmail,
+  getPlatformServiceAccountOAuthClient,
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
+import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
@@ -138,6 +140,31 @@ export const provisionStore = onCall<CreateStorePayload>(
       projectId = `vtx-${slug}`.slice(0, 30);
       runtimeSiteId = 'default';
     } else {
+      if (!selectedShard) {
+        // Query for a pre-provisioned warm-up shard (status == 'warmup_ready')
+        const warmSnap = await db
+          .collection('shards')
+          .where('environment', '==', env)
+          .where('status', '==', 'warmup_ready')
+          .limit(1)
+          .get();
+
+        if (!warmSnap.empty) {
+          const warmDoc = warmSnap.docs[0];
+          const warmData = warmDoc.data() as StoreShard;
+          selectedShard = { ...warmData, id: warmDoc.id };
+          // Promote warm shard to active
+          await db.collection('shards').doc(warmDoc.id).update({
+            status: 'active',
+            updatedAt: new Date(),
+          });
+          // Trigger asynchronous background creation of the NEXT warm shard for the future!
+          void ensureWarmShardAvailable().catch((err) => {
+            console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
+          });
+        }
+      }
+
       if (selectedShard) {
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
@@ -145,13 +172,17 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeSiteId = `vtx-${slug}`.slice(0, 30);
         isNewShard = false;
       } else {
-        // Generate a new shared-shard project autonomously!
+        // Fallback: Generate a new shared-shard project autonomously
         runtimeMode = 'shared-shard';
         isNewShard = true;
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
         runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        // Trigger asynchronous background creation of a warm shard buffer
+        void ensureWarmShardAvailable().catch((err) => {
+          console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
+        });
       }
     }
 
@@ -1161,16 +1192,41 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
         );
 
+        let oauthClientId = '';
+        let oauthClientSecret = '';
         try {
+          const [version] = await secretsClient.accessSecretVersion({
+            name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
+          });
+          const rawCred = version.payload?.data ? String(version.payload.data) : '';
+          if (rawCred) {
+            const parsed = JSON.parse(rawCred);
+            oauthClientId = parsed.client_id || '';
+            oauthClientSecret = parsed.client_secret || '';
+          }
+        } catch (secretErr) {
+          console.warn(
+            `[provisioning:initAdmin] Could not read platform-owner-credentials secret:`,
+            secretErr,
+          );
+        }
+
+        try {
+          const bodyData: Record<string, unknown> = {
+            name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            enabled: true,
+          };
+          if (oauthClientId && oauthClientSecret) {
+            bodyData['clientId'] = oauthClientId;
+            bodyData['clientSecret'] = oauthClientSecret;
+          }
+
           await apiFetch(
             auth,
-            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
             {
-              method: 'PATCH',
-              body: {
-                name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-                enabled: true,
-              },
+              method: 'POST',
+              body: bodyData,
               quotaProject: projectId,
             },
           );
@@ -1178,11 +1234,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `[provisioning:initAdmin] Google OAuth IdP enabled for project ${projectId}`,
           );
         } catch (googleIdpErr) {
-          // Non-fatal: log and continue. The store admin can enable Google manually
-          // from the Firebase console if the API call fails (e.g., missing OAuth client).
-          console.warn(
-            `[provisioning:initAdmin] Could not enable Google IdP automatically (may need manual OAuth client setup): ${googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr)}`,
-          );
+          const msg = googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr);
+          if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+            console.warn(
+              `[provisioning:initAdmin] Could not enable Google IdP automatically: ${msg}`,
+            );
+          }
         }
 
         // Keep authorized domains aligned with hosted runtime URLs.
@@ -1385,75 +1442,86 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
+async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Promise<void> {
+  const serviceAccounts = Array.from(
+    new Set([
+      `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
+      `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
+      `vertex-platform-dev@appspot.gserviceaccount.com`,
+      `vertex-platform-app@appspot.gserviceaccount.com`,
+      `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
+      `ecommerce-vertex@appspot.gserviceaccount.com`,
+    ]),
+  );
+
+  let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
+  let activeAuth = auth;
+
+  try {
+    policy = (await apiFetch(
+      auth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+      { method: 'POST', body: {} },
+    )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+  } catch (userAuthErr) {
+    console.warn('[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:', userAuthErr);
+    try {
+      const platformAuth = await getPlatformServiceAccountOAuthClient();
+      activeAuth = platformAuth;
+      policy = (await apiFetch(
+        platformAuth,
+        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+        { method: 'POST', body: {} },
+      )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+    } catch (platformAuthErr) {
+      throw userAuthErr;
+    }
+  }
+
+  if (!policy) throw new Error(`Could not fetch IAM policy for project ${projectId}`);
+
+  const rolesToEnsure = [
+    'roles/owner',
+    'roles/editor',
+    'roles/firebasehosting.admin',
+    'roles/firebaserules.admin',
+  ];
+
+  let modified = false;
+  for (const roleName of rolesToEnsure) {
+    let binding = policy.bindings?.find((b) => b.role === roleName);
+    if (!binding) {
+      binding = { role: roleName, members: [] };
+      policy.bindings = [...(policy.bindings ?? []), binding];
+    }
+    for (const sa of serviceAccounts) {
+      const member = `serviceAccount:${sa}`;
+      if (!binding.members.includes(member)) {
+        binding.members.push(member);
+        modified = true;
+      }
+    }
+  }
+
+  if (modified) {
+    await apiFetch(
+      activeAuth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+      { method: 'POST', body: { policy } },
+    );
+    console.info(`[ensureShardProjectIam] Defensively granted IAM roles on ${projectId}`);
+  }
+}
+
   // ── Step 8: Grant platform SA deploy access ────────────────────────────
   if (!isDone('grantAccess')) {
     await setStep('grantAccess', 'running');
     try {
-      const serviceAccounts = Array.from(
-        new Set([
-          `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-          `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-          `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-          `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
-          `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
-          `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-          `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-          `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
-        ]),
-      );
-      const tokenRes = await auth.getAccessToken();
-
-      const policyRes = await fetch(
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${tokenRes.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        },
-      );
-      const policy = (await policyRes.json()) as {
-        bindings: Array<{ role: string; members: string[] }>;
-        etag: string;
-      };
-
-      const rolesToEnsure = [
-        'roles/owner',
-        'roles/editor',
-        'roles/firebasehosting.admin',
-        'roles/firebaserules.admin',
-      ];
-
-      for (const roleName of rolesToEnsure) {
-        let binding = policy.bindings?.find((b) => b.role === roleName);
-        if (!binding) {
-          binding = { role: roleName, members: [] };
-          policy.bindings = [...(policy.bindings ?? []), binding];
-        }
-        for (const sa of serviceAccounts) {
-          const member = `serviceAccount:${sa}`;
-          if (!binding.members.includes(member)) {
-            binding.members.push(member);
-          }
-        }
-      }
-
-      await fetch(
-        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${tokenRes.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ policy }),
-        },
-      );
+      await ensureShardProjectIam(auth, projectId);
       await setStep('grantAccess', 'done');
     } catch (err) {
       await fail('grantAccess', err);
@@ -1533,76 +1601,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
       try {
-        const serviceAccounts = Array.from(
-          new Set([
-            `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-            `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-            `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-            `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
-            `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
-            `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-            `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-            `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
-          ]),
-        );
-        const tokenRes = await auth.getAccessToken();
-        const policyRes = await fetch(
-          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${tokenRes.token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-          },
-        );
-        if (policyRes.ok) {
-          const policy = (await policyRes.json()) as {
-            bindings: Array<{ role: string; members: string[] }>;
-            etag: string;
-          };
-          const rolesToEnsure = [
-            'roles/owner',
-            'roles/editor',
-            'roles/firebasehosting.admin',
-            'roles/firebaserules.admin',
-          ];
-          let modified = false;
-          for (const roleName of rolesToEnsure) {
-            let binding = policy.bindings?.find((b) => b.role === roleName);
-            if (!binding) {
-              binding = { role: roleName, members: [] };
-              policy.bindings = [...(policy.bindings ?? []), binding];
-            }
-            for (const sa of serviceAccounts) {
-              const member = `serviceAccount:${sa}`;
-              if (!binding.members.includes(member)) {
-                binding.members.push(member);
-                modified = true;
-              }
-            }
-          }
-          if (modified) {
-            await fetch(
-              `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${tokenRes.token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ policy }),
-              },
-            );
-            console.info(
-              `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
-            );
-          }
-        }
+        await ensureShardProjectIam(auth, projectId);
       } catch (iamErr) {
         console.warn(
           `[provisioning:triggerDeploy] Defensive IAM policy check warning on ${projectId}:`,
@@ -1639,6 +1638,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
               deploy_token: deployTokenValue,
+              environment: env,
               ref: targetRef,
             },
           }),
@@ -1713,6 +1713,12 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
     if (steps['createProject']?.status === 'error') {
       updates['provisioningOwnerId'] = null;
+    }
+    if (steps['triggerDeploy']?.status === 'error' || steps['grantAccess']?.status === 'error') {
+      updates['provisioningSteps.grantAccess.status'] = 'pending';
+      updates['provisioningSteps.grantAccess.error'] = null;
+      updates['provisioningSteps.triggerDeploy.status'] = 'pending';
+      updates['provisioningSteps.triggerDeploy.error'] = null;
     }
     await storeRef.update(updates);
 

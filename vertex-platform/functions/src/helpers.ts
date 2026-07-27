@@ -1,7 +1,15 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, GoogleAuth } from 'google-auth-library';
 import * as nodemailer from 'nodemailer';
+
+export async function getPlatformServiceAccountOAuthClient(): Promise<OAuth2Client> {
+  const googleAuth = new GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  const client = (await googleAuth.getClient()) as OAuth2Client;
+  return client;
+}
 
 interface OwnerCredentialsSecret {
   id?: string;
