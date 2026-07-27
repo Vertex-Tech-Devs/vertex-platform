@@ -1407,22 +1407,31 @@ async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Pro
     ]),
   );
 
+  let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
   let activeAuth = auth;
+
   try {
-    const platformAuth = await getPlatformServiceAccountOAuthClient();
-    if (platformAuth) activeAuth = platformAuth;
-  } catch (authErr) {
-    console.warn('[ensureShardProjectIam] Using user auth fallback:', authErr);
+    policy = (await apiFetch(
+      auth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+      { method: 'POST', body: {} },
+    )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+  } catch (userAuthErr) {
+    console.warn('[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:', userAuthErr);
+    try {
+      const platformAuth = await getPlatformServiceAccountOAuthClient();
+      activeAuth = platformAuth;
+      policy = (await apiFetch(
+        platformAuth,
+        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+        { method: 'POST', body: {} },
+      )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+    } catch (platformAuthErr) {
+      throw userAuthErr;
+    }
   }
 
-  const policy = (await apiFetch(
-    activeAuth,
-    `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-    { method: 'POST', body: {} },
-  )) as {
-    bindings: Array<{ role: string; members: string[] }>;
-    etag: string;
-  };
+  if (!policy) throw new Error(`Could not fetch IAM policy for project ${projectId}`);
 
   const rolesToEnsure = [
     'roles/owner',
@@ -1653,6 +1662,12 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
     if (steps['createProject']?.status === 'error') {
       updates['provisioningOwnerId'] = null;
+    }
+    if (steps['triggerDeploy']?.status === 'error' || steps['grantAccess']?.status === 'error') {
+      updates['provisioningSteps.grantAccess.status'] = 'pending';
+      updates['provisioningSteps.grantAccess.error'] = null;
+      updates['provisioningSteps.triggerDeploy.status'] = 'pending';
+      updates['provisioningSteps.triggerDeploy.error'] = null;
     }
     await storeRef.update(updates);
 
