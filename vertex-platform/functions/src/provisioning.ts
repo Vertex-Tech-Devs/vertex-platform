@@ -1162,16 +1162,41 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
         );
 
+        let oauthClientId = '';
+        let oauthClientSecret = '';
         try {
+          const [version] = await secretsClient.accessSecretVersion({
+            name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
+          });
+          const rawCred = version.payload?.data ? String(version.payload.data) : '';
+          if (rawCred) {
+            const parsed = JSON.parse(rawCred);
+            oauthClientId = parsed.client_id || '';
+            oauthClientSecret = parsed.client_secret || '';
+          }
+        } catch (secretErr) {
+          console.warn(
+            `[provisioning:initAdmin] Could not read platform-owner-credentials secret:`,
+            secretErr,
+          );
+        }
+
+        try {
+          const bodyData: Record<string, unknown> = {
+            name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            enabled: true,
+          };
+          if (oauthClientId && oauthClientSecret) {
+            bodyData['clientId'] = oauthClientId;
+            bodyData['clientSecret'] = oauthClientSecret;
+          }
+
           await apiFetch(
             auth,
-            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+            `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
             {
-              method: 'PATCH',
-              body: {
-                name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-                enabled: true,
-              },
+              method: 'POST',
+              body: bodyData,
               quotaProject: projectId,
             },
           );
@@ -1179,11 +1204,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `[provisioning:initAdmin] Google OAuth IdP enabled for project ${projectId}`,
           );
         } catch (googleIdpErr) {
-          // Non-fatal: log and continue. The store admin can enable Google manually
-          // from the Firebase console if the API call fails (e.g., missing OAuth client).
-          console.warn(
-            `[provisioning:initAdmin] Could not enable Google IdP automatically (may need manual OAuth client setup): ${googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr)}`,
-          );
+          const msg = googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr);
+          if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+            console.warn(
+              `[provisioning:initAdmin] Could not enable Google IdP automatically: ${msg}`,
+            );
+          }
         }
 
         // Keep authorized domains aligned with hosted runtime URLs.
