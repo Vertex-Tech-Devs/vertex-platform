@@ -1393,6 +1393,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         new Set([
           `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
           `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+          `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
+          `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+          `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
         ]),
       );
       const cicdServiceAccounts = [
