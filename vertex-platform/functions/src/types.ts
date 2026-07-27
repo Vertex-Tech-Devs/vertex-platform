@@ -32,7 +32,7 @@ export interface StoreShard {
   projectId: string;
   siteId: string;
   region: string;
-  status: 'active' | 'full' | 'draining' | 'maintenance';
+  status: 'active' | 'full' | 'draining' | 'maintenance' | 'warmup_ready' | 'warmup_provisioning';
   maxStores: number;
   activeStores: number;
   reservedStores: number;

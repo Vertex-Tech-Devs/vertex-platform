@@ -26,6 +26,7 @@ import {
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
+import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
@@ -139,6 +140,31 @@ export const provisionStore = onCall<CreateStorePayload>(
       projectId = `vtx-${slug}`.slice(0, 30);
       runtimeSiteId = 'default';
     } else {
+      if (!selectedShard) {
+        // Query for a pre-provisioned warm-up shard (status == 'warmup_ready')
+        const warmSnap = await db
+          .collection('shards')
+          .where('environment', '==', env)
+          .where('status', '==', 'warmup_ready')
+          .limit(1)
+          .get();
+
+        if (!warmSnap.empty) {
+          const warmDoc = warmSnap.docs[0];
+          const warmData = warmDoc.data() as StoreShard;
+          selectedShard = { id: warmDoc.id, ...warmData };
+          // Promote warm shard to active
+          await db.collection('shards').doc(warmDoc.id).update({
+            status: 'active',
+            updatedAt: new Date(),
+          });
+          // Trigger asynchronous background creation of the NEXT warm shard for the future!
+          void ensureWarmShardAvailable().catch((err) => {
+            console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
+          });
+        }
+      }
+
       if (selectedShard) {
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
@@ -146,13 +172,17 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeSiteId = `vtx-${slug}`.slice(0, 30);
         isNewShard = false;
       } else {
-        // Generate a new shared-shard project autonomously!
+        // Fallback: Generate a new shared-shard project autonomously
         runtimeMode = 'shared-shard';
         isNewShard = true;
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
         runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        // Trigger asynchronous background creation of a warm shard buffer
+        void ensureWarmShardAvailable().catch((err) => {
+          console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
+        });
       }
     }
 
