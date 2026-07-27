@@ -1401,7 +1401,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
           `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
           `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-          `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
+          `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
+          `vertex-platform-dev@appspot.gserviceaccount.com`,
+          `vertex-platform-app@appspot.gserviceaccount.com`,
+          `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
+          `ecommerce-vertex@appspot.gserviceaccount.com`,
         ]),
       );
       const policy = (await apiFetch(
@@ -1530,7 +1534,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
             `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
             `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-            `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
+            `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
+            `vertex-platform-dev@appspot.gserviceaccount.com`,
+            `vertex-platform-app@appspot.gserviceaccount.com`,
+            `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
+            `ecommerce-vertex@appspot.gserviceaccount.com`,
           ]),
         );
         const policy = (await apiFetch(
