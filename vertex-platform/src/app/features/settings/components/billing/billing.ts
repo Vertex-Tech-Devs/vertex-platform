@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { BillingAccountsService } from '@core/services/billing-accounts';
+import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import type { BillingAccount } from '@core/models/billing-account';
 import { errorMessage } from '@core/utils/error.util';
 
@@ -16,6 +17,9 @@ import { errorMessage } from '@core/utils/error.util';
 })
 export class Billing implements OnInit {
   readonly svc = inject(BillingAccountsService);
+  readonly storesSvc = inject(StoresService);
+
+  readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
 
   readonly addId = signal('');
   readonly addName = signal('');
@@ -34,6 +38,13 @@ export class Billing implements OnInit {
 
   ngOnInit(): void {
     void this.svc.loadAccounts();
+    void (async () => {
+      try {
+        this.runtimeSummary.set(await this.storesSvc.getRuntimeCapacitySummary());
+      } catch {
+        /* silent catch */
+      }
+    })();
   }
 
   usagePercent(a: BillingAccount): number {

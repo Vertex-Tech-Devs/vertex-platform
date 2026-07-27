@@ -24,7 +24,7 @@ import {
   sendDirectEmail,
 } from './helpers';
 import { seedStoreData } from './seeds';
-import { resolvePlatformEnvironment, getAvailableShardSlots } from './runtime';
+import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
@@ -36,6 +36,22 @@ function normalizeStorageBucket(projectId: string, storageBucket: string | undef
     return `${projectId}.appspot.com`;
   }
   return bucket;
+}
+
+export function formatProjectDisplayName(
+  name: string,
+  isNewShard?: boolean,
+  shardId?: string | null,
+): string {
+  if (isNewShard) {
+    const raw = `Vertex Shard ${shardId ?? ''}`.trim();
+    return raw.slice(0, 30);
+  }
+  const trimmed = name.trim();
+  if (trimmed.length < 4) {
+    return `Store ${trimmed}`.slice(0, 30);
+  }
+  return trimmed.slice(0, 30);
 }
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
@@ -83,12 +99,28 @@ export const provisionStore = onCall<CreateStorePayload>(
       .where('status', '==', 'active')
       .get();
 
+    const allActiveShards: StoreShard[] = (shardsSnap?.docs || []).map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<StoreShard, 'id'>),
+    }));
+
+    // Aggregate usage per underlying GCP projectId to respect GCP's physical 35-site limit per project
+    const projectUsageMap: Record<string, number> = {};
+    allActiveShards.forEach((s) => {
+      projectUsageMap[s.projectId] =
+        (projectUsageMap[s.projectId] || 0) + (s.activeStores || 0) + (s.reservedStores || 0);
+    });
+
     let selectedShard: StoreShard | null = null;
     let maxAvailableSlots = 0;
 
-    (shardsSnap?.docs || []).forEach((doc) => {
-      const shard = { id: doc.id, ...doc.data() } as StoreShard;
-      const availableSlots = getAvailableShardSlots(shard);
+    allActiveShards.forEach((shard) => {
+      const projectUsage = projectUsageMap[shard.projectId] || 0;
+      const projectCap = Math.min(
+        shard.maxStores || DEFAULT_MAX_STORES_PER_SHARD,
+        DEFAULT_MAX_STORES_PER_SHARD,
+      );
+      const availableSlots = Math.max(0, projectCap - projectUsage);
       if (availableSlots > maxAvailableSlots) {
         maxAvailableSlots = availableSlots;
         selectedShard = shard;
@@ -192,6 +224,30 @@ export const provisionStore = onCall<CreateStorePayload>(
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+    if (isNewShard && shardId) {
+      const shardRef = db.collection('shards').doc(shardId);
+      await shardRef.set(
+        {
+          id: shardId,
+          environment: env,
+          runtimeMode: 'shared-shard',
+          projectId: projectId,
+          siteId: 'default',
+          region: 'us-central1',
+          status: 'active',
+          maxStores: DEFAULT_MAX_STORES_PER_SHARD,
+          activeStores: 0,
+          reservedStores: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
+      console.info(
+        `[provisionStore] Pre-registered new shared shard ${shardId} in Firestore shards collection.`,
+      );
+    }
 
     await logAuditAction(
       request.auth?.uid || 'unknown',
@@ -408,7 +464,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'https://cloudresourcemanager.googleapis.com/v3/projects',
               {
                 method: 'POST',
-                body: { projectId, displayName: name },
+                body: {
+                  projectId,
+                  displayName: formatProjectDisplayName(name, isNewShard, shardId),
+                },
               },
             )) as { name: string };
             await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
@@ -624,7 +683,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         siteId: 'default',
         region: 'us-central1',
         status: 'active',
-        maxStores: 100, // Capacity for the new shard
+        maxStores: DEFAULT_MAX_STORES_PER_SHARD, // Capacity for the new shard (capped at GCP Firebase Hosting limit of 35 user sites)
         activeStores: 0,
         reservedStores: 0,
         createdAt: new Date(),
@@ -673,36 +732,51 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
-      let appId: string;
+      let appId: string | undefined;
 
       if (runtimeMode === 'shared-shard') {
-        // Shared-shard stores share the same Firebase project, so they can reuse the same
-        // Web App registration. Creating a new one per store hits the 30-app project limit.
-        const appsRes = (await apiFetch(
-          auth,
-          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-        )) as { apps: Array<{ appId: string }> };
-
-        if (appsRes.apps?.length) {
-          appId = appsRes.apps[0].appId;
-          console.info(
-            `[provisioning:createWebApp] Reusing existing Web App ${appId} on shard ${projectId}`,
-          );
+        const shardDoc = await db.collection('shards').doc(shardId!).get();
+        const shardData = shardDoc.data();
+        if (shardData?.['firebaseConfig']) {
+          firebaseConfig = shardData['firebaseConfig'] as Record<string, string>;
+          console.info(`[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`);
         } else {
-          const appOp = (await apiFetch(
-            auth,
-            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-            { method: 'POST', body: { displayName: `${projectId}-shard` } },
-          )) as { name: string };
-          await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
-          const refreshed = (await apiFetch(
+          const appsRes = (await apiFetch(
             auth,
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
           )) as { apps: Array<{ appId: string }> };
-          appId = refreshed.apps[0].appId;
-          console.info(
-            `[provisioning:createWebApp] Created first Web App ${appId} on shard ${projectId}`,
-          );
+
+          if (appsRes.apps?.length) {
+            appId = appsRes.apps[0].appId;
+          } else {
+            const appOp = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+              { method: 'POST', body: { displayName: `${projectId}-shard` } },
+            )) as { name: string };
+            await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+            const refreshed = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+            )) as { apps: Array<{ appId: string }> };
+            appId = refreshed.apps[0].appId;
+          }
+
+          const configRes = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+          )) as Record<string, string>;
+
+          firebaseConfig = {
+            apiKey: configRes['apiKey'],
+            authDomain: configRes['authDomain'],
+            projectId: configRes['projectId'],
+            storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+            messagingSenderId: configRes['messagingSenderId'],
+            appId: configRes['appId'],
+          };
+
+          await db.collection('shards').doc(shardId!).set({ firebaseConfig }, { merge: true });
         }
       } else {
         const appOp = (await apiFetch(
@@ -716,21 +790,21 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
         )) as { apps: Array<{ appId: string }> };
         appId = appsRes.apps[0].appId;
+
+        const configRes = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+        )) as Record<string, string>;
+
+        firebaseConfig = {
+          apiKey: configRes['apiKey'],
+          authDomain: configRes['authDomain'],
+          projectId: configRes['projectId'],
+          storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+          messagingSenderId: configRes['messagingSenderId'],
+          appId: configRes['appId'],
+        };
       }
-
-      const configRes = (await apiFetch(
-        auth,
-        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
-      )) as Record<string, string>;
-
-      firebaseConfig = {
-        apiKey: configRes['apiKey'],
-        authDomain: configRes['authDomain'],
-        projectId: configRes['projectId'],
-        storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
-        messagingSenderId: configRes['messagingSenderId'],
-        appId: configRes['appId'],
-      };
 
       await db
         .collection('stores')
@@ -1318,14 +1392,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const serviceAccounts = Array.from(
         new Set([
           `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
           `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+          `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
+          `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+          `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
+          `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
+          `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+          `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+          `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
         ]),
       );
-      const cicdServiceAccounts = [
-        `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
-        `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-        `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
-      ];
       const tokenRes = await auth.getAccessToken();
 
       const policyRes = await fetch(
@@ -1344,30 +1422,24 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         etag: string;
       };
 
-      let ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
-      if (!ownerBinding) {
-        ownerBinding = { role: 'roles/owner', members: [] };
-        policy.bindings = [...(policy.bindings ?? []), ownerBinding];
-      }
+      const rolesToEnsure = [
+        'roles/owner',
+        'roles/editor',
+        'roles/firebasehosting.admin',
+        'roles/firebaserules.admin',
+      ];
 
-      for (const sa of serviceAccounts) {
-        const member = `serviceAccount:${sa}`;
-        if (!ownerBinding.members.includes(member)) {
-          ownerBinding.members.push(member);
+      for (const roleName of rolesToEnsure) {
+        let binding = policy.bindings?.find((b) => b.role === roleName);
+        if (!binding) {
+          binding = { role: roleName, members: [] };
+          policy.bindings = [...(policy.bindings ?? []), binding];
         }
-      }
-
-      let rulesBinding = policy.bindings?.find((b) => b.role === 'roles/firebaserules.admin');
-      if (!rulesBinding) {
-        rulesBinding = { role: 'roles/firebaserules.admin', members: [] };
-        policy.bindings = [...(policy.bindings ?? []), rulesBinding];
-      }
-
-      const allRulesSAs = [...serviceAccounts, ...cicdServiceAccounts];
-      for (const sa of allRulesSAs) {
-        const member = `serviceAccount:${sa}`;
-        if (!rulesBinding.members.includes(member)) {
-          rulesBinding.members.push(member);
+        for (const sa of serviceAccounts) {
+          const member = `serviceAccount:${sa}`;
+          if (!binding.members.includes(member)) {
+            binding.members.push(member);
+          }
         }
       }
 
@@ -1415,9 +1487,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             await db.runTransaction(async (transaction) => {
               const shardSnap = await transaction.get(shardRef);
               if (shardSnap.exists) {
-                const currentActive = shardSnap.data()?.activeStores || 0;
+                const data = shardSnap.data();
+                const currentActive = data?.activeStores || 0;
+                const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
+                const newActive = currentActive + 1;
+                const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
                 transaction.update(shardRef, {
-                  activeStores: currentActive + 1,
+                  activeStores: newActive,
+                  status: newStatus,
                   updatedAt: new Date(),
                 });
               }
@@ -1431,6 +1508,108 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
         return;
       }
+      if (runtimeMode === 'shared-shard' && runtimeSiteId) {
+        try {
+          await apiFetch(
+            auth,
+            `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+            {
+              method: 'POST',
+              body: { type: 'USER_SITE' },
+            },
+          );
+          console.info(
+            `[provisioning:triggerDeploy] Ensured custom hosting site ${runtimeSiteId} exists on shard ${projectId}`,
+          );
+        } catch (err: any) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('already exists') && !msg.includes('409')) {
+            console.warn(
+              `[provisioning:triggerDeploy] Warning: custom hosting site ${runtimeSiteId} check failed on shard ${projectId}: ${msg}`,
+            );
+          }
+        }
+      }
+
+      // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
+      try {
+        const serviceAccounts = Array.from(
+          new Set([
+            `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+            `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
+            `github-actions-deployer@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+            `github-actions-deployer@vertex-platform-dev.iam.gserviceaccount.com`,
+            `github-actions-deployer@vertex-platform-app.iam.gserviceaccount.com`,
+            `github-actions-deployer@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+            `github-actions-deployer@ecommerce-vertex.iam.gserviceaccount.com`,
+            `github-actions-deployer@${projectId}.iam.gserviceaccount.com`,
+          ]),
+        );
+        const tokenRes = await auth.getAccessToken();
+        const policyRes = await fetch(
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${tokenRes.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          },
+        );
+        if (policyRes.ok) {
+          const policy = (await policyRes.json()) as {
+            bindings: Array<{ role: string; members: string[] }>;
+            etag: string;
+          };
+          const rolesToEnsure = [
+            'roles/owner',
+            'roles/editor',
+            'roles/firebasehosting.admin',
+            'roles/firebaserules.admin',
+          ];
+          let modified = false;
+          for (const roleName of rolesToEnsure) {
+            let binding = policy.bindings?.find((b) => b.role === roleName);
+            if (!binding) {
+              binding = { role: roleName, members: [] };
+              policy.bindings = [...(policy.bindings ?? []), binding];
+            }
+            for (const sa of serviceAccounts) {
+              const member = `serviceAccount:${sa}`;
+              if (!binding.members.includes(member)) {
+                binding.members.push(member);
+                modified = true;
+              }
+            }
+          }
+          if (modified) {
+            await fetch(
+              `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${tokenRes.token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ policy }),
+              },
+            );
+            console.info(
+              `[provisioning:triggerDeploy] Defensively updated IAM policy roles on ${projectId}`,
+            );
+          }
+        }
+      } catch (iamErr) {
+        console.warn(
+          `[provisioning:triggerDeploy] Defensive IAM policy check warning on ${projectId}:`,
+          iamErr,
+        );
+      }
+
       const pat = await getGitHubPat();
 
       // Fetch the deploy token for this environment to pass to GitHub Action
@@ -1628,11 +1807,19 @@ export const completeStoreDeployment = onCall<{
         await db.runTransaction(async (transaction) => {
           const shardSnap = await transaction.get(shardRef);
           if (shardSnap.exists) {
-            const currentActive = shardSnap.data()?.activeStores || 0;
+            const data = shardSnap.data();
+            const currentActive = data?.activeStores || 0;
+            const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
+            const newActive = currentActive + 1;
+            const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
             transaction.update(shardRef, {
-              activeStores: currentActive + 1,
+              activeStores: newActive,
+              status: newStatus,
               updatedAt: new Date(),
             });
+            if (newStatus === 'full') {
+              console.info(`[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxStores}). Marked as 'full'.`);
+            }
           }
         });
         console.info(

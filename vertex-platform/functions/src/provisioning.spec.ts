@@ -39,6 +39,7 @@ vi.mock('./helpers', () => ({
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
+import { formatProjectDisplayName } from './provisioning';
 
 const VALID_PAYLOAD = {
   name: 'Test Store',
@@ -300,5 +301,25 @@ describe('provisionStore handler', () => {
     expect(savedData.runtimeMode).toBe('shared-shard');
     expect(savedData.shardId).toContain('shard-development-');
     expect(savedData.isNewShard).toBe(true);
+  });
+});
+
+describe('formatProjectDisplayName', () => {
+  it('pads short store names under 4 characters to meet GCP minimum display_name length', () => {
+    expect(formatProjectDisplayName('Lit', false)).toBe('Store Lit');
+    expect(formatProjectDisplayName('Go', false)).toBe('Store Go');
+  });
+
+  it('keeps normal store names unchanged if >= 4 characters', () => {
+    expect(formatProjectDisplayName('Tienda Maria', false)).toBe('Tienda Maria');
+  });
+
+  it('formats new shard display names cleanly with a minimum length of 4', () => {
+    expect(formatProjectDisplayName('Lit', true, 'shard-dev-123')).toBe('Vertex Shard shard-dev-123');
+  });
+
+  it('truncates display names longer than 30 characters', () => {
+    const longName = 'A'.repeat(50);
+    expect(formatProjectDisplayName(longName, false).length).toBe(30);
   });
 });

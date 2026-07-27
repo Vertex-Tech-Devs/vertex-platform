@@ -27,7 +27,7 @@ function parseArgs(): ParsedArgs {
     (readArg('environment') as ParsedArgs['environment'] | undefined) ?? 'production';
   const region = readArg('region') ?? 'us-central1';
   const status = (readArg('status') as ParsedArgs['status'] | undefined) ?? 'active';
-  const maxStores = Number(readArg('max-stores') ?? '100');
+  const maxStores = Number(readArg('max-stores') ?? '35');
   const reservedStores = Number(readArg('reserved-stores') ?? '0');
   const currentTemplateVersion = readArg('template-version');
   const currentDataVersion = readArg('data-version');

@@ -39,7 +39,7 @@ export class BillingAccountsService {
   }
 
   async addAccount(payload: { id: string; name: string; maxProjects?: number }): Promise<void> {
-    const fn = httpsCallable(this.fns, 'addBillingAccount');
+    const fn = httpsCallable<typeof payload, { success: boolean }>(this.fns, 'addBillingAccount');
     await fn(payload);
     await this.loadAccounts();
   }
@@ -50,13 +50,13 @@ export class BillingAccountsService {
     maxProjects?: number;
     active?: boolean;
   }): Promise<void> {
-    const fn = httpsCallable(this.fns, 'updateBillingAccount');
+    const fn = httpsCallable<typeof payload, { success: boolean }>(this.fns, 'updateBillingAccount');
     await fn(payload);
     await this.loadAccounts();
   }
 
   async removeAccount(id: string): Promise<void> {
-    const fn = httpsCallable(this.fns, 'removeBillingAccount');
+    const fn = httpsCallable<{ id: string }, { success: boolean }>(this.fns, 'removeBillingAccount');
     await fn({ id });
     await this.loadAccounts();
   }

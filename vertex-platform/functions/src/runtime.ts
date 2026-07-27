@@ -27,6 +27,12 @@ export interface RuntimeCapacitySummary {
   shards: RuntimeShardCapacity[];
 }
 
+/**
+ * Physical limit of sites per Firebase project imposed by GCP/Firebase Hosting is 36.
+ * We reserve 1 for default hosting, giving a max capacity of 35 user store sites per shared shard.
+ */
+export const DEFAULT_MAX_STORES_PER_SHARD = 35;
+
 export function resolvePlatformEnvironment(projectId = PLATFORM_PROJECT): PlatformEnvironment {
   if (process.env.FUNCTIONS_EMULATOR === 'true' || projectId.includes('local')) {
     return 'local';
