@@ -1,4 +1,5 @@
 import type { OAuth2Client } from 'google-auth-library';
+import * as logger from 'firebase-functions/logger';
 import { apiFetch, retry } from './helpers';
 
 // Helper to convert standard JavaScript values to Firestore REST API Value types
@@ -1067,7 +1068,7 @@ async function checkStoreSafety(
   projectId: string,
   tenantId: string,
 ): Promise<void> {
-  console.log(
+  logger.info(
     `[SeedEngine] Safety validation: Checking products and orders in project "${projectId}" tenant "${tenantId}"...`,
   );
   const base = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
@@ -1139,7 +1140,7 @@ export async function seedStoreData(
   let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
   if (!rawSeed) {
-    console.log(
+    logger.info(
       `[SeedEngine] No seeds defined for vertical: ${verticalId}. Falling back gracefully to "retail" seed.`,
     );
     rawSeed = VERTICAL_SEEDS['retail'];
@@ -1171,7 +1172,7 @@ export async function seedStoreData(
     await checkStoreSafety(auth, projectId, tenantId);
   }
 
-  console.log(
+  logger.info(
     `[SeedEngine] Safety check passed. Cleaning up database to begin a pristine seed on project "${projectId}"...`,
   );
 
@@ -1184,7 +1185,7 @@ export async function seedStoreData(
   await deleteDocumentPath(auth, projectId, tp('pages/aboutUs'));
   await deleteDocumentPath(auth, projectId, tp('configuracion/store'));
 
-  console.log(
+  logger.info(
     `[SeedEngine] Clean-up complete. Starting database seeding for vertical: "${targetVertical}"`,
   );
 
@@ -1209,7 +1210,7 @@ export async function seedStoreData(
       6000,
     );
   }
-  console.log(`[SeedEngine] Seeded ${seed.attributes.length} attributes.`);
+  logger.info(`[SeedEngine] Seeded ${seed.attributes.length} attributes.`);
 
   // 4. Seed Categories
   for (const cat of seed.categories) {
@@ -1250,7 +1251,7 @@ export async function seedStoreData(
       6000,
     );
   }
-  console.log(`[SeedEngine] Seeded ${seed.categories.length} categories.`);
+  logger.info(`[SeedEngine] Seeded ${seed.categories.length} categories.`);
 
   // 5. Seed Products and their Variants
   const seededProducts: Array<{
@@ -1397,7 +1398,7 @@ export async function seedStoreData(
       variantAttributes: prod.variantAttributes,
     });
   }
-  console.log(`[SeedEngine] Seeded ${seededProducts.length} products and their variants.`);
+  logger.info(`[SeedEngine] Seeded ${seededProducts.length} products and their variants.`);
 
   if (includeMockData) {
     // 6. Seed Clients (from CLIENT_DATA)
@@ -1440,7 +1441,7 @@ export async function seedStoreData(
       });
       clientIdx++;
     }
-    console.log(`[SeedEngine] Seeded ${seededClients.length} clients.`);
+    logger.info(`[SeedEngine] Seeded ${seededClients.length} clients.`);
 
     // 7. Seed Orders (Dynamic mapping using catalog lines & modulo for products)
     let orderIdx = 0;
@@ -1525,9 +1526,9 @@ export async function seedStoreData(
         6000,
       );
     }
-    console.log(`[SeedEngine] Seeded ${orderIdx} orders.`);
+    logger.info(`[SeedEngine] Seeded ${orderIdx} orders.`);
   } else {
-    console.log('[SeedEngine] includeMockData is false. Skipping clients and orders seeding.');
+    logger.info('[SeedEngine] includeMockData is false. Skipping clients and orders seeding.');
   }
 
   // 8. Seed Site Banners (siteContent/homePage)
@@ -1653,7 +1654,7 @@ export async function seedStoreData(
     5,
     6000,
   );
-  console.log(`[SeedEngine] Seeded siteContent/homePage successfully.`);
+  logger.info(`[SeedEngine] Seeded siteContent/homePage successfully.`);
 
   // 9. Seed About Us (pages/aboutUs)
   const aboutUsSubtitle = isIndumentaria
@@ -1735,7 +1736,7 @@ export async function seedStoreData(
     5,
     6000,
   );
-  console.log(`[SeedEngine] Seeded pages/aboutUs successfully.`);
+  logger.info(`[SeedEngine] Seeded pages/aboutUs successfully.`);
 
   // 10. Seed Footer (configuracion/footer)
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1832,7 +1833,7 @@ export async function seedStoreData(
     6000,
   );
 
-  console.log(`[SeedEngine] Seeded configuracion/store successfully.`);
-  console.log(`[SeedEngine] Seeded configuracion/footer successfully.`);
-  console.log(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
+  logger.info(`[SeedEngine] Seeded configuracion/store successfully.`);
+  logger.info(`[SeedEngine] Seeded configuracion/footer successfully.`);
+  logger.info(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }

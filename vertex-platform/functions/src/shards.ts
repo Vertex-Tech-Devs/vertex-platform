@@ -151,5 +151,26 @@ export const checkWarmShardBuffer = functions.pubsub
   .schedule('0 */6 * * *')
   .timeZone('UTC')
   .onRun(async () => {
+    const db = getFirestore();
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Purge stale failed warm shard records with 0 active stores
+    const staleFailedSnap = await db
+      .collection('shards')
+      .where('environment', '==', env)
+      .where('activeStores', '==', 0)
+      .where('status', '==', 'full')
+      .get();
+
+    for (const doc of staleFailedSnap.docs) {
+      const data = doc.data();
+      const updatedAt = data['updatedAt']?.toDate ? data['updatedAt'].toDate() : new Date(data['updatedAt']);
+      if (updatedAt < cutoff) {
+        console.info(`[checkWarmShardBuffer] Purging stale failed warm shard record ${doc.id}`);
+        await doc.ref.delete();
+      }
+    }
+
     await ensureWarmShardAvailable();
   });
