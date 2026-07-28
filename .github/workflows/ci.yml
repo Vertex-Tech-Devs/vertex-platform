@@ -61,7 +61,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Validate Firestore rules alignment
         run: npm --prefix vertex-platform run validate:rules
@@ -87,7 +87,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Run Platform Tests
         if: matrix.project == 'vertex-platform'
@@ -115,7 +115,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Build production
         run: npm run build:prod --workspace=vertex-platform
@@ -143,7 +143,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: vertex-platform/functions
       - run: npm run build
         working-directory: vertex-platform/functions
@@ -159,7 +159,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Audit frontend
         run: npm audit --audit-level=high
@@ -185,7 +185,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Check for E2E suite
         id: check-e2e
@@ -226,7 +226,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Prepare integration mode
         id: mode

@@ -35,7 +35,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
@@ -55,7 +55,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Run frontend tests
         run: npm run test --workspace=vertex-platform -- --watch=false --exclude="**/functions/**"
@@ -81,7 +81,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Build development
         run: npm run build:dev --workspace=vertex-platform
@@ -105,7 +105,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Build production
         run: npm run build:prod --workspace=vertex-platform
@@ -127,7 +127,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: vertex-platform/functions
 
       - run: npm run build
@@ -149,9 +149,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: vertex-platform/functions
 
       - name: Build Functions
@@ -203,9 +203,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: vertex-platform/functions
 
       - name: Build Functions
