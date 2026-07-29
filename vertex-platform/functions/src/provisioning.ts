@@ -799,15 +799,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
           )) as Record<string, string>;
 
-          const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
-          const masterAuthDomain =
-            currentPlatformEnv === 'development'
-              ? 'ecommerce-vertex-dev.firebaseapp.com'
-              : 'ecommerce-vertex.firebaseapp.com';
-
           firebaseConfig = {
             apiKey: configRes['apiKey'],
-            authDomain: masterAuthDomain || configRes['authDomain'],
+            authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
             projectId: configRes['projectId'],
             storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
             messagingSenderId: configRes['messagingSenderId'],
@@ -832,15 +826,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
         )) as Record<string, string>;
 
-        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
-        const masterAuthDomain =
-          currentPlatformEnv === 'development'
-            ? 'ecommerce-vertex-dev.firebaseapp.com'
-            : 'ecommerce-vertex.firebaseapp.com';
-
         firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: masterAuthDomain || configRes['authDomain'],
+          authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
           projectId: configRes['projectId'],
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
@@ -1253,59 +1241,48 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
-        const masterProjectId =
-          currentPlatformEnv === 'development'
-            ? 'ecommerce-vertex-dev'
-            : 'ecommerce-vertex';
+        // Keep authorized domains aligned with hosted runtime URLs.
+        const config = (await apiFetch(
+          auth,
+          `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
+          {
+            quotaProject: projectId,
+          },
+        )) as { authorizedDomains?: string[] };
 
-        for (const targetProj of Array.from(new Set([projectId, masterProjectId]))) {
-          try {
-            const config = (await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config`,
-              {
-                quotaProject: targetProj,
-              },
-            )) as { authorizedDomains?: string[] };
+        const requiredDomains = new Set<string>([
+          `${projectId}.firebaseapp.com`,
+          `${projectId}.web.app`,
+          'ecommerce-vertex-dev.firebaseapp.com',
+          'ecommerce-vertex.firebaseapp.com',
+          'vertex-platform-dev.firebaseapp.com',
+          'vertex-platform-app.firebaseapp.com',
+          'localhost',
+          '127.0.0.1',
+        ]);
+        if (runtimeSiteId) {
+          requiredDomains.add(`${runtimeSiteId}.web.app`);
+        }
+        if (customDomain) {
+          requiredDomains.add(customDomain.trim().toLowerCase());
+        }
 
-            const requiredDomains = new Set<string>([
-              `${projectId}.firebaseapp.com`,
-              `${projectId}.web.app`,
-              'ecommerce-vertex-dev.firebaseapp.com',
-              'ecommerce-vertex.firebaseapp.com',
-              'vertex-platform-dev.firebaseapp.com',
-              'vertex-platform-app.firebaseapp.com',
-              'localhost',
-              '127.0.0.1',
-            ]);
-            if (runtimeSiteId) {
-              requiredDomains.add(`${runtimeSiteId}.web.app`);
-            }
-            if (customDomain) {
-              requiredDomains.add(customDomain.trim().toLowerCase());
-            }
+        const existingDomains = config.authorizedDomains ?? [];
+        const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
+        const hasChanges =
+          nextDomains.length !== existingDomains.length ||
+          nextDomains.some((domain) => !existingDomains.includes(domain));
 
-            const existingDomains = config.authorizedDomains ?? [];
-            const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
-            const hasChanges =
-              nextDomains.length !== existingDomains.length ||
-              nextDomains.some((domain) => !existingDomains.includes(domain));
-
-            if (hasChanges) {
-              await apiFetch(
-                auth,
-                `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config?updateMask=authorizedDomains`,
-                {
-                  method: 'PATCH',
-                  body: { authorizedDomains: nextDomains },
-                  quotaProject: targetProj,
-                },
-              );
-            }
-          } catch (err) {
-            console.warn(`[provisioning:authorizedDomains] Failed to update domains on ${targetProj}:`, err);
-          }
+        if (hasChanges) {
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=authorizedDomains`,
+            {
+              method: 'PATCH',
+              body: { authorizedDomains: nextDomains },
+              quotaProject: projectId,
+            },
+          );
         }
       };
       await retry(initIdentityPlatform, 5, 8000);
@@ -1470,80 +1447,80 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Promise<void> {
-  const serviceAccounts = Array.from(
-    new Set([
-      `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-      `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-      `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-      `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-      `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-      `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
-      `vertex-platform-dev@appspot.gserviceaccount.com`,
-      `vertex-platform-app@appspot.gserviceaccount.com`,
-      `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
-      `ecommerce-vertex@appspot.gserviceaccount.com`,
-    ]),
-  );
+  async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Promise<void> {
+    const serviceAccounts = Array.from(
+      new Set([
+        `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
+        `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
+        `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
+        `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
+        `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
+        `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
+        `vertex-platform-dev@appspot.gserviceaccount.com`,
+        `vertex-platform-app@appspot.gserviceaccount.com`,
+        `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
+        `ecommerce-vertex@appspot.gserviceaccount.com`,
+      ]),
+    );
 
-  let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
-  let activeAuth = auth;
+    let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
+    let activeAuth = auth;
 
-  try {
-    policy = (await apiFetch(
-      auth,
-      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
-      { method: 'POST', body: {} },
-    )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
-  } catch (userAuthErr) {
-    console.warn('[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:', userAuthErr);
     try {
-      const platformAuth = await getPlatformServiceAccountOAuthClient();
-      activeAuth = platformAuth;
       policy = (await apiFetch(
-        platformAuth,
+        auth,
         `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
         { method: 'POST', body: {} },
       )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
-    } catch (platformAuthErr) {
-      throw userAuthErr;
-    }
-  }
-
-  if (!policy) throw new Error(`Could not fetch IAM policy for project ${projectId}`);
-
-  const rolesToEnsure = [
-    'roles/owner',
-    'roles/editor',
-    'roles/firebasehosting.admin',
-    'roles/firebaserules.admin',
-  ];
-
-  let modified = false;
-  for (const roleName of rolesToEnsure) {
-    let binding = policy.bindings?.find((b) => b.role === roleName);
-    if (!binding) {
-      binding = { role: roleName, members: [] };
-      policy.bindings = [...(policy.bindings ?? []), binding];
-    }
-    for (const sa of serviceAccounts) {
-      const member = `serviceAccount:${sa}`;
-      if (!binding.members.includes(member)) {
-        binding.members.push(member);
-        modified = true;
+    } catch (userAuthErr) {
+      console.warn('[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:', userAuthErr);
+      try {
+        const platformAuth = await getPlatformServiceAccountOAuthClient();
+        activeAuth = platformAuth;
+        policy = (await apiFetch(
+          platformAuth,
+          `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:getIamPolicy`,
+          { method: 'POST', body: {} },
+        )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+      } catch (platformAuthErr) {
+        throw userAuthErr;
       }
     }
-  }
 
-  if (modified) {
-    await apiFetch(
-      activeAuth,
-      `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
-      { method: 'POST', body: { policy } },
-    );
-    console.info(`[ensureShardProjectIam] Defensively granted IAM roles on ${projectId}`);
+    if (!policy) throw new Error(`Could not fetch IAM policy for project ${projectId}`);
+
+    const rolesToEnsure = [
+      'roles/owner',
+      'roles/editor',
+      'roles/firebasehosting.admin',
+      'roles/firebaserules.admin',
+    ];
+
+    let modified = false;
+    for (const roleName of rolesToEnsure) {
+      let binding = policy.bindings?.find((b) => b.role === roleName);
+      if (!binding) {
+        binding = { role: roleName, members: [] };
+        policy.bindings = [...(policy.bindings ?? []), binding];
+      }
+      for (const sa of serviceAccounts) {
+        const member = `serviceAccount:${sa}`;
+        if (!binding.members.includes(member)) {
+          binding.members.push(member);
+          modified = true;
+        }
+      }
+    }
+
+    if (modified) {
+      await apiFetch(
+        activeAuth,
+        `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}:setIamPolicy`,
+        { method: 'POST', body: { policy } },
+      );
+      console.info(`[ensureShardProjectIam] Defensively granted IAM roles on ${projectId}`);
+    }
   }
-}
 
   // ── Step 8: Grant platform SA deploy access ────────────────────────────
   if (!isDone('grantAccess')) {
