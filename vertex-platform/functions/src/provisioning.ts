@@ -802,7 +802,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           firebaseConfig = {
             apiKey: configRes['apiKey'],
             authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
-            projectId: configRes['projectId'],
+            projectId: projectId,
             storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
             messagingSenderId: configRes['messagingSenderId'],
             appId: configRes['appId'],
@@ -829,7 +829,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         firebaseConfig = {
           apiKey: configRes['apiKey'],
           authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
-          projectId: configRes['projectId'],
+          projectId: projectId,
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
           appId: configRes['appId'],
