@@ -1,6 +1,7 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import * as logger from 'firebase-functions/logger';
 import type { OAuth2Client } from 'google-auth-library';
 import type {
   CreateStorePayload,
@@ -1806,6 +1807,21 @@ export const completeStoreDeployment = onCall<{
     version: version || CURRENT_TEMPLATE_VERSION,
     error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.',
   });
+
+  // Prune deploy history beyond 50 entries to keep database clean
+  try {
+    const deploysSnap = await storeRef.collection('deploys').orderBy('timestamp', 'desc').get();
+    if (deploysSnap.docs.length > 50) {
+      const docsToDelete = deploysSnap.docs.slice(50);
+      const batch = db.batch();
+      for (const doc of docsToDelete) {
+        batch.delete(doc.ref);
+      }
+      await batch.commit();
+    }
+  } catch (err) {
+    logger.warn('[recordDeploymentResult] Non-fatal error pruning old deploy history:', err);
+  }
 
   if (storeData['status'] === 'active' && success) {
     // If it's already active and successful, just return
