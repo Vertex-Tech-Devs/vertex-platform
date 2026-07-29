@@ -1193,50 +1193,66 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
         let oauthClientId = '';
         let oauthClientSecret = '';
+
+        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const masterProjectId =
+          currentPlatformEnv === 'development'
+            ? 'ecommerce-vertex-dev'
+            : 'ecommerce-vertex';
+
         try {
-          const [version] = await secretsClient.accessSecretVersion({
-            name: `projects/${PLATFORM_PROJECT}/secrets/platform-owner-credentials/versions/latest`,
-          });
-          const rawCred = version.payload?.data ? String(version.payload.data) : '';
-          if (rawCred) {
-            const parsed = JSON.parse(rawCred);
-            oauthClientId = parsed.client_id || '';
-            oauthClientSecret = parsed.client_secret || '';
+          const masterIdpConfig = (await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/v2/projects/${masterProjectId}/defaultSupportedIdpConfigs/google.com`,
+            { quotaProject: masterProjectId },
+          )) as { clientId?: string; clientSecret?: string };
+          if (masterIdpConfig?.clientId && masterIdpConfig?.clientSecret) {
+            oauthClientId = masterIdpConfig.clientId;
+            oauthClientSecret = masterIdpConfig.clientSecret;
           }
-        } catch (secretErr) {
+        } catch (masterIdpErr) {
           console.warn(
-            `[provisioning:initAdmin] Could not read platform-owner-credentials secret:`,
-            secretErr,
+            `[provisioning:initAdmin] Could not read Google IdP config from master project ${masterProjectId}:`,
+            masterIdpErr,
           );
         }
 
-        try {
-          const bodyData: Record<string, unknown> = {
-            name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-            enabled: true,
-          };
-          if (oauthClientId && oauthClientSecret) {
-            bodyData['clientId'] = oauthClientId;
-            bodyData['clientSecret'] = oauthClientSecret;
-          }
+        if (oauthClientId && oauthClientSecret) {
+          try {
+            const bodyData: Record<string, unknown> = {
+              enabled: true,
+              clientId: oauthClientId,
+              clientSecret: oauthClientSecret,
+            };
 
-          await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
-            {
-              method: 'POST',
-              body: bodyData,
-              quotaProject: projectId,
-            },
-          );
-          console.info(
-            `[provisioning:initAdmin] Google OAuth IdP enabled for project ${projectId}`,
-          );
-        } catch (googleIdpErr) {
-          const msg = googleIdpErr instanceof Error ? googleIdpErr.message : String(googleIdpErr);
-          if (!msg.includes('ALREADY_EXISTS') && !msg.includes('already exists') && !msg.includes('409')) {
+            try {
+              await apiFetch(
+                auth,
+                `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
+                {
+                  method: 'POST',
+                  body: { ...bodyData, name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com` },
+                  quotaProject: projectId,
+                },
+              );
+            } catch {
+              await apiFetch(
+                auth,
+                `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com?updateMask=clientId,clientSecret,enabled`,
+                {
+                  method: 'PATCH',
+                  body: bodyData,
+                  quotaProject: projectId,
+                },
+              );
+            }
+            console.info(
+              `[provisioning:initAdmin] Google OAuth IdP configured with master credentials on project ${projectId}`,
+            );
+          } catch (googleIdpErr) {
             console.warn(
-              `[provisioning:initAdmin] Could not enable Google IdP automatically: ${msg}`,
+              `[provisioning:initAdmin] Could not configure Google IdP on ${projectId}:`,
+              googleIdpErr,
             );
           }
         }
