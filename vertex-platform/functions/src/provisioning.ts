@@ -1186,7 +1186,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Disable email/password so Google OAuth is the only login method.
+        // Enable email/password authentication alongside Google OAuth so store admins have fallback authentication options.
         await apiFetch(
           auth,
           `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
@@ -1195,7 +1195,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             body: {
               signIn: {
                 email: {
-                  enabled: false,
+                  enabled: true,
+                  passwordRequired: true,
                 },
               },
             },
