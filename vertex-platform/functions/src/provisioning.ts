@@ -1260,6 +1260,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
 
         // Keep authorized domains aligned with hosted runtime URLs on BOTH shard and master projects.
+        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const masterProjectId =
+          currentPlatformEnv === 'development'
+            ? 'ecommerce-vertex-dev'
+            : 'ecommerce-vertex';
         const targetProjects = Array.from(new Set([projectId, masterProjectId]));
 
         for (const targetProj of targetProjects) {
