@@ -1270,48 +1270,60 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Keep authorized domains aligned with hosted runtime URLs.
-        const config = (await apiFetch(
-          auth,
-          `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
-          {
-            quotaProject: projectId,
-          },
-        )) as { authorizedDomains?: string[] };
+        // Keep authorized domains aligned with hosted runtime URLs on BOTH shard and master projects.
+        const targetProjects = Array.from(new Set([projectId, masterProjectId]));
 
-        const requiredDomains = new Set<string>([
-          `${projectId}.firebaseapp.com`,
-          `${projectId}.web.app`,
-          'ecommerce-vertex-dev.firebaseapp.com',
-          'ecommerce-vertex.firebaseapp.com',
-          'vertex-platform-dev.firebaseapp.com',
-          'vertex-platform-app.firebaseapp.com',
-          'localhost',
-          '127.0.0.1',
-        ]);
-        if (runtimeSiteId) {
-          requiredDomains.add(`${runtimeSiteId}.web.app`);
-        }
-        if (customDomain) {
-          requiredDomains.add(customDomain.trim().toLowerCase());
-        }
+        for (const targetProj of targetProjects) {
+          try {
+            const projConfig = (await apiFetch(
+              auth,
+              `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config`,
+              { quotaProject: targetProj },
+            )) as { authorizedDomains?: string[] };
 
-        const existingDomains = config.authorizedDomains ?? [];
-        const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
-        const hasChanges =
-          nextDomains.length !== existingDomains.length ||
-          nextDomains.some((domain) => !existingDomains.includes(domain));
+            const requiredDomains = new Set<string>([
+              `${projectId}.firebaseapp.com`,
+              `${projectId}.web.app`,
+              'ecommerce-vertex-dev.firebaseapp.com',
+              'ecommerce-vertex.firebaseapp.com',
+              'vertex-platform-dev.firebaseapp.com',
+              'vertex-platform-app.firebaseapp.com',
+              'localhost',
+              '127.0.0.1',
+            ]);
+            if (runtimeSiteId) {
+              requiredDomains.add(`${runtimeSiteId}.web.app`);
+            }
+            if (customDomain) {
+              requiredDomains.add(customDomain.trim().toLowerCase());
+            }
 
-        if (hasChanges) {
-          await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=authorizedDomains`,
-            {
-              method: 'PATCH',
-              body: { authorizedDomains: nextDomains },
-              quotaProject: projectId,
-            },
-          );
+            const existingDomains = projConfig.authorizedDomains ?? [];
+            const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
+            const hasChanges =
+              nextDomains.length !== existingDomains.length ||
+              nextDomains.some((domain) => !existingDomains.includes(domain));
+
+            if (hasChanges) {
+              await apiFetch(
+                auth,
+                `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config?updateMask=authorizedDomains`,
+                {
+                  method: 'PATCH',
+                  body: { authorizedDomains: nextDomains },
+                  quotaProject: targetProj,
+                },
+              );
+              console.info(
+                `[provisioning:initAdmin] Synchronized authorizedDomains on project ${targetProj}`,
+              );
+            }
+          } catch (domainErr) {
+            console.warn(
+              `[provisioning:initAdmin] Could not sync authorizedDomains on project ${targetProj}:`,
+              domainErr,
+            );
+          }
         }
       };
       await retry(initIdentityPlatform, 5, 8000);
