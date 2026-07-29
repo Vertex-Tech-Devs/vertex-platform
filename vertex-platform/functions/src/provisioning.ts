@@ -1192,79 +1192,73 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
         );
 
-        try {
-          // Check existing Google IdP config on the shard project
-          let existingIdp: { clientId?: string } | null = null;
-          try {
-            existingIdp = (await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-              { quotaProject: projectId },
-            )) as { clientId?: string };
-          } catch {
-            existingIdp = null;
-          }
+        let oauthClientId = '';
+        let oauthClientSecret = '';
 
-          // If shard project has a foreign/custom clientId set, remove it so Firebase uses the project's auto-created default OAuth client
-          if (existingIdp?.clientId) {
-            try {
-              await apiFetch(
-                auth,
-                `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-                {
-                  method: 'DELETE',
-                  quotaProject: projectId,
-                },
-              );
-              console.info(
-                `[provisioning:initAdmin] Reset custom Google IdP clientId on ${projectId} to use project default credentials`,
-              );
-            } catch (delErr) {
-              console.warn(
-                `[provisioning:initAdmin] Warning: failed to delete custom Google IdP config on ${projectId}:`,
-                delErr,
-              );
-            }
-          }
-
-          // Enable Google IdP using the project's own default OAuth Client
-          try {
-            await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
-              {
-                method: 'POST',
-                body: { name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`, enabled: true },
-                quotaProject: projectId,
-              },
-            );
-          } catch {
-            await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com?updateMask=enabled`,
-              {
-                method: 'PATCH',
-                body: { enabled: true },
-                quotaProject: projectId,
-              },
-            );
-          }
-          console.info(
-            `[provisioning:initAdmin] Google OAuth IdP enabled on project ${projectId} using project default credentials`,
-          );
-        } catch (googleIdpErr) {
-          console.warn(
-            `[provisioning:initAdmin] Could not configure Google IdP on ${projectId}:`,
-            googleIdpErr,
-          );
-        }
-
-        // Keep authorized domains aligned with hosted runtime URLs on BOTH shard and master projects.
         const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
         const masterProjectId =
           currentPlatformEnv === 'development'
             ? 'ecommerce-vertex-dev'
             : 'ecommerce-vertex';
+
+        try {
+          const masterIdpConfig = (await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/v2/projects/${masterProjectId}/defaultSupportedIdpConfigs/google.com`,
+            { quotaProject: masterProjectId },
+          )) as { clientId?: string; clientSecret?: string };
+          if (masterIdpConfig?.clientId && masterIdpConfig?.clientSecret) {
+            oauthClientId = masterIdpConfig.clientId;
+            oauthClientSecret = masterIdpConfig.clientSecret;
+          }
+        } catch (masterIdpErr) {
+          console.warn(
+            `[provisioning:initAdmin] Could not read Google IdP config from master project ${masterProjectId}:`,
+            masterIdpErr,
+          );
+        }
+
+        if (oauthClientId && oauthClientSecret) {
+          try {
+            const bodyData: Record<string, unknown> = {
+              enabled: true,
+              clientId: oauthClientId,
+              clientSecret: oauthClientSecret,
+            };
+
+            try {
+              await apiFetch(
+                auth,
+                `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
+                {
+                  method: 'POST',
+                  body: { ...bodyData, name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com` },
+                  quotaProject: projectId,
+                },
+              );
+            } catch {
+              await apiFetch(
+                auth,
+                `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com?updateMask=clientId,clientSecret,enabled`,
+                {
+                  method: 'PATCH',
+                  body: bodyData,
+                  quotaProject: projectId,
+                },
+              );
+            }
+            console.info(
+              `[provisioning:initAdmin] Google OAuth IdP configured with master credentials on project ${projectId}`,
+            );
+          } catch (googleIdpErr) {
+            console.warn(
+              `[provisioning:initAdmin] Could not configure Google IdP on ${projectId}:`,
+              googleIdpErr,
+            );
+          }
+        }
+
+        // Keep authorized domains aligned with hosted runtime URLs on BOTH shard and master projects.
         const targetProjects = Array.from(new Set([projectId, masterProjectId]));
 
         for (const targetProj of targetProjects) {
