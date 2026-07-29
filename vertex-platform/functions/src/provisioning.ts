@@ -799,9 +799,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
           )) as Record<string, string>;
 
+          const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+          const masterAuthDomain =
+            currentPlatformEnv === 'development'
+              ? 'ecommerce-vertex-dev.firebaseapp.com'
+              : 'ecommerce-vertex.firebaseapp.com';
+
           firebaseConfig = {
             apiKey: configRes['apiKey'],
-            authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
+            authDomain: masterAuthDomain,
             projectId: configRes['projectId'],
             storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
             messagingSenderId: configRes['messagingSenderId'],
@@ -826,9 +832,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
         )) as Record<string, string>;
 
+        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const masterAuthDomain =
+          currentPlatformEnv === 'development'
+            ? 'ecommerce-vertex-dev.firebaseapp.com'
+            : 'ecommerce-vertex.firebaseapp.com';
+
         firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
+          authDomain: masterAuthDomain,
           projectId: configRes['projectId'],
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
