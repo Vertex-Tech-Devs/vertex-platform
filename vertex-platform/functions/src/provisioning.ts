@@ -765,6 +765,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       let appId: string | undefined;
+      const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+      const masterAuthDomain =
+        currentPlatformEnv === 'development'
+          ? 'ecommerce-vertex-dev.firebaseapp.com'
+          : 'ecommerce-vertex.firebaseapp.com';
 
       if (runtimeMode === 'shared-shard') {
         const shardDoc = await db.collection('shards').doc(shardId!).get();
@@ -801,7 +806,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
           firebaseConfig = {
             apiKey: configRes['apiKey'],
-            authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
+            authDomain: masterAuthDomain,
             projectId: projectId,
             storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
             messagingSenderId: configRes['messagingSenderId'],
@@ -828,7 +833,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
         firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: configRes['authDomain'] || `${projectId}.firebaseapp.com`,
+          authDomain: masterAuthDomain,
           projectId: projectId,
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
