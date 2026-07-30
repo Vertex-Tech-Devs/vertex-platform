@@ -16,7 +16,9 @@ import {
  */
 export async function ensureWarmShardAvailable(): Promise<string | null> {
   if (process.env.FUNCTIONS_EMULATOR === 'true') {
-    console.log('[ensureWarmShardAvailable] Emulator mode active. Skipping background warm shard GCP API calls.');
+    console.log(
+      '[ensureWarmShardAvailable] Emulator mode active. Skipping background warm shard GCP API calls.',
+    );
     return null;
   }
 
@@ -60,7 +62,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
     updatedAt: new Date(),
   });
 
-  console.info(`[ensureWarmShardAvailable] Pre-provisioning warm shard ${shardId} (${projectId})...`);
+  console.info(
+    `[ensureWarmShardAvailable] Pre-provisioning warm shard ${shardId} (${projectId})...`,
+  );
 
   try {
     const auth = await getOwnerOAuthClient();
@@ -131,7 +135,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       updatedAt: new Date(),
     });
 
-    console.info(`[ensureWarmShardAvailable] Warm shard ${shardId} (${projectId}) is fully pre-provisioned and READY.`);
+    console.info(
+      `[ensureWarmShardAvailable] Warm shard ${shardId} (${projectId}) is fully pre-provisioned and READY.`,
+    );
     return shardId;
   } catch (err) {
     console.error(`[ensureWarmShardAvailable] Failed to pre-provision warm shard ${shardId}:`, err);
@@ -165,7 +171,9 @@ export const checkWarmShardBuffer = functions.pubsub
 
     for (const doc of staleFailedSnap.docs) {
       const data = doc.data();
-      const updatedAt = data['updatedAt']?.toDate ? data['updatedAt'].toDate() : new Date(data['updatedAt']);
+      const updatedAt = data['updatedAt']?.toDate
+        ? data['updatedAt'].toDate()
+        : new Date(data['updatedAt']);
       if (updatedAt < cutoff) {
         console.info(`[checkWarmShardBuffer] Purging stale failed warm shard record ${doc.id}`);
         await doc.ref.delete();

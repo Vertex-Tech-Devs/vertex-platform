@@ -1810,7 +1810,7 @@ export async function seedStoreData(
     5,
     6000,
   );
-  
+
   // Re-write configuracion/store with the store config data
   // (seedStoreData deletes this document earlier; the storefront reads from this path)
   const storeConfigPayload = {

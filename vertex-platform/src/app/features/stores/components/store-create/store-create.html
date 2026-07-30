@@ -26,9 +26,12 @@
             {{ runtimeSummary()!.availableSharedSlots }} lugar{{
               runtimeSummary()!.availableSharedSlots !== 1 ? 'es' : ''
             }}
-            libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}. La tienda se alojará de forma inmediata en la infraestructura compartida.
+            libre{{ runtimeSummary()!.availableSharedSlots !== 1 ? 's' : '' }}. La tienda se alojará
+            de forma inmediata en la infraestructura compartida.
           } @else {
-            Los shards compartidos actuales alcanzaron su capacidad máxima (35 tiendas). Se aprovisionará automáticamente un nuevo shard/proyecto en Google Cloud de forma transparente.
+            Los shards compartidos actuales alcanzaron su capacidad máxima (35 tiendas). Se
+            aprovisionará automáticamente un nuevo shard/proyecto en Google Cloud de forma
+            transparente.
           }
         </p>
       </div>

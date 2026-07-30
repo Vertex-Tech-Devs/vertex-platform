@@ -226,7 +226,10 @@ export async function apiFetch(
       }
       if (!res.ok) {
         const text = await res.text();
-        if ((res.status === 429 || text.includes('RESOURCE_EXHAUSTED') || text.includes('429')) && i < maxAttempts - 1) {
+        if (
+          (res.status === 429 || text.includes('RESOURCE_EXHAUSTED') || text.includes('429')) &&
+          i < maxAttempts - 1
+        ) {
           const jitter = Math.floor(Math.random() * 1000);
           const currentDelay = delayMs + jitter;
           console.warn(
@@ -241,7 +244,10 @@ export async function apiFetch(
       return res.json();
     } catch (err) {
       const errStr = String(err);
-      if (i < maxAttempts - 1 && (errStr.includes('429') || errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('503'))) {
+      if (
+        i < maxAttempts - 1 &&
+        (errStr.includes('429') || errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('503'))
+      ) {
         const jitter = Math.floor(Math.random() * 1000);
         const currentDelay = delayMs + jitter;
         console.warn(

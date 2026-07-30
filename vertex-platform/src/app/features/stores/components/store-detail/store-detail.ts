@@ -827,7 +827,6 @@ export class StoreDetail implements OnInit {
     }
   }
 
-
   refreshDeployHistory(): void {
     this.deployHistory.set([]);
     const id = this.route.snapshot.paramMap.get('id');
