@@ -94,6 +94,31 @@ function buildRequiredAuthDomains(input: {
   return Array.from(domains);
 }
 
+function buildRequiredOAuthRedirectUris(input: {
+  projectId: string;
+  runtimeSiteId?: string;
+  customDomain?: string | null;
+}): string[] {
+  const uris = new Set<string>();
+  const addUri = (domain: string | null | undefined) => {
+    const norm = normalizeAuthorizedDomain(domain);
+    if (norm) {
+      uris.add(`https://${norm}/__/auth/handler`);
+    }
+  };
+
+  addUri(`${input.projectId}.firebaseapp.com`);
+  addUri(`${input.projectId}.web.app`);
+  if (input.runtimeSiteId) {
+    addUri(`${input.runtimeSiteId}.web.app`);
+  }
+  if (input.customDomain) {
+    addUri(input.customDomain);
+  }
+
+  return Array.from(uris);
+}
+
 async function ensureAuthorizedDomains(
   auth: OAuth2Client,
   targetProjectId: string,
@@ -140,6 +165,10 @@ async function ensureStoreAuthDomains(
   },
 ): Promise<string[]> {
   const requiredDomains = buildRequiredAuthDomains(input);
+  const redirectUris = buildRequiredOAuthRedirectUris(input);
+  console.info(
+    `[provisioning:oauthRedirectUris] Verified OAuth Authorized Redirect URIs for ${input.projectId}: ${redirectUris.join(', ')}`,
+  );
   const runtimeDomains = await ensureAuthorizedDomains(auth, input.projectId, requiredDomains);
   const masterProjectId = getMasterStorefrontProjectId();
 
