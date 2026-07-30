@@ -159,6 +159,7 @@ async function ensureAuthorizedDomains(
 async function ensureStoreAuthDomains(
   auth: OAuth2Client,
   input: {
+    storeId?: string;
     projectId: string;
     runtimeSiteId?: string;
     customDomain?: string | null;
@@ -182,6 +183,11 @@ async function ensureStoreAuthDomains(
       );
     }
   }
+
+  const targetId = input.storeId || input.projectId;
+  console.info(
+    `[Provisioning]: OAuth Authorized Domains & Redirect URIs successfully set for ${targetId}`,
+  );
 
   return runtimeDomains;
 }
@@ -1410,7 +1416,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        await ensureStoreAuthDomains(auth, { projectId, runtimeSiteId, customDomain });
+        await ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain });
       };
       await retry(initIdentityPlatform, 5, 8000);
 
@@ -1736,7 +1742,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       await retry(
-        () => ensureStoreAuthDomains(auth, { projectId, runtimeSiteId, customDomain }),
+        () => ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain }),
         3,
         5000,
       );
@@ -1860,6 +1866,7 @@ export const repairStoreAuthDomains = onCall<{ storeId: string }>(
       const authorizedDomains = await retry(
         () =>
           ensureStoreAuthDomains(auth, {
+            storeId,
             projectId,
             runtimeSiteId: data['runtimeSiteId'] as string | undefined,
             customDomain: data['customDomain'] as string | null | undefined,
