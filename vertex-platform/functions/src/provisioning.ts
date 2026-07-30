@@ -41,6 +41,146 @@ function normalizeStorageBucket(projectId: string, storageBucket: string | undef
   return bucket;
 }
 
+function getMasterStorefrontProjectId(): string {
+  return resolvePlatformEnvironment(PLATFORM_PROJECT) === 'development'
+    ? 'ecommerce-vertex-dev'
+    : 'ecommerce-vertex';
+}
+
+function getMasterStorefrontAuthDomain(): string {
+  return `${getMasterStorefrontProjectId()}.firebaseapp.com`;
+}
+
+export function normalizeAuthorizedDomain(domain: string | null | undefined): string | null {
+  const value = domain?.trim().toLowerCase();
+  if (!value) return null;
+
+  try {
+    const parsed = new URL(value.includes('://') ? value : `https://${value}`);
+    return parsed.hostname || null;
+  } catch {
+    return (
+      value
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
+        .trim() || null
+    );
+  }
+}
+
+function buildRequiredAuthDomains(input: {
+  projectId: string;
+  runtimeSiteId?: string;
+  customDomain?: string | null;
+}): string[] {
+  const domains = new Set<string>();
+  [
+    `${input.projectId}.firebaseapp.com`,
+    `${input.projectId}.web.app`,
+    getMasterStorefrontAuthDomain(),
+    'ecommerce-vertex-dev.firebaseapp.com',
+    'ecommerce-vertex.firebaseapp.com',
+    'vertex-platform-dev.firebaseapp.com',
+    'vertex-platform-app.firebaseapp.com',
+    'localhost',
+    '127.0.0.1',
+    input.runtimeSiteId ? `${input.runtimeSiteId}.web.app` : null,
+    input.customDomain,
+  ].forEach((domain) => {
+    const normalized = normalizeAuthorizedDomain(domain);
+    if (normalized) domains.add(normalized);
+  });
+
+  return Array.from(domains);
+}
+
+async function ensureAuthorizedDomains(
+  auth: OAuth2Client,
+  targetProjectId: string,
+  requiredDomains: string[],
+): Promise<string[]> {
+  const projConfig = (await apiFetch(
+    auth,
+    `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProjectId}/config`,
+    { quotaProject: targetProjectId },
+  )) as { authorizedDomains?: string[] };
+
+  const existingDomains = (projConfig.authorizedDomains ?? [])
+    .map((domain) => normalizeAuthorizedDomain(domain))
+    .filter((domain): domain is string => Boolean(domain));
+  const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
+  const hasChanges =
+    nextDomains.length !== existingDomains.length ||
+    nextDomains.some((domain) => !existingDomains.includes(domain));
+
+  if (hasChanges) {
+    await apiFetch(
+      auth,
+      `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProjectId}/config?updateMask=authorizedDomains`,
+      {
+        method: 'PATCH',
+        body: { authorizedDomains: nextDomains },
+        quotaProject: targetProjectId,
+      },
+    );
+    console.info(
+      `[provisioning:authDomains] Synchronized authorizedDomains on project ${targetProjectId}`,
+    );
+  }
+
+  return nextDomains;
+}
+
+async function ensureStoreAuthDomains(
+  auth: OAuth2Client,
+  input: {
+    projectId: string;
+    runtimeSiteId?: string;
+    customDomain?: string | null;
+  },
+): Promise<string[]> {
+  const requiredDomains = buildRequiredAuthDomains(input);
+  const runtimeDomains = await ensureAuthorizedDomains(auth, input.projectId, requiredDomains);
+  const masterProjectId = getMasterStorefrontProjectId();
+
+  if (masterProjectId !== input.projectId) {
+    try {
+      await ensureAuthorizedDomains(auth, masterProjectId, requiredDomains);
+    } catch (err) {
+      console.warn(
+        `[provisioning:authDomains] Could not sync authorizedDomains on master project ${masterProjectId}:`,
+        err,
+      );
+    }
+  }
+
+  return runtimeDomains;
+}
+
+async function initializeFirebaseAuth(auth: OAuth2Client, projectId: string): Promise<void> {
+  try {
+    await apiFetch(
+      auth,
+      `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
+      {
+        method: 'POST',
+        body: {},
+        quotaProject: projectId,
+      },
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      !msg.includes('ALREADY_EXISTS') &&
+      !msg.includes('already exists') &&
+      !msg.includes('409') &&
+      !msg.includes('Identity Platform has already been enabled')
+    ) {
+      throw err;
+    }
+  }
+}
+
 export function formatProjectDisplayName(
   name: string,
   isNewShard?: boolean,
@@ -161,7 +301,10 @@ export const provisionStore = onCall<CreateStorePayload>(
           });
           // Trigger asynchronous background creation of the NEXT warm shard for the future!
           void ensureWarmShardAvailable().catch((err) => {
-            console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
+            console.error(
+              '[provisionStore] Failed to trigger background warm shard creation:',
+              err,
+            );
           });
         }
       }
@@ -765,18 +908,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       let appId: string | undefined;
-      const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
-      const masterAuthDomain =
-        currentPlatformEnv === 'development'
-          ? 'ecommerce-vertex-dev.firebaseapp.com'
-          : 'ecommerce-vertex.firebaseapp.com';
+      const masterAuthDomain = getMasterStorefrontAuthDomain();
 
       if (runtimeMode === 'shared-shard') {
         const shardDoc = await db.collection('shards').doc(shardId!).get();
         const shardData = shardDoc.data();
         if (shardData?.['firebaseConfig']) {
           firebaseConfig = shardData['firebaseConfig'] as Record<string, string>;
-          console.info(`[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`);
+          console.info(
+            `[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`,
+          );
         } else {
           const appsRes = (await apiFetch(
             auth,
@@ -1155,29 +1296,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       // Initialize Identity Platform configuration for Google OAuth-only store login.
       const initIdentityPlatform = async (): Promise<void> => {
-        try {
-          await apiFetch(
-            auth,
-            `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
-            {
-              method: 'POST',
-              body: {},
-              quotaProject: projectId,
-            },
-          );
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          // If Identity Platform is already enabled or initialized, it might throw a 409, ALREADY_EXISTS, or a 400 stating it is already enabled.
-          // We can safely ignore this and proceed to configuration.
-          if (
-            !msg.includes('ALREADY_EXISTS') &&
-            !msg.includes('already exists') &&
-            !msg.includes('409') &&
-            !msg.includes('Identity Platform has already been enabled')
-          ) {
-            throw err;
-          }
-        }
+        await initializeFirebaseAuth(auth, projectId);
 
         // Enable email/password authentication alongside Google OAuth so store admins have fallback authentication options.
         await apiFetch(
@@ -1200,11 +1319,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         let oauthClientId = '';
         let oauthClientSecret = '';
 
-        const currentPlatformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
-        const masterProjectId =
-          currentPlatformEnv === 'development'
-            ? 'ecommerce-vertex-dev'
-            : 'ecommerce-vertex';
+        const masterProjectId = getMasterStorefrontProjectId();
 
         try {
           const masterIdpConfig = (await apiFetch(
@@ -1237,7 +1352,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
                 {
                   method: 'POST',
-                  body: { ...bodyData, name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com` },
+                  body: {
+                    ...bodyData,
+                    name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+                  },
                   quotaProject: projectId,
                 },
               );
@@ -1263,61 +1381,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        // Keep authorized domains aligned with hosted runtime URLs on BOTH shard and master projects.
-        const targetProjects = Array.from(new Set([projectId, masterProjectId]));
-
-        for (const targetProj of targetProjects) {
-          try {
-            const projConfig = (await apiFetch(
-              auth,
-              `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config`,
-              { quotaProject: targetProj },
-            )) as { authorizedDomains?: string[] };
-
-            const requiredDomains = new Set<string>([
-              `${projectId}.firebaseapp.com`,
-              `${projectId}.web.app`,
-              'ecommerce-vertex-dev.firebaseapp.com',
-              'ecommerce-vertex.firebaseapp.com',
-              'vertex-platform-dev.firebaseapp.com',
-              'vertex-platform-app.firebaseapp.com',
-              'localhost',
-              '127.0.0.1',
-            ]);
-            if (runtimeSiteId) {
-              requiredDomains.add(`${runtimeSiteId}.web.app`);
-            }
-            if (customDomain) {
-              requiredDomains.add(customDomain.trim().toLowerCase());
-            }
-
-            const existingDomains = projConfig.authorizedDomains ?? [];
-            const nextDomains = Array.from(new Set([...existingDomains, ...requiredDomains]));
-            const hasChanges =
-              nextDomains.length !== existingDomains.length ||
-              nextDomains.some((domain) => !existingDomains.includes(domain));
-
-            if (hasChanges) {
-              await apiFetch(
-                auth,
-                `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProj}/config?updateMask=authorizedDomains`,
-                {
-                  method: 'PATCH',
-                  body: { authorizedDomains: nextDomains },
-                  quotaProject: targetProj,
-                },
-              );
-              console.info(
-                `[provisioning:initAdmin] Synchronized authorizedDomains on project ${targetProj}`,
-              );
-            }
-          } catch (domainErr) {
-            console.warn(
-              `[provisioning:initAdmin] Could not sync authorizedDomains on project ${targetProj}:`,
-              domainErr,
-            );
-          }
-        }
+        await ensureStoreAuthDomains(auth, { projectId, runtimeSiteId, customDomain });
       };
       await retry(initIdentityPlatform, 5, 8000);
 
@@ -1497,7 +1561,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       ]),
     );
 
-    let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
+    let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null =
+      null;
     let activeAuth = auth;
 
     try {
@@ -1507,7 +1572,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         { method: 'POST', body: {} },
       )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
     } catch (userAuthErr) {
-      console.warn('[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:', userAuthErr);
+      console.warn(
+        '[ensureShardProjectIam] Creator auth getIamPolicy warning, trying platform auth:',
+        userAuthErr,
+      );
       try {
         const platformAuth = await getPlatformServiceAccountOAuthClient();
         activeAuth = platformAuth;
@@ -1598,7 +1666,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 const currentActive = data?.activeStores || 0;
                 const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
                 const newActive = currentActive + 1;
-                const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
+                const newStatus = newActive >= maxStores ? 'full' : data?.status || 'active';
                 transaction.update(shardRef, {
                   activeStores: newActive,
                   status: newStatus,
@@ -1637,6 +1705,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
       }
+
+      await retry(
+        () => ensureStoreAuthDomains(auth, { projectId, runtimeSiteId, customDomain }),
+        3,
+        5000,
+      );
 
       // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
       try {
@@ -1713,6 +1787,70 @@ export const runProvisioning = onDocumentCreated(
           updatedAt: new Date(),
           unhandledProvisioningError: message.slice(0, 800),
         });
+    }
+  },
+);
+
+export const repairStoreAuthDomains = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 120, memory: '256MiB' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can repair store auth domains.',
+      );
+    }
+
+    const { storeId } = request.data;
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId is required.');
+    }
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const snap = await storeRef.get();
+
+    if (!snap.exists) {
+      throw new HttpsError('not-found', 'Store not found.');
+    }
+
+    const data = snap.data()!;
+    const projectId = data['firebaseProjectId'] as string | undefined;
+    if (!projectId) {
+      throw new HttpsError('failed-precondition', 'Store does not have firebaseProjectId.');
+    }
+
+    const provisioningOwnerId =
+      typeof data['provisioningOwnerId'] === 'string'
+        ? (data['provisioningOwnerId'] as string)
+        : undefined;
+    const auth = await getOwnerOAuthClient(provisioningOwnerId);
+
+    try {
+      await initializeFirebaseAuth(auth, projectId);
+      const authorizedDomains = await retry(
+        () =>
+          ensureStoreAuthDomains(auth, {
+            projectId,
+            runtimeSiteId: data['runtimeSiteId'] as string | undefined,
+            customDomain: data['customDomain'] as string | null | undefined,
+          }),
+        5,
+        8000,
+      );
+
+      await storeRef.update({
+        authDomainsRepairedAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { success: true, projectId, authorizedDomains };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new HttpsError(
+        'internal',
+        `Could not repair Firebase Auth authorized domains: ${message}`,
+      );
     }
   },
 );
@@ -1871,14 +2009,16 @@ export const completeStoreDeployment = onCall<{
             const currentActive = data?.activeStores || 0;
             const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
             const newActive = currentActive + 1;
-            const newStatus = newActive >= maxStores ? 'full' : (data?.status || 'active');
+            const newStatus = newActive >= maxStores ? 'full' : data?.status || 'active';
             transaction.update(shardRef, {
               activeStores: newActive,
               status: newStatus,
               updatedAt: new Date(),
             });
             if (newStatus === 'full') {
-              console.info(`[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxStores}). Marked as 'full'.`);
+              console.info(
+                `[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxStores}). Marked as 'full'.`,
+              );
             }
           }
         });

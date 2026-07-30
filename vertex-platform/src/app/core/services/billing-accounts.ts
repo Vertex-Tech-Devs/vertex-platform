@@ -50,13 +50,19 @@ export class BillingAccountsService {
     maxProjects?: number;
     active?: boolean;
   }): Promise<void> {
-    const fn = httpsCallable<typeof payload, { success: boolean }>(this.fns, 'updateBillingAccount');
+    const fn = httpsCallable<typeof payload, { success: boolean }>(
+      this.fns,
+      'updateBillingAccount',
+    );
     await fn(payload);
     await this.loadAccounts();
   }
 
   async removeAccount(id: string): Promise<void> {
-    const fn = httpsCallable<{ id: string }, { success: boolean }>(this.fns, 'removeBillingAccount');
+    const fn = httpsCallable<{ id: string }, { success: boolean }>(
+      this.fns,
+      'removeBillingAccount',
+    );
     await fn({ id });
     await this.loadAccounts();
   }

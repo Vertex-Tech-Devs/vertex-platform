@@ -78,7 +78,10 @@ export class StoresService {
               if (error?.code === 'unavailable' || error?.code === 'cancelled') {
                 console.warn('[StoresService] Firestore temporarily unavailable, retrying...');
               } else {
-                console.error('[StoresService] Firestore subscription error:', error?.code || error);
+                console.error(
+                  '[StoresService] Firestore subscription error:',
+                  error?.code || error,
+                );
               }
               subscriber.next([]);
             },

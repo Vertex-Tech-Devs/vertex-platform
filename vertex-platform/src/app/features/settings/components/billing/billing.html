@@ -2,53 +2,136 @@
   <div class="page-top">
     <div>
       <h1 class="page-title">Facturación Google Cloud</h1>
-      <p class="page-sub">Gestión de Cuentas de Facturación para el Aprovisionamiento de Tiendas SaaS</p>
+      <p class="page-sub">
+        Gestión de Cuentas de Facturación para el Aprovisionamiento de Tiendas SaaS
+      </p>
     </div>
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
   <!-- Explainers banner -->
-  <div class="add-card" style="background: rgba(234, 88, 12, 0.05); border-color: rgba(234, 88, 12, 0.2); margin-bottom: 1.5rem;">
-    <h2 class="add-card__title" style="font-size: 1.1rem; color: #ea580c; display: flex; align-items: center; gap: 0.5rem;">
+  <div
+    class="add-card"
+    style="
+      background: rgba(234, 88, 12, 0.05);
+      border-color: rgba(234, 88, 12, 0.2);
+      margin-bottom: 1.5rem;
+    "
+  >
+    <h2
+      class="add-card__title"
+      style="font-size: 1.1rem; color: #ea580c; display: flex; align-items: center; gap: 0.5rem"
+    >
       <i class="bi bi-info-circle-fill"></i> Infraestructura de la Plataforma & Facturación GCP
     </h2>
-    <p style="font-size: 0.88rem; line-height: 1.5; color: #475569; margin-top: 0.5rem;">
-      • <strong>Tiendas Estándar (Shared-Shards)</strong>: Se crean de forma ilimitada compartiendo shards de infraestructura sin requerir proyectos ni facturación GCP adicional.<br>
-      • <strong>Tiendas Dedicadas (Enterprise / Premium)</strong>: Crean un proyecto GCP exclusivo por cliente y consumen cupo en las cuentas de facturación (Billing Accounts) registradas abajo.
+    <p style="font-size: 0.88rem; line-height: 1.5; color: #475569; margin-top: 0.5rem">
+      • <strong>Tiendas Estándar (Shared-Shards)</strong>: Se crean de forma ilimitada compartiendo
+      shards de infraestructura sin requerir proyectos ni facturación GCP adicional.<br />
+      • <strong>Tiendas Dedicadas (Enterprise / Premium)</strong>: Crean un proyecto GCP exclusivo
+      por cliente y consumen cupo en las cuentas de facturación (Billing Accounts) registradas
+      abajo.
     </p>
   </div>
 
   @if (runtimeSummary()) {
     <!-- Shards Monitor Card -->
-    <div class="add-card" style="margin-bottom: 1.5rem;">
-      <h2 class="add-card__title" style="display: flex; align-items: center; justify-content: space-between;">
+    <div class="add-card" style="margin-bottom: 1.5rem">
+      <h2
+        class="add-card__title"
+        style="display: flex; align-items: center; justify-content: space-between"
+      >
         <span><i class="bi bi-server"></i> Monitor de Infrastructure Shards</span>
-        <span class="badge badge--active" style="font-size: 0.8rem; font-weight: 600;">
+        <span class="badge badge--active" style="font-size: 0.8rem; font-weight: 600">
           {{ runtimeSummary()!.availableSharedSlots }} cupos libres
         </span>
       </h2>
-      <p class="add-card__hint" style="margin-bottom: 1rem;">
-        Capacidad actual de los shards compartidos. Al completarse la capacidad de un shard, la plataforma rota automáticamente al siguiente.
+      <p class="add-card__hint" style="margin-bottom: 1rem">
+        Capacidad actual de los shards compartidos. Al completarse la capacidad de un shard, la
+        plataforma rota automáticamente al siguiente.
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+        "
+      >
         @for (shard of runtimeSummary()!.shards; track shard.id) {
-          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <strong style="font-size: 0.95rem; color: var(--platform-text-primary);">{{ shard.id }}</strong>
-              <span class="badge" [class.badge--active]="shard.status === 'active'" [class.badge--inactive]="shard.status !== 'active'">
-                {{ shard.status === 'active' ? 'Activo' : shard.status === 'full' ? 'Completo (Lleno)' : shard.status }}
+          <div
+            style="
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              border-radius: 8px;
+              padding: 1rem;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <strong style="font-size: 0.95rem; color: var(--platform-text-primary)">{{
+                shard.id
+              }}</strong>
+              <span
+                class="badge"
+                [class.badge--active]="shard.status === 'active'"
+                [class.badge--inactive]="shard.status !== 'active'"
+              >
+                {{
+                  shard.status === 'active'
+                    ? 'Activo'
+                    : shard.status === 'full'
+                      ? 'Completo (Lleno)'
+                      : shard.status
+                }}
               </span>
             </div>
-            <div style="font-size: 0.8rem; color: var(--platform-text-muted); margin-bottom: 0.5rem;">
+            <div
+              style="font-size: 0.8rem; color: var(--platform-text-muted); margin-bottom: 0.5rem"
+            >
               GCP Project: <code>{{ shard.projectId }}</code>
             </div>
-            <div class="usage" style="margin-top: 0.5rem;">
-              <div class="usage__bar" style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                <div class="usage__fill" [style.width.%]="shard.occupancyRatio * 100" [style.background]="shard.occupancyRatio >= 1 ? '#ef4444' : shard.occupancyRatio >= 0.8 ? '#f59e0b' : '#10b981'" style="height: 100%;"></div>
+            <div class="usage" style="margin-top: 0.5rem">
+              <div
+                class="usage__bar"
+                style="
+                  height: 6px;
+                  background: rgba(255, 255, 255, 0.1);
+                  border-radius: 3px;
+                  overflow: hidden;
+                "
+              >
+                <div
+                  class="usage__fill"
+                  [style.width.%]="shard.occupancyRatio * 100"
+                  [style.background]="
+                    shard.occupancyRatio >= 1
+                      ? '#ef4444'
+                      : shard.occupancyRatio >= 0.8
+                        ? '#f59e0b'
+                        : '#10b981'
+                  "
+                  style="height: 100%"
+                ></div>
               </div>
-              <span class="usage__label" style="font-size: 0.8rem; display: block; margin-top: 0.35rem; color: var(--platform-text-secondary);">
-                {{ shard.activeStores }} / {{ shard.maxStores }} tiendas alojadas ({{ shard.availableStores }} disponibles)
+              <span
+                class="usage__label"
+                style="
+                  font-size: 0.8rem;
+                  display: block;
+                  margin-top: 0.35rem;
+                  color: var(--platform-text-secondary);
+                "
+              >
+                {{ shard.activeStores }} / {{ shard.maxStores }} tiendas alojadas ({{
+                  shard.availableStores
+                }}
+                disponibles)
               </span>
             </div>
           </div>
@@ -61,7 +144,8 @@
   <div class="add-card">
     <h2 class="add-card__title">Agregar cuenta de facturación GCP</h2>
     <p class="add-card__hint">
-      Introduce la ID de la cuenta (ej. <code>012345-6789AB-CDEF01</code>). La cuenta debe estar activa en GCP Console.
+      Introduce la ID de la cuenta (ej. <code>012345-6789AB-CDEF01</code>). La cuenta debe estar
+      activa en GCP Console.
     </p>
     <div class="add-grid">
       <div class="form-group">

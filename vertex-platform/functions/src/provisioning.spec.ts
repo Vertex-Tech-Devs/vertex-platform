@@ -39,7 +39,7 @@ vi.mock('./helpers', () => ({
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { formatProjectDisplayName } from './provisioning';
+import { formatProjectDisplayName, normalizeAuthorizedDomain } from './provisioning';
 
 const VALID_PAYLOAD = {
   name: 'Test Store',
@@ -297,7 +297,9 @@ describe('provisionStore handler', () => {
     expect(result.projectId).toContain('vtx-sd-');
 
     expect(docMock.set).toHaveBeenCalled();
-    const storeCall = docMock.set.mock.calls.find((call: any[]) => call[0]?.ownerEmail === VALID_PAYLOAD.ownerEmail);
+    const storeCall = docMock.set.mock.calls.find(
+      (call: any[]) => call[0]?.ownerEmail === VALID_PAYLOAD.ownerEmail,
+    );
     const savedData = storeCall ? storeCall[0] : docMock.set.mock.calls[0][0];
     expect(savedData.runtimeMode).toBe('shared-shard');
     expect(savedData.shardId).toContain('shard-development-');
@@ -316,11 +318,22 @@ describe('formatProjectDisplayName', () => {
   });
 
   it('formats new shard display names cleanly with a minimum length of 4', () => {
-    expect(formatProjectDisplayName('Lit', true, 'shard-dev-123')).toBe('Vertex Shard shard-dev-123');
+    expect(formatProjectDisplayName('Lit', true, 'shard-dev-123')).toBe(
+      'Vertex Shard shard-dev-123',
+    );
   });
 
   it('truncates display names longer than 30 characters', () => {
     const longName = 'A'.repeat(50);
     expect(formatProjectDisplayName(longName, false).length).toBe(30);
+  });
+});
+
+describe('normalizeAuthorizedDomain', () => {
+  it('keeps only the hostname expected by Firebase authorizedDomains', () => {
+    expect(
+      normalizeAuthorizedDomain('https://ecommerce-vertex-dev.firebaseapp.com/__/auth/handler'),
+    ).toBe('ecommerce-vertex-dev.firebaseapp.com');
+    expect(normalizeAuthorizedDomain(' VTX-STORE.web.app/admin/login ')).toBe('vtx-store.web.app');
   });
 });
