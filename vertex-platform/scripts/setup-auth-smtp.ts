@@ -48,7 +48,6 @@ void (async () => {
     // Parse SMTP connection URI
     // Format 1: smtp://username@domain.com@host:port (secure format, no password in URI)
     // Format 2: smtp://username:password@host:port (legacy format)
-    let protocol = 'smtp';
     let username = '';
     let host = '';
     let port = 587;
@@ -79,7 +78,7 @@ void (async () => {
         }
       } else {
         const parsedUrl = new URL(connectionUri);
-        protocol = parsedUrl.protocol.replace(':', '');
+        const protocol = parsedUrl.protocol.replace(':', '');
         username = parsedUrl.username;
         uriPassword = parsedUrl.password;
         host = parsedUrl.hostname;
