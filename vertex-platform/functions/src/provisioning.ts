@@ -235,6 +235,95 @@ export function formatProjectDisplayName(
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 /**
+ * Garantiza que el proyecto GCP esté agregado y propagado en Firebase Management,
+ * con el plan de facturación BLAZE (necesario para Identity Platform/pagos).
+ * Si el proyecto no está en Firebase (p. ej. el paso addFirebase se marcó done sin
+ * completar la propagación, o en reintentos que lo saltan), re-ejecuta addFirebase
+ * y espera hasta ~3 minutos. Auto-heal: evita el 404 NOT_FOUND en webApps/sites.
+ */
+async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Promise<void> {
+  const firebaseBase = 'https://firebase.googleapis.com/v1beta1';
+
+  // Asegura el plan BLAZE en el proyecto Firebase (facturación activa).
+  const ensureBlazePlan = async (): Promise<void> => {
+    try {
+      await apiFetch(auth, `${firebaseBase}/projects/${projectId}?updateMask=billingPlan`, {
+        method: 'PATCH',
+        body: { billingPlan: 'BLAZE' },
+        quotaProject: projectId,
+      });
+      console.info(`[provisioning:ensureFirebaseProject] Project ${projectId} set to BLAZE plan.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Si el plan ya es Blaze o la API no permite el patch, no es bloqueante.
+      if (
+        !msg.includes('already') &&
+        !msg.includes('409') &&
+        !msg.includes('billing') &&
+        !msg.includes('BLAZE')
+      ) {
+        console.warn(`[provisioning:ensureFirebaseProject] Could not set BLAZE plan (non-fatal): ${msg}`);
+      }
+    }
+  };
+
+  // 1. ¿El proyecto ya está en Firebase?
+  try {
+    const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
+      quotaProject: projectId,
+    })) as Record<string, unknown>;
+    if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+      console.info(
+        `[provisioning:ensureFirebaseProject] Project ${projectId} already in Firebase.`,
+      );
+      await ensureBlazePlan();
+      return;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('404') && !msg.includes('NOT_FOUND')) {
+      throw err;
+    }
+  }
+
+  // 2. Re-ejecutar addFirebase (auto-heal)
+  console.warn(
+    `[provisioning:ensureFirebaseProject] Project ${projectId} NOT in Firebase. Re-running addFirebase...`,
+  );
+  const op = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}:addFirebase`, {
+    method: 'POST',
+    body: {},
+    quotaProject: projectId,
+  })) as { name: string };
+  await pollOperation(auth, op.name, firebaseBase);
+
+  // 3. Esperar propagación (hasta ~3 min, 10s entre intentos)
+  const POLL_ATTEMPTS = 18;
+  for (let i = 0; i < POLL_ATTEMPTS; i++) {
+    try {
+      const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
+        quotaProject: projectId,
+      })) as Record<string, unknown>;
+      if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+        console.info(
+          `[provisioning:ensureFirebaseProject] Project ${projectId} is now in Firebase (attempt ${i + 1}).`,
+        );
+        await ensureBlazePlan();
+        return;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('404') && !msg.includes('NOT_FOUND')) throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+
+  throw new Error(
+    `Firebase project ${projectId} did not become available after re-running addFirebase.`,
+  );
+}
+
+/**
  * Crea la WebApp en Firebase Management API usando SIEMPRE el gcpProjectId real
  * (proyecto del shard compartido o proyecto GCP dedicado), NUNCA el storeId interno.
  * Espera la propagación de la entidad FirebaseProject (delay preventivo de 3000ms)
@@ -1128,6 +1217,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `Expected the real GCP project id, not the storeId '${storeId}'.`,
         );
       }
+
+      // Auto-heal: garantizar que el proyecto esté en Firebase (re-ejecuta addFirebase si falta)
+      await ensureFirebaseProject(auth, projectId);
 
       if (runtimeMode === 'shared-shard' && runtimeSiteId) {
         // El hosting site también requiere el proyecto propagado en Firebase Hosting:
