@@ -234,6 +234,69 @@ export function formatProjectDisplayName(
 }
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
+import { STOREFRONT_FIRESTORE_RULES, STOREFRONT_STORAGE_RULES } from './storefront-rules';
+
+/**
+ * Despliega las reglas de seguridad del template storefront (Firestore + Storage)
+ * en el proyecto del shard/tienda. Los proyectos nuevos arrancan con reglas DENY
+ * por defecto, lo que rompería el storefront público (clientes sin usuario).
+ * Usa el patrón ruleset + release (DELETE+POST, ya que el PATCH no soporta el campo).
+ */
+async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Promise<void> {
+  const rulesBase = 'https://firebaserules.googleapis.com/v1/projects';
+
+  const deployRuleset = async (
+    fileName: string,
+    content: string,
+    releaseId: string,
+  ): Promise<void> => {
+    try {
+      const rsRes = (await apiFetch(auth, `${rulesBase}/${projectId}/rulesets`, {
+        method: 'POST',
+        body: { source: { files: [{ name: fileName, content }] } },
+        quotaProject: projectId,
+      })) as { name: string };
+      const rulesetName = rsRes.name;
+
+      // Eliminar release previo si existe (no falla si no existe)
+      try {
+        await apiFetch(auth, `${rulesBase}/${projectId}/releases/${releaseId}`, {
+          method: 'DELETE',
+          quotaProject: projectId,
+        });
+      } catch {
+        // 404 = no existe, ok
+      }
+
+      try {
+        await apiFetch(auth, `${rulesBase}/${projectId}/releases`, {
+          method: 'POST',
+          body: { name: `projects/${projectId}/releases/${releaseId}`, rulesetName },
+          quotaProject: projectId,
+        });
+        console.info(
+          `[provisioning:deployStorefrontRules] ${fileName} desplegado en ${projectId} (${releaseId}).`,
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+      }
+    } catch (err) {
+      console.warn(
+        `[provisioning:deployStorefrontRules] No se pudo desplegar ${fileName} en ${projectId} (no crítico):`,
+        err,
+      );
+    }
+  };
+
+  // 1. Reglas de Firestore (release cloud.firestore) — crítico para el catálogo público
+  await deployRuleset('firestore.rules', STOREFRONT_FIRESTORE_RULES, 'cloud.firestore');
+
+  // 2. Reglas de Storage (release firebase.storage/{bucket}) — no crítico si Storage no está habilitado
+  const storageBucket = `${projectId}.firebasestorage.app`;
+  await deployRuleset('storage.rules', STOREFRONT_STORAGE_RULES, `firebase.storage/${storageBucket}`);
+}
+
 /**
  * Garantiza que un servicio de GCP esté habilitado en el proyecto (auto-heal).
  * Si el servicio está deshabilitado (403 SERVICE_DISABLED), lo habilita vía
@@ -1397,6 +1460,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         };
       }
 
+      // CRÍTICO: el authDomain SIEMPRE debe ser el del proyecto (shard o dedicado),
+      // nunca el del master — de lo contrario el popup de Google abre el handler del
+      // master y el continueUri de la tienda no está autorizado → auth/invalid-continue-uri.
+      firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+
       await db
         .collection('stores')
         .doc(storeId)
@@ -1523,6 +1591,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         5,
         6000,
       );
+
+      // Desplegar reglas de seguridad del template (Firestore + Storage) en el proyecto del shard,
+      // para que el storefront público (clientes sin usuario) pueda leer el catálogo.
+      await deployStorefrontRules(auth, projectId);
 
       const effectiveVerticalId = verticalId || 'indumentaria';
       const hasMockData = includeMockData !== false;
