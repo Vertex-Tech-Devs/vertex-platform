@@ -1151,11 +1151,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const tenantId = store.tenantId || store.slug || storeId;
-    const isSharedShard = (store.runtimeMode || 'dedicated-project') === 'shared-shard';
-    const configPath = isSharedShard
-      ? `tenants/${tenantId}/configuracion/store`
-      : 'configuracion/store';
+    const configPath = `configuracion/store_${storeId}`;
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
@@ -1250,11 +1246,7 @@ export const getStoreConfig = onCall<{ storeId: string }>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const tenantId = store.tenantId || store.slug || storeId;
-    const isSharedShard = (store.runtimeMode || 'dedicated-project') === 'shared-shard';
-    const configPath = isSharedShard
-      ? `tenants/${tenantId}/configuracion/store`
-      : 'configuracion/store';
+    const configPath = `configuracion/store_${storeId}`;
     const auth = await getOwnerOAuthClient();
 
     try {

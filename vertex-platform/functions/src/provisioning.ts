@@ -1166,7 +1166,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      const configPath = `tenants/${tenantId}/configuracion/store`;
+      const configPath = `configuracion/store_${storeIdAttr}`;
 
       console.info(
         `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
@@ -1289,7 +1289,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/settings/emailTemplates`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${storeIdAttr}`,
             {
               method: 'PATCH',
               body: {
@@ -1337,7 +1337,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/settings/emailEngine`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine_${storeIdAttr}`,
             {
               method: 'PATCH',
               body: {
@@ -1360,7 +1360,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       console.info(
-        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en tenants/${tenantId}/settings/emailTemplates y tenants/${tenantId}/settings/emailEngine para el proyecto ${projectId}.`,
+        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates_${storeIdAttr} y settings/emailEngine_${storeIdAttr} para el proyecto ${projectId}.`,
       );
 
       await setStep('configureEmail', 'done');
