@@ -281,7 +281,11 @@ export async function retry<T>(
 }
 
 export async function pickBillingAccount(db: Firestore): Promise<string> {
-  const accountsSnap = await db.collection('billingAccounts').where('active', '==', true).get();
+  // New schema: billing_accounts with status == 'ACTIVE'. Legacy fallback: billingAccounts with active == true.
+  let accountsSnap = await db.collection('billing_accounts').where('status', '==', 'ACTIVE').get();
+  if (accountsSnap.empty) {
+    accountsSnap = await db.collection('billingAccounts').where('active', '==', true).get();
+  }
   if (accountsSnap.empty) throw new Error('No active billing accounts configured.');
 
   const storesSnap = await db
@@ -299,7 +303,12 @@ export async function pickBillingAccount(db: Firestore): Promise<string> {
   let bestRemaining = -Infinity;
 
   accountsSnap.docs.forEach((d) => {
-    const remaining = (d.data()['maxProjects'] as number) - (usageMap[d.id] ?? 0);
+    const data = d.data();
+    // Prefer the stored currentProjects counter; fall back to computed usage from live stores.
+    const maxProjects = (data['maxProjects'] as number | undefined) ?? Infinity;
+    const currentProjects = data['currentProjects'] as number | undefined;
+    const used = currentProjects !== undefined ? currentProjects : (usageMap[d.id] ?? 0);
+    const remaining = maxProjects - used;
     if (remaining > bestRemaining) {
       bestRemaining = remaining;
       bestId = d.id;

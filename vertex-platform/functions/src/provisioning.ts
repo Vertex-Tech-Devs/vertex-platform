@@ -422,14 +422,78 @@ export const provisionStore = onCall<CreateStorePayload>(
         billingAccountId = await pickBillingAccount(db);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        throw new HttpsError('resource-exhausted', msg);
+        console.warn(
+          `[provisionStore] Billing selection failed for slug '${slug}': ${msg}. ` +
+            'Applying automatic fallback to STANDARD store on shared shard.',
+        );
+        await logAuditAction(
+          request.auth?.uid || 'unknown',
+          request.auth?.token.email as string | undefined,
+          'provisionStore-billing-fallback',
+          slug,
+          'failure',
+          { reason: msg, originalRuntimeMode: runtimeMode, isNewShard },
+        ).catch(() => {});
+
+        // FALLBACK AUTOMÁTICO: convertir a tienda estándar en shard compartido (shared-dev-01)
+        // para garantizar que la tienda se cree y funcione al 100% en lugar de fallar con cuota de GCP.
+        runtimeMode = 'shared-shard';
+        isNewShard = false;
+        billingAccountId = null;
+
+        let fbShardsSnap = await db
+          .collection('infrastructure_shards')
+          .where('environment', '==', env)
+          .where('status', '==', 'ACTIVE')
+          .get();
+        let fbShardDoc: { id: string; data: () => Record<string, any> | undefined } | undefined =
+          fbShardsSnap.docs[0];
+        if (!fbShardDoc) {
+          // Auto-heal: asegurar el shard por defecto shared-dev-01
+          const defaultShardId = 'shared-dev-01';
+          const fbRef = db.collection('infrastructure_shards').doc(defaultShardId);
+          const fbSnap = await fbRef.get();
+          if (!fbSnap.exists) {
+            await fbRef.set({
+              id: defaultShardId,
+              environment: env,
+              runtimeMode: 'shared-shard',
+              projectId: env === 'development' ? 'ecommerce-vertex-dev' : 'ecommerce-vertex',
+              siteId: 'default',
+              region: 'us-central1',
+              status: 'ACTIVE',
+              maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
+              currentStores: 0,
+              reservedStores: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            console.info(
+              `[provisionStore] Fallback auto-healed: created default shard ${defaultShardId}.`,
+            );
+          }
+          fbShardDoc = await fbRef.get();
+        }
+        if (!fbShardDoc) {
+          throw new HttpsError(
+            'resource-exhausted',
+            `Fallback failed: no shared shard available for slug '${slug}'.`,
+          );
+        }
+        const fbShardData = (fbShardDoc.data() ?? {}) as StoreShard;
+        shardId = fbShardDoc.id;
+        projectId = fbShardData.projectId;
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
       }
 
-      try {
-        await listProvisioningOwnerCandidates(db);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new HttpsError('resource-exhausted', msg);
+      // Solo si seguimos necesitando un proyecto GCP nuevo tras el fallback
+      if (runtimeMode === 'dedicated-project' || isNewShard) {
+        try {
+          await listProvisioningOwnerCandidates(db);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          throw new HttpsError('resource-exhausted', msg);
+        }
       }
     }
 

@@ -49,8 +49,11 @@ function makeDb(
     collection: vi.fn((name: string) => ({
       where: vi.fn().mockReturnThis(),
       get: vi.fn().mockResolvedValue({
-        empty: name === 'billingAccounts' ? accountsDocs.length === 0 : false,
-        docs: name === 'billingAccounts' ? accountsDocs : storesDocs,
+        empty:
+          name === 'billingAccounts' || name === 'billing_accounts'
+            ? accountsDocs.length === 0
+            : false,
+        docs: name === 'billingAccounts' || name === 'billing_accounts' ? accountsDocs : storesDocs,
       }),
     })),
   } as unknown as Firestore;
@@ -105,5 +108,39 @@ describe('pickBillingAccount', () => {
     // acc-full: 0 remaining, acc-empty: 5 remaining
     const result = await pickBillingAccount(db);
     expect(result).toBe('acc-empty');
+  });
+
+  it('prefers billing_accounts with status ACTIVE and filters by currentProjects < maxProjects', async () => {
+    const db = {
+      collection: vi.fn((name: string) => {
+        if (name === 'billing_accounts') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({
+              empty: false,
+              docs: [
+                // acc-a is at capacity (10/10) → must be excluded
+                {
+                  id: 'acc-a',
+                  data: () => ({ status: 'ACTIVE', maxProjects: 10, currentProjects: 10 }),
+                },
+                // acc-b has 7 remaining → selected
+                {
+                  id: 'acc-b',
+                  data: () => ({ status: 'ACTIVE', maxProjects: 10, currentProjects: 3 }),
+                },
+              ],
+            }),
+          };
+        }
+        return {
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+        };
+      }),
+    } as unknown as Firestore;
+
+    const result = await pickBillingAccount(db);
+    expect(result).toBe('acc-b');
   });
 });
