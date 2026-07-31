@@ -13,6 +13,7 @@ import {
   sendDirectEmail,
 } from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
+import { verifyGitHubOidcToken } from './github-oidc';
 import type {
   InviteStaffPayload,
   StoreRuntimeMode,
@@ -1052,11 +1053,20 @@ export const getActiveStores = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     const deployToken = request.data?.deployToken as string | undefined;
+    const idToken = request.data?.idToken as string | undefined;
     const isAdmin = !!request.auth?.token['platformAdmin'];
 
-    // Exigir autorización en TODOS los entornos (admin de plataforma o deploy token válido)
+    // Exigir autorización en TODOS los entornos:
+    // 1) admin de plataforma, 2) GitHub OIDC (workflow automatizado), 3) deploy token legacy.
     if (!isAdmin) {
-      if (deployToken) {
+      if (idToken) {
+        const oidcValid = await verifyGitHubOidcToken(idToken, {
+          repository: 'Vertex-Tech-Devs/ecommerce-vertex',
+        });
+        if (!oidcValid) {
+          throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
+        }
+      } else if (deployToken) {
         const expected = await getDeployToken();
         if (deployToken !== expected) {
           throw new HttpsError('permission-denied', 'Invalid deploy token.');
