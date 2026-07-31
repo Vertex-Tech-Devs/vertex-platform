@@ -235,6 +235,66 @@ export function formatProjectDisplayName(
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
 /**
+ * Garantiza que un servicio de GCP esté habilitado en el proyecto (auto-heal).
+ * Si el servicio está deshabilitado (403 SERVICE_DISABLED), lo habilita vía
+ * Service Usage API y espera la propagación. Evita fallas en pasos posteriores
+ * (Firestore, Hosting, Identity Toolkit, Storage, Cloud Build).
+ */
+async function ensureServiceEnabled(
+  auth: OAuth2Client,
+  projectId: string,
+  service: string,
+): Promise<void> {
+  const base = `https://serviceusage.googleapis.com/v1/projects/${projectId}/services/${service}`;
+
+  // 1. ¿Ya está habilitado?
+  try {
+    const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
+      state?: string;
+    };
+    if (res && res.state === 'ENABLED') {
+      return;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('404') && !msg.includes('NOT_FOUND')) {
+      throw err;
+    }
+  }
+
+  // 2. Habilitar y esperar propagación (hasta ~2 min)
+  console.warn(`[provisioning:ensureServiceEnabled] Enabling ${service} on ${projectId}...`);
+  try {
+    await apiFetch(auth, `${base}:enable`, {
+      method: 'POST',
+      body: {},
+      quotaProject: projectId,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('already') && !msg.includes('409')) {
+      throw err;
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    try {
+      const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
+        state?: string;
+      };
+      if (res && res.state === 'ENABLED') {
+        console.info(`[provisioning:ensureServiceEnabled] ${service} ENABLED on ${projectId}.`);
+        return;
+      }
+    } catch {
+      // aún propagando
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+  console.warn(`[provisioning:ensureServiceEnabled] ${service} aún no propagado en ${projectId} (continuando).`);
+}
+
+/**
  * Garantiza que el proyecto GCP esté agregado y propagado en Firebase Management,
  * con el plan de facturación BLAZE (necesario para Identity Platform/pagos).
  * Si el proyecto no está en Firebase (p. ej. el paso addFirebase se marcó done sin
@@ -277,6 +337,10 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
         `[provisioning:ensureFirebaseProject] Project ${projectId} already in Firebase.`,
       );
       await ensureBlazePlan();
+      // Habilitar APIs críticas para los pasos siguientes (auto-heal)
+      await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+      await ensureServiceEnabled(auth, projectId, 'firebasehosting.googleapis.com');
+      await ensureServiceEnabled(auth, projectId, 'identitytoolkit.googleapis.com');
       return;
     }
   } catch (err) {
@@ -309,6 +373,10 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
           `[provisioning:ensureFirebaseProject] Project ${projectId} is now in Firebase (attempt ${i + 1}).`,
         );
         await ensureBlazePlan();
+        // Habilitar APIs críticas para los pasos siguientes (auto-heal)
+        await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+        await ensureServiceEnabled(auth, projectId, 'firebasehosting.googleapis.com');
+        await ensureServiceEnabled(auth, projectId, 'identitytoolkit.googleapis.com');
         return;
       }
     } catch (err) {
@@ -432,6 +500,9 @@ export const provisionStore = onCall<CreateStorePayload>(
 
     // Dynamic Shard Selection logic: Recommend and use shared-shard by default if active shard capacity is available
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    // storeId y sufijo único (para sitios de hosting/web app) se generan temprano
+    const storeId = crypto.randomUUID();
+    const uniqueSiteSuffix = storeId.replace(/[^a-zA-Z0-9]/g, '').slice(-6);
     let shardsSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
@@ -540,7 +611,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
         isNewShard = false;
       } else {
         // Fallback: Generate a new shared-shard project autonomously
@@ -549,7 +620,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
         // Trigger asynchronous background creation of a warm shard buffer
         void ensureWarmShardAvailable().catch((err) => {
           console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
@@ -557,7 +628,6 @@ export const provisionStore = onCall<CreateStorePayload>(
       }
     }
 
-    const storeId = crypto.randomUUID();
     const tenantId = slug;
 
     const needsNewGcpProject = runtimeMode === 'dedicated-project' || isNewShard;
@@ -628,7 +698,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const fbShardData = (fbShardDoc.data() ?? {}) as StoreShard;
         shardId = fbShardDoc.id;
         projectId = fbShardData.projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
       }
 
       // Solo si seguimos necesitando un proyecto GCP nuevo tras el fallback
@@ -1344,6 +1414,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('initFirestore')) {
     await setStep('initFirestore', 'running');
     try {
+      // Auto-heal: asegurar que la API de Firestore esté habilitada antes de operar
+      await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
       try {
         const dbOp = (await apiFetch(
           auth,

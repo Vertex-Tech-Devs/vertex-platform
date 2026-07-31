@@ -268,6 +268,16 @@ async function deployHostingTombstone(
   }
 }
 
+/**
+ * Proyectos GCP creados ad-hoc por la plataforma (shards nuevos `vtx-sd-*` y
+ * tiendas dedicadas `vtx-<slug>`). Son desechables: pueden eliminarse cuando
+ * quedan vacíos. Los proyectos master (ecommerce-vertex-dev, ecommerce-vertex)
+ * NO cumplen este patrón y nunca se eliminan.
+ */
+function isDisposableProject(projectId: string): boolean {
+  return /^vtx-sd-/.test(projectId) || /^vtx-/.test(projectId);
+}
+
 async function deleteProjectAndWait(
   auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
   projectId: string,
@@ -355,6 +365,7 @@ async function enqueueRuntimeCleanupTask(
     projectIds: string[];
     siteId: string;
     runtimeMode: StoreRuntimeMode;
+    deleteProject?: boolean;
     reason: string;
   },
 ): Promise<void> {
@@ -364,6 +375,7 @@ async function enqueueRuntimeCleanupTask(
     projectIds: payload.projectIds,
     siteId: payload.siteId,
     runtimeMode: payload.runtimeMode,
+    deleteProject: payload.deleteProject ?? false,
     reason: payload.reason,
     status: 'pending',
     attempts: 0,
@@ -678,6 +690,28 @@ export const deleteStore = onCall<{ storeId: string }>(
     const siteId = resolveRuntimeSiteId(store);
     const runtimeMode = store.runtimeMode ?? 'dedicated-project';
     const inferredProjectId = inferProjectIdFromDefaultUrl(store.defaultUrl);
+    // Determinar si el shard desechable quedará vacío tras eliminar esta tienda.
+    // En ese caso el cleanup debe eliminar también el proyecto GCP/Firebase (fricción cero).
+    let deleteProjectOnCleanup = false;
+    if (runtimeMode === 'shared-shard' && store.shardId) {
+      try {
+        const shardSnap = await db.collection('infrastructure_shards').doc(store.shardId).get();
+        if (shardSnap.exists) {
+          const shardData = shardSnap.data() ?? {};
+          const shardProjectId = String(shardData['projectId'] ?? '');
+          const willBeEmpty = (shardData['currentStores'] ?? 0) - 1 <= 0;
+          deleteProjectOnCleanup = willBeEmpty && isDisposableProject(shardProjectId);
+          if (deleteProjectOnCleanup) {
+            console.info(
+              `[deleteStore] Shard ${store.shardId} (${shardProjectId}) quedará vacío y es desechable. Se eliminará el proyecto.`,
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(`[deleteStore] No se pudo evaluar el shard ${store.shardId}:`, err);
+      }
+    }
+
     const candidateProjectIds = Array.from(
       new Set(
         [store.runtimeProjectId, store.firebaseProjectId, inferredProjectId]
@@ -693,6 +727,7 @@ export const deleteStore = onCall<{ storeId: string }>(
         projectIds: candidateProjectIds,
         siteId,
         runtimeMode,
+        deleteProject: deleteProjectOnCleanup,
         reason: 'deleteStore-postcheck',
       });
     }
@@ -727,6 +762,17 @@ export const deleteStore = onCall<{ storeId: string }>(
           err,
         );
       }
+      // Shard desechable vacío: eliminarlo (el cleanup eliminará el proyecto GCP/Firebase)
+      if (deleteProjectOnCleanup) {
+        await shardRef
+          .delete()
+          .then(() =>
+            console.info(`[deleteStore] Shard desechable ${store.shardId} eliminado.`),
+          )
+          .catch((err) =>
+            console.warn(`[deleteStore] No se pudo eliminar el shard ${store.shardId}:`, err),
+          );
+      }
     }
 
     // Delete store document
@@ -760,6 +806,7 @@ export const processRuntimeCleanupTask = onDocumentCreated(
       projectIds?: string[];
       siteId?: string;
       runtimeMode?: StoreRuntimeMode;
+      deleteProject?: boolean;
       attempts?: number;
     };
 
@@ -903,6 +950,22 @@ export const processRuntimeCleanupTask = onDocumentCreated(
 
           if (!hostingDeleted && !hostingAlreadyGone && lastHostingError) {
             throw lastHostingError;
+          }
+
+          // 3. Si el shard desechable quedó vacío (deleteProject flag), eliminar el proyecto GCP/Firebase.
+          if (task.deleteProject === true && isDisposableProject(projectId)) {
+            try {
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deleteProjectAndWait(auth, projectId),
+              );
+              console.info(
+                `[runtimeCleanup] Proyecto desechable ${projectId} eliminado (shard vacío).`,
+              );
+            } catch (err) {
+              if (!isProjectAlreadyDeletedOrInactiveError(err)) {
+                throw err;
+              }
+            }
           }
         }
       }
