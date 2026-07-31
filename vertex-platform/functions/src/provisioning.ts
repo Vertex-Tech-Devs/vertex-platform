@@ -233,6 +233,59 @@ export function formatProjectDisplayName(
 }
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
+/**
+ * Crea la WebApp en Firebase Management API usando SIEMPRE el gcpProjectId real
+ * (proyecto del shard compartido o proyecto GCP dedicado), NUNCA el storeId interno.
+ * Espera la propagación de la entidad FirebaseProject (delay preventivo de 3000ms)
+ * y reintenta ante errores 404 / NOT_FOUND / fetch failed (hasta 3 intentos con pausas de 3s).
+ */
+async function createWebAppWithRetry(
+  auth: OAuth2Client,
+  projectId: string,
+  storeId: string,
+  displayName: string,
+): Promise<string> {
+  if (!projectId || projectId === storeId) {
+    throw new Error(
+      `Invalid gcpProjectId for web app creation: '${projectId}'. ` +
+        `The gcpProjectId must be the real GCP project id (shard project or vtx-<slug>), not the storeId '${storeId}'.`,
+    );
+  }
+
+  // Delay preventivo para permitir la propagación de la entidad FirebaseProject creada en el paso anterior
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  const MAX_ATTEMPTS = 3;
+  const PAUSE_MS = 3000;
+  let lastErr: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const appOp = (await apiFetch(
+        auth,
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+        { method: 'POST', body: { displayName } },
+      )) as { name: string };
+      await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+      return appOp.name;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPropagationError =
+        msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
+      if (!isPropagationError || attempt === MAX_ATTEMPTS) {
+        throw err;
+      }
+      console.warn(
+        `[provisioning:createWebApp] FirebaseProject not propagated yet (attempt ${attempt}/${MAX_ATTEMPTS}). Retrying in ${PAUSE_MS}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
+    }
+  }
+
+  throw lastErr;
+}
+
 export const provisionStore = onCall<CreateStorePayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
@@ -1037,6 +1090,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
+      // El identificador enviado a Firebase Management debe ser SIEMPRE el gcpProjectId real
+      // (proyecto del shard o proyecto dedicado vtx-<slug>), nunca el storeId interno.
+      if (!projectId || projectId === storeId) {
+        throw new Error(
+          `Invalid gcpProjectId for web app creation: '${projectId}'. ` +
+            `Expected the real GCP project id, not the storeId '${storeId}'.`,
+        );
+      }
+
       if (runtimeMode === 'shared-shard' && runtimeSiteId) {
         try {
           await apiFetch(
@@ -1081,12 +1143,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           if (appsRes.apps?.length) {
             appId = appsRes.apps[0].appId;
           } else {
-            const appOp = (await apiFetch(
-              auth,
-              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-              { method: 'POST', body: { displayName: webAppDisplayName } },
-            )) as { name: string };
-            await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+            // Crea la web app con retry + delay de propagación usando el gcpProjectId real
+            await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
             const refreshed = (await apiFetch(
               auth,
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
@@ -1109,12 +1167,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           };
         }
       } else {
-        const appOp = (await apiFetch(
-          auth,
-          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-          { method: 'POST', body: { displayName: webAppDisplayName } },
-        )) as { name: string };
-        await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+        // Crea la web app con retry + delay de propagación usando el gcpProjectId real
+        await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
         const appsRes = (await apiFetch(
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
