@@ -94,7 +94,13 @@ function fail(message: string): never {
 
 function main() {
   const platformRulesPath = path.resolve(__dirname, '../firestore.rules');
-  const storefrontRulesPath = path.resolve(__dirname, '../../../storefront/firestore.rules');
+  // Candidate sibling checkouts for the storefront rules (monorepo layout + CI naming variants).
+  // When none exists the runner is standalone (isolated GitHub Actions checkout).
+  const storefrontCandidates = [
+    path.resolve(__dirname, '../../../storefront/firestore.rules'),
+    path.resolve(__dirname, '../../../ecommerce-vertex/firestore.rules'),
+  ];
+  const storefrontRulesPath = storefrontCandidates.find((p) => fs.existsSync(p)) ?? null;
   const forceStandalone =
     process.argv.includes('--standalone') || process.env['STANDALONE'] === '1';
 
@@ -136,19 +142,19 @@ function main() {
     );
   }
 
-  const storefrontExists = fs.existsSync(storefrontRulesPath);
+  const storefrontExists = storefrontRulesPath !== null;
 
   // ── Mode A: standalone (CI / isolated repo — no sibling storefront checkout) ──
-  // Validate the local platform rules and verify the flat public-catalog contract
-  // directly: the catalog collections must NOT be publicly exposed in the platform
-  // control-plane rules (public exposure belongs to the storefront project).
+  // Validate ONLY the local vertex-platform firestore.rules. The control-plane
+  // authorization check above already ran; here we also verify the flat public-catalog
+  // contract directly: the catalog collections must NOT be publicly exposed in the
+  // platform control-plane rules (public exposure belongs to the storefront project).
   if (forceStandalone || !storefrontExists) {
     console.log(
-      `${colors.yellow}${
-        storefrontExists
-          ? 'Standalone mode forced via --standalone. '
-          : 'Standalone mode: storefront rules not present in this checkout. '
-      }Verifying flat catalog contract against platform rules.${colors.reset}`,
+      `${colors.bright}${colors.yellow}=== Standalone Mode: Storefront rules not present in runner ===${colors.reset}`,
+    );
+    console.log(
+      `${colors.yellow}Validating ONLY the local 'vertex-platform/firestore.rules'.${colors.reset}`,
     );
 
     const exposedCatalog = PUBLIC_CATALOG_COLLECTIONS.filter((col) => {
