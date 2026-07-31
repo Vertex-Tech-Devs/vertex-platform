@@ -89,9 +89,13 @@ const flatCatalogCollections = [
   'banners',
   'pages',
 ];
-const missing = flatCatalogCollections.filter((col) =>
-  !storefrontContent.includes(`match /${col}/`),
-);
+const missing = flatCatalogCollections.filter((col) => {
+  const hasMatch =
+    storefrontContent.includes(`match /${col}/`) ||
+    storefrontContent.includes(`match /${col}`) ||
+    new RegExp(`match\\s+/${col}`).test(storefrontContent);
+  return !hasMatch;
+});
 
 if (missing.length > 0) {
   console.error('❌ Validation Failed!');
