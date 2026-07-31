@@ -11,9 +11,9 @@ export interface RuntimeShardCapacity {
   siteId: string;
   region: string;
   status: StoreShard['status'];
-  activeStores: number;
+  currentStores: number;
   reservedStores: number;
-  maxStores: number;
+  maxCapacity: number;
   availableStores: number;
   occupancyRatio: number;
 }
@@ -41,9 +41,9 @@ export function resolvePlatformEnvironment(projectId = PLATFORM_PROJECT): Platfo
 }
 
 export function getAvailableShardSlots(
-  shard: Pick<StoreShard, 'maxStores' | 'activeStores' | 'reservedStores'>,
+  shard: Pick<StoreShard, 'maxCapacity' | 'currentStores' | 'reservedStores'>,
 ): number {
-  return Math.max(0, shard.maxStores - shard.activeStores - shard.reservedStores);
+  return Math.max(0, shard.maxCapacity - shard.currentStores - shard.reservedStores);
 }
 
 export function summarizeShardCapacity(
@@ -59,16 +59,16 @@ export function summarizeShardCapacity(
         siteId: shard.siteId,
         region: shard.region,
         status: shard.status,
-        activeStores: shard.activeStores,
+        currentStores: shard.currentStores,
         reservedStores: shard.reservedStores,
-        maxStores: shard.maxStores,
+        maxCapacity: shard.maxCapacity,
         availableStores,
-        occupancyRatio: shard.maxStores > 0 ? shard.activeStores / shard.maxStores : 1,
+        occupancyRatio: shard.maxCapacity > 0 ? shard.currentStores / shard.maxCapacity : 1,
       };
     })
     .sort((left, right) => {
-      if (left.status === 'active' && right.status !== 'active') return -1;
-      if (right.status === 'active' && left.status !== 'active') return 1;
+      if (left.status === 'ACTIVE' && right.status !== 'ACTIVE') return -1;
+      if (right.status === 'ACTIVE' && left.status !== 'ACTIVE') return 1;
       if (left.availableStores !== right.availableStores) {
         return right.availableStores - left.availableStores;
       }
@@ -76,10 +76,10 @@ export function summarizeShardCapacity(
     });
 
   const activeSharedShardCount = normalizedShards.filter(
-    (shard) => shard.status === 'active',
+    (shard) => shard.status === 'ACTIVE',
   ).length;
   const availableSharedSlots = normalizedShards
-    .filter((shard) => shard.status === 'active')
+    .filter((shard) => shard.status === 'ACTIVE')
     .reduce((sum, shard) => sum + shard.availableStores, 0);
 
   return {
@@ -117,12 +117,12 @@ export const reconcileActiveStores = functions.pubsub
       }
 
       // 3. Fetch all shards
-      const shardsSnap = await db.collection('shards').get();
+      const shardsSnap = await db.collection('infrastructure_shards').get();
       let correctionsCount = 0;
 
       for (const shardDoc of shardsSnap.docs) {
         const shardId = shardDoc.id;
-        const currentActiveStores = shardDoc.data()['activeStores'] || 0;
+        const currentActiveStores = shardDoc.data()['currentStores'] || 0;
         const physicalActiveStores = physicalCounts[shardId] || 0;
 
         if (currentActiveStores !== physicalActiveStores) {
@@ -130,9 +130,9 @@ export const reconcileActiveStores = functions.pubsub
             `[Reconciliation] Mismatch detected in shard ${shardId}: registered=${currentActiveStores}, physical=${physicalActiveStores}. Auto-correcting...`,
           );
 
-          // Update activeStores in Firestore
-          await db.collection('shards').doc(shardId).update({
-            activeStores: physicalActiveStores,
+          // Update currentStores in Firestore
+          await db.collection('infrastructure_shards').doc(shardId).update({
+            currentStores: physicalActiveStores,
             updatedAt: new Date(),
           });
 
@@ -141,7 +141,7 @@ export const reconcileActiveStores = functions.pubsub
             timestamp: new Date(),
             severity: 'WARNING',
             module: 'RECONCILIATION',
-            message: `Shard ${shardId} activeStores auto-corrected from ${currentActiveStores} to ${physicalActiveStores}.`,
+            message: `Shard ${shardId} currentStores auto-corrected from ${currentActiveStores} to ${physicalActiveStores}.`,
             details: {
               shardId,
               previousValue: currentActiveStores,

@@ -41,7 +41,7 @@ describe('Warm Shard Pre-Provisioning (shards.ts)', () => {
   it('returns existing warm shard id if a standby shard is already present', async () => {
     const mockShardDoc = {
       id: 'shard-development-warm-123',
-      data: () => ({ status: 'warmup_ready' }),
+      data: () => ({ status: 'WARMUP_READY' }),
     };
     const mockGet = vi.fn().mockResolvedValue({
       empty: false,

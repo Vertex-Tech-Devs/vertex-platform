@@ -10,7 +10,7 @@ import {
 } from './helpers';
 
 /**
- * Ensures that at least 1 pre-provisioned "warm" shared shard (status: 'warmup_ready')
+ * Ensures that at least 1 pre-provisioned "warm" shared shard (status: 'WARMUP_READY')
  * exists in standby for the current platform environment.
  * If no warm shard exists, it creates and pre-configures a GCP project in the background.
  */
@@ -27,9 +27,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
 
   // Check if a warm shard already exists in standby
   const warmSnap = await db
-    .collection('shards')
+    .collection('infrastructure_shards')
     .where('environment', '==', env)
-    .where('status', 'in', ['warmup_ready', 'warmup_provisioning'])
+    .where('status', 'in', ['WARMUP_READY', 'WARMUP_PROVISIONING'])
     .limit(1)
     .get();
 
@@ -46,7 +46,7 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
   const shardId = `shard-${env}-${randomId}`;
   const projectId = `vtx-sd-${randomId}`;
 
-  const shardRef = db.collection('shards').doc(shardId);
+  const shardRef = db.collection('infrastructure_shards').doc(shardId);
   await shardRef.set({
     id: shardId,
     environment: env,
@@ -54,9 +54,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
     projectId: projectId,
     siteId: 'default',
     region: 'us-central1',
-    status: 'warmup_provisioning',
-    maxStores: DEFAULT_MAX_STORES_PER_SHARD,
-    activeStores: 0,
+    status: 'WARMUP_PROVISIONING',
+    maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
+    currentStores: 0,
     reservedStores: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -129,9 +129,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
     )) as { name: string };
     await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
 
-    // Update shard status to warmup_ready
+    // Update shard status to WARMUP_READY
     await shardRef.update({
-      status: 'warmup_ready',
+      status: 'WARMUP_READY',
       updatedAt: new Date(),
     });
 
@@ -142,7 +142,7 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
   } catch (err) {
     console.error(`[ensureWarmShardAvailable] Failed to pre-provision warm shard ${shardId}:`, err);
     await shardRef.update({
-      status: 'full', // Mark as full to exclude failed warmups
+      status: 'FULL', // Mark as full to exclude failed warmups
       updatedAt: new Date(),
     });
     return null;
@@ -163,10 +163,10 @@ export const checkWarmShardBuffer = functions.pubsub
 
     // Purge stale failed warm shard records with 0 active stores
     const staleFailedSnap = await db
-      .collection('shards')
+      .collection('infrastructure_shards')
       .where('environment', '==', env)
-      .where('activeStores', '==', 0)
-      .where('status', '==', 'full')
+      .where('currentStores', '==', 0)
+      .where('status', '==', 'FULL')
       .get();
 
     for (const doc of staleFailedSnap.docs) {

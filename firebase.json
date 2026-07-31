@@ -7,10 +7,6 @@
     {
       "source": "vertex-platform/functions",
       "codebase": "vertex-platform"
-    },
-    {
-      "source": "packages/ecommerce-vertex/functions",
-      "codebase": "ecommerce-vertex"
     }
   ],
   "emulators": {

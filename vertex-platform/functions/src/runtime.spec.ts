@@ -44,9 +44,9 @@ function makeShard(overrides: Partial<StoreShard> = {}): StoreShard {
     projectId: overrides.projectId ?? 'vertex-shared-prod',
     siteId: overrides.siteId ?? 'vertex-shared-prod',
     region: overrides.region ?? 'us-central1',
-    status: overrides.status ?? 'active',
-    maxStores: overrides.maxStores ?? 100,
-    activeStores: overrides.activeStores ?? 25,
+    status: overrides.status ?? 'ACTIVE',
+    maxCapacity: overrides.maxCapacity ?? 100,
+    currentStores: overrides.currentStores ?? 25,
     reservedStores: overrides.reservedStores ?? 5,
     currentTemplateVersion: overrides.currentTemplateVersion,
     currentDataVersion: overrides.currentDataVersion,
@@ -82,13 +82,13 @@ describe('resolvePlatformEnvironment', () => {
 describe('getAvailableShardSlots', () => {
   it('subtracts active and reserved stores from the max capacity', () => {
     expect(
-      getAvailableShardSlots(makeShard({ maxStores: 100, activeStores: 67, reservedStores: 8 })),
+      getAvailableShardSlots(makeShard({ maxCapacity: 100, currentStores: 67, reservedStores: 8 })),
     ).toBe(25);
   });
 
   it('never returns a negative number', () => {
     expect(
-      getAvailableShardSlots(makeShard({ maxStores: 10, activeStores: 9, reservedStores: 5 })),
+      getAvailableShardSlots(makeShard({ maxCapacity: 10, currentStores: 9, reservedStores: 5 })),
     ).toBe(0);
   });
 });
@@ -96,13 +96,13 @@ describe('getAvailableShardSlots', () => {
 describe('summarizeShardCapacity', () => {
   it('recommends shared-shard when active capacity exists', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-a', activeStores: 40, reservedStores: 10, maxStores: 100 }),
+      makeShard({ id: 'shared-a', currentStores: 40, reservedStores: 10, maxCapacity: 100 }),
       makeShard({
         id: 'shared-b',
-        activeStores: 92,
+        currentStores: 92,
         reservedStores: 8,
-        maxStores: 100,
-        status: 'draining',
+        maxCapacity: 100,
+        status: 'DRAINING',
       }),
     ]);
 
@@ -114,13 +114,13 @@ describe('summarizeShardCapacity', () => {
 
   it('recommends dedicated-project when no active shard has available capacity', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-a', activeStores: 90, reservedStores: 10, maxStores: 100 }),
+      makeShard({ id: 'shared-a', currentStores: 90, reservedStores: 10, maxCapacity: 100 }),
       makeShard({
         id: 'shared-b',
-        activeStores: 80,
+        currentStores: 80,
         reservedStores: 20,
-        maxStores: 100,
-        status: 'maintenance',
+        maxCapacity: 100,
+        status: 'MAINTENANCE',
       }),
     ]);
 
@@ -130,8 +130,8 @@ describe('summarizeShardCapacity', () => {
 
   it('correctly sorts shards with same status but different available capacity', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-low', activeStores: 80, maxStores: 100 }), // available: 15 (maxStores: 100 - activeStores: 80 - reservedStores: 5)
-      makeShard({ id: 'shared-high', activeStores: 30, maxStores: 100 }), // available: 65
+      makeShard({ id: 'shared-low', currentStores: 80, maxCapacity: 100 }), // available: 15 (maxCapacity: 100 - currentStores: 80 - reservedStores: 5)
+      makeShard({ id: 'shared-high', currentStores: 30, maxCapacity: 100 }), // available: 65
     ]);
 
     expect(summary.shards[0]?.id).toBe('shared-high');
@@ -140,25 +140,25 @@ describe('summarizeShardCapacity', () => {
 
   it('correctly sorts shards with same status and same available capacity alphabetically by ID', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-b', activeStores: 30, maxStores: 100 }), // available: 65
-      makeShard({ id: 'shared-a', activeStores: 30, maxStores: 100 }), // available: 65
+      makeShard({ id: 'shared-b', currentStores: 30, maxCapacity: 100 }), // available: 65
+      makeShard({ id: 'shared-a', currentStores: 30, maxCapacity: 100 }), // available: 65
     ]);
 
     expect(summary.shards[0]?.id).toBe('shared-a');
     expect(summary.shards[1]?.id).toBe('shared-b');
   });
 
-  it('handles shards with zero maxStores correctly (covers occupancyRatio fallback)', () => {
+  it('handles shards with zero maxCapacity correctly (covers occupancyRatio fallback)', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-zero', maxStores: 0, activeStores: 0 }),
+      makeShard({ id: 'shared-zero', maxCapacity: 0, currentStores: 0 }),
     ]);
     expect(summary.shards[0]?.occupancyRatio).toBe(1);
   });
 
   it('correctly sorts shards with active and inactive statuses', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-inactive', status: 'maintenance' }),
-      makeShard({ id: 'shared-active', status: 'active' }),
+      makeShard({ id: 'shared-inactive', status: 'MAINTENANCE' }),
+      makeShard({ id: 'shared-active', status: 'ACTIVE' }),
     ]);
     expect(summary.shards[0]?.id).toBe('shared-active');
     expect(summary.shards[1]?.id).toBe('shared-inactive');
@@ -170,7 +170,7 @@ describe('reconcileActiveStores scheduler', () => {
     vi.clearAllMocks();
   });
 
-  it('detects mismatches and auto-corrects activeStores in Firestore', async () => {
+  it('detects mismatches and auto-corrects currentStores in Firestore', async () => {
     const mockStores = [
       { id: 'store-1', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-2', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
@@ -179,9 +179,9 @@ describe('reconcileActiveStores scheduler', () => {
     ];
 
     const mockShards = [
-      { id: 'shard-1', activeStores: 5 }, // Should be corrected to 2
-      { id: 'shard-2', activeStores: 1 }, // Correct
-      { id: 'shard-3' }, // Undefined activeStores and 0 physical stores
+      { id: 'shard-1', currentStores: 5 }, // Should be corrected to 2
+      { id: 'shard-2', currentStores: 1 }, // Correct
+      { id: 'shard-3' }, // Undefined currentStores and 0 physical stores
     ];
 
     const updatedShards: Record<string, number> = {};
@@ -200,7 +200,7 @@ describe('reconcileActiveStores scheduler', () => {
             }),
           };
         }
-        if (colName === 'shards') {
+        if (colName === 'infrastructure_shards') {
           return {
             get: vi.fn().mockResolvedValue({
               size: mockShards.length,
@@ -211,7 +211,7 @@ describe('reconcileActiveStores scheduler', () => {
             }),
             doc: vi.fn((id) => ({
               update: vi.fn().mockImplementation((data) => {
-                updatedShards[id] = data.activeStores;
+                updatedShards[id] = data.currentStores;
                 return Promise.resolve();
               }),
             })),
@@ -289,18 +289,18 @@ describe('getRuntimeCapacitySummary quota guard', () => {
         id: 'shard-1',
         projectId: 'project-shard-1',
         runtimeMode: 'shared-shard',
-        status: 'active',
-        maxStores: 100,
-        activeStores: 10,
+        status: 'ACTIVE',
+        maxCapacity: 100,
+        currentStores: 10,
         reservedStores: 0,
       },
       {
         id: 'shard-2',
         projectId: 'project-shard-2',
         runtimeMode: 'shared-shard',
-        status: 'active',
-        maxStores: 100,
-        activeStores: 10,
+        status: 'ACTIVE',
+        maxCapacity: 100,
+        currentStores: 10,
         reservedStores: 0,
       },
     ];
@@ -326,7 +326,7 @@ describe('getRuntimeCapacitySummary quota guard', () => {
 
     const dbMock = {
       collection: vi.fn((colName) => {
-        if (colName === 'shards') {
+        if (colName === 'infrastructure_shards') {
           return {
             where: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({

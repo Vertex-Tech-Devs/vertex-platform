@@ -79,13 +79,13 @@
               }}</strong>
               <span
                 class="badge"
-                [class.badge--active]="shard.status === 'active'"
-                [class.badge--inactive]="shard.status !== 'active'"
+                [class.badge--active]="shard.status === 'ACTIVE'"
+                [class.badge--inactive]="shard.status !== 'ACTIVE'"
               >
                 {{
-                  shard.status === 'active'
+                  shard.status === 'ACTIVE'
                     ? 'Activo'
-                    : shard.status === 'full'
+                    : shard.status === 'FULL'
                       ? 'Completo (Lleno)'
                       : shard.status
                 }}
@@ -128,7 +128,7 @@
                   color: var(--platform-text-secondary);
                 "
               >
-                {{ shard.activeStores }} / {{ shard.maxStores }} tiendas alojadas ({{
+                {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas alojadas ({{
                   shard.availableStores
                 }}
                 disponibles)

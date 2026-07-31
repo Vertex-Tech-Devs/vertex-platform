@@ -188,7 +188,10 @@ describe('provisionStore handler', () => {
     expect(result.projectId).toBe('vtx-my-store');
 
     expect(docMock.set).toHaveBeenCalled();
-    const savedData = docMock.set.mock.calls[0][0] as any;
+    const storeCall = docMock.set.mock.calls.find(
+      (call: any[]) => call[0]?.ownerEmail === VALID_PAYLOAD.ownerEmail,
+    );
+    const savedData = storeCall ? storeCall[0] : docMock.set.mock.calls[0][0];
     expect(savedData.runtimeMode).toBe('dedicated-project');
     expect(savedData.runtimeProjectId).toBe('vtx-my-store');
   });
@@ -205,9 +208,9 @@ describe('provisionStore handler', () => {
         runtimeMode: 'shared-shard',
         projectId: 'vtx-shard-project-1',
         siteId: 'default',
-        status: 'active',
-        maxStores: 100,
-        activeStores: 10,
+        status: 'ACTIVE',
+        maxCapacity: 100,
+        currentStores: 10,
         reservedStores: 2,
       },
     ];
@@ -222,7 +225,7 @@ describe('provisionStore handler', () => {
             add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
-        if (colName === 'shards') {
+        if (colName === 'infrastructure_shards') {
           return {
             where: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
@@ -273,7 +276,7 @@ describe('provisionStore handler', () => {
             add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
-        if (colName === 'shards') {
+        if (colName === 'infrastructure_shards') {
           return {
             where: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
