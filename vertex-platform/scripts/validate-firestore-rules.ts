@@ -6,7 +6,9 @@ console.log('=== Firestore Rules Sync Validator ===');
 // 1. Validar reglas locales de la plataforma (Platform)
 const platformRulesPath = path.resolve(__dirname, '../firestore.rules');
 if (!fs.existsSync(platformRulesPath)) {
-  console.error('❌ Error crítico: No se encontró el archivo local firestore.rules de vertex-platform');
+  console.error(
+    '❌ Error crítico: No se encontró el archivo local firestore.rules de vertex-platform',
+  );
   process.exit(1);
 }
 
@@ -29,7 +31,9 @@ if (isCI) {
     platformRulesContent.includes('isPlatformAdmin()');
 
   if (!hasCatchAll) {
-    console.error('❌ Error de Validación: Las reglas de la plataforma no contienen la regla de protección global isPlatformAdmin()');
+    console.error(
+      '❌ Error de Validación: Las reglas de la plataforma no contienen la regla de protección global isPlatformAdmin()',
+    );
     process.exit(1);
   }
 

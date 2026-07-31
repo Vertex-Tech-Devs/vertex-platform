@@ -4,7 +4,10 @@ import * as path from 'path';
 
 function readArg(name: string): string | undefined {
   const prefix = `--${name}=`;
-  return process.argv.slice(2).find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+  return process.argv
+    .slice(2)
+    .find((arg) => arg.startsWith(prefix))
+    ?.slice(prefix.length);
 }
 
 const env = readArg('env') || 'dev';
@@ -42,7 +45,9 @@ void (async () => {
     }
 
     if (env === 'prod' && smtpPassword === 'YOUR_PRODUCTION_SMTP_PASSWORD') {
-      console.warn('⚠️ WARNING: Using production placeholder SMTP_PASSWORD. Please configure a real password before deploying to production.');
+      console.warn(
+        '⚠️ WARNING: Using production placeholder SMTP_PASSWORD. Please configure a real password before deploying to production.',
+      );
     }
 
     // Parse SMTP connection URI
@@ -59,7 +64,7 @@ void (async () => {
       if (lastAtIndex !== -1) {
         const authPart = authAndHost.slice(0, lastAtIndex);
         const hostPortPart = authAndHost.slice(lastAtIndex + 1);
-        
+
         // Host and port
         const portIndex = hostPortPart.indexOf(':');
         host = portIndex !== -1 ? hostPortPart.slice(0, portIndex) : hostPortPart;
@@ -67,7 +72,7 @@ void (async () => {
         if (portStr) {
           port = parseInt(portStr, 10);
         }
-        
+
         // Auth part (can be user:pass or just user)
         const colonIndex = authPart.indexOf(':');
         if (colonIndex !== -1) {
@@ -93,13 +98,19 @@ void (async () => {
     }
 
     const decodedUsername = decodeURIComponent(username);
-    
+
     // Use the password from SMTP_PASSWORD if specified, otherwise fall back to decoded URI password
-    let password = (smtpPassword && smtpPassword !== 'YOUR_PRODUCTION_SMTP_PASSWORD') ? smtpPassword : decodeURIComponent(uriPassword);
+    let password =
+      smtpPassword && smtpPassword !== 'YOUR_PRODUCTION_SMTP_PASSWORD'
+        ? smtpPassword
+        : decodeURIComponent(uriPassword);
 
     // If the password is a GCP Secret Manager reference, try to resolve it
     if (password.startsWith('projects/') && password.includes('/secrets/')) {
-      const isUriDevPasswordValid = uriPassword && uriPassword !== 'YOUR_PRODUCTION_SMTP_PASSWORD' && !uriPassword.startsWith('projects/');
+      const isUriDevPasswordValid =
+        uriPassword &&
+        uriPassword !== 'YOUR_PRODUCTION_SMTP_PASSWORD' &&
+        !uriPassword.startsWith('projects/');
       if (isUriDevPasswordValid) {
         password = decodeURIComponent(uriPassword);
       } else {
@@ -110,14 +121,16 @@ void (async () => {
           const [version] = await smClient.accessSecretVersion({ name: password });
           password = version.payload?.data?.toString() || '';
         } catch (e: any) {
-          console.log(`[SMTP Config] Secret Manager API client failed (${e.message || e}). Trying gcloud CLI fallback...`);
+          console.log(
+            `[SMTP Config] Secret Manager API client failed (${e.message || e}). Trying gcloud CLI fallback...`,
+          );
           const { execSync } = require('child_process');
           try {
             const parts = password.split('/');
             const projId = parts[1];
             const secretName = parts[3];
             const versionId = parts[5] || 'latest';
-            
+
             const cmd = `gcloud secrets versions access ${versionId} --secret="${secretName}" --project="${projId}"`;
             password = execSync(cmd, { encoding: 'utf8' }).trim();
             console.log(`[SMTP Config] Successfully resolved secret using gcloud CLI fallback!`);
@@ -128,7 +141,7 @@ void (async () => {
       }
     }
 
-    const securityMode = port === 465 ? 'SSL' : (port === 587 ? 'START_TLS' : 'NONE');
+    const securityMode = port === 465 ? 'SSL' : port === 587 ? 'START_TLS' : 'NONE';
 
     const smtpConfig = {
       senderEmail: defaultFrom,
@@ -136,18 +149,18 @@ void (async () => {
       port,
       username: decodedUsername,
       password,
-      securityMode
+      securityMode,
     };
 
     console.log(`[SMTP Config] Initializing Auth for project "${projectId}"...`);
     const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
     const client = await auth.getClient();
 
     console.log(`[SMTP Config] Sending request to Identity Platform API...`);
     const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=notification.sendEmail`;
-    
+
     const res = await client.request({
       url,
       method: 'PATCH',
@@ -155,10 +168,10 @@ void (async () => {
         notification: {
           sendEmail: {
             method: 'CUSTOM_SMTP',
-            smtp: smtpConfig
-          }
-        }
-      }
+            smtp: smtpConfig,
+          },
+        },
+      },
     });
 
     console.log('✅ SMTP Configuration successful! Response:', JSON.stringify(res.data, null, 2));
@@ -166,4 +179,3 @@ void (async () => {
     console.error('❌ Failed to configure SMTP:', err.message || err);
   }
 })();
-

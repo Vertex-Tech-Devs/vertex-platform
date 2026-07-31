@@ -16,7 +16,10 @@ interface ParsedArgs {
 
 function readArg(name: string): string | undefined {
   const prefix = `--${name}=`;
-  return process.argv.slice(2).find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+  return process.argv
+    .slice(2)
+    .find((arg) => arg.startsWith(prefix))
+    ?.slice(prefix.length);
 }
 
 function parseArgs(): ParsedArgs {

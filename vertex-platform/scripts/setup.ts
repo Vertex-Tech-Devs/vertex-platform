@@ -126,7 +126,10 @@ async function main() {
   s.start('Configurando e integrando parámetros multitenant...');
 
   const ecommerceRoot = path.join(__dirname, '../../packages/ecommerce-vertex');
-  const tenantId = storeName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+  const tenantId = storeName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-');
 
   // Helper for safe file mutation without TOCTOU race conditions
   const mutateFileIfExists = (filePath: string, mutator: (content: string) => string) => {
@@ -162,9 +165,15 @@ async function main() {
       result = result.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
       result = result.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
       result = result.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${devProjectId}'`);
-      result = result.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
+      result = result.replace(
+        /storageBucket:\s*['"][^'"]*['"]/,
+        `storageBucket: '${storageBucket}'`,
+      );
       result = result.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
-      result = result.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${devProjectId}.cloudfunctions.net'`);
+      result = result.replace(
+        /cloudFunctionsUrl:\s*['"][^'"]*['"]/,
+        `cloudFunctionsUrl: 'https://us-central1-${devProjectId}.cloudfunctions.net'`,
+      );
       return result;
     });
 
@@ -175,9 +184,15 @@ async function main() {
       result = result.replace(/apiKey:\s*['"][^'"]*['"]/, `apiKey: '${apiKey}'`);
       result = result.replace(/authDomain:\s*['"][^'"]*['"]/, `authDomain: '${authDomain}'`);
       result = result.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${prodProjectId}'`);
-      result = result.replace(/storageBucket:\s*['"][^'"]*['"]/, `storageBucket: '${storageBucket}'`);
+      result = result.replace(
+        /storageBucket:\s*['"][^'"]*['"]/,
+        `storageBucket: '${storageBucket}'`,
+      );
       result = result.replace(/publicKey:\s*['"][^'"]*['"]/, `publicKey: '${mpPublicKey}'`);
-      result = result.replace(/cloudFunctionsUrl:\s*['"][^'"]*['"]/, `cloudFunctionsUrl: 'https://us-central1-${prodProjectId}.cloudfunctions.net'`);
+      result = result.replace(
+        /cloudFunctionsUrl:\s*['"][^'"]*['"]/,
+        `cloudFunctionsUrl: 'https://us-central1-${prodProjectId}.cloudfunctions.net'`,
+      );
       return result;
     });
 
@@ -192,8 +207,14 @@ async function main() {
     const envFunctionsPath = path.join(ecommerceRoot, 'functions/.env');
     try {
       const content = fs.readFileSync(envExamplePath, 'utf8');
-      let result = content.replace(/MERCADOPAGO_ACCESSTOKEN=[^\r\n]*/, `MERCADOPAGO_ACCESSTOKEN=${mpAccessToken}`);
-      result = result.replace(/MERCADOPAGO_WEBHOOK_URL=[^\r\n]*/, `MERCADOPAGO_WEBHOOK_URL=https://us-central1-${prodProjectId}.cloudfunctions.net/mercadoPagoWebhookHandler`);
+      let result = content.replace(
+        /MERCADOPAGO_ACCESSTOKEN=[^\r\n]*/,
+        `MERCADOPAGO_ACCESSTOKEN=${mpAccessToken}`,
+      );
+      result = result.replace(
+        /MERCADOPAGO_WEBHOOK_URL=[^\r\n]*/,
+        `MERCADOPAGO_WEBHOOK_URL=https://us-central1-${prodProjectId}.cloudfunctions.net/mercadoPagoWebhookHandler`,
+      );
       result = result.replace(/SITE_URL=[^\r\n]*/, `SITE_URL=${siteUrl}`);
       fs.writeFileSync(envFunctionsPath, result, 'utf8');
     } catch (err: any) {

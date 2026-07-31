@@ -34,21 +34,25 @@ function runStep(name: string, cmd: string, cwd?: string): { success: boolean; d
 
 async function main() {
   const startTime = Date.now();
-  console.log(`${colors.bright}${colors.blue}🚀 Starting Vertex Platform Unified QA Pipeline${colors.reset}`);
-  console.log(`Mode: ${isFull ? colors.yellow + 'FULL (Frontend + Backend)' : colors.green + 'QUICK (Frontend Only)'}${colors.reset}\n`);
+  console.log(
+    `${colors.bright}${colors.blue}🚀 Starting Vertex Platform Unified QA Pipeline${colors.reset}`,
+  );
+  console.log(
+    `Mode: ${isFull ? colors.yellow + 'FULL (Frontend + Backend)' : colors.green + 'QUICK (Frontend Only)'}${colors.reset}\n`,
+  );
 
   const results: Record<string, { success: boolean; duration: number }> = {};
 
   // 1. Firestore Rules Validation
   results['Firestore Rules Alignment'] = runStep(
     'Firestore Rules Validation',
-    'npx tsx scripts/validate-firestore-rules.ts'
+    'npx tsx scripts/validate-firestore-rules.ts',
   );
 
   // 2. Prettier Format Check
   results['Code Formatting (Prettier)'] = runStep(
     'Code Formatting',
-    'npx prettier --check "src/**/*.{ts,html,scss}" "functions/src/**/*.ts"'
+    'npx prettier --check "src/**/*.{ts,html,scss}" "functions/src/**/*.ts"',
   );
 
   // 2. ESLint
@@ -81,10 +85,14 @@ async function main() {
 
   console.log('\n=======================================');
   if (allPassed) {
-    console.log(`\n🎉 ${colors.bright}${colors.green}EXCELLENT! All checks passed. Ready for deployment!${colors.reset}\n`);
+    console.log(
+      `\n🎉 ${colors.bright}${colors.green}EXCELLENT! All checks passed. Ready for deployment!${colors.reset}\n`,
+    );
     process.exit(0);
   } else {
-    console.log(`\n⚠️ ${colors.bright}${colors.red}QA Pipeline failed. Please resolve the issues shown above.${colors.reset}\n`);
+    console.log(
+      `\n⚠️ ${colors.bright}${colors.red}QA Pipeline failed. Please resolve the issues shown above.${colors.reset}\n`,
+    );
     process.exit(1);
   }
 }

@@ -33,10 +33,16 @@ void (async () => {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (remove) {
-      const { platformAdmin: _, superAdmin: __, ...rest } = currentClaims as Record<string, unknown>;
+      const {
+        platformAdmin: _,
+        superAdmin: __,
+        ...rest
+      } = currentClaims as Record<string, unknown>;
       await auth.setCustomUserClaims(user.uid, rest);
       await db.collection('platformAdmins').doc(normalizedEmail).delete();
-      console.log(`✅ Removed super admin access and Firestore document for ${email} in project "${projectId}"`);
+      console.log(
+        `✅ Removed super admin access and Firestore document for ${email} in project "${projectId}"`,
+      );
     } else {
       await auth.setCustomUserClaims(user.uid, {
         ...currentClaims,
