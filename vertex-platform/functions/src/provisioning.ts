@@ -658,7 +658,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeSiteId,
     isNewShard,
     tenantId,
-    id: storeIdAttr,
     shardId,
   } = currentData as {
     name: string;
@@ -1220,7 +1219,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      const configPath = `configuracion/store_${storeIdAttr}`;
+      // El sufijo de los docs singleton y el campo storeId usan el tenantId (slug),
+      // que es el storeId que el storefront resuelve vía resolveTenantId().
+      const configPath = `configuracion/store_${tenantId}`;
 
       console.info(
         `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
@@ -1235,7 +1236,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               body: {
                 fields: {
                   tenantId: { stringValue: tenantId },
-                  storeId: { stringValue: storeIdAttr },
+                  storeId: { stringValue: tenantId },
                   storeName: { stringValue: name },
                   tagline: { stringValue: '' },
                   strapline: { stringValue: '' },
@@ -1323,7 +1324,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         name,
         hasMockData,
         true,
-        storeIdAttr,
+        tenantId, // storeId = tenantId (slug), el identificador que usa el storefront
       );
 
       await setStep('initFirestore', 'done');
@@ -1343,7 +1344,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${storeIdAttr}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${tenantId}`,
             {
               method: 'PATCH',
               body: {
@@ -1391,7 +1392,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine_${storeIdAttr}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine_${tenantId}`,
             {
               method: 'PATCH',
               body: {
@@ -1414,7 +1415,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       console.info(
-        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates_${storeIdAttr} y settings/emailEngine_${storeIdAttr} para el proyecto ${projectId}.`,
+        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates_${tenantId} y settings/emailEngine_${tenantId} para el proyecto ${projectId}.`,
       );
 
       await setStep('configureEmail', 'done');
@@ -1932,9 +1933,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       const pat = await getGitHubPat();
 
-      // Fetch the deploy token for this environment to pass to GitHub Action
-      const deployTokenValue = await getDeployToken();
-
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
       const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
 
@@ -1958,7 +1956,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
-              deploy_token: deployTokenValue,
+              // SECURITY: el deploy token NO se envía en el client_payload (visible/logueable).
+              // El workflow del storefront lo lee del secret PLATFORM_DEPLOY_TOKEN.
               environment: env,
               ref: targetRef,
             },

@@ -1154,7 +1154,9 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const configPath = `configuracion/store_${storeId}`;
+    // El storeId del doc singleton es el tenantId (slug), el identificador del storefront
+    const storeTenantId = store.slug || store.tenantId || storeId;
+    const configPath = `configuracion/store_${storeTenantId}`;
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
@@ -1249,7 +1251,8 @@ export const getStoreConfig = onCall<{ storeId: string }>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const configPath = `configuracion/store_${storeId}`;
+    const storeTenantId = store.slug || store.tenantId || storeId;
+    const configPath = `configuracion/store_${storeTenantId}`;
     const auth = await getOwnerOAuthClient();
 
     try {
