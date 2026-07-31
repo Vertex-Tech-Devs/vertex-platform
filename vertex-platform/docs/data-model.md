@@ -12,7 +12,8 @@ Desde V1.0, **todos los datos de tienda son colecciones planas en la raíz** eti
 | `products/{id}/variants` | `{storeId}-<id>` | `storeId`, `productId`, `attributes`, `stock`, `sku` |
 | `categories` | `{storeId}-<id>` | `storeId`, `name`, `slug`, `parentId`, `filterableAttributes`, `imageUrl` |
 | `attributes` | `{storeId}-<id>` | `storeId`, `name`, `values[]` |
-| `configuracion` | `store_{storeId}`, `footer_{storeId}`, `hero_{storeId}` | `storeId`, `storeName`, `colors`, `contact`, `payments`, `seo` |
+| `configuracion` | `store_{storeId}`, `footer_{storeId}`, `hero_{storeId}` | `storeId`, `storeName`, `colors`, `contact`, `seo` (branding público) |
+| `store_payments` | `{storeId}` | **PRIVADO** — `payments.mercadoPago` (secret ref, masked, webhook), solo admin |
 | `banners` | `home_{storeId}` | `storeId`, `heroImages[]`, `carouselSettings`, `featuredCategories` |
 | `pages` | `aboutUs_{storeId}` | `storeId`, `bannerTitle`, `centralDescription`, `featureCards[]` |
 

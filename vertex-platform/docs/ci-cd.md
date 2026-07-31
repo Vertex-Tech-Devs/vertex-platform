@@ -53,6 +53,17 @@ npm --prefix functions run build && npm --prefix functions test   # 7 tests
 
 El job de CI de `vertex-platform` ejecuta `npm --prefix vertex-platform run validate:rules` **sin** el checkout del repositorio `storefront`. El validador detecta la ausencia y toma el modo standalone (exit 0).
 
+### Automatización del despliegue (GitHub OIDC)
+
+La autenticación del workflow del storefront hacia `completeStoreDeployment` / `completeVersionUpdate` es **100% automatizada vía OIDC de GitHub Actions** (sin secrets manuales):
+
+1. El workflow solicita `permissions: id-token: write` y obtiene un `id_token` (audience `vertex-platform`).
+2. Lo envía en el body de la callable (`idToken`).
+3. El platform (`functions/src/github-oidc.ts`) valida: issuer `token.actions.githubusercontent.com`, audience, `repository == Vertex-Tech-Devs/ecommerce-vertex`, `ref` y la **firma RS256 contra las JWKS de GitHub**.
+4. Se conserva el fallback al deploy token legacy (Secret Manager) para compatibilidad.
+
+> El deploy token nunca viaja en el `client_payload` del `repository_dispatch` (quedaba expuesto en logs/CI).
+
 ## 4. Entornos y Despliegues
 
 | Entorno | Proyecto Firebase | Reglas | Functions |
