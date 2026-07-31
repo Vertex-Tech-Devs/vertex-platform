@@ -31,19 +31,22 @@ function extractBlock(content: string, startPattern: string): string {
   return content.substring(braceIndex + 1, pos - 1);
 }
 
-// Extracts top-level match paths (at depth 0 relative to the block's inside content)
-function getTopLevelSubcollections(blockContent: string): Set<string> {
-  const subcollections = new Set<string>();
+// Extracts top-level match paths (at depth 0) as { collectionName -> blockContent }
+function getTopLevelMatches(blockContent: string): Map<string, string> {
+  const matches = new Map<string, string>();
   let depth = 0;
   let i = 0;
 
   while (i < blockContent.length) {
-    // Check if we are at depth 0 and see a "match" keyword
     if (depth === 0) {
       const remaining = blockContent.substring(i);
-      const matchStart = remaining.match(/^match\s+\/([a-zA-Z0-9_-]+)\//);
+      const matchStart = remaining.match(/^match\s+\/([a-zA-Z0-9_-]+)\/(\{[^}]*\})/);
       if (matchStart) {
-        subcollections.add(matchStart[1]);
+        const collectionName = matchStart[1];
+        const block = extractBlock(blockContent, `match /${collectionName}/{`);
+        if (block) {
+          matches.set(collectionName, block);
+        }
         i += matchStart[0].length;
         continue;
       }
@@ -58,7 +61,7 @@ function getTopLevelSubcollections(blockContent: string): Set<string> {
     i++;
   }
 
-  return subcollections;
+  return matches;
 }
 
 function main() {
@@ -68,12 +71,16 @@ function main() {
   console.log(`${colors.bright}${colors.cyan}=== Firestore Rules Sync Validator ===${colors.reset}`);
 
   if (!fs.existsSync(storefrontRulesPath)) {
-    console.error(`${colors.red}Error: Storefront firestore.rules not found at ${storefrontRulesPath}${colors.reset}`);
+    console.error(
+      `${colors.red}Error: Storefront firestore.rules not found at ${storefrontRulesPath}${colors.reset}`,
+    );
     process.exit(1);
   }
 
   if (!fs.existsSync(platformRulesPath)) {
-    console.error(`${colors.red}Error: Platform firestore.rules not found at ${platformRulesPath}${colors.reset}`);
+    console.error(
+      `${colors.red}Error: Platform firestore.rules not found at ${platformRulesPath}${colors.reset}`,
+    );
     process.exit(1);
   }
 
@@ -85,43 +92,103 @@ function main() {
   const cleanStorefrontContent = stripComments(storefrontContent);
   const cleanPlatformContent = stripComments(platformContent);
 
-  const storefrontTenantBlock = extractBlock(cleanStorefrontContent, 'match /tenants/{tenantId}');
-  const platformTenantBlock = extractBlock(cleanPlatformContent, 'match /tenants/{tenantId}');
+  // ── 1. Storefront: flat public catalog collections with `allow read: if true` ──
+  const storefrontDocumentsBlock =
+    extractBlock(cleanStorefrontContent, 'match /databases/{database}/documents') ||
+    cleanStorefrontContent;
+  const storefrontBlocks = getTopLevelMatches(storefrontDocumentsBlock);
 
-  if (!storefrontTenantBlock) {
-    console.error(`${colors.red}Error: 'match /tenants/{tenantId}' block not found in Storefront rules.${colors.reset}`);
-    process.exit(1);
-  }
+  const publicCatalogCollections = [
+    'products',
+    'categories',
+    'attributes',
+    'configuracion',
+    'banners',
+    'pages',
+  ];
 
-  if (!platformTenantBlock) {
-    console.error(`${colors.red}Error: 'match /tenants/{tenantId}' block not found in Platform rules.${colors.reset}`);
-    process.exit(1);
-  }
+  console.log(
+    `Storefront Public Catalog Collections: ${Array.from(storefrontBlocks.keys()).join(', ') || '(none)'}`,
+  );
 
-  const storefrontCols = getTopLevelSubcollections(storefrontTenantBlock);
-  const platformCols = getTopLevelSubcollections(platformTenantBlock);
-
-  console.log(`Storefront Tenant Subcollections: ${Array.from(storefrontCols).join(', ')}`);
-  console.log(`Platform Tenant Subcollections:   ${Array.from(platformCols).join(', ')}`);
-
-  const missingInPlatform: string[] = [];
-  for (const col of storefrontCols) {
-    if (!platformCols.has(col)) {
-      missingInPlatform.push(col);
+  const missingCatalog: string[] = [];
+  const notPublic: string[] = [];
+  for (const col of publicCatalogCollections) {
+    const block = storefrontBlocks.get(col);
+    if (!block) {
+      missingCatalog.push(col);
+    } else if (!block.includes('allow read: if true')) {
+      notPublic.push(col);
     }
   }
 
-  if (missingInPlatform.length > 0) {
+  if (missingCatalog.length > 0) {
     console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
-    console.error(`${colors.yellow}The following tenant subcollections are defined in Storefront rules but missing in Platform rules:${colors.reset}`);
-    missingInPlatform.forEach((col) => {
-      console.error(`  - ${col}`);
-    });
-    console.error(`\nPlease ensure that 'platform/vertex-platform/firestore.rules' defines a matcher for these collections under '/tenants/{tenantId}'.`);
+    console.error(
+      `${colors.yellow}Storefront rules are missing public catalog collections (flat model):${colors.reset}`,
+    );
+    missingCatalog.forEach((col) => console.error(`  - ${col}`));
+    console.error(
+      `\nPlease ensure 'storefront/firestore.rules' defines root-level matchers for these collections.`,
+    );
     process.exit(1);
   }
 
-  console.log(`\n🎉 ${colors.green}${colors.bright}Validation Passed! All storefront tenant subcollections are mapped in platform rules.${colors.reset}`);
+  if (notPublic.length > 0) {
+    console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
+    console.error(
+      `${colors.yellow}Storefront catalog collections must allow public reads (allow read: if true):${colors.reset}`,
+    );
+    notPublic.forEach((col) => console.error(`  - ${col}`));
+    process.exit(1);
+  }
+
+  // ── 2. Platform: control-plane collections must stay private (no public read) ──
+  const controlPlaneCollections = [
+    'stores',
+    'infrastructure_shards',
+    'provisioning_queue',
+    'provisioning_logs',
+    'users',
+    'admin_roles',
+  ];
+
+  const platformDocumentsBlock =
+    extractBlock(cleanPlatformContent, 'match /databases/{database}/documents') ||
+    cleanPlatformContent;
+  const platformBlocks = getTopLevelMatches(platformDocumentsBlock);
+
+  const exposedControl: string[] = [];
+  for (const col of controlPlaneCollections) {
+    const block = platformBlocks.get(col);
+    if (block && block.includes('if true')) {
+      exposedControl.push(col);
+    }
+  }
+
+  // The catch-all must NOT grant public access
+  const catchAllBlock = extractBlock(cleanPlatformContent, 'match /{document=**}');
+  const catchAllPublic =
+    catchAllBlock.includes('if true') || !catchAllBlock.includes('isPlatformAdmin');
+
+  if (exposedControl.length > 0 || catchAllPublic) {
+    console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
+    console.error(
+      `${colors.yellow}Platform control-plane collections must not be publicly readable:${colors.reset}`,
+    );
+    exposedControl.forEach((col) => console.error(`  - ${col}`));
+    if (catchAllPublic) {
+      console.error('  - Catch-all match /{document=**} must require isPlatformAdmin()');
+    }
+    console.error(
+      `\nPlease keep 'platform/vertex-platform/firestore.rules' control-plane collections private.`,
+    );
+    process.exit(1);
+  }
+
+  console.log(
+    `\n🎉 ${colors.green}${colors.bright}Validation Passed! Storefront public catalog is exposed and platform control-plane stays private.${colors.reset}`,
+  );
   process.exit(0);
 }
 

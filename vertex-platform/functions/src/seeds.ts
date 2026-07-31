@@ -1003,11 +1003,12 @@ const VERTICAL_SEEDS: Record<
   },
 };
 
-// Deletion helper for clear-all operations
+// Deletion helper for clear-all operations (storeId-scoped: only deletes docs belonging to the given store)
 async function clearCollection(
   auth: OAuth2Client,
   projectId: string,
   collectionName: string,
+  storeId: string,
 ): Promise<void> {
   try {
     const res = (await apiFetch(
@@ -1020,10 +1021,13 @@ async function clearCollection(
       for (const doc of res.documents) {
         // doc.name is projects/{projectId}/databases/(default)/documents/{collectionName}/{docId}
         const docPath = doc.name.split('/documents/')[1];
+        const docId = docPath.split('/').pop() ?? '';
+        // Flat multi-tenant model: only delete docs that belong to this store (id prefix)
+        if (!docId.startsWith(`${storeId}-`)) continue;
 
         // If it's a product, we should also clean its subcollection 'variants' first
         if (collectionName === 'products') {
-          await clearCollection(auth, projectId, `${docPath}/variants`);
+          await clearCollection(auth, projectId, `${docPath}/variants`, storeId);
         }
 
         await apiFetch(
@@ -1066,37 +1070,47 @@ async function deleteDocumentPath(
 async function checkStoreSafety(
   auth: OAuth2Client,
   projectId: string,
-  tenantId: string,
+  storeId: string,
 ): Promise<void> {
   logger.info(
-    `[SeedEngine] Safety validation: Checking products and orders in project "${projectId}" tenant "${tenantId}"...`,
+    `[SeedEngine] Safety validation: Checking products and orders in project "${projectId}" store "${storeId}"...`,
   );
   const base = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
-  try {
-    const productsRes = (await apiFetch(auth, `${base}/tenants/${tenantId}/products?pageSize=1`, {
-      method: 'GET',
-      quotaProject: projectId,
-    })) as { documents?: Array<unknown> };
-
-    const ordersRes = (await apiFetch(auth, `${base}/tenants/${tenantId}/orders?pageSize=1`, {
-      method: 'GET',
-      quotaProject: projectId,
-    })) as { documents?: Array<unknown> };
-
-    const hasProducts = productsRes && productsRes.documents && productsRes.documents.length > 0;
-    const hasOrders = ordersRes && ordersRes.documents && ordersRes.documents.length > 0;
-
-    if (hasProducts || hasOrders) {
-      throw new Error(
-        'La tienda ya contiene productos o pedidos activos. Se canceló la regeneración para proteger la base de datos de producción.',
-      );
+  const runQuery = async (collectionId: string): Promise<boolean> => {
+    try {
+      const res = (await apiFetch(auth, `${base}:runQuery`, {
+        method: 'POST',
+        quotaProject: projectId,
+        body: {
+          structuredQuery: {
+            from: [{ collectionId }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: 'storeId' },
+                op: 'EQUAL',
+                value: { stringValue: storeId },
+              },
+            },
+            limit: 1,
+          },
+        },
+      })) as Array<{ document?: unknown }>;
+      return (res ?? []).some((r) => r && r.document);
+    } catch (err: any) {
+      const isNotFound =
+        err.message && (err.message.includes('NOT_FOUND') || err.message.includes('404'));
+      if (!isNotFound) throw err;
+      return false;
     }
-  } catch (err: any) {
-    const isNotFound =
-      err.message && (err.message.includes('NOT_FOUND') || err.message.includes('404'));
-    if (!isNotFound) {
-      throw err;
-    }
+  };
+
+  const hasProducts = await runQuery('products');
+  const hasOrders = await runQuery('orders');
+
+  if (hasProducts || hasOrders) {
+    throw new Error(
+      'La tienda ya contiene productos o pedidos activos. Se canceló la regeneración para proteger la base de datos de producción.',
+    );
   }
 }
 
@@ -1121,6 +1135,31 @@ function generateVariantCombinations(
   return result;
 }
 
+// Prefix all deterministic catalog ids with the store prefix so flat collections never collide across stores
+function prefixSeedIds<T extends { attributes: any[]; categories: any[]; products: any[] }>(
+  seed: T,
+  prefix: string,
+): T {
+  const attrId = new Map(seed.attributes.map((a) => [a.id, `${prefix}${a.id}`]));
+  const catId = new Map(seed.categories.map((c) => [c.id, `${prefix}${c.id}`]));
+  return {
+    ...seed,
+    attributes: seed.attributes.map((a) => ({ ...a, id: attrId.get(a.id) })),
+    categories: seed.categories.map((c) => ({
+      ...c,
+      id: catId.get(c.id),
+      parentId: c.parentId ? catId.get(c.parentId) : null,
+      filterableAttributes: (c.filterableAttributes || []).map((f: string) => attrId.get(f) || f),
+    })),
+    products: seed.products.map((p) => ({
+      ...p,
+      id: `${prefix}${p.id}`,
+      categoryId: catId.get(p.categoryId) || p.categoryId,
+      variantAttributes: (p.variantAttributes || []).map((va: string) => attrId.get(va) || va),
+    })),
+  } as T;
+}
+
 /**
  * Seeds isolated child project database with category trees, attributes, and products with variants.
  */
@@ -1134,8 +1173,9 @@ export async function seedStoreData(
   bypassSafety = false,
   storeId?: string,
 ): Promise<void> {
-  // Builds a tenant-namespaced Firestore path segment
-  const tp = (path: string) => `tenants/${tenantId}/${path}`;
+  // Builds a flat Firestore path segment (multi-tenant isolation is enforced via the storeId field)
+  const tp = (path: string) => path;
+  const storePrefix = `${storeId ?? tenantId}-`;
   const sName = storeName ? storeName.trim() : 'Vertex';
   let rawSeed = VERTICAL_SEEDS[verticalId];
   let targetVertical = verticalId;
@@ -1165,25 +1205,27 @@ export async function seedStoreData(
     return obj;
   }
 
-  const seed = customizeSeed(rawSeed, sName);
+  const seed = prefixSeedIds(customizeSeed(rawSeed, sName), storePrefix);
 
   // 1. Run Safety Check
   if (!bypassSafety) {
-    await checkStoreSafety(auth, projectId, tenantId);
+    await checkStoreSafety(auth, projectId, storeId ?? tenantId);
   }
 
   logger.info(
     `[SeedEngine] Safety check passed. Cleaning up database to begin a pristine seed on project "${projectId}"...`,
   );
 
-  // 2. Clear Database Collections
+  // 2. Clear Database Collections (store-scoped so other tenants on the shared shard are untouched)
   const collectionsToClear = ['products', 'categories', 'clients', 'orders', 'attributes'];
   for (const col of collectionsToClear) {
-    await clearCollection(auth, projectId, tp(col));
+    await clearCollection(auth, projectId, tp(col), storeId ?? tenantId);
   }
-  await deleteDocumentPath(auth, projectId, tp('siteContent/homePage'));
-  await deleteDocumentPath(auth, projectId, tp('pages/aboutUs'));
-  await deleteDocumentPath(auth, projectId, tp('configuracion/store'));
+  await deleteDocumentPath(auth, projectId, tp(`banners/home_${storeId}`));
+  await deleteDocumentPath(auth, projectId, tp(`pages/aboutUs_${storeId}`));
+  await deleteDocumentPath(auth, projectId, tp(`configuracion/store_${storeId}`));
+  await deleteDocumentPath(auth, projectId, tp(`configuracion/footer_${storeId}`));
+  await deleteDocumentPath(auth, projectId, tp(`configuracion/hero_${storeId}`));
 
   logger.info(
     `[SeedEngine] Clean-up complete. Starting database seeding for vertical: "${targetVertical}"`,
@@ -1192,6 +1234,7 @@ export async function seedStoreData(
   // 3. Seed Attributes
   for (const attr of seed.attributes) {
     const docData = {
+      storeId: storeId ?? tenantId,
       name: attr.name,
       values: attr.values,
     };
@@ -1229,6 +1272,7 @@ export async function seedStoreData(
     };
     const photoId = categoryImages[cat.slug] || '1521572163474-6864f9cf17ab';
     const docData = {
+      storeId: storeId ?? tenantId,
       name: cat.name,
       slug: cat.slug,
       parentId: cat.parentId,
@@ -1273,6 +1317,7 @@ export async function seedStoreData(
 
     // Initial write of the product
     const initialProdData = {
+      storeId: storeId ?? tenantId,
       name: prod.name,
       description: prod.description,
       categoryId: prod.categoryId,
@@ -1321,8 +1366,9 @@ export async function seedStoreData(
           }
         });
 
-        const variantDocId = `var-${varIdx}`;
+        const variantDocId = `${storeId ?? tenantId}-var-${varIdx}`;
         const variantData = {
+          storeId: storeId ?? tenantId,
           productId: prod.id,
           sku: `${prod.id.toUpperCase()}-${varIdx++}`,
           attributes: combo,
@@ -1407,8 +1453,9 @@ export async function seedStoreData(
     // Seed all clients from CLIENT_DATA
     for (const client of CLIENT_DATA) {
       const days = CLIENT_DAYS_LIST[clientIdx] ?? 30;
-      const clientDocId = `cli-${clientIdx}`;
+      const clientDocId = `${storeId ?? tenantId}-cli-${clientIdx}`;
       const clientPayload = {
+        storeId: storeId ?? tenantId,
         fullName: client.fullName,
         email: client.email,
         phone: client.phone,
@@ -1449,7 +1496,7 @@ export async function seedStoreData(
     for (const order of ORDER_DATA) {
       const cl = seededClients[order.clientIdx % seededClients.length];
       const orderDate = new Date(Date.now() - order.daysAgo * 86_400_000);
-      const orderDocId = `ord-${orderIdx++}`;
+      const orderDocId = `${storeId ?? tenantId}-ord-${orderIdx++}`;
 
       let subtotal = 0;
       const items = order.lines.map((line) => {
@@ -1486,6 +1533,7 @@ export async function seedStoreData(
       });
 
       const orderPayload = {
+        storeId: storeId ?? tenantId,
         userId: `user-${cl.id}`,
         clientName: cl.fullName,
         clientEmail: cl.email,
@@ -1631,6 +1679,7 @@ export async function seedStoreData(
         ];
 
   const homePagePayload = {
+    storeId: storeId ?? tenantId,
     heroImages: heroImages.map((url) => ({ imageUrl: url })),
     carouselSettings: { interval: 4500, showIndicators: true },
     title: bannerTitle,
@@ -1644,7 +1693,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('siteContent/homePage')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`banners/home_${storeId}`)}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(homePagePayload),
@@ -1654,7 +1703,35 @@ export async function seedStoreData(
     5,
     6000,
   );
-  logger.info(`[SeedEngine] Seeded siteContent/homePage successfully.`);
+  logger.info(`[SeedEngine] Seeded banners/home_${storeId} successfully.`);
+
+  // 8.5 Seed Base Hero Config (configuracion/hero_{storeId})
+  const heroPayload = {
+    storeId: storeId ?? tenantId,
+    tenantId,
+    title: bannerTitle,
+    buttonText: 'Explorar todo',
+    buttonLink: '/shop/catalog',
+    heroImages: heroImages.map((url) => ({ imageUrl: url })),
+    carouselSettings: { interval: 4500, showIndicators: true },
+    lastUpdated: new Date(),
+  };
+
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`configuracion/hero_${storeId}`)}`,
+        {
+          method: 'PATCH',
+          body: toFirestoreFields(heroPayload),
+          quotaProject: projectId,
+        },
+      ),
+    5,
+    6000,
+  );
+  logger.info(`[SeedEngine] Seeded configuracion/hero_${storeId} successfully.`);
 
   // 9. Seed About Us (pages/aboutUs)
   const aboutUsSubtitle = isIndumentaria
@@ -1691,6 +1768,7 @@ export async function seedStoreData(
       : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=600&fit=crop&q=80';
 
   const aboutUsPayload = {
+    storeId: storeId ?? tenantId,
     bannerTitle: 'Quiénes Somos',
     bannerSubtitle: aboutUsSubtitle,
     bannerImageUrl: aboutUsBannerUrl,
@@ -1726,7 +1804,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('pages/aboutUs')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`pages/aboutUs_${storeId}`)}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(aboutUsPayload),
@@ -1736,9 +1814,9 @@ export async function seedStoreData(
     5,
     6000,
   );
-  logger.info(`[SeedEngine] Seeded pages/aboutUs successfully.`);
+  logger.info(`[SeedEngine] Seeded pages/aboutUs_${storeId} successfully.`);
 
-  // 10. Seed Footer (configuracion/footer)
+  // 10. Seed Footer (configuracion/footer_{storeId})
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const footerPayload = {
     tenantId,
@@ -1800,7 +1878,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/footer')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`configuracion/footer_${storeId}`)}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(footerPayload),
@@ -1811,7 +1889,7 @@ export async function seedStoreData(
     6000,
   );
 
-  // Re-write configuracion/store with the store config data
+  // Re-write configuracion/store_{storeId} with the store config data
   // (seedStoreData deletes this document earlier; the storefront reads from this path)
   const storeConfigPayload = {
     ...footerPayload,
@@ -1822,7 +1900,7 @@ export async function seedStoreData(
     () =>
       apiFetch(
         auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp('configuracion/store')}`,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`configuracion/store_${storeId}`)}`,
         {
           method: 'PATCH',
           body: toFirestoreFields(storeConfigPayload),
@@ -1833,7 +1911,7 @@ export async function seedStoreData(
     6000,
   );
 
-  logger.info(`[SeedEngine] Seeded configuracion/store successfully.`);
-  logger.info(`[SeedEngine] Seeded configuracion/footer successfully.`);
+  logger.info(`[SeedEngine] Seeded configuracion/store_${storeId} successfully.`);
+  logger.info(`[SeedEngine] Seeded configuracion/footer_${storeId} successfully.`);
   logger.info(`[SeedEngine] Seeding completed successfully for project "${projectId}".`);
 }

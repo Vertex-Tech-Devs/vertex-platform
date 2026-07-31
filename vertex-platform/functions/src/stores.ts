@@ -385,7 +385,10 @@ export const getRuntimeCapacitySummary = onCall(
     const environment = resolvePlatformEnvironment();
 
     // 1. Fetch shards and extract unique projects
-    const shardsSnap = await db.collection('shards').where('environment', '==', environment).get();
+    const shardsSnap = await db
+      .collection('infrastructure_shards')
+      .where('environment', '==', environment)
+      .get();
     const shards = shardsSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }) as StoreShard)
       .filter((shard) => shard.runtimeMode === 'shared-shard');
@@ -701,23 +704,23 @@ export const deleteStore = onCall<{ storeId: string }>(
     const invitationsDocs = await invitationsRef.listDocuments();
     await Promise.all(invitationsDocs.map((d) => d.delete()));
 
-    // Decrement the activeStores count on the shard if this store was hosted on a shared-shard
+    // Decrement the currentStores count on the shard if this store was hosted on a shared-shard
     if (store.runtimeMode === 'shared-shard' && store.shardId) {
-      const shardRef = db.collection('shards').doc(store.shardId);
+      const shardRef = db.collection('infrastructure_shards').doc(store.shardId);
       try {
         await db.runTransaction(async (transaction) => {
           const shardSnap = await transaction.get(shardRef);
           if (shardSnap.exists) {
-            const currentActive = shardSnap.data()?.activeStores || 0;
+            const currentStores = shardSnap.data()?.currentStores || 0;
             transaction.update(shardRef, {
-              activeStores: Math.max(0, currentActive - 1),
+              currentStores: Math.max(0, currentStores - 1),
               updatedAt: new Date(),
             });
           }
         });
       } catch (err) {
         console.error(
-          `[deleteStore] Failed to decrement activeStores on shard ${store.shardId}:`,
+          `[deleteStore] Failed to decrement currentStores on shard ${store.shardId}:`,
           err,
         );
       }

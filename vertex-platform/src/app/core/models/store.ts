@@ -64,9 +64,9 @@ export interface StoreShard {
   projectId: string;
   siteId: string;
   region: string;
-  status: 'active' | 'draining' | 'maintenance';
-  maxStores: number;
-  activeStores: number;
+  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE' | 'WARMUP_READY' | 'WARMUP_PROVISIONING';
+  maxCapacity: number;
+  currentStores: number;
   reservedStores: number;
   currentTemplateVersion?: string;
   currentDataVersion?: string;

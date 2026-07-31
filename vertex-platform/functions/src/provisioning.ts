@@ -266,16 +266,63 @@ export const provisionStore = onCall<CreateStorePayload>(
     const db = getFirestore();
     const existingSlug = await db.collection('stores').where('slug', '==', slug).limit(1).get();
     if (!existingSlug.empty) {
-      throw new HttpsError('already-exists', `A store with slug "${slug}" already exists.`);
+      throw new HttpsError(
+        'already-exists',
+        'El slug de la tienda ya se encuentra registrado en la plataforma',
+      );
+    }
+
+    // Validate that the business name is not already registered (independent of slug)
+    const existingName = await db
+      .collection('stores')
+      .where('name', '==', name.trim())
+      .limit(1)
+      .get();
+    if (!existingName.empty) {
+      throw new HttpsError(
+        'already-exists',
+        'El nombre de la tienda ya se encuentra registrado en la plataforma',
+      );
     }
 
     // Dynamic Shard Selection logic: Recommend and use shared-shard by default if active shard capacity is available
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-    const shardsSnap = await db
-      .collection('shards')
+    let shardsSnap = await db
+      .collection('infrastructure_shards')
       .where('environment', '==', env)
-      .where('status', '==', 'active')
+      .where('status', '==', 'ACTIVE')
       .get();
+
+    // Auto-Healing: if no active shard exists, create the default shard before continuing
+    if (shardsSnap.empty) {
+      const defaultShardId = 'shared-dev-01';
+      const defaultShardRef = db.collection('infrastructure_shards').doc(defaultShardId);
+      const defaultShardSnap = await defaultShardRef.get();
+      if (!defaultShardSnap.exists) {
+        await defaultShardRef.set({
+          id: defaultShardId,
+          environment: env,
+          runtimeMode: 'shared-shard',
+          projectId: env === 'development' ? 'ecommerce-vertex-dev' : 'ecommerce-vertex',
+          siteId: 'default',
+          region: 'us-central1',
+          status: 'ACTIVE',
+          maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
+          currentStores: 0,
+          reservedStores: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        console.info(
+          `[provisionStore] Auto-healed: created default shard ${defaultShardId} in infrastructure_shards.`,
+        );
+      }
+      shardsSnap = await db
+        .collection('infrastructure_shards')
+        .where('environment', '==', env)
+        .where('status', '==', 'ACTIVE')
+        .get();
+    }
 
     const allActiveShards: StoreShard[] = (shardsSnap?.docs || []).map((doc) => ({
       id: doc.id,
@@ -286,7 +333,7 @@ export const provisionStore = onCall<CreateStorePayload>(
     const projectUsageMap: Record<string, number> = {};
     allActiveShards.forEach((s) => {
       projectUsageMap[s.projectId] =
-        (projectUsageMap[s.projectId] || 0) + (s.activeStores || 0) + (s.reservedStores || 0);
+        (projectUsageMap[s.projectId] || 0) + (s.currentStores || 0) + (s.reservedStores || 0);
     });
 
     let selectedShard: StoreShard | null = null;
@@ -295,7 +342,7 @@ export const provisionStore = onCall<CreateStorePayload>(
     allActiveShards.forEach((shard) => {
       const projectUsage = projectUsageMap[shard.projectId] || 0;
       const projectCap = Math.min(
-        shard.maxStores || DEFAULT_MAX_STORES_PER_SHARD,
+        shard.maxCapacity || DEFAULT_MAX_STORES_PER_SHARD,
         DEFAULT_MAX_STORES_PER_SHARD,
       );
       const availableSlots = Math.max(0, projectCap - projectUsage);
@@ -319,9 +366,9 @@ export const provisionStore = onCall<CreateStorePayload>(
       if (!selectedShard) {
         // Query for a pre-provisioned warm-up shard (status == 'warmup_ready')
         const warmSnap = await db
-          .collection('shards')
+          .collection('infrastructure_shards')
           .where('environment', '==', env)
-          .where('status', '==', 'warmup_ready')
+          .where('status', '==', 'WARMUP_READY')
           .limit(1)
           .get();
 
@@ -329,9 +376,9 @@ export const provisionStore = onCall<CreateStorePayload>(
           const warmDoc = warmSnap.docs[0];
           const warmData = warmDoc.data() as StoreShard;
           selectedShard = { ...warmData, id: warmDoc.id };
-          // Promote warm shard to active
-          await db.collection('shards').doc(warmDoc.id).update({
-            status: 'active',
+          // Promote warm shard to ACTIVE
+          await db.collection('infrastructure_shards').doc(warmDoc.id).update({
+            status: 'ACTIVE',
             updatedAt: new Date(),
           });
           // Trigger asynchronous background creation of the NEXT warm shard for the future!
@@ -436,7 +483,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       });
 
     if (isNewShard && shardId) {
-      const shardRef = db.collection('shards').doc(shardId);
+      const shardRef = db.collection('infrastructure_shards').doc(shardId);
       await shardRef.set(
         {
           id: shardId,
@@ -445,9 +492,9 @@ export const provisionStore = onCall<CreateStorePayload>(
           projectId: projectId,
           siteId: 'default',
           region: 'us-central1',
-          status: 'active',
-          maxStores: DEFAULT_MAX_STORES_PER_SHARD,
-          activeStores: 0,
+          status: 'ACTIVE',
+          maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
+          currentStores: 0,
           reservedStores: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -455,7 +502,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         { merge: true },
       );
       console.info(
-        `[provisionStore] Pre-registered new shared shard ${shardId} in Firestore shards collection.`,
+        `[provisionStore] Pre-registered new shared shard ${shardId} in Firestore infrastructure_shards collection.`,
       );
     }
 
@@ -482,6 +529,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   const {
     name,
+    slug,
     logoUrl,
     ownerEmail,
     customDomain,
@@ -497,6 +545,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     shardId,
   } = currentData as {
     name: string;
+    slug?: string;
     logoUrl: string | null;
     ownerEmail: string;
     customDomain?: string | null;
@@ -511,6 +560,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     id: string;
     shardId?: string;
   };
+
+  // Unique WebApp display name: combines the slug with the last 6 alphanumeric chars of the storeId
+  // to avoid GCP 400 'Invalid name reserved by another project' (Firebase Management API 30-day quarantine).
+  const uniqueSuffix = storeId.replace(/[^a-zA-Z0-9]/g, '').slice(-6);
+  const webAppDisplayName = `vtx-${slug ?? 'store'}-${uniqueSuffix}`;
+
   let provisioningOwnerId =
     typeof currentData['provisioningOwnerId'] === 'string'
       ? (currentData['provisioningOwnerId'] as string)
@@ -877,11 +932,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  // If this store provisioning was marked as creating a new shard, register it in the 'shards' collection!
+  // If this store provisioning was marked as creating a new shard, register it in the 'infrastructure_shards' collection!
   if (isDone('enableApis') && isNewShard === true) {
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     const shardId = currentData['shardId'] || `shard-${env}-${projectId}`;
-    const shardRef = db.collection('shards').doc(shardId);
+    const shardRef = db.collection('infrastructure_shards').doc(shardId);
 
     const shardSnap = await shardRef.get();
     if (!shardSnap.exists) {
@@ -892,15 +947,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         projectId: projectId,
         siteId: 'default',
         region: 'us-central1',
-        status: 'active',
-        maxStores: DEFAULT_MAX_STORES_PER_SHARD, // Capacity for the new shard (capped at GCP Firebase Hosting limit of 35 user sites)
-        activeStores: 0,
+        status: 'ACTIVE',
+        maxCapacity: DEFAULT_MAX_STORES_PER_SHARD, // Capacity for the new shard (capped at GCP Firebase Hosting limit of 35 user sites)
+        currentStores: 0,
         reservedStores: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
       console.info(
-        `[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore shards collection.`,
+        `[provisioning:enableApis] Successfully registered new shared shard ${shardId} in Firestore infrastructure_shards collection.`,
       );
     }
   }
@@ -946,7 +1001,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const masterAuthDomain = getMasterStorefrontAuthDomain();
 
       if (runtimeMode === 'shared-shard') {
-        const shardDoc = await db.collection('shards').doc(shardId!).get();
+        const shardDoc = await db.collection('infrastructure_shards').doc(shardId!).get();
         const shardData = shardDoc.data();
         if (shardData?.['firebaseConfig']) {
           firebaseConfig = shardData['firebaseConfig'] as Record<string, string>;
@@ -965,7 +1020,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             const appOp = (await apiFetch(
               auth,
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-              { method: 'POST', body: { displayName: `${projectId}-shard` } },
+              { method: 'POST', body: { displayName: webAppDisplayName } },
             )) as { name: string };
             await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
             const refreshed = (await apiFetch(
@@ -993,7 +1048,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         const appOp = (await apiFetch(
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-          { method: 'POST', body: { displayName: name } },
+          { method: 'POST', body: { displayName: webAppDisplayName } },
         )) as { name: string };
         await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
         const appsRes = (await apiFetch(
@@ -1692,18 +1747,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           updatedAt: new Date(),
         });
         if (runtimeMode === 'shared-shard' && shardId) {
-          const shardRef = db.collection('shards').doc(shardId);
+          const shardRef = db.collection('infrastructure_shards').doc(shardId);
           try {
             await db.runTransaction(async (transaction) => {
               const shardSnap = await transaction.get(shardRef);
               if (shardSnap.exists) {
                 const data = shardSnap.data();
-                const currentActive = data?.activeStores || 0;
-                const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
-                const newActive = currentActive + 1;
-                const newStatus = newActive >= maxStores ? 'full' : data?.status || 'active';
+                const currentStores = data?.currentStores || 0;
+                const maxCapacity = data?.maxCapacity || DEFAULT_MAX_STORES_PER_SHARD;
+                const newActive = currentStores + 1;
+                const newStatus = newActive >= maxCapacity ? 'FULL' : data?.status || 'ACTIVE';
                 transaction.update(shardRef, {
-                  activeStores: newActive,
+                  currentStores: newActive,
                   status: newStatus,
                   updatedAt: new Date(),
                 });
@@ -1711,7 +1766,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             });
           } catch (err) {
             console.error(
-              `[provisioning:triggerDeploy] Failed to increment activeStores on shard ${shardId}:`,
+              `[provisioning:triggerDeploy] Failed to increment currentStores on shard ${shardId}:`,
               err,
             );
           }
@@ -2036,34 +2091,34 @@ export const completeStoreDeployment = onCall<{
     });
 
     if (storeData['runtimeMode'] === 'shared-shard' && storeData['shardId']) {
-      const shardRef = db.collection('shards').doc(storeData['shardId']);
+      const shardRef = db.collection('infrastructure_shards').doc(storeData['shardId']);
       try {
         await db.runTransaction(async (transaction) => {
           const shardSnap = await transaction.get(shardRef);
           if (shardSnap.exists) {
             const data = shardSnap.data();
-            const currentActive = data?.activeStores || 0;
-            const maxStores = data?.maxStores || DEFAULT_MAX_STORES_PER_SHARD;
-            const newActive = currentActive + 1;
-            const newStatus = newActive >= maxStores ? 'full' : data?.status || 'active';
+            const currentStores = data?.currentStores || 0;
+            const maxCapacity = data?.maxCapacity || DEFAULT_MAX_STORES_PER_SHARD;
+            const newActive = currentStores + 1;
+            const newStatus = newActive >= maxCapacity ? 'FULL' : data?.status || 'ACTIVE';
             transaction.update(shardRef, {
-              activeStores: newActive,
+              currentStores: newActive,
               status: newStatus,
               updatedAt: new Date(),
             });
-            if (newStatus === 'full') {
+            if (newStatus === 'FULL') {
               console.info(
-                `[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxStores}). Marked as 'full'.`,
+                `[completeStoreDeployment] Shard ${storeData['shardId']} reached capacity (${newActive}/${maxCapacity}). Marked as 'FULL'.`,
               );
             }
           }
         });
         console.info(
-          `[completeStoreDeployment] Successfully incremented activeStores on shard ${storeData['shardId']}`,
+          `[completeStoreDeployment] Successfully incremented currentStores on shard ${storeData['shardId']}`,
         );
       } catch (err) {
         console.error(
-          `[completeStoreDeployment] Failed to increment activeStores on shard ${storeData['shardId']}:`,
+          `[completeStoreDeployment] Failed to increment currentStores on shard ${storeData['shardId']}:`,
           err,
         );
       }

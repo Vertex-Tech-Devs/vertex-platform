@@ -36,10 +36,10 @@ export interface RuntimeShardCapacity {
   projectId: string;
   siteId: string;
   region: string;
-  status: 'active' | 'full' | 'draining' | 'maintenance';
-  activeStores: number;
+  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE';
+  currentStores: number;
   reservedStores: number;
-  maxStores: number;
+  maxCapacity: number;
   availableStores: number;
   occupancyRatio: number;
 }
