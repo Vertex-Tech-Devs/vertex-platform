@@ -85,8 +85,10 @@ Cuando ya tengas los repositorios clonados, usa estos comandos directos:
 ## 📁 Estructura de Directorios (Platform Root)
 
 * **`vertex-platform/`**: Proyecto principal de consola.
-  * `src/app/`: Frontend independiente en Angular 21 con Signals.
-  * `functions/src/`: Controladores de aprovisionamiento de Firebase Cloud Functions v2.
+  * `src/app/`: Frontend independiente en Angular 22 con Signals.
+  * `functions/src/`: Controladores de aprovisionamiento de Firebase Cloud Functions v2 (billing inteligente, fallback a shared-shard, seeding flat).
+  * `scripts/`: Utilidades de orquestación y validación (`validate-firestore-rules.ts` con modo standalone para CI).
+  * `firestore.rules` + `firestore.indexes.json`: reglas de seguridad e índices del plano de control.
 * **`packages/shared-contracts/`**: Paquete NPM local `@vertex/contracts` con esquemas Zod compartidos de Base de Datos y APIs.
 * **`docker/`**: Archivos de configuración de imágenes y scripts de entrada para Docker.
 * **`scripts/`**: Utilidades de orquestación local (como `dev-e2e.ts`).
@@ -103,6 +105,45 @@ Una vez levantado el entorno con Docker o el orquestador nativo, los siguientes 
 * **Firebase Emulator Suite UI:** [http://localhost:4000](http://localhost:4000)
 * **Cloud Functions Emulator API:** `http://localhost:5001`
 * **Cloud Firestore Emulator:** `http://localhost:8080`
+
+---
+
+## 🧩 Arquitectura de Datos y Aprovisionamiento (V1.0)
+
+### Modelo de Datos Flat Multi-Tenant
+A partir de la versión V1.0 el modelo de datos es **plano y etiquetado por `storeId`** (sin namespaces `tenants/{tenantId}/...`):
+
+```
+products/{storeId}-<id>        → { storeId, ... }
+categories/{storeId}-<id>      → { storeId, ... }
+attributes/{storeId}-<id>      → { storeId, ... }
+configuracion/store_{storeId}  → { storeId, tenantId, ... }
+configuracion/footer_{storeId} → { storeId, ... }
+configuracion/hero_{storeId}   → { storeId, ... }
+banners/home_{storeId}         → { storeId, ... }
+pages/aboutUs_{storeId}        → { storeId, ... }
+orders/{storeId}-<id>          → { storeId, ... }
+clients/{storeId}_<email>      → { storeId, ... }
+```
+
+### Colecciones del Plano de Control (Siempre Privadas)
+`stores`, `infrastructure_shards`, `provisioning_queue`, `provisioning_logs`, `users`, `admin_roles` — protegidas por el catch-all `match /{document=**} { allow read, write: if isPlatformAdmin(); }`.
+
+### Shards (`infrastructure_shards`)
+- Esquema: `status` en mayúsculas (`ACTIVE`, `FULL`, `WARMUP_READY`, ...), `maxCapacity`, `currentStores`, `reservedStores`.
+- **Auto-healing**: si no existe un shard `ACTIVE`, se crea automáticamente `shared-dev-01` (`maxCapacity: 35`, `currentStores: 0`).
+- Las tiendas **estándar** se asignan directamente a un shard activo **sin** crear proyectos GCP ni vincular billing (`skipGcpSteps` marca `createProject`/`linkBilling`/`addFirebase`/`enableApis` como `done`).
+
+### Billing Inteligente y Fallback
+- `pickBillingAccount` consulta `billing_accounts` con `status == 'ACTIVE'` (fallback legacy `billingAccounts`/`active == true`) y filtra `currentProjects < maxProjects`.
+- Si una Tienda Dedicada no encuentra cuenta con cupo (`quotaExceeded` / `billing_quota_increase`): `console.warn` + auditoría `provisionStore-billing-fallback` + **conversión automática a Tienda Estándar sobre `shared-dev-01`** para que la tienda se cree al 100%.
+
+### WebApp Única por Tienda
+- `webAppDisplayName = vtx-${slug}-${uniqueSuffix}` (últimos 6 caracteres alfanuméricos del `storeId`) para evitar el bloqueo GCP 400 por soft-delete de 30 días.
+- La creación de la WebApp usa **siempre el `gcpProjectId` real** (proyecto del shard o `vtx-<slug>` dedicado), con delay de propagación de 3s y hasta 3 reintentos ante `404/NOT_FOUND`.
+
+### Validación de Reglas en CI (Standalone)
+`scripts/validate-firestore-rules.ts` detecta `CI=true` / `GITHUB_ACTIONS=true` / `FORCE_STANDALONE=true` y valida **solo** las reglas locales de `vertex-platform` saliendo con `exit 0` en runners aislados (sin depender del repositorio storefront).
 
 ---
 
@@ -123,9 +164,10 @@ cd vertex-platform/functions && npm run test
 
 ### Flujo de Ramas (Git Flow)
 1. **develop**: Integración activa de desarrollo. Las ramas de feature/chore nacen de `develop` y se reintegran mediante PRs.
-2. **main**: Rama estable de producción. Los despliegues productivos se realizan a partir de fusiones de `develop` a `main`.
-3. **Merge de PRs**: Direct pushes a `develop` y `main` están bloqueados por reglas del servidor. Todo cambio debe atravesar revisión y validación de CI.
+2. **main**: Rama estable de producción. La promoción se realiza **exclusivamente vía Pull Request** de `develop` → `main` (el push directo a `main` está bloqueado por repo rules del servidor).
+3. **Back-sync obligatorio**: tras fusionar en `main`, se ejecuta el back-merge `main` → `develop` para mantener 0 divergencia.
+4. **Bypass de automatización**: los hooks de `pre-push` exigen `ALLOW_DIRECT_PUSH=true` para push directo a `develop`/`main` en escenarios de automatización/agentes (CI).
 
 ---
 
-📖 **Nota para Desarrolladores:** Para guías de desarrollo de agentes de IA y flujos específicos, consulta [agent.md](agent.md). Para la documentación técnica detallada de la consola Angular, consulta [vertex-platform/README.md](vertex-platform/README.md).
+📖 **Nota para Desarrolladores:** Para guías de desarrollo de agentes de IA y flujos específicos, consulta [agent.md](agent.md). Para la documentación técnica detallada de la consola Angular, consulta [vertex-platform/README.md](vertex-platform/README.md). Para la arquitectura, el aprovisionamiento, el modelo de datos y el CI/CD, consulta [vertex-platform/docs/](vertex-platform/docs/).
