@@ -10,6 +10,28 @@ const colors = {
   cyan: '\x1b[36m',
 };
 
+// Flat-model public catalog contract. These collections are publicly readable in the
+// storefront project's rules (sibling repo). In the platform control-plane rules they
+// must stay private — public exposure lives in the storefront Firestore, not the platform's.
+const PUBLIC_CATALOG_COLLECTIONS = [
+  'products',
+  'categories',
+  'attributes',
+  'configuracion',
+  'banners',
+  'pages',
+];
+
+// Control-plane collections that must NEVER be publicly readable in the platform rules.
+const CONTROL_PLANE_COLLECTIONS = [
+  'stores',
+  'infrastructure_shards',
+  'provisioning_queue',
+  'provisioning_logs',
+  'users',
+  'admin_roles',
+];
+
 function extractBlock(content: string, startPattern: string): string {
   const index = content.indexOf(startPattern);
   if (index === -1) return '';
@@ -64,107 +86,39 @@ function getTopLevelMatches(blockContent: string): Map<string, string> {
   return matches;
 }
 
+function fail(message: string): never {
+  console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
+  console.error(`${colors.yellow}${message}${colors.reset}`);
+  process.exit(1);
+}
+
 function main() {
-  const storefrontRulesPath = path.resolve(__dirname, '../../../storefront/firestore.rules');
   const platformRulesPath = path.resolve(__dirname, '../firestore.rules');
+  const storefrontRulesPath = path.resolve(__dirname, '../../../storefront/firestore.rules');
+  const forceStandalone =
+    process.argv.includes('--standalone') || process.env['STANDALONE'] === '1';
 
   console.log(`${colors.bright}${colors.cyan}=== Firestore Rules Sync Validator ===${colors.reset}`);
 
-  if (!fs.existsSync(storefrontRulesPath)) {
-    console.error(
-      `${colors.red}Error: Storefront firestore.rules not found at ${storefrontRulesPath}${colors.reset}`,
-    );
-    process.exit(1);
-  }
-
+  // The platform rules are this repo's own file and are always required.
   if (!fs.existsSync(platformRulesPath)) {
-    console.error(
-      `${colors.red}Error: Platform firestore.rules not found at ${platformRulesPath}${colors.reset}`,
-    );
-    process.exit(1);
+    fail(`Platform firestore.rules not found at ${platformRulesPath}`);
   }
 
-  const storefrontContent = fs.readFileSync(storefrontRulesPath, 'utf8');
-  const platformContent = fs.readFileSync(platformRulesPath, 'utf8');
-
-  // Strip comments to avoid false match results inside comments
   const stripComments = (str: string) => str.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '');
-  const cleanStorefrontContent = stripComments(storefrontContent);
+  const platformContent = fs.readFileSync(platformRulesPath, 'utf8');
   const cleanPlatformContent = stripComments(platformContent);
-
-  // ── 1. Storefront: flat public catalog collections with `allow read: if true` ──
-  const storefrontDocumentsBlock =
-    extractBlock(cleanStorefrontContent, 'match /databases/{database}/documents') ||
-    cleanStorefrontContent;
-  const storefrontBlocks = getTopLevelMatches(storefrontDocumentsBlock);
-
-  const publicCatalogCollections = [
-    'products',
-    'categories',
-    'attributes',
-    'configuracion',
-    'banners',
-    'pages',
-  ];
-
-  console.log(
-    `Storefront Public Catalog Collections: ${Array.from(storefrontBlocks.keys()).join(', ') || '(none)'}`,
-  );
-
-  const missingCatalog: string[] = [];
-  const notPublic: string[] = [];
-  for (const col of publicCatalogCollections) {
-    const block = storefrontBlocks.get(col);
-    if (!block) {
-      missingCatalog.push(col);
-    } else if (!block.includes('allow read: if true')) {
-      notPublic.push(col);
-    }
-  }
-
-  if (missingCatalog.length > 0) {
-    console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
-    console.error(
-      `${colors.yellow}Storefront rules are missing public catalog collections (flat model):${colors.reset}`,
-    );
-    missingCatalog.forEach((col) => console.error(`  - ${col}`));
-    console.error(
-      `\nPlease ensure 'storefront/firestore.rules' defines root-level matchers for these collections.`,
-    );
-    process.exit(1);
-  }
-
-  if (notPublic.length > 0) {
-    console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
-    console.error(
-      `${colors.yellow}Storefront catalog collections must allow public reads (allow read: if true):${colors.reset}`,
-    );
-    notPublic.forEach((col) => console.error(`  - ${col}`));
-    process.exit(1);
-  }
-
-  // ── 2. Platform: control-plane collections must stay private (no public read) ──
-  const controlPlaneCollections = [
-    'stores',
-    'infrastructure_shards',
-    'provisioning_queue',
-    'provisioning_logs',
-    'users',
-    'admin_roles',
-  ];
 
   const platformDocumentsBlock =
     extractBlock(cleanPlatformContent, 'match /databases/{database}/documents') ||
     cleanPlatformContent;
   const platformBlocks = getTopLevelMatches(platformDocumentsBlock);
 
-  const exposedControl: string[] = [];
-  for (const col of controlPlaneCollections) {
+  // ── Always: platform control-plane collections must stay private (no public read) ──
+  const exposedControl = CONTROL_PLANE_COLLECTIONS.filter((col) => {
     const block = platformBlocks.get(col);
-    if (block && block.includes('if true')) {
-      exposedControl.push(col);
-    }
-  }
+    return block !== undefined && block.includes('if true');
+  });
 
   // The catch-all must NOT grant public access
   const catchAllBlock = extractBlock(cleanPlatformContent, 'match /{document=**}');
@@ -172,18 +126,85 @@ function main() {
     catchAllBlock.includes('if true') || !catchAllBlock.includes('isPlatformAdmin');
 
   if (exposedControl.length > 0 || catchAllPublic) {
-    console.error(`\n❌ ${colors.red}${colors.bright}Validation Failed!${colors.reset}`);
-    console.error(
-      `${colors.yellow}Platform control-plane collections must not be publicly readable:${colors.reset}`,
+    const details = exposedControl.map((col) => `  - ${col}`).join('\n');
+    fail(
+      `Platform control-plane collections must not be publicly readable:\n${details}\n` +
+        (catchAllPublic
+          ? '  - Catch-all match /{document=**} must require isPlatformAdmin()\n'
+          : '') +
+        `Please keep 'vertex-platform/firestore.rules' control-plane collections private.`,
     );
-    exposedControl.forEach((col) => console.error(`  - ${col}`));
-    if (catchAllPublic) {
-      console.error('  - Catch-all match /{document=**} must require isPlatformAdmin()');
+  }
+
+  const storefrontExists = fs.existsSync(storefrontRulesPath);
+
+  // ── Mode A: standalone (CI / isolated repo — no sibling storefront checkout) ──
+  // Validate the local platform rules and verify the flat public-catalog contract
+  // directly: the catalog collections must NOT be publicly exposed in the platform
+  // control-plane rules (public exposure belongs to the storefront project).
+  if (forceStandalone || !storefrontExists) {
+    console.log(
+      `${colors.yellow}${
+        storefrontExists
+          ? 'Standalone mode forced via --standalone. '
+          : 'Standalone mode: storefront rules not present in this checkout. '
+      }Verifying flat catalog contract against platform rules.${colors.reset}`,
+    );
+
+    const exposedCatalog = PUBLIC_CATALOG_COLLECTIONS.filter((col) => {
+      const block = platformBlocks.get(col);
+      return block !== undefined && block.includes('allow read: if true');
+    });
+
+    if (exposedCatalog.length > 0) {
+      fail(
+        `Catalog collections must not be publicly readable in platform control-plane rules (flat contract):\n` +
+          exposedCatalog.map((col) => `  - ${col}`).join('\n') +
+          `\nPublic reads for '${PUBLIC_CATALOG_COLLECTIONS.join("', '")}' belong to the storefront project's firestore.rules.`,
+      );
     }
-    console.error(
-      `\nPlease keep 'platform/vertex-platform/firestore.rules' control-plane collections private.`,
+
+    console.log(
+      `Flat catalog contract verified: ${PUBLIC_CATALOG_COLLECTIONS.join(', ')} (not exposed in platform rules).`,
     );
-    process.exit(1);
+    console.log(
+      `\n🎉 ${colors.green}${colors.bright}Validation Passed! Standalone platform rules are safe and control-plane stays private.${colors.reset}`,
+    );
+    process.exit(0);
+  }
+
+  // ── Mode B: full sync (sibling storefront checkout present) ──
+  const storefrontContent = fs.readFileSync(storefrontRulesPath, 'utf8');
+  const cleanStorefrontContent = stripComments(storefrontContent);
+
+  const storefrontDocumentsBlock =
+    extractBlock(cleanStorefrontContent, 'match /databases/{database}/documents') ||
+    cleanStorefrontContent;
+  const storefrontBlocks = getTopLevelMatches(storefrontDocumentsBlock);
+
+  console.log(
+    `Storefront Public Catalog Collections: ${Array.from(storefrontBlocks.keys()).join(', ') || '(none)'}`,
+  );
+
+  const missingCatalog = PUBLIC_CATALOG_COLLECTIONS.filter((col) => !storefrontBlocks.has(col));
+  const notPublic = PUBLIC_CATALOG_COLLECTIONS.filter((col) => {
+    const block = storefrontBlocks.get(col);
+    return block !== undefined && !block.includes('allow read: if true');
+  });
+
+  if (missingCatalog.length > 0) {
+    fail(
+      `Storefront rules are missing public catalog collections (flat model):\n` +
+        missingCatalog.map((col) => `  - ${col}`).join('\n') +
+        `\nPlease ensure 'storefront/firestore.rules' defines root-level matchers for these collections.`,
+    );
+  }
+
+  if (notPublic.length > 0) {
+    fail(
+      `Storefront catalog collections must allow public reads (allow read: if true):\n` +
+        notPublic.map((col) => `  - ${col}`).join('\n'),
+    );
   }
 
   console.log(
