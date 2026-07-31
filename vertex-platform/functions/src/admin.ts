@@ -338,9 +338,12 @@ const provisionStoreAdminSchema = z.object({
 export const provisionStoreAdmin = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public', maxInstances: 5 },
   async (request) => {
-    // Require authentication — only platform or store admins can provision admin users
-    if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Debes iniciar sesión para crear un administrador.');
+    // Solo administradores de plataforma pueden provisionar administradores de tienda.
+    if (!request.auth?.token?.['platformAdmin'] && !request.auth?.token?.['superAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Solo administradores de plataforma pueden crear administradores de tienda.',
+      );
     }
 
     let parsedData;

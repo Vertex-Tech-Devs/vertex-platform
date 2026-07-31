@@ -564,6 +564,7 @@ export const redeployStore = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can redeploy stores.');
     }
+    await checkRateLimit(request.auth?.uid, 'redeployStore', 10, 15);
 
     const { storeId } = request.data;
     if (!storeId) {
@@ -656,6 +657,7 @@ export const deleteStore = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can delete stores.');
     }
+    await checkRateLimit(request.auth?.uid, 'deleteStore', 10, 15);
 
     const { storeId } = request.data;
     const db = getFirestore();
@@ -1051,15 +1053,15 @@ export const getActiveStores = onCall(
   async (request) => {
     const deployToken = request.data?.deployToken as string | undefined;
     const isAdmin = !!request.auth?.token['platformAdmin'];
-    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-    if (env === 'production') {
-      if (!isAdmin && deployToken) {
+    // Exigir autorización en TODOS los entornos (admin de plataforma o deploy token válido)
+    if (!isAdmin) {
+      if (deployToken) {
         const expected = await getDeployToken();
         if (deployToken !== expected) {
           throw new HttpsError('permission-denied', 'Invalid deploy token.');
         }
-      } else if (!isAdmin) {
+      } else {
         throw new HttpsError('permission-denied', 'Unauthorized.');
       }
     }
@@ -1123,6 +1125,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can update store configs.');
     }
+    await checkRateLimit(request.auth?.uid, 'updateStoreConfig', 30, 15);
 
     const { storeId, config } = request.data;
     if (!storeId || !config) {

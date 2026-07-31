@@ -2070,6 +2070,7 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can retry provisioning.');
     }
+    await checkRateLimit(request.auth?.uid, 'retryProvisioning', 5, 15);
 
     const { storeId } = request.data;
     if (!storeId) {
