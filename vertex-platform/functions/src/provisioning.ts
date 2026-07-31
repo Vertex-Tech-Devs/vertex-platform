@@ -256,8 +256,10 @@ async function createWebAppWithRetry(
   // Delay preventivo para permitir la propagación de la entidad FirebaseProject creada en el paso anterior
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  const MAX_ATTEMPTS = 3;
-  const PAUSE_MS = 3000;
+  // Retries robustos: hasta 6 intentos con 10s de pausa (~1 min) cubre propagaciones lentas
+  // de proyectos recién creados en Firebase Management.
+  const MAX_ATTEMPTS = 6;
+  const PAUSE_MS = 10000;
   let lastErr: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -1002,6 +1004,34 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         { method: 'POST', body: {} },
       )) as { name: string };
       await pollOperation(auth, op.name, 'https://firebase.googleapis.com/v1beta1');
+
+      // Verificación de propagación: el proyecto recién creado debe estar disponible
+      // en Firebase Management antes de continuar (evita 404 NOT_FOUND en webApps/sites).
+      const FIREBASE_PROJECT_POLL_ATTEMPTS = 18; // ~3 minutos (10s entre intentos)
+      let firebaseProjectReady = false;
+      for (let i = 0; i < FIREBASE_PROJECT_POLL_ATTEMPTS; i++) {
+        try {
+          const projRes = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}`,
+            { quotaProject: projectId },
+          )) as Record<string, unknown>;
+          if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+            firebaseProjectReady = true;
+            break;
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('404') && !msg.includes('NOT_FOUND')) throw err;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+      }
+      if (!firebaseProjectReady) {
+        throw new Error(
+          `Firebase project ${projectId} did not become available within the expected time.`,
+        );
+      }
+
       await setStep('addFirebase', 'done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -1100,26 +1130,41 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       if (runtimeMode === 'shared-shard' && runtimeSiteId) {
-        try {
-          await apiFetch(
-            auth,
-            `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
-            {
-              method: 'POST',
-              body: { type: 'USER_SITE' },
-            },
-          );
-          console.info(
-            `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
-          );
-        } catch (err: any) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409')) {
-            throw err;
+        // El hosting site también requiere el proyecto propagado en Firebase Hosting:
+        // reintenta ante 404/NOT_FOUND (hasta 6 intentos con 10s de pausa).
+        const MAX_SITE_ATTEMPTS = 6;
+        for (let siteAttempt = 1; siteAttempt <= MAX_SITE_ATTEMPTS; siteAttempt++) {
+          try {
+            await apiFetch(
+              auth,
+              `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+              {
+                method: 'POST',
+                body: { type: 'USER_SITE' },
+              },
+            );
+            console.info(
+              `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
+            );
+            break;
+          } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg.includes('already exists') || msg.includes('409')) {
+              console.info(
+                `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
+              );
+              break;
+            }
+            const isPropagationError =
+              msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
+            if (siteAttempt === MAX_SITE_ATTEMPTS || !isPropagationError) {
+              throw err;
+            }
+            console.warn(
+              `[provisioning:createWebApp] Firebase Hosting not ready for ${projectId} (attempt ${siteAttempt}/${MAX_SITE_ATTEMPTS}). Retrying in 10s...`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 10000));
           }
-          console.info(
-            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
-          );
         }
       }
 
