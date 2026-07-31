@@ -29,6 +29,7 @@ import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
+import { verifyGitHubOidcToken } from './github-oidc';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
 
@@ -2139,21 +2140,17 @@ export const completeStoreDeployment = onCall<{
   storeId: string;
   success: boolean;
   deployToken: string;
+  idToken?: string;
   commitSha?: string;
   commitMessage?: string;
   ref?: string;
   version?: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
-  const { storeId, success, deployToken, commitSha, commitMessage, ref, version } = request.data;
+  const { storeId, success, deployToken, idToken, commitSha, commitMessage, ref, version } =
+    request.data;
 
-  if (!storeId || !deployToken) {
-    throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
-  }
-
-  // 1. Verify the deploy token using Secret Manager
-  const expected = await getDeployToken();
-  if (deployToken !== expected) {
-    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  if (!storeId) {
+    throw new HttpsError('invalid-argument', 'storeId is required.');
   }
 
   const db = getFirestore();
@@ -2162,8 +2159,28 @@ export const completeStoreDeployment = onCall<{
   if (!snap.exists) {
     throw new HttpsError('not-found', 'Store not found.');
   }
-
   const storeData = snap.data()!;
+  const expectedRepo = 'Vertex-Tech-Devs/ecommerce-vertex';
+
+  // 1a. Verificación OIDC de GitHub Actions (automatizada, sin secrets manuales).
+  //     El workflow del storefront envía un id_token (audience 'vertex-platform').
+  if (idToken) {
+    const oidcValid = await verifyGitHubOidcToken(idToken, {
+      repository: expectedRepo,
+      ref: ref ?? undefined,
+    });
+    if (!oidcValid) {
+      throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
+    }
+  } else if (deployToken) {
+    // 1b. Fallback legacy: deploy token de Secret Manager.
+    const expected = await getDeployToken();
+    if (deployToken !== expected) {
+      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    }
+  } else {
+    throw new HttpsError('invalid-argument', 'A valid deploy token or GitHub OIDC token is required.');
+  }
 
   // Create a deployment history log entry
   const deployLogRef = storeRef.collection('deploys').doc();
