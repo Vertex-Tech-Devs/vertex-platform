@@ -49,7 +49,7 @@ Sigue estos pasos para configurar e iniciar la plataforma localmente en tu entor
 
 ## 📁 Contenidos y Arquitectura
 
-* **`src/app`**: Capa frontend construida sobre **Angular 21+**, utilizando arquitectura de componentes independientes (Standalone Components) y gestión de estado mediante **Señales (Signals)** para garantizar un rendimiento óptimo.
+* **`src/app`**: Capa frontend construida sobre **Angular 22**, utilizando arquitectura de componentes independientes (Standalone Components) y gestión de estado mediante **Señales (Signals)** para garantizar un rendimiento óptimo.
 * **`functions/src`**: Capa backend que corre sobre **Firebase Functions v2**. Contiene la lógica core de negocio:
   * `admin.ts`: Gestión de administradores de la plataforma y asignación de roles.
   * `provisioning.ts`: Flujo y automatización secuencial de pasos para la creación de proyectos dedicados de GCP por tienda cliente.
