@@ -30,16 +30,26 @@ jobs:
             exit 0
           fi
 
-          # El GITHUB_TOKEN no puede crear PRs (setting del repo); el ADMIN_PAT (admin) sí.
-          export GH_TOKEN="${ADMIN_TOKEN:-$GH_TOKEN}"
-
-          existing_pr=$(gh pr list --head main --base develop --json number --jq '.[0].number')
+          existing_pr=$(gh pr list --head main --base develop --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$existing_pr" ]; then
             echo "Pull Request from main to develop already exists: #$existing_pr"
-          else
-            gh pr create \
-              --title "chore(git): back-sync main into develop" \
-              --body "Automated Pull Request to sync changes from main back to develop branch." \
-              --head main \
-              --base develop
+            exit 0
+          fi
+
+          # Intento 1: GITHUB_TOKEN (requiere setting 'Allow GitHub Actions to create PRs').
+          # Intento 2: ADMIN_PAT (token admin). El paso nunca falla: el back-merge se completa manualmente.
+          if ! gh pr create \
+            --title "chore(git): back-sync main into develop" \
+            --body "Automated Pull Request to sync changes from main back to develop branch." \
+            --head main \
+            --base develop 2>&1; then
+            echo "GITHUB_TOKEN could not create the PR (repo setting). Retrying with ADMIN_PAT..."
+            if [ -n "$ADMIN_TOKEN" ]; then
+              export GH_TOKEN="$ADMIN_TOKEN"
+              gh pr create \
+                --title "chore(git): back-sync main into develop" \
+                --body "Automated Pull Request to sync changes from main back to develop branch." \
+                --head main \
+                --base develop 2>&1 || echo "ADMIN_PAT also failed — manual back-merge required."
+            fi
           fi
