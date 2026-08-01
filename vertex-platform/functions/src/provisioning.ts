@@ -187,6 +187,100 @@ async function verifyGoogleOAuthRedirectUris(
   return results;
 }
 
+/**
+ * Índices compuestos que el storefront de cada tienda necesita (where storeId + orderBy).
+ * Se crean automáticamente al aprovisionar el shard para evitar el error
+ * "The query requires an index" en el panel de administración.
+ */
+const STOREFRONT_COMPOSITE_INDEXES: Array<{
+  collection: string;
+  fields: Array<{ fieldPath: string; order: 'ASCENDING' | 'DESCENDING' }>;
+}> = [
+  {
+    collection: 'products',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'totalStock', order: 'ASCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'products',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'createdAt', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'orders',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'orderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'clients',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'lastOrderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+];
+
+async function ensureCompositeIndexes(auth: OAuth2Client, projectId: string): Promise<void> {
+  try {
+    const existing = (await apiFetch(
+      auth,
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/-/indexes?pageSize=200`,
+      { quotaProject: projectId },
+    )) as {
+      indexes?: Array<{
+        collectionGroup?: string;
+        fields?: Array<{ fieldPath?: string; order?: string }>;
+      }>;
+    };
+
+    const existingKey = new Set(
+      (existing.indexes ?? [])
+        .filter((idx) => idx.collectionGroup)
+        .map(
+          (idx) =>
+            `${idx.collectionGroup}:${(idx.fields ?? [])
+              .map((f) => `${f.fieldPath}:${f.order}`)
+              .join('|')}`,
+        ),
+    );
+
+    for (const spec of STOREFRONT_COMPOSITE_INDEXES) {
+      const key = `${spec.collection}:${spec.fields
+        .map((f) => `${f.fieldPath}:${f.order}`)
+        .join('|')}`;
+      if (existingKey.has(key)) continue;
+      try {
+        await apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/${spec.collection}/indexes`,
+          {
+            method: 'POST',
+            body: { queryScope: 'COLLECTION', fields: spec.fields },
+            quotaProject: projectId,
+          },
+        );
+        console.info(
+          `[provisioning:indexes] Created composite index ${key} on ${projectId} (estado CREATING — tarda unos minutos en activarse)`,
+        );
+      } catch (err) {
+        console.warn(`[provisioning:indexes] Could not create index ${key} on ${projectId}:`, err);
+      }
+    }
+  } catch (err) {
+    console.warn(`[provisioning:indexes] Could not list indexes on ${projectId}:`, err);
+  }
+}
+
 async function ensureStoreAuthDomains(
   auth: OAuth2Client,
   input: {
@@ -1931,6 +2025,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         } catch (verifyErr) {
           console.warn('[provisioning:initAdmin] Could not verify OAuth redirect URIs:', verifyErr);
         }
+
+        // Índices compuestos del storefront (products/orders/clients) — automatizado para
+        // evitar "The query requires an index" en el panel de administración del shard.
+        await ensureCompositeIndexes(auth, projectId);
       };
       await retry(initIdentityPlatform, 5, 8000);
 
