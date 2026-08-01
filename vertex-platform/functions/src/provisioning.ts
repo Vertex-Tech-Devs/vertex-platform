@@ -2230,6 +2230,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
           body: JSON.stringify({
             event_type: 'provision-store',
+            // NOTA: la API de repository_dispatch NO permite fijar el `ref` del dispatch;
+            // siempre ejecuta el workflow del default branch (main). El client_payload.ref
+            // se usa en el checkout del workflow para correr el código de la rama correcta.
             client_payload: {
               store_id: storeId,
               tenant_id: tenantId,
