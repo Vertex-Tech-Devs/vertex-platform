@@ -157,6 +157,36 @@ async function ensureAuthorizedDomains(
   return nextDomains;
 }
 
+/**
+ * Verifica automáticamente si los redirect URIs del authDomain de la tienda están
+ * autorizados en el client OAuth de Google del MASTER (el que usa el provider del shard).
+ *
+ * Google NO expone una API pública para gestionar OAuth clients (solo la consola
+ * Google Cloud → Credentials → Web client → Authorized redirect URIs). Esta verificación
+ * detecta el problema ANTES de que el login falle silenciosamente con redirect_uri_mismatch.
+ */
+async function verifyGoogleOAuthRedirectUris(
+  clientId: string,
+  redirectUris: string[],
+): Promise<Record<string, boolean>> {
+  const results: Record<string, boolean> = {};
+  for (const redirectUri of redirectUris) {
+    try {
+      const url =
+        `https://accounts.google.com/o/oauth2/v2/auth` +
+        `?client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
+      const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const location = res.headers.get('location') ?? '';
+      results[redirectUri] = !location.includes('/signin/oauth/error');
+    } catch {
+      results[redirectUri] = false;
+    }
+  }
+  return results;
+}
+
 async function ensureStoreAuthDomains(
   auth: OAuth2Client,
   input: {
@@ -1874,6 +1904,33 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
 
         await ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain });
+
+        // Verificación automática: el login con Google de la tienda fallará con
+        // redirect_uri_mismatch si el redirect URI del shard no está autorizado en
+        // el client OAuth del master. Google no expone API → se detecta y se avisa.
+        try {
+          const redirectUris = buildRequiredOAuthRedirectUris({
+            projectId,
+            runtimeSiteId,
+            customDomain,
+          });
+          const oauthStatus = await verifyGoogleOAuthRedirectUris(oauthClientId, redirectUris);
+          for (const [uri, ok] of Object.entries(oauthStatus)) {
+            if (ok) {
+              console.info(`[provisioning:initAdmin] OAuth redirect URI autorizado: ${uri}`);
+            } else {
+              logger.warn(
+                `[provisioning:initAdmin] ⚠️ El redirect URI ${uri} NO está autorizado en el ` +
+                  `client OAuth de Google del master (${oauthClientId}). El login con Google de ` +
+                  `esta tienda fallará con redirect_uri_mismatch. Añadilo en Google Cloud Console → ` +
+                  `Credentials → OAuth 2.0 Client IDs → Web client → Authorized redirect URIs ` +
+                  `(limitación de Google: no hay API pública para esto).`,
+              );
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('[provisioning:initAdmin] Could not verify OAuth redirect URIs:', verifyErr);
+        }
       };
       await retry(initIdentityPlatform, 5, 8000);
 
