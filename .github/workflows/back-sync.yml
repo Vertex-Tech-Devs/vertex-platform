@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   back-sync:
@@ -17,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Back-merge main into develop
+      - name: Create Pull Request from main to develop
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_PAT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,23 +26,20 @@ jobs:
           git fetch origin develop main
 
           if git diff --quiet origin/develop..origin/main; then
-            echo "No differences between main and develop. Nothing to do."
+            echo "No differences between main and develop. Skipping PR creation."
             exit 0
           fi
 
-          if [ -z "$ADMIN_TOKEN" ]; then
-            echo "ADMIN_PAT not configured — falling back to PR creation."
+          # El GITHUB_TOKEN no puede crear PRs (setting del repo); el ADMIN_PAT (admin) sí.
+          export GH_TOKEN="${ADMIN_TOKEN:-$GH_TOKEN}"
+
+          existing_pr=$(gh pr list --head main --base develop --json number --jq '.[0].number')
+          if [ -n "$existing_pr" ]; then
+            echo "Pull Request from main to develop already exists: #$existing_pr"
+          else
             gh pr create \
               --title "chore(git): back-sync main into develop" \
               --body "Automated Pull Request to sync changes from main back to develop branch." \
               --head main \
               --base develop
-            exit 0
           fi
-
-          # Back-merge directo main -> develop usando un token con bypass del ruleset de develop.
-          git remote set-url origin "https://x-access-token:${ADMIN_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git checkout -B back-sync origin/develop
-          git merge origin/main -m "chore(git): back-sync main into develop [skip ci]"
-          git push origin back-sync:develop
-          echo "Back-merge main -> develop completed."
