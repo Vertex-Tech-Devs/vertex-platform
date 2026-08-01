@@ -157,6 +157,130 @@ async function ensureAuthorizedDomains(
   return nextDomains;
 }
 
+/**
+ * Verifica automáticamente si los redirect URIs del authDomain de la tienda están
+ * autorizados en el client OAuth de Google del MASTER (el que usa el provider del shard).
+ *
+ * Google NO expone una API pública para gestionar OAuth clients (solo la consola
+ * Google Cloud → Credentials → Web client → Authorized redirect URIs). Esta verificación
+ * detecta el problema ANTES de que el login falle silenciosamente con redirect_uri_mismatch.
+ */
+async function verifyGoogleOAuthRedirectUris(
+  clientId: string,
+  redirectUris: string[],
+): Promise<Record<string, boolean>> {
+  const results: Record<string, boolean> = {};
+  for (const redirectUri of redirectUris) {
+    try {
+      const url =
+        `https://accounts.google.com/o/oauth2/v2/auth` +
+        `?client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
+      const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const location = res.headers.get('location') ?? '';
+      results[redirectUri] = !location.includes('/signin/oauth/error');
+    } catch {
+      results[redirectUri] = false;
+    }
+  }
+  return results;
+}
+
+/**
+ * Índices compuestos que el storefront de cada tienda necesita (where storeId + orderBy).
+ * Se crean automáticamente al aprovisionar el shard para evitar el error
+ * "The query requires an index" en el panel de administración.
+ */
+const STOREFRONT_COMPOSITE_INDEXES: Array<{
+  collection: string;
+  fields: Array<{ fieldPath: string; order: 'ASCENDING' | 'DESCENDING' }>;
+}> = [
+  {
+    collection: 'products',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'totalStock', order: 'ASCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'products',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'createdAt', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'orders',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'orderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'clients',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'lastOrderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+];
+
+async function ensureCompositeIndexes(auth: OAuth2Client, projectId: string): Promise<void> {
+  try {
+    const existing = (await apiFetch(
+      auth,
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/-/indexes?pageSize=200`,
+      { quotaProject: projectId },
+    )) as {
+      indexes?: Array<{
+        collectionGroup?: string;
+        fields?: Array<{ fieldPath?: string; order?: string }>;
+      }>;
+    };
+
+    const existingKey = new Set(
+      (existing.indexes ?? [])
+        .filter((idx) => idx.collectionGroup)
+        .map(
+          (idx) =>
+            `${idx.collectionGroup}:${(idx.fields ?? [])
+              .map((f) => `${f.fieldPath}:${f.order}`)
+              .join('|')}`,
+        ),
+    );
+
+    for (const spec of STOREFRONT_COMPOSITE_INDEXES) {
+      const key = `${spec.collection}:${spec.fields
+        .map((f) => `${f.fieldPath}:${f.order}`)
+        .join('|')}`;
+      if (existingKey.has(key)) continue;
+      try {
+        await apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/${spec.collection}/indexes`,
+          {
+            method: 'POST',
+            body: { queryScope: 'COLLECTION', fields: spec.fields },
+            quotaProject: projectId,
+          },
+        );
+        console.info(
+          `[provisioning:indexes] Created composite index ${key} on ${projectId} (estado CREATING — tarda unos minutos en activarse)`,
+        );
+      } catch (err) {
+        console.warn(`[provisioning:indexes] Could not create index ${key} on ${projectId}:`, err);
+      }
+    }
+  } catch (err) {
+    console.warn(`[provisioning:indexes] Could not list indexes on ${projectId}:`, err);
+  }
+}
+
 async function ensureStoreAuthDomains(
   auth: OAuth2Client,
   input: {
@@ -1874,6 +1998,37 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
 
         await ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain });
+
+        // Verificación automática: el login con Google de la tienda fallará con
+        // redirect_uri_mismatch si el redirect URI del shard no está autorizado en
+        // el client OAuth del master. Google no expone API → se detecta y se avisa.
+        try {
+          const redirectUris = buildRequiredOAuthRedirectUris({
+            projectId,
+            runtimeSiteId,
+            customDomain,
+          });
+          const oauthStatus = await verifyGoogleOAuthRedirectUris(oauthClientId, redirectUris);
+          for (const [uri, ok] of Object.entries(oauthStatus)) {
+            if (ok) {
+              console.info(`[provisioning:initAdmin] OAuth redirect URI autorizado: ${uri}`);
+            } else {
+              logger.warn(
+                `[provisioning:initAdmin] ⚠️ El redirect URI ${uri} NO está autorizado en el ` +
+                  `client OAuth de Google del master (${oauthClientId}). El login con Google de ` +
+                  `esta tienda fallará con redirect_uri_mismatch. Añadilo en Google Cloud Console → ` +
+                  `Credentials → OAuth 2.0 Client IDs → Web client → Authorized redirect URIs ` +
+                  `(limitación de Google: no hay API pública para esto).`,
+              );
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('[provisioning:initAdmin] Could not verify OAuth redirect URIs:', verifyErr);
+        }
+
+        // Índices compuestos del storefront (products/orders/clients) — automatizado para
+        // evitar "The query requires an index" en el panel de administración del shard.
+        await ensureCompositeIndexes(auth, projectId);
       };
       await retry(initIdentityPlatform, 5, 8000);
 
