@@ -1460,11 +1460,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         };
       }
 
-      // CRÍTICO: el authDomain SIEMPRE debe ser el del proyecto (shard o dedicado) — el
-      // popup de Google valida el continueUri contra el proyecto del apiKey. El redirect
-      // URI https://{shard}.firebaseapp.com/__/auth/handler debe estar autorizado en el
-      // client OAuth de Google del MASTER (consola Google Cloud → Credentials).
-      firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+      // IMPORTANTE: el authDomain queda en el del MASTER (masterAuthDomain), cuyo client
+      // OAuth de Google incluye el redirect URI https://{masterAuthDomain}/__/auth/handler.
+      // Usar el authDomain del shard provoca redirect_uri_mismatch (el client OAuth del
+      // master no autoriza los authDomains de los shards). El continueUri (dominio de la
+      // tienda) queda garantizado por ensureStoreAuthDomains en los authorizedDomains.
 
       await db
         .collection('stores')
