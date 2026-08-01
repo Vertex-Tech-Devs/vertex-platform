@@ -29,6 +29,7 @@ import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
+import { verifyGitHubOidcToken } from './github-oidc';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
 
@@ -233,6 +234,281 @@ export function formatProjectDisplayName(
 }
 const CURRENT_STORE_SCHEMA_VERSION = 1;
 
+import { STOREFRONT_FIRESTORE_RULES, STOREFRONT_STORAGE_RULES } from './storefront-rules';
+
+/**
+ * Despliega las reglas de seguridad del template storefront (Firestore + Storage)
+ * en el proyecto del shard/tienda. Los proyectos nuevos arrancan con reglas DENY
+ * por defecto, lo que rompería el storefront público (clientes sin usuario).
+ * Usa el patrón ruleset + release (DELETE+POST, ya que el PATCH no soporta el campo).
+ */
+async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Promise<void> {
+  const rulesBase = 'https://firebaserules.googleapis.com/v1/projects';
+
+  const deployRuleset = async (
+    fileName: string,
+    content: string,
+    releaseId: string,
+  ): Promise<void> => {
+    try {
+      const rsRes = (await apiFetch(auth, `${rulesBase}/${projectId}/rulesets`, {
+        method: 'POST',
+        body: { source: { files: [{ name: fileName, content }] } },
+        quotaProject: projectId,
+      })) as { name: string };
+      const rulesetName = rsRes.name;
+
+      // Eliminar release previo si existe (no falla si no existe)
+      try {
+        await apiFetch(auth, `${rulesBase}/${projectId}/releases/${releaseId}`, {
+          method: 'DELETE',
+          quotaProject: projectId,
+        });
+      } catch {
+        // 404 = no existe, ok
+      }
+
+      try {
+        await apiFetch(auth, `${rulesBase}/${projectId}/releases`, {
+          method: 'POST',
+          body: { name: `projects/${projectId}/releases/${releaseId}`, rulesetName },
+          quotaProject: projectId,
+        });
+        console.info(
+          `[provisioning:deployStorefrontRules] ${fileName} desplegado en ${projectId} (${releaseId}).`,
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+      }
+    } catch (err) {
+      console.warn(
+        `[provisioning:deployStorefrontRules] No se pudo desplegar ${fileName} en ${projectId} (no crítico):`,
+        err,
+      );
+    }
+  };
+
+  // 1. Reglas de Firestore (release cloud.firestore) — crítico para el catálogo público
+  await deployRuleset('firestore.rules', STOREFRONT_FIRESTORE_RULES, 'cloud.firestore');
+
+  // 2. Reglas de Storage (release firebase.storage/{bucket}) — no crítico si Storage no está habilitado
+  const storageBucket = `${projectId}.firebasestorage.app`;
+  await deployRuleset('storage.rules', STOREFRONT_STORAGE_RULES, `firebase.storage/${storageBucket}`);
+}
+
+/**
+ * Garantiza que un servicio de GCP esté habilitado en el proyecto (auto-heal).
+ * Si el servicio está deshabilitado (403 SERVICE_DISABLED), lo habilita vía
+ * Service Usage API y espera la propagación. Evita fallas en pasos posteriores
+ * (Firestore, Hosting, Identity Toolkit, Storage, Cloud Build).
+ */
+async function ensureServiceEnabled(
+  auth: OAuth2Client,
+  projectId: string,
+  service: string,
+): Promise<void> {
+  const base = `https://serviceusage.googleapis.com/v1/projects/${projectId}/services/${service}`;
+
+  // 1. ¿Ya está habilitado?
+  try {
+    const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
+      state?: string;
+    };
+    if (res && res.state === 'ENABLED') {
+      return;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('404') && !msg.includes('NOT_FOUND')) {
+      throw err;
+    }
+  }
+
+  // 2. Habilitar y esperar propagación (hasta ~2 min)
+  console.warn(`[provisioning:ensureServiceEnabled] Enabling ${service} on ${projectId}...`);
+  try {
+    await apiFetch(auth, `${base}:enable`, {
+      method: 'POST',
+      body: {},
+      quotaProject: projectId,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('already') && !msg.includes('409')) {
+      throw err;
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    try {
+      const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
+        state?: string;
+      };
+      if (res && res.state === 'ENABLED') {
+        console.info(`[provisioning:ensureServiceEnabled] ${service} ENABLED on ${projectId}.`);
+        return;
+      }
+    } catch {
+      // aún propagando
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+  console.warn(`[provisioning:ensureServiceEnabled] ${service} aún no propagado en ${projectId} (continuando).`);
+}
+
+/**
+ * Garantiza que el proyecto GCP esté agregado y propagado en Firebase Management,
+ * con el plan de facturación BLAZE (necesario para Identity Platform/pagos).
+ * Si el proyecto no está en Firebase (p. ej. el paso addFirebase se marcó done sin
+ * completar la propagación, o en reintentos que lo saltan), re-ejecuta addFirebase
+ * y espera hasta ~3 minutos. Auto-heal: evita el 404 NOT_FOUND en webApps/sites.
+ */
+async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Promise<void> {
+  const firebaseBase = 'https://firebase.googleapis.com/v1beta1';
+
+  // Asegura el plan BLAZE en el proyecto Firebase (facturación activa).
+  const ensureBlazePlan = async (): Promise<void> => {
+    try {
+      await apiFetch(auth, `${firebaseBase}/projects/${projectId}?updateMask=billingPlan`, {
+        method: 'PATCH',
+        body: { billingPlan: 'BLAZE' },
+        quotaProject: projectId,
+      });
+      console.info(`[provisioning:ensureFirebaseProject] Project ${projectId} set to BLAZE plan.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Si el plan ya es Blaze o la API no permite el patch, no es bloqueante.
+      if (
+        !msg.includes('already') &&
+        !msg.includes('409') &&
+        !msg.includes('billing') &&
+        !msg.includes('BLAZE')
+      ) {
+        console.warn(`[provisioning:ensureFirebaseProject] Could not set BLAZE plan (non-fatal): ${msg}`);
+      }
+    }
+  };
+
+  // 1. ¿El proyecto ya está en Firebase?
+  try {
+    const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
+      quotaProject: projectId,
+    })) as Record<string, unknown>;
+    if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+      console.info(
+        `[provisioning:ensureFirebaseProject] Project ${projectId} already in Firebase.`,
+      );
+      await ensureBlazePlan();
+      // Habilitar APIs críticas para los pasos siguientes (auto-heal)
+      await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+      await ensureServiceEnabled(auth, projectId, 'firebasehosting.googleapis.com');
+      await ensureServiceEnabled(auth, projectId, 'identitytoolkit.googleapis.com');
+      return;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('404') && !msg.includes('NOT_FOUND')) {
+      throw err;
+    }
+  }
+
+  // 2. Re-ejecutar addFirebase (auto-heal)
+  console.warn(
+    `[provisioning:ensureFirebaseProject] Project ${projectId} NOT in Firebase. Re-running addFirebase...`,
+  );
+  const op = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}:addFirebase`, {
+    method: 'POST',
+    body: {},
+    quotaProject: projectId,
+  })) as { name: string };
+  await pollOperation(auth, op.name, firebaseBase);
+
+  // 3. Esperar propagación (hasta ~3 min, 10s entre intentos)
+  const POLL_ATTEMPTS = 18;
+  for (let i = 0; i < POLL_ATTEMPTS; i++) {
+    try {
+      const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
+        quotaProject: projectId,
+      })) as Record<string, unknown>;
+      if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+        console.info(
+          `[provisioning:ensureFirebaseProject] Project ${projectId} is now in Firebase (attempt ${i + 1}).`,
+        );
+        await ensureBlazePlan();
+        // Habilitar APIs críticas para los pasos siguientes (auto-heal)
+        await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+        await ensureServiceEnabled(auth, projectId, 'firebasehosting.googleapis.com');
+        await ensureServiceEnabled(auth, projectId, 'identitytoolkit.googleapis.com');
+        return;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('404') && !msg.includes('NOT_FOUND')) throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+
+  throw new Error(
+    `Firebase project ${projectId} did not become available after re-running addFirebase.`,
+  );
+}
+
+/**
+ * Crea la WebApp en Firebase Management API usando SIEMPRE el gcpProjectId real
+ * (proyecto del shard compartido o proyecto GCP dedicado), NUNCA el storeId interno.
+ * Espera la propagación de la entidad FirebaseProject (delay preventivo de 3000ms)
+ * y reintenta ante errores 404 / NOT_FOUND / fetch failed (hasta 3 intentos con pausas de 3s).
+ */
+async function createWebAppWithRetry(
+  auth: OAuth2Client,
+  projectId: string,
+  storeId: string,
+  displayName: string,
+): Promise<string> {
+  if (!projectId || projectId === storeId) {
+    throw new Error(
+      `Invalid gcpProjectId for web app creation: '${projectId}'. ` +
+        `The gcpProjectId must be the real GCP project id (shard project or vtx-<slug>), not the storeId '${storeId}'.`,
+    );
+  }
+
+  // Delay preventivo para permitir la propagación de la entidad FirebaseProject creada en el paso anterior
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  // Retries robustos: hasta 6 intentos con 10s de pausa (~1 min) cubre propagaciones lentas
+  // de proyectos recién creados en Firebase Management.
+  const MAX_ATTEMPTS = 6;
+  const PAUSE_MS = 10000;
+  let lastErr: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const appOp = (await apiFetch(
+        auth,
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+        { method: 'POST', body: { displayName } },
+      )) as { name: string };
+      await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+      return appOp.name;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPropagationError =
+        msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
+      if (!isPropagationError || attempt === MAX_ATTEMPTS) {
+        throw err;
+      }
+      console.warn(
+        `[provisioning:createWebApp] FirebaseProject not propagated yet (attempt ${attempt}/${MAX_ATTEMPTS}). Retrying in ${PAUSE_MS}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
+    }
+  }
+
+  throw lastErr;
+}
+
 export const provisionStore = onCall<CreateStorePayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
@@ -287,6 +563,9 @@ export const provisionStore = onCall<CreateStorePayload>(
 
     // Dynamic Shard Selection logic: Recommend and use shared-shard by default if active shard capacity is available
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    // storeId y sufijo único (para sitios de hosting/web app) se generan temprano
+    const storeId = crypto.randomUUID();
+    const uniqueSiteSuffix = storeId.replace(/[^a-zA-Z0-9]/g, '').slice(-6);
     let shardsSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
@@ -395,7 +674,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
         isNewShard = false;
       } else {
         // Fallback: Generate a new shared-shard project autonomously
@@ -404,7 +683,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
         // Trigger asynchronous background creation of a warm shard buffer
         void ensureWarmShardAvailable().catch((err) => {
           console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
@@ -412,7 +691,6 @@ export const provisionStore = onCall<CreateStorePayload>(
       }
     }
 
-    const storeId = crypto.randomUUID();
     const tenantId = slug;
 
     const needsNewGcpProject = runtimeMode === 'dedicated-project' || isNewShard;
@@ -483,7 +761,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const fbShardData = (fbShardDoc.data() ?? {}) as StoreShard;
         shardId = fbShardDoc.id;
         projectId = fbShardData.projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
       }
 
       // Solo si seguimos necesitando un proyecto GCP nuevo tras el fallback
@@ -605,7 +883,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     runtimeSiteId,
     isNewShard,
     tenantId,
-    id: storeIdAttr,
     shardId,
   } = currentData as {
     name: string;
@@ -949,6 +1226,34 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         { method: 'POST', body: {} },
       )) as { name: string };
       await pollOperation(auth, op.name, 'https://firebase.googleapis.com/v1beta1');
+
+      // Verificación de propagación: el proyecto recién creado debe estar disponible
+      // en Firebase Management antes de continuar (evita 404 NOT_FOUND en webApps/sites).
+      const FIREBASE_PROJECT_POLL_ATTEMPTS = 18; // ~3 minutos (10s entre intentos)
+      let firebaseProjectReady = false;
+      for (let i = 0; i < FIREBASE_PROJECT_POLL_ATTEMPTS; i++) {
+        try {
+          const projRes = (await apiFetch(
+            auth,
+            `https://firebase.googleapis.com/v1beta1/projects/${projectId}`,
+            { quotaProject: projectId },
+          )) as Record<string, unknown>;
+          if (projRes && typeof projRes === 'object' && 'state' in projRes) {
+            firebaseProjectReady = true;
+            break;
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('404') && !msg.includes('NOT_FOUND')) throw err;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+      }
+      if (!firebaseProjectReady) {
+        throw new Error(
+          `Firebase project ${projectId} did not become available within the expected time.`,
+        );
+      }
+
       await setStep('addFirebase', 'done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -1037,27 +1342,54 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   } else {
     await setStep('createWebApp', 'running');
     try {
+      // El identificador enviado a Firebase Management debe ser SIEMPRE el gcpProjectId real
+      // (proyecto del shard o proyecto dedicado vtx-<slug>), nunca el storeId interno.
+      if (!projectId || projectId === storeId) {
+        throw new Error(
+          `Invalid gcpProjectId for web app creation: '${projectId}'. ` +
+            `Expected the real GCP project id, not the storeId '${storeId}'.`,
+        );
+      }
+
+      // Auto-heal: garantizar que el proyecto esté en Firebase (re-ejecuta addFirebase si falta)
+      await ensureFirebaseProject(auth, projectId);
+
       if (runtimeMode === 'shared-shard' && runtimeSiteId) {
-        try {
-          await apiFetch(
-            auth,
-            `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
-            {
-              method: 'POST',
-              body: { type: 'USER_SITE' },
-            },
-          );
-          console.info(
-            `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
-          );
-        } catch (err: any) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409')) {
-            throw err;
+        // El hosting site también requiere el proyecto propagado en Firebase Hosting:
+        // reintenta ante 404/NOT_FOUND (hasta 6 intentos con 10s de pausa).
+        const MAX_SITE_ATTEMPTS = 6;
+        for (let siteAttempt = 1; siteAttempt <= MAX_SITE_ATTEMPTS; siteAttempt++) {
+          try {
+            await apiFetch(
+              auth,
+              `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+              {
+                method: 'POST',
+                body: { type: 'USER_SITE' },
+              },
+            );
+            console.info(
+              `[provisioning:createWebApp] Created custom hosting site ${runtimeSiteId} on shard ${projectId}`,
+            );
+            break;
+          } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg.includes('already exists') || msg.includes('409')) {
+              console.info(
+                `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
+              );
+              break;
+            }
+            const isPropagationError =
+              msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
+            if (siteAttempt === MAX_SITE_ATTEMPTS || !isPropagationError) {
+              throw err;
+            }
+            console.warn(
+              `[provisioning:createWebApp] Firebase Hosting not ready for ${projectId} (attempt ${siteAttempt}/${MAX_SITE_ATTEMPTS}). Retrying in 10s...`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 10000));
           }
-          console.info(
-            `[provisioning:createWebApp] Custom hosting site ${runtimeSiteId} already exists on shard ${projectId}`,
-          );
         }
       }
 
@@ -1081,12 +1413,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           if (appsRes.apps?.length) {
             appId = appsRes.apps[0].appId;
           } else {
-            const appOp = (await apiFetch(
-              auth,
-              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-              { method: 'POST', body: { displayName: webAppDisplayName } },
-            )) as { name: string };
-            await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+            // Crea la web app con retry + delay de propagación usando el gcpProjectId real
+            await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
             const refreshed = (await apiFetch(
               auth,
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
@@ -1109,12 +1437,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           };
         }
       } else {
-        const appOp = (await apiFetch(
-          auth,
-          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-          { method: 'POST', body: { displayName: webAppDisplayName } },
-        )) as { name: string };
-        await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+        // Crea la web app con retry + delay de propagación usando el gcpProjectId real
+        await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
         const appsRes = (await apiFetch(
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
@@ -1136,6 +1460,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         };
       }
 
+      // CRÍTICO: el authDomain SIEMPRE debe ser el del proyecto (shard o dedicado),
+      // nunca el del master — de lo contrario el popup de Google abre el handler del
+      // master y el continueUri de la tienda no está autorizado → auth/invalid-continue-uri.
+      firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+
       await db
         .collection('stores')
         .doc(storeId)
@@ -1153,6 +1482,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   if (!isDone('initFirestore')) {
     await setStep('initFirestore', 'running');
     try {
+      // Auto-heal: asegurar que la API de Firestore esté habilitada antes de operar
+      await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
       try {
         const dbOp = (await apiFetch(
           auth,
@@ -1166,7 +1497,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       const now = new Date().toISOString();
-      const configPath = `configuracion/store_${storeIdAttr}`;
+      // El sufijo de los docs singleton y el campo storeId usan el tenantId (slug),
+      // que es el storeId que el storefront resuelve vía resolveTenantId().
+      const configPath = `configuracion/store_${tenantId}`;
 
       console.info(
         `[provisioning:initFirestore] Writing consolidated configuration to ${configPath}...`,
@@ -1181,7 +1514,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               body: {
                 fields: {
                   tenantId: { stringValue: tenantId },
-                  storeId: { stringValue: storeIdAttr },
+                  storeId: { stringValue: tenantId },
                   storeName: { stringValue: name },
                   tagline: { stringValue: '' },
                   strapline: { stringValue: '' },
@@ -1259,6 +1592,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
+      // Desplegar reglas de seguridad del template (Firestore + Storage) en el proyecto del shard,
+      // para que el storefront público (clientes sin usuario) pueda leer el catálogo.
+      await deployStorefrontRules(auth, projectId);
+
       const effectiveVerticalId = verticalId || 'indumentaria';
       const hasMockData = includeMockData !== false;
       await seedStoreData(
@@ -1269,7 +1606,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         name,
         hasMockData,
         true,
-        storeIdAttr,
+        tenantId, // storeId = tenantId (slug), el identificador que usa el storefront
       );
 
       await setStep('initFirestore', 'done');
@@ -1289,7 +1626,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${storeIdAttr}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${tenantId}`,
             {
               method: 'PATCH',
               body: {
@@ -1337,7 +1674,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         () =>
           apiFetch(
             auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine_${storeIdAttr}`,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailEngine_${tenantId}`,
             {
               method: 'PATCH',
               body: {
@@ -1360,7 +1697,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       console.info(
-        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates_${storeIdAttr} y settings/emailEngine_${storeIdAttr} para el proyecto ${projectId}.`,
+        `[provisioning:configureEmail] Se sembró con éxito la configuración inicial en settings/emailTemplates_${tenantId} y settings/emailEngine_${tenantId} para el proyecto ${projectId}.`,
       );
 
       await setStep('configureEmail', 'done');
@@ -1878,9 +2215,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       const pat = await getGitHubPat();
 
-      // Fetch the deploy token for this environment to pass to GitHub Action
-      const deployTokenValue = await getDeployToken();
-
       const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
       const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
 
@@ -1896,6 +2230,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           },
           body: JSON.stringify({
             event_type: 'provision-store',
+            // NOTA: la API de repository_dispatch NO permite fijar el `ref` del dispatch;
+            // siempre ejecuta el workflow del default branch (main). El client_payload.ref
+            // se usa en el checkout del workflow para correr el código de la rama correcta.
             client_payload: {
               store_id: storeId,
               tenant_id: tenantId,
@@ -1904,7 +2241,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
-              deploy_token: deployTokenValue,
+              // SECURITY: el deploy token NO se envía en el client_payload (visible/logueable).
+              // El workflow del storefront lo lee del secret PLATFORM_DEPLOY_TOKEN.
               environment: env,
               ref: targetRef,
             },
@@ -2016,6 +2354,7 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can retry provisioning.');
     }
+    await checkRateLimit(request.auth?.uid, 'retryProvisioning', 5, 15);
 
     const { storeId } = request.data;
     if (!storeId) {
@@ -2085,21 +2424,17 @@ export const completeStoreDeployment = onCall<{
   storeId: string;
   success: boolean;
   deployToken: string;
+  idToken?: string;
   commitSha?: string;
   commitMessage?: string;
   ref?: string;
   version?: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
-  const { storeId, success, deployToken, commitSha, commitMessage, ref, version } = request.data;
+  const { storeId, success, deployToken, idToken, commitSha, commitMessage, ref, version } =
+    request.data;
 
-  if (!storeId || !deployToken) {
-    throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
-  }
-
-  // 1. Verify the deploy token using Secret Manager
-  const expected = await getDeployToken();
-  if (deployToken !== expected) {
-    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  if (!storeId) {
+    throw new HttpsError('invalid-argument', 'storeId is required.');
   }
 
   const db = getFirestore();
@@ -2108,8 +2443,28 @@ export const completeStoreDeployment = onCall<{
   if (!snap.exists) {
     throw new HttpsError('not-found', 'Store not found.');
   }
-
   const storeData = snap.data()!;
+  const expectedRepo = 'Vertex-Tech-Devs/ecommerce-vertex';
+
+  // 1a. Verificación OIDC de GitHub Actions (automatizada, sin secrets manuales).
+  //     El workflow del storefront envía un id_token (audience 'vertex-platform').
+  if (idToken) {
+    const oidcValid = await verifyGitHubOidcToken(idToken, {
+      repository: expectedRepo,
+      ref: ref ?? undefined,
+    });
+    if (!oidcValid) {
+      throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
+    }
+  } else if (deployToken) {
+    // 1b. Fallback legacy: deploy token de Secret Manager.
+    const expected = await getDeployToken();
+    if (deployToken !== expected) {
+      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    }
+  } else {
+    throw new HttpsError('invalid-argument', 'A valid deploy token or GitHub OIDC token is required.');
+  }
 
   // Create a deployment history log entry
   const deployLogRef = storeRef.collection('deploys').doc();

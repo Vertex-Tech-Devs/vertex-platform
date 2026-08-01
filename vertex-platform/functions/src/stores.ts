@@ -13,6 +13,7 @@ import {
   sendDirectEmail,
 } from './helpers';
 import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
+import { verifyGitHubOidcToken } from './github-oidc';
 import type {
   InviteStaffPayload,
   StoreRuntimeMode,
@@ -267,6 +268,16 @@ async function deployHostingTombstone(
   }
 }
 
+/**
+ * Proyectos GCP creados ad-hoc por la plataforma (shards nuevos `vtx-sd-*` y
+ * tiendas dedicadas `vtx-<slug>`). Son desechables: pueden eliminarse cuando
+ * quedan vacíos. Los proyectos master (ecommerce-vertex-dev, ecommerce-vertex)
+ * NO cumplen este patrón y nunca se eliminan.
+ */
+function isDisposableProject(projectId: string): boolean {
+  return /^vtx-sd-/.test(projectId) || /^vtx-/.test(projectId);
+}
+
 async function deleteProjectAndWait(
   auth: Awaited<ReturnType<typeof getOwnerOAuthClient>>,
   projectId: string,
@@ -354,6 +365,7 @@ async function enqueueRuntimeCleanupTask(
     projectIds: string[];
     siteId: string;
     runtimeMode: StoreRuntimeMode;
+    deleteProject?: boolean;
     reason: string;
   },
 ): Promise<void> {
@@ -363,6 +375,7 @@ async function enqueueRuntimeCleanupTask(
     projectIds: payload.projectIds,
     siteId: payload.siteId,
     runtimeMode: payload.runtimeMode,
+    deleteProject: payload.deleteProject ?? false,
     reason: payload.reason,
     status: 'pending',
     attempts: 0,
@@ -564,6 +577,7 @@ export const redeployStore = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can redeploy stores.');
     }
+    await checkRateLimit(request.auth?.uid, 'redeployStore', 10, 15);
 
     const { storeId } = request.data;
     if (!storeId) {
@@ -656,6 +670,7 @@ export const deleteStore = onCall<{ storeId: string }>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can delete stores.');
     }
+    await checkRateLimit(request.auth?.uid, 'deleteStore', 10, 15);
 
     const { storeId } = request.data;
     const db = getFirestore();
@@ -675,6 +690,28 @@ export const deleteStore = onCall<{ storeId: string }>(
     const siteId = resolveRuntimeSiteId(store);
     const runtimeMode = store.runtimeMode ?? 'dedicated-project';
     const inferredProjectId = inferProjectIdFromDefaultUrl(store.defaultUrl);
+    // Determinar si el shard desechable quedará vacío tras eliminar esta tienda.
+    // En ese caso el cleanup debe eliminar también el proyecto GCP/Firebase (fricción cero).
+    let deleteProjectOnCleanup = false;
+    if (runtimeMode === 'shared-shard' && store.shardId) {
+      try {
+        const shardSnap = await db.collection('infrastructure_shards').doc(store.shardId).get();
+        if (shardSnap.exists) {
+          const shardData = shardSnap.data() ?? {};
+          const shardProjectId = String(shardData['projectId'] ?? '');
+          const willBeEmpty = (shardData['currentStores'] ?? 0) - 1 <= 0;
+          deleteProjectOnCleanup = willBeEmpty && isDisposableProject(shardProjectId);
+          if (deleteProjectOnCleanup) {
+            console.info(
+              `[deleteStore] Shard ${store.shardId} (${shardProjectId}) quedará vacío y es desechable. Se eliminará el proyecto.`,
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(`[deleteStore] No se pudo evaluar el shard ${store.shardId}:`, err);
+      }
+    }
+
     const candidateProjectIds = Array.from(
       new Set(
         [store.runtimeProjectId, store.firebaseProjectId, inferredProjectId]
@@ -690,6 +727,7 @@ export const deleteStore = onCall<{ storeId: string }>(
         projectIds: candidateProjectIds,
         siteId,
         runtimeMode,
+        deleteProject: deleteProjectOnCleanup,
         reason: 'deleteStore-postcheck',
       });
     }
@@ -724,6 +762,17 @@ export const deleteStore = onCall<{ storeId: string }>(
           err,
         );
       }
+      // Shard desechable vacío: eliminarlo (el cleanup eliminará el proyecto GCP/Firebase)
+      if (deleteProjectOnCleanup) {
+        await shardRef
+          .delete()
+          .then(() =>
+            console.info(`[deleteStore] Shard desechable ${store.shardId} eliminado.`),
+          )
+          .catch((err) =>
+            console.warn(`[deleteStore] No se pudo eliminar el shard ${store.shardId}:`, err),
+          );
+      }
     }
 
     // Delete store document
@@ -757,6 +806,7 @@ export const processRuntimeCleanupTask = onDocumentCreated(
       projectIds?: string[];
       siteId?: string;
       runtimeMode?: StoreRuntimeMode;
+      deleteProject?: boolean;
       attempts?: number;
     };
 
@@ -900,6 +950,22 @@ export const processRuntimeCleanupTask = onDocumentCreated(
 
           if (!hostingDeleted && !hostingAlreadyGone && lastHostingError) {
             throw lastHostingError;
+          }
+
+          // 3. Si el shard desechable quedó vacío (deleteProject flag), eliminar el proyecto GCP/Firebase.
+          if (task.deleteProject === true && isDisposableProject(projectId)) {
+            try {
+              await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
+                deleteProjectAndWait(auth, projectId),
+              );
+              console.info(
+                `[runtimeCleanup] Proyecto desechable ${projectId} eliminado (shard vacío).`,
+              );
+            } catch (err) {
+              if (!isProjectAlreadyDeletedOrInactiveError(err)) {
+                throw err;
+              }
+            }
           }
         }
       }
@@ -1050,16 +1116,25 @@ export const getActiveStores = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     const deployToken = request.data?.deployToken as string | undefined;
+    const idToken = request.data?.idToken as string | undefined;
     const isAdmin = !!request.auth?.token['platformAdmin'];
-    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-    if (env === 'production') {
-      if (!isAdmin && deployToken) {
+    // Exigir autorización en TODOS los entornos:
+    // 1) admin de plataforma, 2) GitHub OIDC (workflow automatizado), 3) deploy token legacy.
+    if (!isAdmin) {
+      if (idToken) {
+        const oidcValid = await verifyGitHubOidcToken(idToken, {
+          repository: 'Vertex-Tech-Devs/ecommerce-vertex',
+        });
+        if (!oidcValid) {
+          throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
+        }
+      } else if (deployToken) {
         const expected = await getDeployToken();
         if (deployToken !== expected) {
           throw new HttpsError('permission-denied', 'Invalid deploy token.');
         }
-      } else if (!isAdmin) {
+      } else {
         throw new HttpsError('permission-denied', 'Unauthorized.');
       }
     }
@@ -1123,6 +1198,7 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can update store configs.');
     }
+    await checkRateLimit(request.auth?.uid, 'updateStoreConfig', 30, 15);
 
     const { storeId, config } = request.data;
     if (!storeId || !config) {
@@ -1151,7 +1227,9 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const configPath = `configuracion/store_${storeId}`;
+    // El storeId del doc singleton es el tenantId (slug), el identificador del storefront
+    const storeTenantId = store.slug || store.tenantId || storeId;
+    const configPath = `configuracion/store_${storeTenantId}`;
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
@@ -1246,7 +1324,8 @@ export const getStoreConfig = onCall<{ storeId: string }>(
       slug?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
-    const configPath = `configuracion/store_${storeId}`;
+    const storeTenantId = store.slug || store.tenantId || storeId;
+    const configPath = `configuracion/store_${storeTenantId}`;
     const auth = await getOwnerOAuthClient();
 
     try {

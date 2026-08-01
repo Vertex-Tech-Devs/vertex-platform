@@ -12,129 +12,16 @@ service cloud.firestore {
         (request.auth.token.get('platformAdmin', false) == true || request.auth.token.get('superAdmin', false) == true);
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function isTenantAdmin(tenantId) {
-      return isAuthenticated() && (
-        (request.auth.token.get('admin', false) == true && request.auth.token.get('tenantId', '') == tenantId) ||
-        (exists(/databases/$(database)/documents/tenants/$(tenantId)/admin_roles/$(request.auth.token.email)) &&
-         get(/databases/$(database)/documents/tenants/$(tenantId)/admin_roles/$(request.auth.token.email)).data.role == 'admin')
-      );
-    }
-
-    // 1. Regla para Entornos Dedicados (Single Tenant / Enterprise)
+    // 1. Config pública para storefronts dedicados (theme, colores, payment public key)
     match /configuracion/store {
-      // Public read for storefront config (theme, colors, payment public key)
       allow read: if true;
       allow write: if isPlatformAdmin() || 
         (isAuthenticated() && get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'admin');
     }
 
-
-
-    // 2. Regla para Entornos Compartidos (Multi-Tenant Shards)
-    match /tenants/{tenantId} {
-      allow read, write: if isPlatformAdmin();
-
-      match /configuracion/store {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /admin_roles/{email} {
-        allow read: if isAuthenticated() && (request.auth.token.email == email || isPlatformAdmin());
-        allow write: if isPlatformAdmin();
-      }
-
-      // Public read rules for Storefront visitors
-      match /products/{productId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-
-        match /{allChildren=**} {
-          allow read: if true;
-          allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-        }
-      }
-
-      match /categories/{categoryId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /attributes/{attributeId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /siteContent/{docId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /footerContent/{docId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /aboutUs/{docId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /orders/{orderId} {
-        allow get: if true;
-        allow create: if true;
-        allow list, update, delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /pages/{docId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /configuracion/{docId} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /settings/{docId} {
-        allow read, write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /users/{userId} {
-        allow read: if isOwner(userId) || isPlatformAdmin() || isTenantAdmin(tenantId);
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId) || isPlatformAdmin() || isTenantAdmin(tenantId);
-        allow delete: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-
-      match /clients/{clientId} {
-        allow read: if isPlatformAdmin() || isTenantAdmin(tenantId);
-        allow write: if isPlatformAdmin();
-      }
-
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if isPlatformAdmin() || (isAuthenticated()
-          && (resource.data.userId == request.auth.uid || isTenantAdmin(tenantId)));
-      }
-
-      match /mail/{docId} {
-        allow read, write: if isPlatformAdmin() || isTenantAdmin(tenantId);
-      }
-    }
-
-    match /orders/{orderId} {
-      allow get: if true;
-      allow create: if true;
-      allow list: if isPlatformAdmin();
-    }
-    
-    // Protección por defecto de la factoría
+    // 2. Protección por defecto de la factoría: cualquier ruta no declarada
+    //    (stores, infrastructure_shards, billing_accounts, provisioning_queue,
+    //     provisioning_logs, users, admin_roles, ...) exige isPlatformAdmin().
     match /{document=**} {
       allow read, write: if isPlatformAdmin();
     }

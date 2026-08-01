@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getGitHubPat, ALLOWED_ORIGINS, PLATFORM_PROJECT, getDeployToken } from './helpers';
+import { verifyGitHubOidcToken } from './github-oidc';
 
 interface GitHubRelease {
   tag_name: string;
@@ -195,17 +196,30 @@ export const completeVersionUpdate = onCall<{
   storeId: string;
   success: boolean;
   deployToken: string;
+  idToken?: string;
   version: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
-  const { storeId, success, deployToken, version } = request.data;
+  const { storeId, success, deployToken, idToken, version } = request.data;
 
-  if (!storeId || !deployToken) {
-    throw new HttpsError('invalid-argument', 'storeId and deployToken are required.');
+  if (!storeId) {
+    throw new HttpsError('invalid-argument', 'storeId is required.');
   }
 
-  const expected = await getDeployToken();
-  if (deployToken !== expected) {
-    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  // Verificación OIDC de GitHub Actions (automatizada) o fallback al deploy token legacy.
+  if (idToken) {
+    const oidcValid = await verifyGitHubOidcToken(idToken, {
+      repository: 'Vertex-Tech-Devs/ecommerce-vertex',
+    });
+    if (!oidcValid) {
+      throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
+    }
+  } else if (deployToken) {
+    const expected = await getDeployToken();
+    if (deployToken !== expected) {
+      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    }
+  } else {
+    throw new HttpsError('invalid-argument', 'A valid deploy token or GitHub OIDC token is required.');
   }
 
   const db = getFirestore();
