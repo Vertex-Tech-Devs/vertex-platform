@@ -17,7 +17,7 @@ jobs:
     name: Update CURRENT_TEMPLATE_VERSION → v${{ github.event.client_payload.version }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: develop
           token: ${{ secrets.GITHUB_TOKEN }}
