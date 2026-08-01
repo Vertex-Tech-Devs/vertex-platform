@@ -22,6 +22,9 @@ env:
   NPM_CONFIG_LOGLEVEL: 'error'
   NPM_CONFIG_AUDIT: 'false'
   NPM_CONFIG_FUND: 'false'
+  # No descargar el binario de Cypress en el deploy (solo se usa para E2E en ci.yml).
+  # Evita fallos transitorios del CDN de Cypress (502 Bad Gateway) en npm ci.
+  CYPRESS_INSTALL_BINARY: '0'
 
 jobs:
   validate:
@@ -178,14 +181,19 @@ jobs:
             --condition=None \
             --quiet 2>&1 || echo "Role already exists or not needed"
 
-      - name: Deploy to Firebase Development
+      - name: Deploy Hosting (Development)
         working-directory: vertex-platform
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-dev \
-            --only hosting:dev,functions \
+            --only hosting:dev \
             --non-interactive \
             --force
+
+      - name: Deploy Functions (Development) — resiliente a 409 (cola de Cloud Functions)
+        working-directory: vertex-platform
+        run: |
+          bash ../scripts/deploy-functions.sh vertex-platform-dev
 
   deploy-prod:
     name: '→ Production'
@@ -232,11 +240,16 @@ jobs:
             --condition=None \
             --quiet 2>&1 || echo "Role already exists or not needed"
 
-      - name: Deploy to Firebase Production
+      - name: Deploy Hosting (Production)
         working-directory: vertex-platform
         run: |
           npx --yes firebase-tools deploy \
             --project vertex-platform-app \
-            --only hosting:prod,functions \
+            --only hosting:prod \
             --non-interactive \
             --force
+
+      - name: Deploy Functions (Production) — resiliente a 409 (cola de Cloud Functions)
+        working-directory: vertex-platform
+        run: |
+          bash ../scripts/deploy-functions.sh vertex-platform-app
