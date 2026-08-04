@@ -197,13 +197,18 @@ jobs:
 
       - name: Grant storefront SA access to shard Firestore (dev)
         run: |
-          # Las functions del storefront (ecommerce-vertex-dev) leen/escriben el
-          # Firestore del shard (orden/catálogo/stock) → datastore.user en el shard.
-          gcloud projects add-iam-policy-binding vtx-sd-c3732d17 \
-            --member="serviceAccount:ecommerce-vertex-dev@appspot.gserviceaccount.com" \
-            --role="roles/datastore.user" \
-            --condition=None \
-            --quiet 2>&1 || echo "Role already exists or not granted"
+          # Las functions del storefront (ecommerce-vertex-dev, gen 2) usan la SA de
+          # Compute Engine — leen/escriben el Firestore del shard → datastore.user.
+          # Se otorgan AMBAS SAs (appspot + compute) por robustez.
+          for SA in \
+            "serviceAccount:ecommerce-vertex-dev@appspot.gserviceaccount.com" \
+            "serviceAccount:988454979046-compute@developer.gserviceaccount.com"; do
+            gcloud projects add-iam-policy-binding vtx-sd-c3732d17 \
+              --member="$SA" \
+              --role="roles/datastore.user" \
+              --condition=None \
+              --quiet 2>&1 || echo "Role already exists or not granted for $SA"
+          done
 
   deploy-prod:
     name: '→ Production'
