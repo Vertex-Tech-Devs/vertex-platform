@@ -2243,6 +2243,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       'roles/editor',
       'roles/firebasehosting.admin',
       'roles/firebaserules.admin',
+      // Las functions del storefront (proyecto master del ecommerce) leen/escriben el
+      // Firestore de cada shard (orden, catálogo, stock) → datastore.user en el shard.
+      'roles/datastore.user',
     ];
 
     let modified = false;
