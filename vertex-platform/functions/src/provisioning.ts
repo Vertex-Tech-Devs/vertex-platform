@@ -697,7 +697,6 @@ export const provisionStore = onCall<CreateStorePayload>(
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     // storeId y sufijo único (para sitios de hosting/web app) se generan temprano
     const storeId = crypto.randomUUID();
-    const uniqueSiteSuffix = storeId.replace(/[^a-zA-Z0-9]/g, '').slice(-6);
     let shardsSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
