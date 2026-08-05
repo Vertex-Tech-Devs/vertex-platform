@@ -798,7 +798,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
         isNewShard = false;
       } else {
         // Fallback: Generate a new shared-shard project autonomously
@@ -807,7 +807,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
         // Trigger asynchronous background creation of a warm shard buffer
         void ensureWarmShardAvailable().catch((err) => {
           console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
@@ -885,7 +885,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const fbShardData = (fbShardDoc.data() ?? {}) as StoreShard;
         shardId = fbShardDoc.id;
         projectId = fbShardData.projectId;
-        runtimeSiteId = `vtx-${slug}-${uniqueSiteSuffix}`.slice(0, 30);
+        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
       }
 
       // Solo si seguimos necesitando un proyecto GCP nuevo tras el fallback
