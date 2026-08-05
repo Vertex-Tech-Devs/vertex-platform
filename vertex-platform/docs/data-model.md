@@ -6,27 +6,27 @@ Desde V1.0, **todos los datos de tienda son colecciones planas en la raíz** eti
 
 ### Colecciones de Catálogo (Públicas)
 
-| Colección | Doc ID | Campos clave |
-|---|---|---|
-| `products` | `{storeId}-<id>` | `storeId`, `categoryId`, `price`, `finalPrice`, `totalStock`, `variantAttributes`, `image`, `images[]` |
-| `products/{id}/variants` | `{storeId}-<id>` | `storeId`, `productId`, `attributes`, `stock`, `sku` |
-| `categories` | `{storeId}-<id>` | `storeId`, `name`, `slug`, `parentId`, `filterableAttributes`, `imageUrl` |
-| `attributes` | `{storeId}-<id>` | `storeId`, `name`, `values[]` |
-| `configuracion` | `store_{storeId}`, `footer_{storeId}`, `hero_{storeId}` | `storeId`, `storeName`, `colors`, `contact`, `seo` (branding público) |
-| `store_payments` | `{storeId}` | **PRIVADO** — `payments.mercadoPago` (secret ref, masked, webhook), solo admin |
-| `banners` | `home_{storeId}` | `storeId`, `heroImages[]`, `carouselSettings`, `featuredCategories` |
-| `pages` | `aboutUs_{storeId}` | `storeId`, `bannerTitle`, `centralDescription`, `featureCards[]` |
+| Colección                | Doc ID                                                  | Campos clave                                                                                           |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `products`               | `{storeId}-<id>`                                        | `storeId`, `categoryId`, `price`, `finalPrice`, `totalStock`, `variantAttributes`, `image`, `images[]` |
+| `products/{id}/variants` | `{storeId}-<id>`                                        | `storeId`, `productId`, `attributes`, `stock`, `sku`                                                   |
+| `categories`             | `{storeId}-<id>`                                        | `storeId`, `name`, `slug`, `parentId`, `filterableAttributes`, `imageUrl`                              |
+| `attributes`             | `{storeId}-<id>`                                        | `storeId`, `name`, `values[]`                                                                          |
+| `configuracion`          | `store_{storeId}`, `footer_{storeId}`, `hero_{storeId}` | `storeId`, `storeName`, `colors`, `contact`, `seo` (branding público)                                  |
+| `store_payments`         | `{storeId}`                                             | **PRIVADO** — `payments.mercadoPago` (secret ref, masked, webhook), solo admin                         |
+| `banners`                | `home_{storeId}`                                        | `storeId`, `heroImages[]`, `carouselSettings`, `featuredCategories`                                    |
+| `pages`                  | `aboutUs_{storeId}`                                     | `storeId`, `bannerTitle`, `centralDescription`, `featureCards[]`                                       |
 
 ### Colecciones Transaccionales / Admin
 
-| Colección | Doc ID | Notas |
-|---|---|---|
-| `orders` | `{storeId}-<id>` | público get/create (guest checkout), admin list/update/delete |
-| `clients` | `{storeId}_<email>` | clave compuesta para evitar colisiones entre tiendas |
-| `reviews` | auto | creación con `userId == auth.uid` |
-| `settings` | `emailTemplates_{storeId}` | plantillas de email por tienda |
-| `mail` | auto | cola de emails con TTL |
-| `admin_roles` | `{storeId}_{email}` | clave compuesta; escritura solo vía Admin SDK |
+| Colección     | Doc ID                     | Notas                                                         |
+| ------------- | -------------------------- | ------------------------------------------------------------- |
+| `orders`      | `{storeId}-<id>`           | público get/create (guest checkout), admin list/update/delete |
+| `clients`     | `{storeId}_<email>`        | clave compuesta para evitar colisiones entre tiendas          |
+| `reviews`     | auto                       | creación con `userId == auth.uid`                             |
+| `settings`    | `emailTemplates_{storeId}` | plantillas de email por tienda                                |
+| `mail`        | auto                       | cola de emails con TTL                                        |
+| `admin_roles` | `{storeId}_{email}`        | clave compuesta; escritura solo vía Admin SDK                 |
 
 ### Plano de Control (Siempre Privado)
 
@@ -34,14 +34,14 @@ Desde V1.0, **todos los datos de tienda son colecciones planas en la raíz** eti
 
 ### Shards (`infrastructure_shards`)
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `status` | string | `ACTIVE` \| `FULL` \| `DRAINING` \| `MAINTENANCE` \| `WARMUP_READY` \| `WARMUP_PROVISIONING` (mayúsculas) |
-| `maxCapacity` | number | máx. tiendas (35 por proyecto GCP) |
-| `currentStores` | number | tiendas activas asignadas |
-| `reservedStores` | number | reservas |
-| `projectId` | string | proyecto GCP compartido |
-| `firebaseConfig` | map (opcional) | caché de config para reutilizar web app |
+| Campo            | Tipo           | Notas                                                                                                     |
+| ---------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| `status`         | string         | `ACTIVE` \| `FULL` \| `DRAINING` \| `MAINTENANCE` \| `WARMUP_READY` \| `WARMUP_PROVISIONING` (mayúsculas) |
+| `maxCapacity`    | number         | máx. tiendas (35 por proyecto GCP)                                                                        |
+| `currentStores`  | number         | tiendas activas asignadas                                                                                 |
+| `reservedStores` | number         | reservas                                                                                                  |
+| `projectId`      | string         | proyecto GCP compartido                                                                                   |
+| `firebaseConfig` | map (opcional) | caché de config para reutilizar web app                                                                   |
 
 ## 2. Reglas de Firestore
 

@@ -440,10 +440,7 @@ const VERTICAL_SEEDS: Record<
         price: 22500,
         discount: 0,
         image: u('1542272604-787c3835535d', 600, 600),
-        images: [
-          u('1542272604-787c3835535d', 600, 600),
-          u('1541099649105-f69ad21f3246', 600, 600),
-        ],
+        images: [u('1542272604-787c3835535d', 600, 600), u('1541099649105-f69ad21f3246', 600, 600)],
         variantAttributes: ['talle-pantalon', 'color'],
       },
       {
@@ -455,10 +452,7 @@ const VERTICAL_SEEDS: Record<
         price: 52000,
         discount: 0,
         image: u('1542291026-7eec264c27ff', 600, 600),
-        images: [
-          u('1542291026-7eec264c27ff', 600, 600),
-          u('1491553895911-0055eca6402d', 600, 600),
-        ],
+        images: [u('1542291026-7eec264c27ff', 600, 600), u('1491553895911-0055eca6402d', 600, 600)],
         variantAttributes: ['talle-calzado', 'color'],
       },
       {
@@ -470,10 +464,7 @@ const VERTICAL_SEEDS: Record<
         price: 9800,
         discount: 10,
         image: u('1548036328-c9fa89d128fa', 600, 600),
-        images: [
-          u('1548036328-c9fa89d128fa', 600, 600),
-          u('1553062407-98eeb64c6a62', 600, 600),
-        ],
+        images: [u('1548036328-c9fa89d128fa', 600, 600), u('1553062407-98eeb64c6a62', 600, 600)],
         variantAttributes: ['color'],
       },
       {
@@ -485,10 +476,7 @@ const VERTICAL_SEEDS: Record<
         price: 38000,
         discount: 0,
         image: u('1551028719-00167b16eac5', 600, 600),
-        images: [
-          u('1551028719-00167b16eac5', 600, 600),
-          u('1551537482-f2075a1d41f2', 600, 600),
-        ],
+        images: [u('1551028719-00167b16eac5', 600, 600), u('1551537482-f2075a1d41f2', 600, 600)],
         variantAttributes: ['talle-ropa', 'color'],
       },
     ],

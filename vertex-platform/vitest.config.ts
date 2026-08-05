@@ -8,7 +8,7 @@ export default defineConfig({
       '**/functions/**',
       '**/cypress/**',
       '**/.angular/**',
-      '**/out-tsc/**'
-    ]
-  }
+      '**/out-tsc/**',
+    ],
+  },
 });

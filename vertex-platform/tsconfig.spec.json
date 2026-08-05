@@ -5,17 +5,8 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./out-tsc/spec",
-    "types": [
-      "vitest/globals"
-    ]
+    "types": ["vitest/globals"]
   },
-  "include": [
-    "src/main.ts",
-    "src/app/**/*.ts",
-    "src/app/**/*.d.ts",
-    "src/environments/**/*.ts"
-  ],
-  "exclude": [
-    "src/test.ts"
-  ]
+  "include": ["src/main.ts", "src/app/**/*.ts", "src/app/**/*.d.ts", "src/environments/**/*.ts"],
+  "exclude": ["src/test.ts"]
 }

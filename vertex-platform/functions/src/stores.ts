@@ -766,9 +766,7 @@ export const deleteStore = onCall<{ storeId: string }>(
       if (deleteProjectOnCleanup) {
         await shardRef
           .delete()
-          .then(() =>
-            console.info(`[deleteStore] Shard desechable ${store.shardId} eliminado.`),
-          )
+          .then(() => console.info(`[deleteStore] Shard desechable ${store.shardId} eliminado.`))
           .catch((err) =>
             console.warn(`[deleteStore] No se pudo eliminar el shard ${store.shardId}:`, err),
           );

@@ -418,7 +418,11 @@ async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Pro
 
   // 2. Reglas de Storage (release firebase.storage/{bucket}) — no crítico si Storage no está habilitado
   const storageBucket = `${projectId}.firebasestorage.app`;
-  await deployRuleset('storage.rules', STOREFRONT_STORAGE_RULES, `firebase.storage/${storageBucket}`);
+  await deployRuleset(
+    'storage.rules',
+    STOREFRONT_STORAGE_RULES,
+    `firebase.storage/${storageBucket}`,
+  );
 }
 
 /**
@@ -478,7 +482,9 @@ async function ensureServiceEnabled(
     }
     await new Promise((resolve) => setTimeout(resolve, 10000));
   }
-  console.warn(`[provisioning:ensureServiceEnabled] ${service} aún no propagado en ${projectId} (continuando).`);
+  console.warn(
+    `[provisioning:ensureServiceEnabled] ${service} aún no propagado en ${projectId} (continuando).`,
+  );
 }
 
 /**
@@ -509,7 +515,9 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
         !msg.includes('billing') &&
         !msg.includes('BLAZE')
       ) {
-        console.warn(`[provisioning:ensureFirebaseProject] Could not set BLAZE plan (non-fatal): ${msg}`);
+        console.warn(
+          `[provisioning:ensureFirebaseProject] Could not set BLAZE plan (non-fatal): ${msg}`,
+        );
       }
     }
   };
@@ -2622,7 +2630,10 @@ export const completeStoreDeployment = onCall<{
       throw new HttpsError('permission-denied', 'Invalid deploy token.');
     }
   } else {
-    throw new HttpsError('invalid-argument', 'A valid deploy token or GitHub OIDC token is required.');
+    throw new HttpsError(
+      'invalid-argument',
+      'A valid deploy token or GitHub OIDC token is required.',
+    );
   }
 
   // Create a deployment history log entry

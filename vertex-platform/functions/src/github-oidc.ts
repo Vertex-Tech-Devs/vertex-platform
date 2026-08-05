@@ -64,7 +64,9 @@ export async function verifyGitHubOidcToken(
     if (expected.repository && payload.repository !== expected.repository) return false;
     if (expected.ref) {
       // El workflow puede enviar 'main' mientras el claim del token es 'refs/heads/main'.
-      const expectedRef = expected.ref.startsWith('refs/') ? expected.ref : `refs/heads/${expected.ref}`;
+      const expectedRef = expected.ref.startsWith('refs/')
+        ? expected.ref
+        : `refs/heads/${expected.ref}`;
       if (payload.ref !== expectedRef) return false;
     }
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) {

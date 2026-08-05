@@ -62,9 +62,9 @@ export default defineConfig({
             .doc(storeId)
             .update({ customDomain })
             .then(() => null);
-        }
+        },
       });
       return config;
-    }
+    },
   },
 });

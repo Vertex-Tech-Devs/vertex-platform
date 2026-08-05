@@ -4,10 +4,10 @@
 
 **Vertex Solutions** opera un ecosistema SaaS multi-tenant de comercio electrónico compuesto por dos repositorios hermanos:
 
-| Repositorio | Rol | Stack |
-|---|---|---|
-| `vertex-tech-devs/vertex-platform` | Plano de control (aprovisionamiento, billing, shards, contratos) | Angular 22 + Firebase Cloud Functions v2 + Firestore |
-| `vertex-tech-devs/ecommerce-vertex` | Plantilla de tienda (storefront + admin del cliente) | Angular 22 + Firebase Cloud Functions v2 + Firestore + Storage |
+| Repositorio                         | Rol                                                              | Stack                                                          |
+| ----------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| `vertex-tech-devs/vertex-platform`  | Plano de control (aprovisionamiento, billing, shards, contratos) | Angular 22 + Firebase Cloud Functions v2 + Firestore           |
+| `vertex-tech-devs/ecommerce-vertex` | Plantilla de tienda (storefront + admin del cliente)             | Angular 22 + Firebase Cloud Functions v2 + Firestore + Storage |
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -53,16 +53,16 @@ Ver [provisioning.md](provisioning.md).
 
 ## Módulos Clave (`functions/src`)
 
-| Archivo | Responsabilidad |
-|---|---|
+| Archivo           | Responsabilidad                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------- |
 | `provisioning.ts` | Orquestación del aprovisionamiento, shards, webApp, OAuth/Identity Toolkit, fallback billing |
-| `stores.ts` | CRUD de tiendas, staff, dominios, runtime capacity, seed |
-| `billing.ts` | Gestión de cuentas de facturación |
-| `helpers.ts` | `pickBillingAccount` (dual schema), `apiFetch`, `retry`, secrets, email |
-| `shards.ts` | Warm shards (`ensureWarmShardAvailable`) |
-| `runtime.ts` | Resolución de entorno, capacidad de shards, reconciliación |
-| `seeds.ts` | Sembrado determinista flat (`footer_{storeId}`, `hero_{storeId}`, ...) |
-| `index.ts` | Re-export de todas las funciones |
+| `stores.ts`       | CRUD de tiendas, staff, dominios, runtime capacity, seed                                     |
+| `billing.ts`      | Gestión de cuentas de facturación                                                            |
+| `helpers.ts`      | `pickBillingAccount` (dual schema), `apiFetch`, `retry`, secrets, email                      |
+| `shards.ts`       | Warm shards (`ensureWarmShardAvailable`)                                                     |
+| `runtime.ts`      | Resolución de entorno, capacidad de shards, reconciliación                                   |
+| `seeds.ts`        | Sembrado determinista flat (`footer_{storeId}`, `hero_{storeId}`, ...)                       |
+| `index.ts`        | Re-export de todas las funciones                                                             |
 
 ## Seguridad
 

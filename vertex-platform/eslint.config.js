@@ -6,7 +6,15 @@ const typescriptParser = require('@typescript-eslint/parser');
 
 module.exports = [
   {
-    ignores: ['dist/**/*', 'coverage/**/*', 'node_modules/**/*', '.angular/**/*', 'functions/vitest.config.ts', 'functions/lib/**/*', 'functions/coverage/**/*'],
+    ignores: [
+      'dist/**/*',
+      'coverage/**/*',
+      'node_modules/**/*',
+      '.angular/**/*',
+      'functions/vitest.config.ts',
+      'functions/lib/**/*',
+      'functions/coverage/**/*',
+    ],
   },
   // Application source — Angular + TypeScript strict rules
   {
@@ -31,10 +39,7 @@ module.exports = [
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
-      '@typescript-eslint/explicit-member-accessibility': [
-        'error',
-        { accessibility: 'no-public' },
-      ],
+      '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'no-public' }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',

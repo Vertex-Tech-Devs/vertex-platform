@@ -7,7 +7,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
   const loginAsRealPlatformAdmin = () => {
     cy.task('generateCustomToken', {
       uid: 'emulator-admin-uid',
-      claims: { platformAdmin: true, superAdmin: true, email: adminEmail }
+      claims: { platformAdmin: true, superAdmin: true, email: adminEmail },
     }).then((token) => {
       cy.visit('http://localhost:4200/login');
       cy.window().then((win) => {
@@ -33,7 +33,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
 
   it('1 · List existing stores from Firestore emulator', () => {
     loginAsRealPlatformAdmin();
-    
+
     // We expect the local database seeds (like Tienda Dos) to be rendered on screen.
     cy.contains('Tienda Dos', { timeout: 15000 }).should('be.visible');
     cy.contains('tienda-dos').should('be.visible');
@@ -44,12 +44,12 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
     cy.visit('http://localhost:4200/stores/new');
 
     // Fill out the creation form
-    cy.get('input[placeholder*="Nombre"], input[formcontrolname="name"]').type('Tienda Real Test E2E');
-    
+    cy.get('input[placeholder*="Nombre"], input[formcontrolname="name"]').type(
+      'Tienda Real Test E2E',
+    );
+
     // Clear and input the unique slug
-    cy.get('input[placeholder*="slug"], input[formcontrolname="slug"]')
-      .clear()
-      .type(newStoreSlug);
+    cy.get('input[placeholder*="slug"], input[formcontrolname="slug"]').clear().type(newStoreSlug);
 
     cy.get('input[placeholder*="mail"], input[formcontrolname="ownerEmail"]')
       .clear()
@@ -64,7 +64,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
     // Verify the steps display and automatically complete
     cy.contains('Aprovisionando tienda', { timeout: 15000 }).should('be.visible');
     cy.contains('Crear proyecto GCP').should('be.visible');
-    
+
     // Verify the store becomes fully active in the emulator
     cy.contains('Desplegar tienda', { timeout: 25000 }).should('be.visible');
   });
@@ -103,11 +103,21 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
         result: {
           success: true,
           dnsRecords: [
-            { domainName: 'reale2etestdomain.com', type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-            { domainName: 'www.reale2etestdomain.com', type: 'CNAME', rdata: 'tienda-dos.web.app', requiredAction: 'ADD' }
-          ]
-        }
-      }
+            {
+              domainName: 'reale2etestdomain.com',
+              type: 'A',
+              rdata: '199.36.158.100',
+              requiredAction: 'ADD',
+            },
+            {
+              domainName: 'www.reale2etestdomain.com',
+              type: 'CNAME',
+              rdata: 'tienda-dos.web.app',
+              requiredAction: 'ADD',
+            },
+          ],
+        },
+      },
     }).as('connectDomain');
 
     cy.intercept('POST', '**/verifyDomainDNSStatus', {
@@ -116,11 +126,21 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
           success: true,
           status: 'pending',
           dnsRecords: [
-            { domainName: 'reale2etestdomain.com', type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-            { domainName: 'www.reale2etestdomain.com', type: 'CNAME', rdata: 'tienda-dos.web.app', requiredAction: 'ADD' }
-          ]
-        }
-      }
+            {
+              domainName: 'reale2etestdomain.com',
+              type: 'A',
+              rdata: '199.36.158.100',
+              requiredAction: 'ADD',
+            },
+            {
+              domainName: 'www.reale2etestdomain.com',
+              type: 'CNAME',
+              rdata: 'tienda-dos.web.app',
+              requiredAction: 'ADD',
+            },
+          ],
+        },
+      },
     }).as('verifyDomain');
 
     // Submit domain linking
@@ -128,7 +148,10 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
     cy.wait('@connectDomain');
 
     // Manually set customDomain in local emulator database to trigger reactive UI switch to DNS info view
-    cy.task('setStoreCustomDomain', { storeId: 'tienda-dos', customDomain: 'reale2etestdomain.com' });
+    cy.task('setStoreCustomDomain', {
+      storeId: 'tienda-dos',
+      customDomain: 'reale2etestdomain.com',
+    });
 
     // Click verify records DNS button
     cy.contains('Verificar Registros DNS').click();
@@ -176,7 +199,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
 
     // Add to cart
     cy.contains('Añadir al Carrito', { timeout: 15000 }).should('be.visible').click();
-    
+
     // Visit cart
     cy.visit('http://localhost:4201/shop/cart?tenantId=tienda-dos');
     cy.contains('Iniciar Compra').click();
@@ -220,7 +243,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
     // Intercept/capture the order ID when creating payment preference
     cy.intercept('POST', '**/createPaymentPreference').as('paymentPref');
     cy.contains('Pagar con Mercado Pago').click();
-    
+
     cy.wait('@paymentPref', { timeout: 20000 }).then((interception) => {
       const orderId = interception.request.body.data.external_reference;
       expect(orderId).to.exist;
@@ -229,7 +252,7 @@ describe('SaaS Integration E2E - Real Local Emulator', () => {
       cy.request({
         method: 'POST',
         url: `http://localhost:5001/demo-vertex/us-central1/mercadoPagoWebhookHandler?topic=payment&id=mp-mock-payment-${orderId}`,
-        failOnStatusCode: false
+        failOnStatusCode: false,
       }).then((response) => {
         expect(response.status).to.eq(200);
 

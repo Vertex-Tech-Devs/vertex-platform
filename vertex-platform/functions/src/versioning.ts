@@ -219,7 +219,10 @@ export const completeVersionUpdate = onCall<{
       throw new HttpsError('permission-denied', 'Invalid deploy token.');
     }
   } else {
-    throw new HttpsError('invalid-argument', 'A valid deploy token or GitHub OIDC token is required.');
+    throw new HttpsError(
+      'invalid-argument',
+      'A valid deploy token or GitHub OIDC token is required.',
+    );
   }
 
   const db = getFirestore();

@@ -11,8 +11,8 @@ interface CreateStorePayload {
   ownerEmail: string;
   logoUrl?: string;
   customDomain?: string;
-  verticalId?: string;        // indumentaria | gastronomia | retail | ...
-  includeMockData?: boolean;  // siembra pedidos/clientes de demostración
+  verticalId?: string; // indumentaria | gastronomia | retail | ...
+  includeMockData?: boolean; // siembra pedidos/clientes de demostración
   dedicatedProject?: boolean; // true = Tienda Dedicada, false/undefined = Estándar
 }
 ```
@@ -68,18 +68,18 @@ Si `isNewShard`, se pre-registra el shard en `infrastructure_shards`.
 
 ## Paso 5 — Ejecución de Pasos (`runProvisioning`, 10 pasos)
 
-| # | Paso | Estándar (shared) | Dedicada |
-|---|---|---|---|
-| 1 | `createProject` (GCP) | `done` (skip) | crear proyecto |
-| 2 | `linkBilling` | `done` (skip) | vincular cuenta |
-| 3 | `addFirebase` | `done` (skip) | activar Firebase |
-| 4 | `enableApis` | `done` (skip) | habilitar APIs |
-| 5 | `createWebApp` | reutilizar/cachear config del shard o crear web app | crear web app |
-| 6 | `initFirestore` | sembrar datos base flat | idem |
-| 7 | `configureEmail` | plantillas `settings/emailTemplates_{storeId}` | idem |
-| 8 | `installEmailExtension` | `done` (skip) | instalar extensión |
-| 9 | `initAdmin` | preautorizar owner (Google OAuth) | idem |
-| 10 | `triggerDeploy` | disparar GitHub Actions deploy | idem |
+| #   | Paso                    | Estándar (shared)                                   | Dedicada           |
+| --- | ----------------------- | --------------------------------------------------- | ------------------ |
+| 1   | `createProject` (GCP)   | `done` (skip)                                       | crear proyecto     |
+| 2   | `linkBilling`           | `done` (skip)                                       | vincular cuenta    |
+| 3   | `addFirebase`           | `done` (skip)                                       | activar Firebase   |
+| 4   | `enableApis`            | `done` (skip)                                       | habilitar APIs     |
+| 5   | `createWebApp`          | reutilizar/cachear config del shard o crear web app | crear web app      |
+| 6   | `initFirestore`         | sembrar datos base flat                             | idem               |
+| 7   | `configureEmail`        | plantillas `settings/emailTemplates_{storeId}`      | idem               |
+| 8   | `installEmailExtension` | `done` (skip)                                       | instalar extensión |
+| 9   | `initAdmin`             | preautorizar owner (Google OAuth)                   | idem               |
+| 10  | `triggerDeploy`         | disparar GitHub Actions deploy                      | idem               |
 
 ### Paso 5 — Creación de WebApp (404 fix)
 
@@ -90,6 +90,7 @@ Si `isNewShard`, se pre-registra el shard en `infrastructure_shards`.
 ### Paso 6 — Seeding Flat (`seedStoreData`)
 
 Escribe en colecciones planas con `storeId` y IDs prefijados `{storeId}-`:
+
 - `configuracion/footer_{storeId}`, `configuracion/hero_{storeId}`, `configuracion/store_{storeId}`
 - `banners/home_{storeId}`, `pages/aboutUs_{storeId}`
 - `attributes`, `categories`, `products` (+ `variants` subcolección), `clients`, `orders`

@@ -31,9 +31,11 @@ npm --prefix functions run build && npm --prefix functions test   # 7 tests
 ## 2. Hooks de Git (husky)
 
 ### `pre-commit`
+
 - Verificación de formato (Prettier) y lint en los archivos preparados.
 
 ### `pre-push`
+
 - **Protección de ramas**: push directo a `develop`/`main` bloqueado salvo `ALLOW_DIRECT_PUSH=true` (para automatización/agentes).
 - **Quality gates completos**: Prettier check → ESLint → typecheck → tests → cobertura ≥85% (storefront).
 - **Vertex-platform**: además ejecuta `validate-firestore-rules.ts`.
@@ -42,12 +44,12 @@ npm --prefix functions run build && npm --prefix functions test   # 7 tests
 
 ## 3. GitHub Actions (CI)
 
-| Workflow | Propósito |
-|---|---|
-| `quality-gate` | Lint + typecheck + tests + build sobre `develop`/PRs; requerido para merge |
-| `deploy` (dev) | Despliegue automático a `vertex-platform-dev` / `ecommerce-vertex-dev` |
-| `codeql` / `analyze-code-security` | Análisis de seguridad estático |
-| `release` (storefront) | Detecta tags `v*`, crea GitHub Release y notifica a la plataforma (`repository_dispatch`) |
+| Workflow                           | Propósito                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| `quality-gate`                     | Lint + typecheck + tests + build sobre `develop`/PRs; requerido para merge                |
+| `deploy` (dev)                     | Despliegue automático a `vertex-platform-dev` / `ecommerce-vertex-dev`                    |
+| `codeql` / `analyze-code-security` | Análisis de seguridad estático                                                            |
+| `release` (storefront)             | Detecta tags `v*`, crea GitHub Release y notifica a la plataforma (`repository_dispatch`) |
 
 ### En runner aislado
 
@@ -66,22 +68,23 @@ La autenticación del workflow del storefront hacia `completeStoreDeployment` / 
 
 ## 4. Entornos y Despliegues
 
-| Entorno | Proyecto Firebase | Reglas | Functions |
-|---|---|---|---|
-| Dev | `vertex-platform-dev` / `ecommerce-vertex-dev` | `npx firebase-tools deploy --only firestore:rules,storage --project <dev>` | `--only functions --project <dev>` |
-| Prod | `vertex-platform-app` / `ecommerce-vertex` | idem con proyecto de producción | idem |
+| Entorno | Proyecto Firebase                              | Reglas                                                                     | Functions                          |
+| ------- | ---------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| Dev     | `vertex-platform-dev` / `ecommerce-vertex-dev` | `npx firebase-tools deploy --only firestore:rules,storage --project <dev>` | `--only functions --project <dev>` |
+| Prod    | `vertex-platform-app` / `ecommerce-vertex`     | idem con proyecto de producción                                            | idem                               |
 
 Notas operativas:
+
 - El deploy de `storage` requiere que el proyecto tenga Firebase Storage habilitado y credenciales vigentes (`firebase login`).
 - El deploy de `functions` del storefront requiere variables de entorno (`SITE_URL`, `MERCADOPAGO_WEBHOOK_URL`) vía dotenv/interactivo.
 - `vertex-platform` puede presentar `409 unable to queue the operation` en Cloud Functions v2 cuando hay despliegues concurrentes; reintentar espaciadamente.
 
 ## 5. Gobernanza de Ramas
 
-| Rama | Entorno | Regla |
-|---|---|---|
-| `develop` | Integración | Push directo permitido solo con `ALLOW_DIRECT_PUSH=true`; CI Quality Gate obligatorio |
-| `main` | Producción | **Promoción exclusiva vía Pull Request** de `develop → main`; push directo bloqueado por repo rules del servidor |
+| Rama      | Entorno     | Regla                                                                                                            |
+| --------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `develop` | Integración | Push directo permitido solo con `ALLOW_DIRECT_PUSH=true`; CI Quality Gate obligatorio                            |
+| `main`    | Producción  | **Promoción exclusiva vía Pull Request** de `develop → main`; push directo bloqueado por repo rules del servidor |
 
 ### Flujo de promoción (V1.0)
 
@@ -97,9 +100,9 @@ Conventional Commits: `fix(provisioning): ...`, `feat(release): ...`, `fix(ci): 
 
 ## 6. Runbooks Rápidos
 
-| Problema | Acción |
-|---|---|
+| Problema                     | Acción                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
 | CI falla por rules validator | Verificar `CI=true`/`GITHUB_ACTIONS` en el runner; el modo standalone debe salir 0 |
-| Push a `main` rechazado | Abrir PR `develop → main` y fusionar tras Quality Gate |
-| PR bloqueada por check | Re-ejecutar el workflow en GitHub Actions |
-| Divergencia develop/main | Back-merge `main → develop` |
+| Push a `main` rechazado      | Abrir PR `develop → main` y fusionar tras Quality Gate                             |
+| PR bloqueada por check       | Re-ejecutar el workflow en GitHub Actions                                          |
+| Divergencia develop/main     | Back-merge `main → develop`                                                        |

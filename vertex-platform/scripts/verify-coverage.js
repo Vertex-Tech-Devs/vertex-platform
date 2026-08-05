@@ -11,7 +11,7 @@ const paths = [
   {
     name: 'Functions (Backend)',
     file: path.join(__dirname, '../functions/coverage/coverage-summary.json'),
-  }
+  },
 ];
 
 const METRICS = ['statements', 'branches', 'functions', 'lines'];
