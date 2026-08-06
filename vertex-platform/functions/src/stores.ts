@@ -1236,9 +1236,15 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
           mercadoPago['accessToken'],
           mercadoPago['webhookUrl'],
         );
-        await upsertSecretInProject(auth, projectId, 'mp-access-token', mercadoPago['accessToken']);
+        const perStoreSecretName = `mp-access-token-${storeTenantId}`;
+        await upsertSecretInProject(
+          auth,
+          projectId,
+          perStoreSecretName,
+          mercadoPago['accessToken'],
+        );
 
-        mercadoPago['accessTokenSecret'] = 'mp-access-token';
+        mercadoPago['accessTokenSecret'] = perStoreSecretName;
         mercadoPago['accessTokenMasked'] = maskToken(mercadoPago['accessToken']);
         mercadoPago['accountEmail'] = validation.accountEmail || '';
         mercadoPago['accountUserId'] = validation.userId || '';
