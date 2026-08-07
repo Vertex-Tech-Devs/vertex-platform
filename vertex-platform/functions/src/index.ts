@@ -10,3 +10,4 @@ export * from './billing';
 export * from './monitoring';
 export * from './versioning';
 export * from './runtime';
+export * from './domains';
