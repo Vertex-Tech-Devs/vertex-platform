@@ -11,13 +11,19 @@ function toFirestoreValue(val: unknown): unknown {
     return { stringValue: val };
   }
   if (typeof val === 'number') {
-    return { doubleValue: val };
+    return Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
   }
   if (typeof val === 'boolean') {
     return { booleanValue: val };
   }
-  if (val instanceof Date) {
-    return { timestampValue: val.toISOString() };
+  if (
+    val instanceof Date ||
+    (typeof val === 'object' &&
+      val &&
+      'toISOString' in val &&
+      typeof (val as any).toISOString === 'function')
+  ) {
+    return { timestampValue: (val as any).toISOString() };
   }
   if (Array.isArray(val)) {
     return { arrayValue: { values: val.map(toFirestoreValue) } };
