@@ -1,5 +1,4 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as logger from 'firebase-functions/logger';
@@ -43,38 +42,28 @@ function normalizeStorageBucket(projectId: string, storageBucket: string | undef
   return bucket;
 }
 
-const STORAGE_CORS_CONFIG = [
-  {
-    origin: ['*'],
-    method: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    responseHeader: [
-      'Content-Type',
-      'Authorization',
-      'Content-Length',
-      'x-firebase-storage-version',
-      'x-goog-resumable',
-    ],
-    maxAgeSeconds: 3600,
-  },
-];
+import { Storage } from '@google-cloud/storage';
 
-/**
- * Configura automáticamente las reglas de CORS de Google Cloud Storage al aprovisionar un tenant/tienda.
- * Se invoca de forma asíncrona y captura errores con logger.error para no abortar el aprovisionamiento.
- */
-async function configureStorageCors(bucketName: string): Promise<void> {
+const storage = new Storage();
+
+export async function configureBucketCors(bucketName: string): Promise<void> {
   try {
-    const bucket = getStorage().bucket(bucketName);
-    await bucket.setCorsConfiguration(STORAGE_CORS_CONFIG);
-    console.info(
-      `[provisioning:configureStorageCors] CORS configuration applied to bucket gs://${bucketName}`,
-    );
+    await storage.bucket(bucketName).setCorsConfiguration([
+      {
+        maxAgeSeconds: 3600,
+        method: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'],
+        origin: ['*'],
+        responseHeader: ['*'],
+      },
+    ]);
+    console.log(`[Storage] CORS configurado exitosamente para gs://${bucketName}`);
   } catch (err) {
-    logger.error(
-      `[provisioning:configureStorageCors] Failed to apply CORS configuration to bucket gs://${bucketName}:`,
-      err,
-    );
+    logger.error(`[Storage] Failed to apply CORS configuration to bucket gs://${bucketName}:`, err);
   }
+}
+
+async function configureStorageCors(bucketName: string): Promise<void> {
+  await configureBucketCors(bucketName);
 }
 
 function getMasterStorefrontProjectId(): string {

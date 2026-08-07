@@ -35,6 +35,7 @@
     "register-shard": "tsx scripts/register-shard.ts",
     "test:provision": "bash scripts/verify-provision.sh",
     "test:email-delivery": "bash scripts/test-email-delivery.sh",
+    "set-storage-cors": "tsx scripts/set-storage-cors.ts",
     "setup": "tsx scripts/setup.ts",
     "prepare": "husky"
   },
