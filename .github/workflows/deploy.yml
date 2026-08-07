@@ -206,6 +206,17 @@ jobs:
               --quiet 2>&1 || echo "Role already exists or not granted for $SA"
           done
 
+      - name: Post-Deploy Health Check (Development)
+        run: |
+          echo "Verificando respuesta del sitio desplegado (vertex-platform-dev)..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://vertex-platform-dev.web.app)
+          if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 304 ]; then
+            echo "✅ Platform DEV responde correctamente (HTTP $STATUS)"
+          else
+            echo "❌ Falló verificación post-deploy en Platform DEV (HTTP $STATUS)"
+            exit 1
+          fi
+
   deploy-prod:
     name: '→ Production'
     runs-on: ubuntu-latest
@@ -264,3 +275,14 @@ jobs:
         working-directory: vertex-platform
         run: |
           bash ../scripts/deploy-functions.sh vertex-platform-app
+
+      - name: Post-Deploy Health Check (Production)
+        run: |
+          echo "Verificando respuesta del sitio desplegado (vertex-platform-app)..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://vertex-platform-app.web.app)
+          if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 304 ]; then
+            echo "✅ Platform PROD responde correctamente (HTTP $STATUS)"
+          else
+            echo "❌ Falló verificación post-deploy en Platform PROD (HTTP $STATUS)"
+            exit 1
+          fi
