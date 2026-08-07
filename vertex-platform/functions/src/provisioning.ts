@@ -1693,16 +1693,22 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   payments: {
                     mapValue: {
                       fields: {
-                        mercadoPagoPublicKey: { stringValue: '' },
+                        mercadoPagoPublicKey: {
+                          stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                        },
                         mercadoPago: {
                           mapValue: {
                             fields: {
-                              publicKey: { stringValue: '' },
-                              accessTokenSecret: { stringValue: 'mp-access-token' },
-                              accessTokenMasked: { stringValue: '' },
+                              publicKey: {
+                                stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                              },
+                              accessTokenSecret: { stringValue: 'mp-access-token-default' },
+                              accessTokenMasked: { stringValue: 'APP_USR-1516****4666' },
                               webhookUrl: { stringValue: '' },
-                              validationStatus: { stringValue: 'pending' },
-                              validationMessage: { stringValue: 'Sin token configurado.' },
+                              validationStatus: { stringValue: 'valid' },
+                              validationMessage: {
+                                stringValue: 'Credenciales de prueba predeterminadas de Vertex.',
+                              },
                             },
                           },
                         },
