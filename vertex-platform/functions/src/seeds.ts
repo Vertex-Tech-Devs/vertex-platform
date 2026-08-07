@@ -1119,6 +1119,8 @@ export async function seedStoreData(
   };
 
   const paymentDocId = storeId ?? tenantId;
+  const activeStoreId = storeId ?? tenantId;
+
   await retry(
     () =>
       apiFetch(
@@ -1127,6 +1129,52 @@ export async function seedStoreData(
         {
           method: 'PATCH',
           body: toFirestoreFields(defaultMpConfig),
+          quotaProject: projectId,
+        },
+      ),
+    5,
+    6000,
+  );
+
+  // Seed base configuracion documents for footer and hero
+  const footerDoc = {
+    storeId: activeStoreId,
+    copyright: `© ${sName} Store`,
+    links: [],
+    updatedAt: new Date().toISOString(),
+  };
+
+  const heroDoc = {
+    storeId: activeStoreId,
+    title: `Bienvenido a ${sName}`,
+    subtitle: 'Catálogo exclusivo de productos',
+    buttonText: 'Ver Productos',
+    updatedAt: new Date().toISOString(),
+  };
+
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`configuracion/footer_${activeStoreId}`)}`,
+        {
+          method: 'PATCH',
+          body: toFirestoreFields(footerDoc),
+          quotaProject: projectId,
+        },
+      ),
+    5,
+    6000,
+  );
+
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`configuracion/hero_${activeStoreId}`)}`,
+        {
+          method: 'PATCH',
+          body: toFirestoreFields(heroDoc),
           quotaProject: projectId,
         },
       ),
