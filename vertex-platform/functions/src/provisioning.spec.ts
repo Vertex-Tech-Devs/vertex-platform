@@ -4,6 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: vi.fn(),
 }));
+vi.mock('firebase-admin/storage', () => ({
+  getStorage: vi.fn(() => ({
+    bucket: vi.fn(() => ({
+      setCorsConfiguration: vi.fn().mockResolvedValue(undefined),
+    })),
+  })),
+}));
 vi.mock('firebase-functions/v2/https', () => ({
   onCall: vi.fn((_opts: unknown, handler: unknown) => handler),
   HttpsError: class HttpsError extends Error {
