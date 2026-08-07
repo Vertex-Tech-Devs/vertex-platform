@@ -2,7 +2,19 @@ import type { OAuth2Client } from 'google-auth-library';
 import * as logger from 'firebase-functions/logger';
 import { apiFetch, retry } from './helpers';
 
-// Helper to convert standard JavaScript values to Firestore REST API Value types
+/**
+ * Convierte valores primitivos y objetos complejos de JavaScript a tipos de valor compatibles con la API REST de Firestore.
+ *
+ * Mapeo de tipos:
+ * - Enteros: `{ integerValue: String(val) }`
+ * - Decimales: `{ doubleValue: val }`
+ * - Fechas / Instancias con toISOString: `{ timestampValue: val.toISOString() }`
+ * - Arrays: `{ arrayValue: { values: [...] } }`
+ * - Objetos: `{ mapValue: { fields: {...} } }`
+ *
+ * @param val Valor JavaScript arbitrario a convertir.
+ * @returns Estructura de objeto `Value` requerida por la API REST de Cloud Firestore v1.
+ */
 function toFirestoreValue(val: unknown): unknown {
   if (val === null || val === undefined) {
     return { nullValue: null };
@@ -1010,7 +1022,17 @@ function prefixSeedIds<T extends { attributes: any[]; categories: any[]; product
 }
 
 /**
- * Seeds isolated child project database with category trees, attributes, and products with variants.
+ * Puebla la base de datos Firestore de un shard con categorías, atributos, productos, variantes,
+ * y opcionalmente clientes y pedidos simulados (`includeMockData`).
+ *
+ * @param auth Cliente OAuth2 autenticado para invocar la API REST de Google Cloud / Firestore.
+ * @param projectId ID del proyecto GCP del shard de Firestore.
+ * @param tenantId Identificador del tenant / tienda.
+ * @param verticalId Rubro o plantilla vertical ('fashion', 'retail', 'tech', etc.).
+ * @param storeName Nombre comercial de la tienda para personalizar títulos y textos de catálogo.
+ * @param includeMockData Si es `true`, precarga también las colecciones `clients` y `orders` con datos simulados.
+ * @param bypassSafety Si es `true`, omite la verificación de seguridad previa en la base de datos.
+ * @param storeId ID identificador de la tienda (si difiere del tenantId).
  */
 export async function seedStoreData(
   auth: OAuth2Client,
