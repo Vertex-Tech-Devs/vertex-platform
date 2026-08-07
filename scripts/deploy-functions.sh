@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 #
-# deploy-functions.sh — Deploy resiliente de Cloud Functions ante el error
-# "409 unable to queue the operation" (cola de operaciones de la región saturada).
+# deploy-functions.sh — Deploy ultra-rápido y resiliente de Cloud Functions.
 #
 # Estrategia:
-#   1. Despliega en LOTES pequeños (4 funciones) en vez de todas a la vez,
-#      reduciendo la concurrencia de operaciones en la región.
-#   2. Ante un 409, reintenta con BACKOFF creciente (45s, 90s, 135s, ...)
-#      hasta un máximo de intentos, para dejar que la cola se drene sola.
+#   1. Intento 1 (Fast-Path): Intenta desplegar TODAS las funciones juntas en 1 sola invocación.
+#      Esto tarda ~1.5 - 2 minutos y muestra logs completos en vivo.
+#   2. Si GCP responde con error 409 (cola saturada), alterna automáticamente a despliegue
+#      por lotes (batch size = 8) con backoff y logs descriptivos en tiempo real.
 #
-# Uso:
-#   deploy-functions.sh <project>                # todas las funciones (en lotes)
-#   deploy-functions.sh <project> fn1,fn2,fn3    # funciones específicas
-#
+
 set -uo pipefail
 
 PROJECT="${1:?Uso: deploy-functions.sh <project> [fn1,fn2,...]}"
@@ -20,71 +16,121 @@ SPECIFIC="${2:-}"
 MAX_ATTEMPTS=8
 cd "$(dirname "$0")/.."  # raíz del repo (donde está firebase.json)
 
-deploy_batch() {
-  local target="$1"
-  local attempt=0
-  # Formato: functions:vertex-platform:fn1,functions:vertex-platform:fn2
-  local full=""
-  IFS=',' read -ra FNS <<< "$target"
-  for fn in "${FNS[@]}"; do
-    [ -n "$full" ] && full="$full,"
-    full="$full functions:vertex-platform:$fn"
-  done
-  full="${full# }"
-  while [ "$attempt" -lt "$MAX_ATTEMPTS" ]; do
-    attempt=$((attempt + 1))
-    echo ">>> [$(date +%H:%M:%S)] Intento $attempt/$MAX_ATTEMPTS: deploy $target"
-    OUT=$(npx --yes firebase-tools deploy --only "$full" --project "$PROJECT" --non-interactive --force 2>&1)
-    if echo "$OUT" | grep -q "Deploy complete"; then
-      echo ">>> OK: $target"
-      return 0
-    fi
-    if echo "$OUT" | grep -qE "409|unable to queue"; then
-      local wait=$((45 * attempt))
-      echo ">>> 409 (cola saturada). Esperando ${wait}s..."
-      sleep "$wait"
-      continue
-    fi
-    echo "$OUT" | tail -25
-    echo ">>> ERROR: $target no se pudo desplegar."
-    return 1
-  done
-  echo ">>> ABORTADO tras $MAX_ATTEMPTS intentos con 409: $target"
-  return 1
-}
+TMP_LOG=$(mktemp)
+trap 'rm -f "$TMP_LOG"' EXIT
+
+echo "================================================================="
+echo "🚀 [$(date +%H:%M:%S)] Iniciando despliegue de Cloud Functions ($PROJECT)..."
+echo "================================================================="
 
 if [ -n "$SPECIFIC" ]; then
-  deploy_batch "$SPECIFIC"
-  exit $?
+  TARGET="functions:vertex-platform:$SPECIFIC"
+else
+  TARGET="functions:vertex-platform"
 fi
 
-# Todas las functions exportadas por los módulos de functions/src
+# INTENTO 1: Fast-Path (Despliegue único masivo)
+echo "⚡ Ejecutando despliegue masivo en 1 solo paso (Fast-Path)..."
+if npx firebase-tools deploy --only "$TARGET" --project "$PROJECT" --non-interactive --force 2>&1 | tee "$TMP_LOG"; then
+  echo ""
+  echo "================================================================="
+  echo "✅ [$(date +%H:%M:%S)] TODAS las funciones fueron desplegadas con éxito en 1 solo paso!"
+  echo "================================================================="
+  exit 0
+fi
+
+# Verificar si el fallo se debe a saturación de la cola GCP (Error 409)
+if grep -qE "409|unable to queue" "$TMP_LOG"; then
+  echo ""
+  echo "⚠️ [$(date +%H:%M:%S)] Detectada saturación en la cola de GCP (Error 409)."
+  echo "🔄 Alternando a estrategia resiliente por lotes para drenar la cola..."
+else
+  echo ""
+  echo "❌ Falló el despliegue debido a errores de código o compilación (no por 409)."
+  cat "$TMP_LOG" | tail -30
+  exit 1
+fi
+
+# FALLBACK: Despliegue por lotes con logs claros y backoff creciente
 FUNCS=$(grep -hoE 'export const [a-zA-Z0-9_]+ = (on[A-Za-z]+|runWith)' vertex-platform/functions/src/{admin,provisioning,shards,stores,billing,monitoring,versioning,runtime}.ts 2>/dev/null | awk '{print $3}' | sort -u | tr '\n' ',' | sed 's/,$//')
+
 if [ -z "$FUNCS" ]; then
   echo "No se encontraron funciones en functions/src/index.ts"
   exit 1
 fi
-echo "Funciones a desplegar ($(echo "$FUNCS" | tr ',' '\n' | wc -l | tr -d ' ')):"
-echo "$FUNCS" | tr ',' '\n' | sed 's/^/  - /'
 
-# Desplegar en lotes de 4
 IFS=',' read -ra FN_LIST <<< "$FUNCS"
-BATCH_SIZE=4
+TOTAL_FNS=${#FN_LIST[@]}
+BATCH_SIZE=8
 FAILED=0
+BATCH_NUM=0
+TOTAL_BATCHES=$(((TOTAL_FNS + BATCH_SIZE - 1) / BATCH_SIZE))
+
+echo "📦 Desplegando $TOTAL_FNS funciones en $TOTAL_BATCHES lotes (lote = $BATCH_SIZE funciones)..."
+
+deploy_batch() {
+  local batch_idx="$1"
+  local target_fns="$2"
+  local attempt=0
+  
+  local full=""
+  IFS=',' read -ra FNS <<< "$target_fns"
+  for fn in "${FNS[@]}"; do
+    [ -n "$full" ] && full="$full,"
+    full="$full functions:vertex-platform:$fn"
+  done
+
+  while [ "$attempt" -lt "$MAX_ATTEMPTS" ]; do
+    attempt=$((attempt + 1))
+    echo "-----------------------------------------------------------------"
+    echo "▶️ [$(date +%H:%M:%S)] Lote $batch_idx/$TOTAL_BATCHES (Intento $attempt/$MAX_ATTEMPTS): $target_fns"
+    echo "-----------------------------------------------------------------"
+    
+    if npx firebase-tools deploy --only "$full" --project "$PROJECT" --non-interactive --force 2>&1 | tee "$TMP_LOG"; then
+      echo "✅ Lote $batch_idx/$TOTAL_BATCHES completado con éxito."
+      return 0
+    fi
+    
+    if grep -qE "409|unable to queue" "$TMP_LOG"; then
+      local wait=$((30 * attempt))
+      echo "⌛ Lote $batch_idx/$TOTAL_BATCHES: Cola saturada (409). Reintentando en ${wait}s..."
+      sleep "$wait"
+      continue
+    fi
+    
+    echo "❌ ERROR fatal en lote $batch_idx/$TOTAL_BATCHES:"
+    cat "$TMP_LOG" | tail -25
+    return 1
+  done
+
+  echo "💥 ABORTADO Lote $batch_idx/$TOTAL_BATCHES tras $MAX_ATTEMPTS intentos con 409."
+  return 1
+}
+
 for ((i = 0; i < ${#FN_LIST[@]}; i += BATCH_SIZE)); do
+  BATCH_NUM=$((BATCH_NUM + 1))
   BATCH=""
   for ((j = i; j < i + BATCH_SIZE && j < ${#FN_LIST[@]}; j++)); do
     [ -n "$BATCH" ] && BATCH="$BATCH,"
     BATCH="$BATCH${FN_LIST[$j]}"
   done
-  if ! deploy_batch "$BATCH"; then
+  
+  if ! deploy_batch "$BATCH_NUM" "$BATCH"; then
     FAILED=1
+    break
   fi
 done
 
 if [ "$FAILED" -eq 0 ]; then
-  echo "=== TODAS las funciones desplegadas correctamente en $PROJECT ==="
+  echo ""
+  echo "================================================================="
+  echo "🎉 [$(date +%H:%M:%S)] TODAS las funciones desplegadas correctamente en $PROJECT."
+  echo "================================================================="
 else
-  echo "=== ALGUNAS funciones fallaron (revisá los logs) ==="
+  echo ""
+  echo "================================================================="
+  echo "❌ [$(date +%H:%M:%S)] Hubo fallos durante el despliegue por lotes en $PROJECT."
+  echo "================================================================="
 fi
+
 exit $FAILED
