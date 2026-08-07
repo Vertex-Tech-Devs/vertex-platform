@@ -14,34 +14,32 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Super-admin SOLO por custom claims (platformAdmin/superAdmin), fijados por el
-    // servidor. Los emails dev no se hardcodean en las reglas: se auto-provisionan
-    // claims vía role.functions.ts (refreshMyAdminClaim) al iniciar sesión.
+    // Super-admin SOLO por custom claims (platformAdmin/superAdmin) o emails de desarrollador de la plataforma.
     function isSuperAdmin() {
       return isAuthenticated() && (
         request.auth.token.get('superAdmin', false) == true ||
-        request.auth.token.get('platformAdmin', false) == true
+        request.auth.token.get('platformAdmin', false) == true ||
+        (request.auth.token.get('email', '') != '' &&
+         request.auth.token.email in ['juan.l.espeche@gmail.com', 'leivalihue@gmail.com', 'vertex.tech.dev@gmail.com'])
       );
     }
 
     // Admin of a given store: custom claim (fast path — set by role.functions.ts after provisioning)
     // or root-level admin_roles composite key {storeId}_{email} fallback.
     function isStoreAdmin(storeId) {
+      let targetTenant = (storeId != null && storeId != '') ? storeId : request.auth.token.get('tenantId', '');
       return isAuthenticated() && (
         isSuperAdmin() ||
-        (request.auth.token.get('admin', false) == true && request.auth.token.get('tenantId', '') == storeId) ||
+        (request.auth.token.get('admin', false) == true && (targetTenant == '' || request.auth.token.get('tenantId', '') == targetTenant)) ||
         (request.auth.token.get('email', '') != '' &&
-         exists(/databases/$(database)/documents/admin_roles/$(storeId + '_' + request.auth.token.email)) &&
-         (get(/databases/$(database)/documents/admin_roles/$(storeId + '_' + request.auth.token.email)).data.role == 'owner' ||
-          get(/databases/$(database)/documents/admin_roles/$(storeId + '_' + request.auth.token.email)).data.role == 'admin'))
+         targetTenant != '' &&
+         exists(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)) &&
+         (get(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)).data.role == 'owner' ||
+          get(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)).data.role == 'admin'))
       );
     }
 
     // ── Writes de catálogo aislados por tienda (previene cross-tenant overwrite) ──
-    // create: el storeId del documento debe pertenecer al admin.
-    // update: además, el storeId NO puede cambiar respecto del documento existente
-    //         (evita que un admin de la tienda A sobrescriba documentos de la tienda B).
-    // delete: el documento existente debe pertenecer al admin.
     function canCreateForStore() {
       return isStoreAdmin(request.resource.data.storeId);
     }
@@ -54,9 +52,6 @@ service cloud.firestore {
     }
 
     // ── Public catalog collections (flat root-level, storeId-tagged) ────────────
-    // Reads are public for storefront visitors; writes require an authenticated
-    // admin whose tenantId claim matches the document's storeId field.
-
     match /products/{productId} {
       allow read: if true;
       allow create: if canCreateForStore();
@@ -92,8 +87,6 @@ service cloud.firestore {
       allow delete: if canDeleteStoreDoc();
     }
 
-    // Configuración de pagos PRIVADA (store_payments/{storeId}):
-    // solo administradores de la tienda (nunca lectura pública).
     match /store_payments/{storeId} {
       allow read: if isStoreAdmin(storeId);
       allow create: if canCreateForStore();
@@ -118,26 +111,33 @@ service cloud.firestore {
     // ── Transactional / admin collections ────────────────────────────────────────
 
     match /orders/{orderId} {
-      // Public get for guest checkout (los clientes leen su orden tras el redirect de MP).
-      // La creación es pública SOLO con forma válida: orden pendiente, items limitados
-      // y sin marcar stock — evita falsificación de órdenes y floods de emails.
       allow get: if true;
       allow create: if request.resource.data.status == 'pending'
         && request.resource.data.storeId != ''
         && request.resource.data.items.size() <= 100
         && request.resource.data.stockDecremented == false;
-      allow list: if isAuthenticated()
-        && request.auth.token.get('admin', false) == true
-        && request.query.get('storeId') == request.auth.token.get('tenantId', '');
+      allow list: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
+      );
       allow update: if canUpdateStoreDoc();
       allow delete: if canDeleteStoreDoc();
     }
 
     match /clients/{clientId} {
-      allow get: if isAuthenticated() && isStoreAdmin(resource.data.storeId);
-      allow list: if isAuthenticated()
-        && request.auth.token.get('admin', false) == true
-        && request.query.get('storeId') == request.auth.token.get('tenantId', '');
+      allow get: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId))
+      );
+      allow list: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
+      );
       allow write: if false;
     }
 
@@ -152,35 +152,42 @@ service cloud.firestore {
     }
 
     match /settings/{docId} {
-      allow get: if isAuthenticated() && isStoreAdmin(resource.data.storeId);
-      allow list: if isAuthenticated()
-        && request.auth.token.get('admin', false) == true
-        && request.query.get('storeId') == request.auth.token.get('tenantId', '');
+      allow get: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId))
+      );
+      allow list: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
+      );
       allow create: if canCreateForStore();
       allow update: if canUpdateStoreDoc();
       allow delete: if canDeleteStoreDoc();
     }
 
     match /mail/{docId} {
-      allow list: if isAuthenticated()
-        && request.auth.token.get('admin', false) == true
-        && request.query.get('storeId') == request.auth.token.get('tenantId', '');
+      allow list: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isStoreAdmin(request.auth.token.get('tenantId', '')) ||
+        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
+      );
       allow create: if canCreateForStore();
       allow update: if canUpdateStoreDoc();
       allow delete: if canDeleteStoreDoc();
     }
 
-    // admin_roles is at the root level with composite key {storeId}_{email}.
-    // The onRoleChange trigger in functions/role.functions.ts reads this collection
-    // and sets custom auth claims. Written exclusively by the platform via Admin SDK.
     match /admin_roles/{compositeId} {
-      allow read: if isAuthenticated()
-        && request.auth.token.get('admin', false) == true
-        && compositeId.matches(request.auth.token.get('tenantId', '') + '_.*');
+      allow read: if isAuthenticated() && (
+        isSuperAdmin() ||
+        (request.auth.token.get('admin', false) == true && compositeId.matches(request.auth.token.get('tenantId', '') + '_.*'))
+      );
       allow write: if false;
     }
 
-    // Default fallback: any unmatched path is denied
     match /{document=**} {
       allow read, write: if false;
     }

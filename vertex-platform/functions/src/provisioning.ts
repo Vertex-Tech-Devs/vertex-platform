@@ -251,7 +251,23 @@ const STOREFRONT_COMPOSITE_INDEXES: Array<{
     collection: 'orders',
     fields: [
       { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'orderDate', order: 'ASCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'orders',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
       { fieldPath: 'orderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'clients',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'firstOrderDate', order: 'ASCENDING' },
       { fieldPath: '__name__', order: 'ASCENDING' },
     ],
   },
