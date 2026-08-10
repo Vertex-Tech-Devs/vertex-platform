@@ -41,7 +41,22 @@ jobs:
       - name: Build Platform Application
         run: npm --prefix vertex-platform run build
 
+      - name: Check secret availability
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          if [ -n "$SA" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "### ⚠️ Preview Deploy Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "El secreto \`FIREBASE_SERVICE_ACCOUNT_DEV\` no está configurado como **Repository Secret** en GitHub." >> $GITHUB_STEP_SUMMARY
+            echo "Para habilitar las vistas previas efímeras en PRs, agrega \`FIREBASE_SERVICE_ACCOUNT_DEV\` en *Settings -> Secrets and variables -> Actions -> Repository secrets*." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Deploy to Firebase Hosting Preview Channel
+        if: steps.check.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
