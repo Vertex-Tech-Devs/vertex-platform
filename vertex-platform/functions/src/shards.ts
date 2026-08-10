@@ -132,6 +132,26 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
     )) as { name: string };
     await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
 
+    // 5. Initialize Default Storage Bucket and CORS
+    try {
+      const bucketName = `${projectId}.firebasestorage.app`;
+      await apiFetch(
+        auth,
+        `https://firebasestorage.googleapis.com/v1beta/projects/${projectId}/defaultBucket`,
+        {
+          method: 'POST',
+          body: { location: 'us-central1' },
+        },
+      );
+      const { configureBucketCors } = await import('./provisioning');
+      await configureBucketCors(bucketName);
+    } catch (err) {
+      console.warn(
+        `[ensureWarmShardAvailable] Non-fatal Storage bucket init issue for ${projectId}:`,
+        err,
+      );
+    }
+
     // Update shard status to WARMUP_READY
     await shardRef.update({
       status: 'WARMUP_READY',

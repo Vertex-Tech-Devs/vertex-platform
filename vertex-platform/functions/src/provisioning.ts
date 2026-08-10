@@ -458,6 +458,7 @@ async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Pro
 
   // 2. Reglas de Storage (release firebase.storage/{bucket}) — no crítico si Storage no está habilitado
   const storageBucket = `${projectId}.firebasestorage.app`;
+  await ensureStorageDefaultBucket(auth, projectId);
   await deployRuleset(
     'storage.rules',
     STOREFRONT_STORAGE_RULES,
@@ -468,6 +469,35 @@ async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Pro
   await configureStorageCors(storageBucket);
   await configureStorageCors(`${projectId}.appspot.com`);
   await configureStorageCors(`${projectId}-storage`);
+}
+
+export async function ensureStorageDefaultBucket(
+  auth: OAuth2Client,
+  projectId: string,
+): Promise<string> {
+  const bucketName = `${projectId}.firebasestorage.app`;
+  try {
+    await apiFetch(
+      auth,
+      `https://firebasestorage.googleapis.com/v1beta/projects/${projectId}/defaultBucket`,
+      {
+        method: 'POST',
+        body: { location: 'us-central1' },
+      },
+    );
+    console.log(
+      `[Storage] Default Firebase Storage bucket initialized for ${projectId}: ${bucketName}`,
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('already') && !msg.includes('409') && !msg.includes('ALREADY_EXISTS')) {
+      logger.warn(
+        `[Storage] Non-fatal issue initializing defaultStorageBucket for ${projectId}:`,
+        err,
+      );
+    }
+  }
+  return bucketName;
 }
 
 /**
