@@ -121,6 +121,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       'firebasehosting.googleapis.com',
       'secretmanager.googleapis.com',
       'cloudresourcemanager.googleapis.com',
+      'storage.googleapis.com',
+      'firebasestorage.googleapis.com',
+      'appengine.googleapis.com',
     ];
     const enableOp = (await apiFetch(
       auth,

@@ -467,6 +467,7 @@ async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Pro
   // 3. Configuración automática de CORS en buckets de Storage del proyecto/tenant
   await configureStorageCors(storageBucket);
   await configureStorageCors(`${projectId}.appspot.com`);
+  await configureStorageCors(`${projectId}-storage`);
 }
 
 /**
@@ -1454,6 +1455,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               'firestore.googleapis.com',
               'identitytoolkit.googleapis.com',
               'storage.googleapis.com',
+              'firebasestorage.googleapis.com',
+              'appengine.googleapis.com',
               'cloudresourcemanager.googleapis.com',
               'firebasehosting.googleapis.com',
               'secretmanager.googleapis.com',
