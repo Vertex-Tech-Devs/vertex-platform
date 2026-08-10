@@ -30,7 +30,12 @@ service cloud.firestore {
       let targetTenant = (storeId != null && storeId != '') ? storeId : request.auth.token.get('tenantId', '');
       return isAuthenticated() && (
         isSuperAdmin() ||
-        (request.auth.token.get('admin', false) == true && (targetTenant == '' || request.auth.token.get('tenantId', '') == targetTenant)) ||
+        (request.auth.token.get('admin', false) == true && (
+          targetTenant == '' ||
+          request.auth.token.get('tenantId', '') == '' ||
+          request.auth.token.get('tenantId', '') == targetTenant ||
+          targetTenant.matches('^vtx-pr-.*')
+        )) ||
         (request.auth.token.get('email', '') != '' &&
          targetTenant != '' &&
          exists(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)) &&
@@ -199,30 +204,39 @@ export const STOREFRONT_STORAGE_RULES = `rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Administrador autenticado (plataforma o tienda) mediante claims de Firebase Auth
-    function isStoreAdmin() {
-      return request.auth != null && (
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
         request.auth.token.get('superAdmin', false) == true ||
         request.auth.token.get('platformAdmin', false) == true ||
-        request.auth.token.get('admin', false) == true
+        (request.auth.token.get('email', '') != '' &&
+         request.auth.token.email in ['juan.l.espeche@gmail.com', 'leivalihue@gmail.com', 'vertex.tech.dev@gmail.com'])
       );
     }
 
-    // Catálogo público: lectura libre de todas las imágenes.
+    function isStoreAdmin(storeId) {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (request.auth.token.get('admin', false) == true && (
+          request.auth.token.get('tenantId', '') == '' ||
+          request.auth.token.get('tenantId', '') == storeId ||
+          storeId.matches('^vtx-pr-.*')
+        ))
+      );
+    }
+
     match /{allPaths=**} {
       allow read: if true;
     }
 
-    // Escritura aislada por tienda: el primer segmento del path (stores/{storeId}/...)
-    // debe coincidir con el tenantId del administrador autenticado, con tipos MIME
-    // restringidos (image/jpeg, image/png, image/webp) y tamaño máximo 5MB.
     match /stores/{storeId}/{allPaths=**} {
-      allow create, update: if isStoreAdmin()
-        && storeId == request.auth.token.get('tenantId', '')
+      allow create, update: if isStoreAdmin(storeId)
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp)');
-      allow delete: if isStoreAdmin()
-        && storeId == request.auth.token.get('tenantId', '');
+        && request.resource.contentType.matches('image/(jpeg|png|webp|x-icon|vnd.microsoft.icon|svg\\+xml)');
+      allow delete: if isStoreAdmin(storeId);
     }
   }
 }
