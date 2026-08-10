@@ -35,11 +35,19 @@ jobs:
       - name: Build Platform Application
         run: npm --prefix vertex-platform run build
 
+      - name: Check secret availability
+        id: check
+        env:
+          FIREBASE_SERVICE_ACCOUNT_DEV: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          [ -n "$FIREBASE_SERVICE_ACCOUNT_DEV" ] && echo "available=true" >> "$GITHUB_OUTPUT" || echo "available=false" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Firebase Hosting Preview Channel
+        if: steps.check.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PLATFORM_DEV }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
           projectId: 'vertex-platform-dev'
           channelId: 'pr-${{ github.event.number }}'
           expires: 7d
