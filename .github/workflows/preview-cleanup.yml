@@ -1,0 +1,62 @@
+name: PR Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  checks: write
+  contents: read
+  deployments: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '24'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  cleanup-preview:
+    name: Cleanup Preview Channel & Tenant Data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check secret availability
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          if [ -n "$SA" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Delete Firebase Hosting Preview Channel
+        if: steps.check.outputs.available == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
+          projectId: 'vertex-platform-dev'
+          channelId: 'pr-${{ github.event.number }}'
+          expires: 0d
+
+      - name: Clean Firestore PR Tenant Data
+        if: steps.check.outputs.available == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_DEV: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          PR_NUMBER: ${{ github.event.number }}
+          NODE_PATH: vertex-platform/functions/node_modules
+        run: |
+          npx tsx scripts/cleanup-pr-tenant.ts
