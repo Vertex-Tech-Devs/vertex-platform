@@ -33,7 +33,10 @@ import { verifyGitHubOidcToken } from './github-oidc';
 
 const CURRENT_TEMPLATE_VERSION = '0.1.0';
 
-function normalizeStorageBucket(projectId: string, storageBucket: string | undefined): string {
+export function normalizeStorageBucket(
+  projectId: string,
+  storageBucket: string | undefined,
+): string {
   const bucket = storageBucket?.trim() ?? '';
   const bucketProject = bucket.split('.')[0] ?? '';
   if (!bucket || bucketProject !== projectId) {
@@ -1075,7 +1078,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentData = currentSnap.data();
   if (!currentData || !['provisioning', 'error'].includes(currentData['status'])) return;
 
-  const {
+  let {
     name,
     slug,
     logoUrl,
@@ -1643,6 +1646,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             messagingSenderId: configRes['messagingSenderId'],
             appId: configRes['appId'],
           };
+
+          if (shardId) {
+            await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
+          }
         }
       } else {
         // Crea la web app con retry + delay de propagación usando el gcpProjectId real
@@ -1685,7 +1692,129 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         .doc('firebaseConfig')
         .set(firebaseConfig);
       await setStep('createWebApp', 'done');
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isQuotaError =
+        msg.includes('429') ||
+        msg.includes('Resource has been exhausted') ||
+        msg.includes('RESOURCE_EXHAUSTED') ||
+        msg.includes('quota');
+
+      if (isQuotaError && runtimeMode === 'shared-shard' && shardId) {
+        console.warn(
+          `[provisioning:createWebApp] Quota exhausted on shard ${shardId} (${projectId}). Marking as FULL and auto-rotating to standby warm shard...`,
+        );
+        // Mark exhausted shard as FULL
+        await db.collection('infrastructure_shards').doc(shardId).update({
+          status: 'FULL',
+          quotaExhausted: true,
+          updatedAt: new Date(),
+        });
+
+        // Query for a standby warm shard
+        const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const warmSnap = await db
+          .collection('infrastructure_shards')
+          .where('environment', '==', env)
+          .where('status', '==', 'WARMUP_READY')
+          .limit(1)
+          .get();
+
+        if (!warmSnap.empty) {
+          const warmDoc = warmSnap.docs[0];
+          const warmData = warmDoc.data() as StoreShard;
+          const newShardId = warmDoc.id;
+          const newProjectId = warmData.projectId;
+
+          // Promote warm shard to ACTIVE
+          await db.collection('infrastructure_shards').doc(newShardId).update({
+            status: 'ACTIVE',
+            updatedAt: new Date(),
+          });
+
+          // Update store document in Firestore to reference the new shard
+          await db.collection('stores').doc(storeId).update({
+            shardId: newShardId,
+            projectId: newProjectId,
+            gcpProjectId: newProjectId,
+            updatedAt: new Date(),
+          });
+
+          // Update local variables for retry
+          shardId = newShardId;
+          projectId = newProjectId;
+
+          // Trigger asynchronous background creation of a new warm shard
+          void ensureWarmShardAvailable().catch((e) =>
+            console.error('[provisioning:createWebApp] Background warm shard creation failed:', e),
+          );
+
+          // Retry createWebApp step logic on the new warm shard!
+          try {
+            await ensureFirebaseProject(auth, projectId);
+            if (runtimeSiteId) {
+              try {
+                await apiFetch(
+                  auth,
+                  `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+                  { method: 'POST', body: { type: 'USER_SITE' } },
+                );
+              } catch (siteErr: any) {
+                const siteMsg = siteErr instanceof Error ? siteErr.message : String(siteErr);
+                if (!siteMsg.includes('already exists') && !siteMsg.includes('409')) throw siteErr;
+              }
+            }
+
+            const appsRes = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+            )) as { apps: Array<{ appId: string }> };
+
+            let appId: string;
+            if (appsRes.apps?.length) {
+              appId = appsRes.apps[0].appId;
+            } else {
+              await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
+              const refreshed = (await apiFetch(
+                auth,
+                `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+              )) as { apps: Array<{ appId: string }> };
+              appId = refreshed.apps[0].appId;
+            }
+
+            const configRes = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+            )) as Record<string, string>;
+
+            const masterAuthDomain = getMasterStorefrontAuthDomain();
+            firebaseConfig = {
+              apiKey: configRes['apiKey'],
+              authDomain: masterAuthDomain,
+              projectId: projectId,
+              storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+              messagingSenderId: configRes['messagingSenderId'],
+              appId: configRes['appId'],
+            };
+
+            await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
+
+            firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+            await db
+              .collection('stores')
+              .doc(storeId)
+              .collection('private')
+              .doc('firebaseConfig')
+              .set(firebaseConfig);
+            await setStep('createWebApp', 'done');
+            return;
+          } catch (retryErr) {
+            await fail('createWebApp', retryErr);
+            return;
+          }
+        }
+      }
+
       await fail('createWebApp', err);
       return;
     }

@@ -152,6 +152,39 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       );
     }
 
+    // 6. Pre-create Web App and cache firebaseConfig for instant zero-latency store provisioning
+    try {
+      const appOp = (await apiFetch(
+        auth,
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+        { method: 'POST', body: { displayName: `Shard Web App ${randomId}` } },
+      )) as { name: string };
+      await pollOperation(auth, appOp.name, 'https://firebase.googleapis.com/v1beta1');
+      const appsRes = (await apiFetch(
+        auth,
+        `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+      )) as { apps: Array<{ appId: string }> };
+      if (appsRes.apps?.length) {
+        const appId = appsRes.apps[0].appId;
+        const configRes = (await apiFetch(
+          auth,
+          `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+        )) as Record<string, string>;
+        const { normalizeStorageBucket } = await import('./provisioning');
+        const firebaseConfig = {
+          apiKey: configRes['apiKey'],
+          authDomain: `${projectId}.firebaseapp.com`,
+          projectId: projectId,
+          storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+          messagingSenderId: configRes['messagingSenderId'],
+          appId: configRes['appId'],
+        };
+        await shardRef.update({ firebaseConfig });
+      }
+    } catch (err) {
+      console.warn(`[ensureWarmShardAvailable] Non-fatal WebApp init issue for ${projectId}:`, err);
+    }
+
     // Update shard status to WARMUP_READY
     await shardRef.update({
       status: 'WARMUP_READY',
