@@ -75,7 +75,7 @@ function getMasterStorefrontProjectId(): string {
     : 'ecommerce-vertex';
 }
 
-function getMasterStorefrontAuthDomain(): string {
+export function getMasterStorefrontAuthDomain(): string {
   return `${getMasterStorefrontProjectId()}.firebaseapp.com`;
 }
 
@@ -236,6 +236,14 @@ const STOREFRONT_COMPOSITE_INDEXES: Array<{
     fields: [
       { fieldPath: 'storeId', order: 'ASCENDING' },
       { fieldPath: 'createdAt', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collection: 'products',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'createdAt', order: 'DESCENDING' },
       { fieldPath: '__name__', order: 'ASCENDING' },
     ],
   },
@@ -245,6 +253,14 @@ const STOREFRONT_COMPOSITE_INDEXES: Array<{
       { fieldPath: 'storeId', order: 'ASCENDING' },
       { fieldPath: 'orderDate', order: 'ASCENDING' },
       { fieldPath: '__name__', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collection: 'orders',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'orderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'DESCENDING' },
     ],
   },
   {
@@ -268,12 +284,20 @@ const STOREFRONT_COMPOSITE_INDEXES: Array<{
     fields: [
       { fieldPath: 'storeId', order: 'ASCENDING' },
       { fieldPath: 'lastOrderDate', order: 'DESCENDING' },
+      { fieldPath: '__name__', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collection: 'clients',
+    fields: [
+      { fieldPath: 'storeId', order: 'ASCENDING' },
+      { fieldPath: 'lastOrderDate', order: 'DESCENDING' },
       { fieldPath: '__name__', order: 'ASCENDING' },
     ],
   },
 ];
 
-async function ensureCompositeIndexes(auth: OAuth2Client, projectId: string): Promise<void> {
+export async function ensureCompositeIndexes(auth: OAuth2Client, projectId: string): Promise<void> {
   try {
     const existing = (await apiFetch(
       auth,
@@ -509,7 +533,7 @@ export async function ensureStorageDefaultBucket(
  * Service Usage API y espera la propagación. Evita fallas en pasos posteriores
  * (Firestore, Hosting, Identity Toolkit, Storage, Cloud Build).
  */
-async function ensureServiceEnabled(
+export async function ensureServiceEnabled(
   auth: OAuth2Client,
   projectId: string,
   service: string,
@@ -1679,11 +1703,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         await configureStorageCors(firebaseConfig['storageBucket']);
       }
 
-      // CRÍTICO: el authDomain SIEMPRE debe ser el del proyecto (shard o dedicado) — el
-      // popup de Google valida el continueUri contra el proyecto del apiKey. El redirect
-      // URI https://{shard}.firebaseapp.com/__/auth/handler debe estar autorizado en el
-      // client OAuth de Google del MASTER (consola Google Cloud → Credentials).
-      firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+      if (runtimeMode === 'shared-shard') {
+        firebaseConfig['authDomain'] = masterAuthDomain;
+      } else {
+        firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+      }
 
       await db
         .collection('stores')
@@ -1799,7 +1823,11 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
             await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
 
-            firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+            if (runtimeMode === 'shared-shard') {
+              firebaseConfig['authDomain'] = masterAuthDomain;
+            } else {
+              firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
+            }
             await db
               .collection('stores')
               .doc(storeId)

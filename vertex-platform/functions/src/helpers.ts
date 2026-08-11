@@ -286,6 +286,12 @@ export async function pickBillingAccount(db: Firestore): Promise<string> {
   if (accountsSnap.empty) {
     accountsSnap = await db.collection('billingAccounts').where('active', '==', true).get();
   }
+  if (accountsSnap.empty) {
+    accountsSnap = await db.collection('billing_accounts').get();
+  }
+  if (accountsSnap.empty) {
+    accountsSnap = await db.collection('billingAccounts').get();
+  }
   if (accountsSnap.empty) throw new Error('No active billing accounts configured.');
 
   const storesSnap = await db

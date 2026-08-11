@@ -133,6 +133,8 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
 
     // 4.5. Initialize Cloud Firestore in FIRESTORE_NATIVE Mode
     try {
+      const { ensureServiceEnabled } = await import('./provisioning');
+      await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
       const dbOp = (await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
@@ -185,10 +187,11 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
         )) as Record<string, string>;
-        const { normalizeStorageBucket } = await import('./provisioning');
+        const { normalizeStorageBucket, getMasterStorefrontAuthDomain } =
+          await import('./provisioning');
         const firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: `${projectId}.firebaseapp.com`,
+          authDomain: getMasterStorefrontAuthDomain(),
           projectId: projectId,
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
@@ -200,13 +203,14 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       console.warn(`[ensureWarmShardAvailable] Non-fatal WebApp init issue for ${projectId}:`, err);
     }
 
-    // 7. Auto-deploy initial Firestore security rules
+    // 7. Auto-deploy initial Firestore security rules and composite indexes
     try {
-      const { deployStorefrontRules } = await import('./provisioning');
+      const { deployStorefrontRules, ensureCompositeIndexes } = await import('./provisioning');
       await deployStorefrontRules(auth, projectId);
+      await ensureCompositeIndexes(auth, projectId);
     } catch (err) {
       console.warn(
-        `[ensureWarmShardAvailable] Non-fatal Rules deploy issue for ${projectId}:`,
+        `[ensureWarmShardAvailable] Non-fatal Rules/Indexes deploy issue for ${projectId}:`,
         err,
       );
     }
