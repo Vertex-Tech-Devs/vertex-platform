@@ -362,12 +362,22 @@ async function ensureStoreAuthDomains(
   console.info(
     `[provisioning:oauthRedirectUris] Verified OAuth Authorized Redirect URIs for ${input.projectId}: ${redirectUris.join(', ')}`,
   );
-  const runtimeDomains = await ensureAuthorizedDomains(auth, input.projectId, requiredDomains);
   const masterProjectId = getMasterStorefrontProjectId();
+
+  // Ensure store domain (e.g., vtx-cordero-atado.web.app) is authorized on both shard and master projects
+  const allMasterRequiredDomains = Array.from(
+    new Set([
+      ...requiredDomains,
+      ...(input.runtimeSiteId ? [`${input.runtimeSiteId}.web.app`] : []),
+      ...(input.storeId ? [`vtx-${input.storeId}.web.app`] : []),
+    ]),
+  );
+
+  const runtimeDomains = await ensureAuthorizedDomains(auth, input.projectId, requiredDomains);
 
   if (masterProjectId !== input.projectId) {
     try {
-      await ensureAuthorizedDomains(auth, masterProjectId, requiredDomains);
+      await ensureAuthorizedDomains(auth, masterProjectId, allMasterRequiredDomains);
     } catch (err) {
       console.warn(
         `[provisioning:authDomains] Could not sync authorizedDomains on master project ${masterProjectId}:`,
