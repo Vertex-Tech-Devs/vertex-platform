@@ -143,6 +143,8 @@ const secretCache = new Map<string, string>();
 - **NO** usar `setInterval` para polling en componentes Angular; usar `toSignal` o RxJS
 - **NO** editar `CURRENT_TEMPLATE_VERSION` manualmente — el workflow lo gestiona
 - **NO** hardcodear versiones de template fuera de `provisioning.ts`
+- **NO** invalidar `authDomain` en `shared-shard` sobreescribiéndolo a `{projectId}.firebaseapp.com`
+- **Sincronización de custom claims**: Utilizar la callable `refreshMyPlatformAdminClaim` al iniciar sesión en el storefront para refrescar tanto `platformAdmin` como `admin`/`tenantId`/`role` consultando la colección `admin_roles`.
 
 ---
 
