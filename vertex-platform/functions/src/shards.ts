@@ -191,7 +191,7 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
           await import('./provisioning');
         const firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: getMasterStorefrontAuthDomain(),
+          authDomain: getMasterStorefrontAuthDomain(projectId),
           projectId: projectId,
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],

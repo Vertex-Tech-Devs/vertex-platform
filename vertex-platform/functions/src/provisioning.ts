@@ -75,7 +75,10 @@ export function getMasterStorefrontProjectId(): string {
     : 'ecommerce-vertex';
 }
 
-export function getMasterStorefrontAuthDomain(): string {
+export function getMasterStorefrontAuthDomain(projectId?: string): string {
+  if (projectId) {
+    return `${projectId}.firebaseapp.com`;
+  }
   return `${getMasterStorefrontProjectId()}.firebaseapp.com`;
 }
 
@@ -1639,7 +1642,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       }
 
       let appId: string | undefined;
-      const masterAuthDomain = getMasterStorefrontAuthDomain();
+      const masterAuthDomain = getMasterStorefrontAuthDomain(projectId);
 
       if (runtimeMode === 'shared-shard') {
         const shardDoc = await db.collection('infrastructure_shards').doc(shardId!).get();
