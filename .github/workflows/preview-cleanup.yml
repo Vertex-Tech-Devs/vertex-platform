@@ -42,6 +42,12 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Ensure Dummy Build Output Directory for Cleanup
+        if: steps.check.outputs.available == 'true'
+        run: |
+          mkdir -p dist/vertex-platform/browser
+          echo '<!DOCTYPE html><html><body>Preview expired</body></html>' > dist/vertex-platform/browser/index.html
+
       - name: Delete Firebase Hosting Preview Channel
         if: steps.check.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
