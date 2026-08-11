@@ -69,7 +69,7 @@ async function configureStorageCors(bucketName: string): Promise<void> {
   await configureBucketCors(bucketName);
 }
 
-function getMasterStorefrontProjectId(): string {
+export function getMasterStorefrontProjectId(): string {
   return resolvePlatformEnvironment(PLATFORM_PROJECT) === 'development'
     ? 'ecommerce-vertex-dev'
     : 'ecommerce-vertex';

@@ -199,6 +199,56 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
         };
         await shardRef.update({ firebaseConfig });
       }
+
+      // 6.5. Pre-configure Google OAuth IdP provider with Master OAuth credentials
+      try {
+        const masterProjectId = (await import('./provisioning')).getMasterStorefrontProjectId();
+        const masterIdpConfig = (await apiFetch(
+          auth,
+          `https://identitytoolkit.googleapis.com/v2/projects/${masterProjectId}/defaultSupportedIdpConfigs/google.com`,
+          { quotaProject: masterProjectId },
+        )) as { clientId?: string; clientSecret?: string };
+
+        if (masterIdpConfig?.clientId && masterIdpConfig?.clientSecret) {
+          const bodyData = {
+            enabled: true,
+            clientId: masterIdpConfig.clientId,
+            clientSecret: masterIdpConfig.clientSecret,
+          };
+          try {
+            await apiFetch(
+              auth,
+              `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
+              {
+                method: 'POST',
+                body: {
+                  ...bodyData,
+                  name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+                },
+                quotaProject: projectId,
+              },
+            );
+          } catch {
+            await apiFetch(
+              auth,
+              `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/defaultSupportedIdpConfigs/google.com?updateMask=clientId,clientSecret,enabled`,
+              {
+                method: 'PATCH',
+                body: bodyData,
+                quotaProject: projectId,
+              },
+            );
+          }
+          console.info(
+            `[ensureWarmShardAvailable] Pre-configured Google OAuth IdP on warm shard project ${projectId}`,
+          );
+        }
+      } catch (idpErr) {
+        console.warn(
+          `[ensureWarmShardAvailable] Non-fatal Google OAuth IdP config issue for ${projectId}:`,
+          idpErr,
+        );
+      }
     } catch (err) {
       console.warn(`[ensureWarmShardAvailable] Non-fatal WebApp init issue for ${projectId}:`, err);
     }
