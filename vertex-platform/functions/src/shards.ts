@@ -114,7 +114,7 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       if (!msg.includes('already exists') && !msg.includes('409')) throw err;
     }
 
-    // 4. Enable Required APIs
+    // 4. Enable Required APIs (WITHOUT appengine.googleapis.com to prevent GCP from creating legacy DATASTORE_MODE databases)
     const apis = [
       'identitytoolkit.googleapis.com',
       'firestore.googleapis.com',
@@ -123,7 +123,6 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       'cloudresourcemanager.googleapis.com',
       'storage.googleapis.com',
       'firebasestorage.googleapis.com',
-      'appengine.googleapis.com',
     ];
     const enableOp = (await apiFetch(
       auth,
@@ -131,6 +130,22 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       { method: 'POST', body: { serviceIds: apis } },
     )) as { name: string };
     await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
+
+    // 4.5. Initialize Cloud Firestore in FIRESTORE_NATIVE Mode
+    try {
+      const dbOp = (await apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
+        { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
+      )) as { name: string };
+      await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
+      console.info(
+        `[ensureWarmShardAvailable] Initialized FIRESTORE_NATIVE database (default) for ${projectId}`,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+    }
 
     // 5. Initialize Default Storage Bucket and CORS
     try {
@@ -183,6 +198,17 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
       }
     } catch (err) {
       console.warn(`[ensureWarmShardAvailable] Non-fatal WebApp init issue for ${projectId}:`, err);
+    }
+
+    // 7. Auto-deploy initial Firestore security rules
+    try {
+      const { deployStorefrontRules } = await import('./provisioning');
+      await deployStorefrontRules(auth, projectId);
+    } catch (err) {
+      console.warn(
+        `[ensureWarmShardAvailable] Non-fatal Rules deploy issue for ${projectId}:`,
+        err,
+      );
     }
 
     // Update shard status to WARMUP_READY

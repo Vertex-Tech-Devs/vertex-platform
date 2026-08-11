@@ -409,7 +409,7 @@ import { STOREFRONT_FIRESTORE_RULES, STOREFRONT_STORAGE_RULES } from './storefro
  * por defecto, lo que rompería el storefront público (clientes sin usuario).
  * Usa el patrón ruleset + release (DELETE+POST, ya que el PATCH no soporta el campo).
  */
-async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Promise<void> {
+export async function deployStorefrontRules(auth: OAuth2Client, projectId: string): Promise<void> {
   const rulesBase = 'https://firebaserules.googleapis.com/v1/projects';
 
   const deployRuleset = async (
@@ -1958,7 +1958,198 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       );
 
       await setStep('initFirestore', 'done');
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isDatastoreError =
+        msg.includes('Datastore Mode') ||
+        msg.includes('DATASTORE_MODE') ||
+        msg.includes('FAILED_PRECONDITION') ||
+        msg.includes('400');
+
+      if (isDatastoreError && runtimeMode === 'shared-shard' && shardId) {
+        console.warn(
+          `[provisioning:initFirestore] Datastore Mode or precondition issue on shard ${shardId} (${projectId}). Marking as FULL and auto-rotating to standby warm shard...`,
+        );
+        // Mark corrupt shard as FULL
+        await db.collection('infrastructure_shards').doc(shardId).update({
+          status: 'FULL',
+          corrupted: true,
+          updatedAt: new Date(),
+        });
+
+        // Query for a standby warm shard
+        const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+        const warmSnap = await db
+          .collection('infrastructure_shards')
+          .where('environment', '==', env)
+          .where('status', '==', 'WARMUP_READY')
+          .limit(1)
+          .get();
+
+        if (!warmSnap.empty) {
+          const warmDoc = warmSnap.docs[0];
+          const warmData = warmDoc.data() as StoreShard;
+          const newShardId = warmDoc.id;
+          const newProjectId = warmData.projectId;
+
+          // Promote warm shard to ACTIVE
+          await db.collection('infrastructure_shards').doc(newShardId).update({
+            status: 'ACTIVE',
+            updatedAt: new Date(),
+          });
+
+          // Update store document in Firestore to reference the new shard
+          await db.collection('stores').doc(storeId).update({
+            shardId: newShardId,
+            projectId: newProjectId,
+            gcpProjectId: newProjectId,
+            updatedAt: new Date(),
+          });
+
+          // Update local variables for retry
+          shardId = newShardId;
+          projectId = newProjectId;
+
+          // Trigger background creation of a new warm shard
+          void ensureWarmShardAvailable().catch((e) =>
+            console.error('[provisioning:initFirestore] Background warm shard creation failed:', e),
+          );
+
+          // Retry initFirestore on the fresh warm shard!
+          try {
+            await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+            try {
+              const dbOp = (await apiFetch(
+                auth,
+                `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
+                { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
+              )) as { name: string };
+              await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
+            } catch (createErr) {
+              const cMsg = createErr instanceof Error ? createErr.message : String(createErr);
+              if (!cMsg.includes('already exists') && !cMsg.includes('409')) throw createErr;
+            }
+
+            const now = new Date().toISOString();
+            const configPath = `configuracion/store_${tenantId}`;
+            await retry(
+              () =>
+                apiFetch(
+                  auth,
+                  `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
+                  {
+                    method: 'PATCH',
+                    body: {
+                      fields: {
+                        tenantId: { stringValue: tenantId },
+                        storeId: { stringValue: tenantId },
+                        storeName: { stringValue: name },
+                        tagline: { stringValue: '' },
+                        strapline: { stringValue: '' },
+                        logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                        faviconUrl: { stringValue: '' },
+                        colors: {
+                          mapValue: {
+                            fields: {
+                              primary: { stringValue: '#ea580c' },
+                              accent: { stringValue: '#ef4444' },
+                              background: { stringValue: '#ffffff' },
+                            },
+                          },
+                        },
+                        contact: {
+                          mapValue: {
+                            fields: {
+                              email: { stringValue: ownerEmail },
+                              phone: { stringValue: '' },
+                              whatsapp: { stringValue: '' },
+                              whatsApp: { stringValue: '' },
+                              instagram: { stringValue: '' },
+                              facebook: { stringValue: '' },
+                            },
+                          },
+                        },
+                        seo: {
+                          mapValue: {
+                            fields: {
+                              metaTitle: { stringValue: name },
+                              metaDescription: { stringValue: `Bienvenido a ${name}` },
+                            },
+                          },
+                        },
+                        features: {
+                          mapValue: {
+                            fields: {
+                              reviewsEnabled: { booleanValue: false },
+                              wishlistEnabled: { booleanValue: false },
+                              blogEnabled: { booleanValue: false },
+                            },
+                          },
+                        },
+                        payments: {
+                          mapValue: {
+                            fields: {
+                              mercadoPagoPublicKey: {
+                                stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                              },
+                              mercadoPago: {
+                                mapValue: {
+                                  fields: {
+                                    publicKey: {
+                                      stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                                    },
+                                    accessTokenSecret: { stringValue: 'mp-access-token-default' },
+                                    accessTokenMasked: { stringValue: 'APP_USR-1516****4666' },
+                                    webhookUrl: { stringValue: '' },
+                                    validationStatus: { stringValue: 'valid' },
+                                    validationMessage: {
+                                      stringValue:
+                                        'Credenciales de prueba predeterminadas de Vertex.',
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                        currency: { stringValue: 'ARS' },
+                        currencySymbol: { stringValue: '$' },
+                        country: { stringValue: 'AR' },
+                        setupCompleted: { booleanValue: true },
+                        createdAt: { timestampValue: now },
+                        updatedAt: { timestampValue: now },
+                      },
+                    },
+                    quotaProject: projectId,
+                  },
+                ),
+              5,
+              6000,
+            );
+
+            await deployStorefrontRules(auth, projectId);
+            const effectiveVerticalId = verticalId || 'indumentaria';
+            const hasMockData = includeMockData !== false;
+            await seedStoreData(
+              auth,
+              projectId,
+              tenantId,
+              effectiveVerticalId,
+              name,
+              hasMockData,
+              true,
+              tenantId,
+            );
+
+            await setStep('initFirestore', 'done');
+            return;
+          } catch (retryErr) {
+            await fail('initFirestore', retryErr);
+            return;
+          }
+        }
+      }
+
       await fail('initFirestore', err);
       return;
     }
