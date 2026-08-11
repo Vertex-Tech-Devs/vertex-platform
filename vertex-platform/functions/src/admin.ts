@@ -250,20 +250,38 @@ export const onPlatformUserCreated = functions.auth.user().onCreate(async (user)
       await ensureProtectedSuperAdmins(db);
     }
 
+    const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
+    const newClaims: Record<string, unknown> = { ...currentClaims };
+    let updated = false;
+
     if (docSnap.exists || isProtectedAdmin) {
       const role = isProtectedAdmin ? 'superAdmin' : docSnap.data()?.['role'] || 'platformAdmin';
       console.log(
-        `Auto-setting claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`,
+        `Auto-setting platformAdmin claims for newly registered user: ${email} with role: ${role} (UID: ${user.uid})`,
       );
-      const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
-      await auth.setCustomUserClaims(user.uid, {
-        ...currentClaims,
-        platformAdmin: true,
-        superAdmin: role === 'superAdmin',
-      });
+      newClaims['platformAdmin'] = true;
+      newClaims['superAdmin'] = role === 'superAdmin';
+      updated = true;
+    }
+
+    // Check store admin roles
+    const rolesSnap = await db.collection('admin_roles').where('email', '==', email).limit(1).get();
+    if (!rolesSnap.empty) {
+      const roleData = rolesSnap.docs[0].data();
+      console.log(
+        `Auto-setting store admin claims for newly registered user: ${email} on tenant: ${roleData['tenantId']} with role: ${roleData['role']}`,
+      );
+      newClaims['admin'] = true;
+      newClaims['tenantId'] = roleData['tenantId'];
+      newClaims['role'] = roleData['role'] || 'owner';
+      updated = true;
+    }
+
+    if (updated) {
+      await auth.setCustomUserClaims(user.uid, newClaims);
     }
   } catch (err) {
-    console.error(`Error checking/setting platformAdmin claim for ${email}:`, err);
+    console.error(`Error checking/setting admin claims for ${email}:`, err);
   }
 });
 
@@ -298,26 +316,66 @@ export const refreshMyPlatformAdminClaim = onCall(
         await ensureProtectedSuperAdmins(db);
       }
 
+      const user = await auth.getUser(uid);
+      const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
+      const newClaims: Record<string, unknown> = { ...currentClaims };
+      let updated = false;
+
+      // 1. Platform Admin sync
       if (docSnap.exists || isProtectedAdmin) {
         const role = isProtectedAdmin ? 'superAdmin' : docSnap.data()?.['role'] || 'platformAdmin';
         console.log(
-          `refreshMyPlatformAdminClaim: Auto-setting claims for user: ${emailLower} with role: ${role} (UID: ${uid})`,
+          `refreshMyPlatformAdminClaim: Auto-setting platformAdmin claims for user: ${emailLower} with role: ${role} (UID: ${uid})`,
         );
-        const user = await auth.getUser(uid);
-        const currentClaims = (user.customClaims as Record<string, unknown>) ?? {};
-        await auth.setCustomUserClaims(uid, {
-          ...currentClaims,
-          platformAdmin: true,
-          superAdmin: role === 'superAdmin',
-        });
-        return { granted: true };
+        newClaims['platformAdmin'] = true;
+        newClaims['superAdmin'] = role === 'superAdmin';
+        updated = true;
+      }
+
+      // 2. Store Admin sync via admin_roles collection
+      const targetTenant = (request.data as { tenantId?: string } | undefined)?.tenantId;
+      const adminRolesQuery = targetTenant
+        ? db.collection('admin_roles').doc(`${targetTenant}_${emailLower}`)
+        : null;
+
+      let adminRoleDoc = adminRolesQuery ? await adminRolesQuery.get() : null;
+      if (!adminRoleDoc?.exists) {
+        // Fallback search across admin_roles for matching email
+        const rolesSnap = await db
+          .collection('admin_roles')
+          .where('email', '==', emailLower)
+          .limit(1)
+          .get();
+        if (!rolesSnap.empty) {
+          adminRoleDoc = rolesSnap.docs[0];
+        }
+      }
+
+      if (adminRoleDoc?.exists) {
+        const roleData = adminRoleDoc.data();
+        if (roleData) {
+          const tenantId = roleData['tenantId'] || targetTenant;
+          const role = roleData['role'] || 'owner';
+          console.log(
+            `refreshMyPlatformAdminClaim: Auto-setting store admin claims for user: ${emailLower} on tenant: ${tenantId} with role: ${role}`,
+          );
+          newClaims['admin'] = true;
+          newClaims['tenantId'] = tenantId;
+          newClaims['role'] = role;
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        await auth.setCustomUserClaims(uid, newClaims);
+        return { granted: true, claims: newClaims };
       }
     } catch (err) {
       console.error(`Error in refreshMyPlatformAdminClaim for ${emailLower}:`, err);
       throw new HttpsError('internal', 'An error occurred while verifying claims.');
     }
 
-    console.log(`refreshMyPlatformAdminClaim: no platformAdmins entry for ${emailLower}`);
+    console.log(`refreshMyPlatformAdminClaim: no admin entries for ${emailLower}`);
     return { granted: false };
   },
 );
