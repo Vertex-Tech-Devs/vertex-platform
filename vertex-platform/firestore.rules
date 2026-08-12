@@ -2,60 +2,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Funciones Helper de Gobernanza Global
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isPlatformAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.get('platformAdmin', false) == true || request.auth.token.get('superAdmin', false) == true);
-    }
+    // --- CATÁLOGO PÚBLICO STOREFRONT (Lectura pública universal en cualquier nivel) ---
+    match /configuracion/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
+    match /attributes/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
+    match /products/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
+    match /categories/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
+    match /banners/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
 
-    function isStoreAdmin() {
-      return isAuthenticated() && (
-        isPlatformAdmin() ||
-        request.auth.token.get('admin', false) == true ||
-        request.auth.token.get('owner', false) == true
-      );
-    }
+    // Estructuras anidadas por tenant / stores
+    match /stores/{storeId}/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
+    match /tenants/{tenantId}/{document=**} { allow read: if true; allow write: if isAuthenticated(); }
 
-    // 1. Colecciones públicas del catálogo del storefront multi-tenant
-    match /configuracion/{docId} {
-      allow read: if true;
-      allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-    }
+    // Consultas comodín para subcolecciones o Collection Groups
+    match /{path=**}/configuracion/{docId} { allow read: if true; allow write: if isAuthenticated(); }
+    match /{path=**}/attributes/{docId} { allow read: if true; allow write: if isAuthenticated(); }
+    match /{path=**}/products/{docId} { allow read: if true; allow write: if isAuthenticated(); }
+    match /{path=**}/categories/{docId} { allow read: if true; allow write: if isAuthenticated(); }
+    match /{path=**}/banners/{docId} { allow read: if true; allow write: if isAuthenticated(); }
 
-    match /attributes/{attributeId} {
-      allow read: if true;
-      allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-    }
-
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-
-      match /{allChildren=**} {
-        allow read: if true;
-        allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-      }
-    }
-
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-    }
-
-    match /banners/{bannerId} {
-      allow read: if true;
-      allow write: if isPlatformAdmin() || (isStoreAdmin() && request.auth.token.get('tenantId', '') == resource.data.storeId);
-    }
-
-    // 2. Protección por defecto de la factoría: cualquier ruta no declarada
-    //    (stores, infrastructure_shards, billing_accounts, provisioning_queue,
-    //     provisioning_logs, users, admin_roles, ...) exige isPlatformAdmin().
-    match /{document=**} {
-      allow read, write: if isPlatformAdmin();
-    }
+    // Órdenes
+    match /orders/{document=**} { allow create: if true; allow read, update: if isAuthenticated(); }
+    match /{path=**}/orders/{orderId} { allow create: if true; allow read, update: if isAuthenticated(); }
   }
 }
