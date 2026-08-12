@@ -184,6 +184,34 @@ async function ensureAuthorizedDomains(
   return nextDomains;
 }
 
+export async function registerAuthorizedAuthDomain(projectId: string, domain: string): Promise<void> {
+  try {
+    const { GoogleAuth } = await import('google-auth-library');
+    const auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    const client = await auth.getClient();
+    const url = `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/config`;
+
+    const res = (await client.request({ url })) as { data: { authorizedDomains?: string[] } };
+    const currentDomains = res.data.authorizedDomains || [];
+    const normalizedDomain = normalizeAuthorizedDomain(domain);
+
+    if (normalizedDomain && !currentDomains.includes(normalizedDomain)) {
+      const updatedDomains = [...currentDomains, normalizedDomain];
+      await client.request({
+        url: `${url}?updateMask=authorizedDomains`,
+        method: 'PATCH',
+        headers: { 'x-goog-user-project': projectId },
+        data: { authorizedDomains: updatedDomains },
+      });
+      console.log(`[AuthDomain] Registered domain successfully: ${normalizedDomain}`);
+    }
+  } catch (err) {
+    console.error(`[AuthDomain Error] Could not register domain ${domain}:`, err);
+  }
+}
+
 /**
  * Verifica automáticamente si los redirect URIs del authDomain de la tienda están
  * autorizados en el client OAuth de Google del MASTER (el que usa el provider del shard).
