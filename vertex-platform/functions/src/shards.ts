@@ -248,6 +248,39 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
           idpErr,
         );
       }
+
+      // 6.6. Ensure API Key referrer restrictions are cleared so multi-tenant hosting domains are allowed
+      try {
+        const numericProjectRes = (await apiFetch(
+          auth,
+          `https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}`,
+        )) as { projectNumber?: string };
+        const projectNumber = numericProjectRes.projectNumber;
+        if (projectNumber) {
+          const keysRes = (await apiFetch(
+            auth,
+            `https://apikeys.googleapis.com/v2/projects/${projectNumber}/locations/global/keys`,
+          )) as { keys?: Array<{ name: string; restrictions?: Record<string, unknown> }> };
+          for (const key of keysRes.keys || []) {
+            if (key.restrictions && Object.keys(key.restrictions).length > 0) {
+              await apiFetch(
+                auth,
+                `https://apikeys.googleapis.com/v2/${key.name}?updateMask=restrictions`,
+                {
+                  method: 'PATCH',
+                  body: { restrictions: {} },
+                },
+              );
+              console.info(`[ensureWarmShardAvailable] Cleared API key restrictions on ${key.name}`);
+            }
+          }
+        }
+      } catch (apiKeyErr) {
+        console.warn(
+          `[ensureWarmShardAvailable] Non-fatal API Key restriction clear issue for ${projectId}:`,
+          apiKeyErr,
+        );
+      }
     } catch (err) {
       console.warn(`[ensureWarmShardAvailable] Non-fatal WebApp init issue for ${projectId}:`, err);
     }
