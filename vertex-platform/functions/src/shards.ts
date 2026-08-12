@@ -271,7 +271,9 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
                   body: { restrictions: {} },
                 },
               );
-              console.info(`[ensureWarmShardAvailable] Cleared API key restrictions on ${key.name}`);
+              console.info(
+                `[ensureWarmShardAvailable] Cleared API key restrictions on ${key.name}`,
+              );
             }
           }
         }
