@@ -1821,10 +1821,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
             )) as Record<string, string>;
 
-            const masterAuthDomain = getMasterStorefrontAuthDomain();
+            const shardAuthDomain = `${projectId}.firebaseapp.com`;
             firebaseConfig = {
               apiKey: configRes['apiKey'],
-              authDomain: masterAuthDomain,
+              authDomain: shardAuthDomain,
               projectId: projectId,
               storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
               messagingSenderId: configRes['messagingSenderId'],
@@ -1833,11 +1833,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
             await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
 
-            if (runtimeMode === 'shared-shard') {
-              firebaseConfig['authDomain'] = masterAuthDomain;
-            } else {
-              firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
-            }
+            firebaseConfig['authDomain'] = shardAuthDomain;
             await db
               .collection('stores')
               .doc(storeId)

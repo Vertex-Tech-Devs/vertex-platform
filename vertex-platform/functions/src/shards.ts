@@ -187,11 +187,10 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
         )) as Record<string, string>;
-        const { normalizeStorageBucket, getMasterStorefrontAuthDomain } =
-          await import('./provisioning');
+        const { normalizeStorageBucket } = await import('./provisioning');
         const firebaseConfig = {
           apiKey: configRes['apiKey'],
-          authDomain: getMasterStorefrontAuthDomain(),
+          authDomain: `${projectId}.firebaseapp.com`,
           projectId: projectId,
           storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
           messagingSenderId: configRes['messagingSenderId'],
