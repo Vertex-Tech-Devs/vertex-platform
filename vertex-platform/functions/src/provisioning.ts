@@ -2502,6 +2502,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           console.warn('[provisioning:initAdmin] Could not verify OAuth redirect URIs:', verifyErr);
         }
 
+        // Registrar el dominio de la tienda (sitio + authDomain del shard) como authorized
+        // domain del proyecto del shard — evita auth/unauthorized-domain en el login.
+        if (runtimeSiteId) {
+          await registerAuthorizedAuthDomain(projectId, `${runtimeSiteId}.web.app`);
+        }
+        await registerAuthorizedAuthDomain(projectId, `${projectId}.firebaseapp.com`);
+        await registerAuthorizedAuthDomain(projectId, `${projectId}.web.app`);
+
         // Índices compuestos del storefront (products/orders/clients) — automatizado para
         // evitar "The query requires an index" en el panel de administración del shard.
         await ensureCompositeIndexes(auth, projectId);
