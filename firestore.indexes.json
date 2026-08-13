@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "clients",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "firstOrderDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clients",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "lastOrderDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "orderDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "totalStock", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "categories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "banners",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId", "order": "ASCENDING" },
+        { "fieldPath": "active", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
