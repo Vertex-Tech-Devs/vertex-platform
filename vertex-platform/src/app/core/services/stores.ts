@@ -99,6 +99,28 @@ export class StoresService {
   /** True hasta que llega el primer snapshot de tiendas (para skeletons/loadings). */
   readonly isLoading = signal(true);
 
+  /** Alerta de pool de shards bajo (in-app) — leída de system_alerts/pool_low_{env}. */
+  readonly poolAlert = signal<{ availableShards: number; threshold: number } | null>(null);
+
+  private readonly poolAlertUnsub = (() => {
+    const env =
+      this.authService.user()?.uid
+        ? this.db.app.options.projectId === 'vertex-platform-app'
+          ? 'prod'
+          : 'dev'
+        : 'dev';
+    return onSnapshot(doc(this.db, `system_alerts/pool_low_${env}`), (snap) => {
+      const data = snap.data() as
+        | { active?: boolean; availableShards?: number; threshold?: number }
+        | undefined;
+      this.poolAlert.set(
+        data?.active
+          ? { availableShards: data.availableShards ?? 0, threshold: data.threshold ?? 2 }
+          : null,
+      );
+    });
+  })();
+
   async createStore(payload: CreateStorePayload): Promise<string> {
     const fn = httpsCallable<CreateStorePayload, { storeId: string }>(this.fns, 'provisionStore');
     const result = await fn(payload);

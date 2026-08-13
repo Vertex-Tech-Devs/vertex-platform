@@ -415,3 +415,33 @@
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Pool de shards bajo */
+.pool-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.08);
+
+  > i {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    margin-top: 0.1rem;
+  }
+  strong { color: #f59e0b; }
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--platform-text-secondary, #94a3b8);
+    font-size: 0.85rem;
+  }
+  code {
+    background: rgba(0, 0, 0, 0.35);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+  }
+}

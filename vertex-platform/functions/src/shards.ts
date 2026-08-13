@@ -7,7 +7,97 @@ import {
   pickBillingAccount,
   apiFetch,
   pollOperation,
+  sendDirectEmail,
 } from './helpers';
+
+/**
+ * Umbral de pool bajo: cuando quedan ≤ POOL_LOW_THRESHOLD shards disponibles
+ * (WARMUP_READY + ACTIVE con cupo), se dispara la alerta (in-app + email).
+ * "Disponible" = puede recibir tiendas nuevas sin configuración.
+ */
+export const POOL_LOW_THRESHOLD = 2;
+
+/** Email al que llegan las notificaciones de pool bajo. */
+const POOL_ALERT_EMAIL = process.env['POOL_ALERT_EMAIL'] || 'juan.l.espeche@gmail.com';
+
+/** Devuelve cuántos shards disponibles (con cupo) hay para el entorno. */
+export async function countAvailableShards(
+  db: FirebaseFirestore.Firestore,
+  env: string,
+): Promise<number> {
+  const snap = await db
+    .collection('infrastructure_shards')
+    .where('environment', '==', env)
+    .get();
+  let available = 0;
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    const status = data['status'] as string;
+    const current = Number(data['currentStores'] ?? 0);
+    const maxCap = Number(data['maxCapacity'] ?? DEFAULT_MAX_STORES_PER_SHARD);
+    if (status === 'WARMUP_READY' || (status === 'ACTIVE' && current < maxCap)) {
+      available++;
+    }
+  }
+  return available;
+}
+
+/**
+ * Detecta pool bajo y notifica (in-app + email) con dedupe de 24h.
+ * El flag in-app lo lee el panel (stores-list) para mostrar el banner.
+ */
+export async function checkPoolLowAndAlert(
+  db: FirebaseFirestore.Firestore,
+  env: string,
+): Promise<number> {
+  const available = await countAvailableShards(db, env);
+  const alertRef = db.collection('system_alerts').doc(`pool_low_${env}`);
+
+  if (available > POOL_LOW_THRESHOLD) {
+    // Pool OK: limpiar la alerta activa si existía.
+    await alertRef.set({
+      active: false,
+      updatedAt: new Date(),
+    });
+    return available;
+  }
+
+  const alertSnap = await alertRef.get();
+  const lastAlertedAt = alertSnap.exists
+    ? alertSnap.data()?.['lastAlertedAt']?.toDate?.() ?? new Date(0)
+    : new Date(0);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const shouldNotify = lastAlertedAt < oneDayAgo;
+
+  await alertRef.set({
+    active: true,
+    availableShards: available,
+    threshold: POOL_LOW_THRESHOLD,
+    lastAlertedAt: shouldNotify ? new Date() : lastAlertedAt,
+    updatedAt: new Date(),
+  });
+
+  if (shouldNotify) {
+    console.warn(
+      `[checkPoolLowAndAlert] Pool bajo (${available} ≤ ${POOL_LOW_THRESHOLD}) — notificando a ${POOL_ALERT_EMAIL}`,
+    );
+    try {
+      await sendDirectEmail(
+        POOL_ALERT_EMAIL,
+        `⚠️ Vertex — Pool de shards bajo (${available} disponibles)`,
+        `<p>El pool de shards de <strong>${env}</strong> está bajo:</p>
+         <p><strong>${available}</strong> shard(s) disponible(s) (umbral: ${POOL_LOW_THRESHOLD}).</p>
+         <p>Provisioná más shards con:
+         <code>npx tsx scripts/provision-shards.ts --count 10 --env ${env}</code></p>
+         <p>O el scheduler lo hará automáticamente (WARM_SHARD_TARGET).</p>`,
+        `Pool de shards bajo (${available} disponibles) en ${env}. Ejecutá: npx tsx scripts/provision-shards.ts --count 10 --env ${env}`,
+      );
+    } catch (err) {
+      console.error('[checkPoolLowAndAlert] Falló el envío del email:', err);
+    }
+  }
+  return available;
+}
 
 /**
  * Ensures that at least 1 pre-provisioned "warm" shared shard (status: 'WARMUP_READY')
@@ -373,4 +463,8 @@ export const checkWarmShardBuffer = functions.pubsub
         `[checkWarmShardBuffer] Pool caliente OK: ${warmCount}/${WARM_SHARD_TARGET}`,
       );
     }
+
+    // ── Alerta de pool bajo (in-app + email, dedupe 24h) ──
+    const available = await checkPoolLowAndAlert(db, env);
+    console.info(`[checkWarmShardBuffer] Shards disponibles: ${available}`);
   });

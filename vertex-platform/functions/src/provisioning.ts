@@ -27,7 +27,7 @@ import {
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
-import { ensureWarmShardAvailable } from './shards';
+import { ensureWarmShardAvailable, checkPoolLowAndAlert } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
 
@@ -994,6 +994,10 @@ export const provisionStore = onCall<CreateStorePayload>(
               '[provisionStore] Failed to trigger background warm shard creation:',
               err,
             );
+          });
+          // Alerta de pool bajo (best-effort, no bloquea el aprovisionamiento)
+          void checkPoolLowAndAlert(db, env).catch((err) => {
+            console.error('[provisionStore] checkPoolLowAndAlert failed:', err);
           });
         }
       }
