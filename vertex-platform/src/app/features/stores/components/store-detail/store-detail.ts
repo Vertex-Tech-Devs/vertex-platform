@@ -711,7 +711,7 @@ export class StoreDetail implements OnInit {
     this.isSuspending.set(true);
     this.actionError.set('');
     try {
-      await this.storesService.setStatus(id, 'suspended');
+      await this.storesService.suspendStore(id);
       this.showSleepConfirm.set(false);
     } catch {
       this.actionError.set('No se pudo suspender la tienda.');
@@ -729,7 +729,7 @@ export class StoreDetail implements OnInit {
     this.isActivating.set(true);
     this.actionError.set('');
     try {
-      await this.storesService.setStatus(id, 'active');
+      await this.storesService.activateStore(id);
     } catch {
       this.actionError.set('No se pudo reactivar la tienda.');
     } finally {

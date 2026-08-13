@@ -183,6 +183,24 @@ export class StoresService {
     await updateDoc(doc(this.db, 'stores', id), { status, updatedAt: serverTimestamp() });
   }
 
+  /** Dormir tienda (suspender sin eliminar): pausa el sitio y la excluye de deploys. */
+  async suspendStore(storeId: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
+      this.fns,
+      'suspendStore',
+    );
+    await fn({ storeId });
+  }
+
+  /** Reactivar tienda dormida: restaura el sitio con su versión activa. */
+  async activateStore(storeId: string): Promise<void> {
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
+      this.fns,
+      'activateStore',
+    );
+    await fn({ storeId });
+  }
+
   async retryProvisioning(storeId: string): Promise<void> {
     const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
       this.fns,

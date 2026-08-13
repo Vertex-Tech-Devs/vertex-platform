@@ -664,6 +664,171 @@ export const redeployStore = onCall<{ storeId: string }>(
   },
 );
 
+/**
+ * Dispara el deploy de una tienda vía GitHub Actions (provision-store con la versión activa).
+ * Compartido por redeployStore y activateStore.
+ */
+async function dispatchStoreDeployment(storeId: string): Promise<void> {
+  const db = getFirestore();
+  const snap = await db.collection('stores').doc(storeId).get();
+  if (!snap.exists) throw new Error('Store not found.');
+  const store = snap.data() as {
+    id: string;
+    name: string;
+    slug?: string;
+    tenantId?: string;
+    runtimeSiteId?: string;
+    firebaseProjectId?: string;
+    runtimeProjectId?: string;
+    templateVersion?: string;
+  };
+  const projectId = resolveRuntimeProjectId(store);
+  const runtimeSiteId = store.runtimeSiteId || store.id;
+  const tenantId = store.slug || store.tenantId || store.id;
+
+  const configSnap = await db
+    .collection('stores')
+    .doc(storeId)
+    .collection('private')
+    .doc('firebaseConfig')
+    .get();
+  if (!configSnap.exists) throw new Error('Store firebase config is not found.');
+  const firebaseConfig = configSnap.data();
+
+  const pat = await getGitHubPat();
+  const deployTokenValue = await getDeployToken();
+  const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+  const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
+  const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
+
+  const res = await fetch(
+    'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${pat}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event_type: 'provision-store',
+        client_payload: {
+          store_id: storeId,
+          tenant_id: tenantId,
+          project_id: projectId,
+          site_id: runtimeSiteId,
+          firebase_config: JSON.stringify(firebaseConfig),
+          store_name: store.name,
+          platform_project_id: PLATFORM_PROJECT,
+          deploy_token: deployTokenValue,
+          ref,
+        },
+      }),
+    },
+  );
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    throw new Error(`GitHub dispatch failed: ${res.status} ${body}`);
+  }
+}
+
+/**
+ * Sistema de "dormir" tiendas (suspender sin eliminar) — para manejar pagos:
+ *  - suspendStore: marca suspended, despliega un tombstone (sitio "tienda pausada"),
+ *    queda excluida de getActiveStores/deploys, y conserva TODOS los datos y su cupo.
+ *  - activateStore: marca active y re-despliega el sitio con su versión actual.
+ */
+export const suspendStore = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 120 },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can suspend stores.');
+    }
+    await checkRateLimit(request.auth?.uid, 'suspendStore', 10, 15);
+
+    const { storeId } = request.data;
+    if (!storeId) throw new HttpsError('invalid-argument', 'storeId is required.');
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const snap = await storeRef.get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Store not found.');
+    const store = snap.data() as { status?: string; runtimeProjectId?: string; firebaseProjectId?: string; runtimeSiteId?: string; provisioningOwnerId?: string };
+    if (store.status === 'suspended') {
+      return { success: true, already: true };
+    }
+
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = store.runtimeSiteId || storeId;
+    try {
+      await withAnyProvisioningOwner(db, store.provisioningOwnerId ?? undefined, async (auth) =>
+        deployHostingTombstone(auth, projectId, siteId),
+      );
+    } catch (err) {
+      console.warn(`[suspendStore] Tombstone deploy no bloqueante falló para ${storeId}:`, err);
+    }
+
+    await storeRef.update({
+      status: 'suspended',
+      suspendedAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await logAuditAction(
+      request.auth.uid,
+      request.auth.token.email,
+      'suspendStore',
+      storeId,
+      'success',
+    );
+    return { success: true };
+  },
+);
+
+export const activateStore = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 120 },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can activate stores.');
+    }
+    await checkRateLimit(request.auth?.uid, 'activateStore', 10, 15);
+
+    const { storeId } = request.data;
+    if (!storeId) throw new HttpsError('invalid-argument', 'storeId is required.');
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const snap = await storeRef.get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Store not found.');
+    const store = snap.data() as { status?: string };
+    if (store.status !== 'suspended') {
+      throw new HttpsError('failed-precondition', 'Solo se pueden activar tiendas suspendidas.');
+    }
+
+    await storeRef.update({
+      status: 'active',
+      suspendedAt: null,
+      updatedAt: new Date(),
+    });
+
+    // Re-desplegar el sitio (misma lógica de redeployStore — provision-store con la versión activa).
+    try {
+      await dispatchStoreDeployment(storeId);
+    } catch (err) {
+      console.warn(`[activateStore] Dispatch de redeploy falló (se reintentará manualmente) ${storeId}:`, err);
+    }
+
+    await logAuditAction(
+      request.auth.uid,
+      request.auth.token.email,
+      'activateStore',
+      storeId,
+      'success',
+    );
+    return { success: true };
+  },
+);
+
 export const deleteStore = onCall<{ storeId: string }>(
   { timeoutSeconds: 300, cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
