@@ -99,3 +99,28 @@ Hay **dos acciones distintas** en la tarjeta "Versión de Plantilla" del panel:
 `listTemplateVersions` fusiona **releases** (fuente primaria: notas + fecha real) y
 **tags** (fecha del commit del tag), ordena por semver descendente y marca `isLatest`.
 El selector muestra todas las versiones compatibles, no solo la latest.
+
+## Runbook: shard en Datastore Mode (tienda en error en "Inicializar Firestore")
+
+Si una tienda queda en `status: error` en el paso `initFirestore`, su shard puede tener la
+DB `(default)` en **DATASTORE_MODE** (shards viejos). El aprovisionamiento auto-rota a un
+shard warm, pero si la tienda quedó huérfana el fix manual es:
+
+```bash
+# 1. Eliminar la DB (default) en Datastore mode (SOLO si la tienda no tiene datos)
+curl -X DELETE .../v1/projects/<shard>/databases/(default)
+# 2. Esperar ~5 min (cooldown de Google) y crear en modo nativo
+curl -X POST .../v1/projects/<shard>/databases?databaseId=(default) \
+  -d '{"type":"FIRESTORE_NATIVE","locationId":"nam5"}'
+# 3. Verificar: databases → [(default), FIRESTORE_NATIVE]
+```
+
+Luego "Reintentar aprovisionamiento" en el panel completa el paso.
+
+## Runbook: upload de imagen colgado en "Subiendo (0%)"
+
+El admin de producto quedaba colgado si el upload a Storage fallaba (permisos/red):
+`uploadProgress` solo se limpiaba en éxito. Fix: el `subscribe` de
+`product-create.component.ts` ahora limpia `uploadProgress`/`galleryUploadProgress` en
+`error` → el spinner desaparece y el guardado vuelve a estar disponible. El SweetAlert de
+error ya informaba la causa (revisar storage.rules si el fallo es de permisos).
