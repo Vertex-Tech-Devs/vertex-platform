@@ -167,3 +167,21 @@ curl .../v1/projects/<shard>/databases/(default)/collectionGroups/-/indexes
 2. Tienda B: dejar en **v0.2.0** → footer sin badge de versión (v0.2.0 no lo trae), panel `Versión app: v0.2.0`.
 3. Downgrade: aplicar **v0.1.0** a una tienda → vuelve al código v0.1.0 (sin badge, sin fix de upload).
 4. El run del deploy en Actions muestra `checkout refs/tags/v0.X.Y` — evidencia del origen.
+
+## Ciclo de vida de una tienda
+
+```
+activa ──dormir──▶ dormida ──activar──▶ activa
+   │                    │
+   └────eliminar────────┘
+```
+
+- **Activa**: sitio servido, incluida en deploys (si `autoUpdate`), ocupa cupo del shard.
+- **Dormida** (`suspendStore`): el sitio muestra "tienda pausada" (tombstone), queda excluida
+  de `getActiveStores`/deploys, y **conserva todos los datos y su cupo**. Útil para manejar
+  pagos sin eliminar la tienda del cliente.
+- **Activa de nuevo** (`activateStore`): restaura el sitio con su **versión activa**
+  (`refs/tags/v<templateVersion>`), vuelve al ciclo de deploys.
+- **Eliminada** (`deleteStore`): borrado TOTAL (datos del shard por storeId via collectionGroup,
+  hosting site, subcolecciones private/invitations, doc de la plataforma) y **liberación real
+  de cupo** (currentStores-- + FULL→ACTIVE). El shard **nunca se elimina** del pool.
