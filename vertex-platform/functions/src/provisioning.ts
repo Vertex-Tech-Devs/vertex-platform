@@ -184,7 +184,10 @@ async function ensureAuthorizedDomains(
   return nextDomains;
 }
 
-export async function registerAuthorizedAuthDomain(projectId: string, domain: string): Promise<void> {
+export async function registerAuthorizedAuthDomain(
+  projectId: string,
+  domain: string,
+): Promise<void> {
   try {
     const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
@@ -1741,11 +1744,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         await configureStorageCors(firebaseConfig['storageBucket']);
       }
 
-      if (runtimeMode === 'shared-shard') {
-        firebaseConfig['authDomain'] = masterAuthDomain;
-      } else {
-        firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
-      }
+      // El authDomain SIEMPRE es el del shard/proyecto de la tienda: el login usa el
+      // Identity Platform del shard (con el Google IdP del master configurado en
+      // initAdmin). Mezclar apiKey del shard con authDomain del master rompe el login.
+      firebaseConfig['authDomain'] = `${projectId}.firebaseapp.com`;
 
       await db
         .collection('stores')
