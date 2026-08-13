@@ -42,6 +42,11 @@ export interface Store {
   templateCommit?: string;
   versionUpdateStatus?: VersionUpdateStatus;
   versionUpdateTarget?: string;
+  versionUpdateProgress?: {
+    step?: string;
+    pct?: number;
+    updatedAt?: string;
+  };
   autoUpdate?: boolean;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;

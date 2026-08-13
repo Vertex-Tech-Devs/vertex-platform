@@ -238,12 +238,43 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     await storeRef.update({
       versionUpdateStatus: 'updating',
       versionUpdateTarget: version,
+      versionUpdateProgress: { step: 'Encolando deploy', pct: 5, updatedAt: new Date().toISOString() },
       updatedAt: new Date(),
     });
 
     return { success: true };
   },
 );
+
+export const reportVersionUpdateProgress = onCall<{
+  storeId: string;
+  deployToken: string;
+  step: string;
+  pct: number;
+}>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
+  const { storeId, deployToken, step, pct } = request.data;
+  if (!storeId || !deployToken || !step || typeof pct !== 'number') {
+    throw new HttpsError('invalid-argument', 'storeId, deployToken, step and pct are required.');
+  }
+
+  // Misma verificación de deploy token que completeVersionUpdate (el workflow es quien reporta).
+  const expected = await getDeployToken();
+  if (deployToken !== expected) {
+    throw new HttpsError('permission-denied', 'Invalid deploy token.');
+  }
+
+  const db = getFirestore();
+  await db.collection('stores').doc(storeId).update({
+    versionUpdateProgress: {
+      step,
+      pct: Math.max(0, Math.min(100, Math.round(pct))),
+      updatedAt: new Date().toISOString(),
+    },
+    updatedAt: new Date(),
+  });
+
+  return { success: true };
+});
 
 export const completeVersionUpdate = onCall<{
   storeId: string;
@@ -288,6 +319,7 @@ export const completeVersionUpdate = onCall<{
       targetChannel: 'stable',
       versionUpdateStatus: 'idle',
       versionUpdateTarget: null,
+      versionUpdateProgress: null,
       lastDeployedAt: new Date(),
       updatedAt: new Date(),
     });

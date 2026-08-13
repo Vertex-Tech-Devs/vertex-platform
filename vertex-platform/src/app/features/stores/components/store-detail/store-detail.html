@@ -329,6 +329,28 @@
                   @if (versionUpdateError()) {
                     <p class="feedback feedback--error mt-2">{{ versionUpdateError() }}</p>
                   }
+                  @if (store()!.versionUpdateStatus === 'updating') {
+                    <div class="version-progress mt-3">
+                      <div class="version-progress__head">
+                        <span class="version-progress__step">
+                          <app-spinner size="sm" />
+                          {{ store()!.versionUpdateProgress?.step || 'Desplegando…' }}
+                        </span>
+                        <span class="version-progress__pct">
+                          {{ store()!.versionUpdateProgress?.pct ?? 0 }}%
+                        </span>
+                      </div>
+                      <div class="progress-bar">
+                        <div
+                          class="progress-bar__fill"
+                          [style.width.%]="store()!.versionUpdateProgress?.pct ?? 5"
+                        ></div>
+                      </div>
+                      <p class="version-progress__hint">
+                        El deploy corre en GitHub Actions y actualiza esta barra en vivo.
+                      </p>
+                    </div>
+                  }
                   @if (store()!.versionUpdateStatus === 'failed') {
                     <p class="feedback feedback--error mt-2">
                       El último intento de actualización falló. Revisá los logs de GitHub Actions.
