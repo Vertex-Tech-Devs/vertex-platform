@@ -251,8 +251,9 @@
               <div class="detail-card">
                 <h2 class="detail-card__title">Versión de Plantilla</h2>
                 <p class="detail-card__desc">
-                  Seleccioná la versión del template que querés desplegar a esta tienda. El deploy
-                  se realiza directamente sobre su proyecto Firebase al confirmar.
+                  <strong>Versión activa: v{{ store()!.templateVersion || '—' }}</strong> — usá el
+                  selector para elegir otra versión y desplegarla a esta tienda. El deploy se
+                  realiza directamente sobre su proyecto Firebase al confirmar.
                 </p>
 
                 <div
@@ -346,7 +347,7 @@
                   @if (isRedeploying()) {
                     <span class="spinner-sm"></span> Desplegando…
                   } @else {
-                    <i class="bi bi-arrow-repeat"></i> Gatillar Redeploy Manual
+                    <i class="bi bi-arrow-repeat"></i> Re-desplegar versión activa
                   }
                   <small
                     >Re-despliega la infraestructura y el código de la tienda utilizando su versión

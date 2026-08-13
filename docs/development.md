@@ -75,3 +75,27 @@ warm-up (`ensureCompositeIndexes`).
   `product-create.component.ts` (storefront, ~546 líneas) — son componentes activos con
   cambios recientes (UX, versionado, OAuth); la extracción se hará cuando haya cobertura
   de tests dedicada para evitar regresiones.
+
+## Flujo de versiones del template (v0.2.0)
+
+Hay **dos acciones distintas** en la tarjeta "Versión de Plantilla" del panel:
+
+1. **Aplicar versión** (selector + botón "Aplicar versión"): cambia la versión de la tienda.
+   - `updateStoreVersion` valida que el tag `v<versión>` exista en `ecommerce-vertex`,
+     dispara el evento `update-store-version` (checkout `refs/tags/v<versión>`) y persiste
+     `versionUpdateStatus: 'updating'` + `versionUpdateTarget`.
+   - Al terminar, el workflow llama `completeVersionUpdate` que persiste
+     `templateVersion`, `appVersion` (v...), `targetChannel: 'stable'`, `lastDeployedAt`
+     y `versionUpdateStatus: 'idle'`.
+2. **Re-desplegar versión activa** (antes "Gatillar Redeploy Manual"): **NO cambia la
+   versión** — re-despliega el código de la versión actualmente activa (ej. v0.1.0) tal
+   cual está. Útil para reintentar un deploy sin tocar la versión.
+
+> ⚠️ Confusión común: si una tienda sigue mostrando v0.1.0 tras "actualizar", se usó
+> "Re-desplegar versión activa" en vez de "Aplicar versión". Verificar `appVersion`/
+> `templateVersion` en el panel o en `stores/{storeId}` (Firestore).
+
+### Listado de versiones
+`listTemplateVersions` fusiona **releases** (fuente primaria: notas + fecha real) y
+**tags** (fecha del commit del tag), ordena por semver descendente y marca `isLatest`.
+El selector muestra todas las versiones compatibles, no solo la latest.

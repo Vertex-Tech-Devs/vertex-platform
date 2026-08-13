@@ -94,7 +94,17 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
       </div>
 
       <!-- Results -->
-      @if (stores.stores().length === 0) {
+      @if (stores.isLoading()) {
+        <div class="stores-grid" aria-busy="true">
+          @for (s of [1, 2, 3, 4, 5, 6]; track s) {
+            <div class="store-card store-card--skeleton">
+              <div class="skeleton skeleton--title"></div>
+              <div class="skeleton skeleton--url"></div>
+              <div class="skeleton skeleton--meta"></div>
+            </div>
+          }
+        </div>
+      } @else if (stores.stores().length === 0) {
         <div class="empty-state">
           <i class="bi bi-shop empty-state__icon"></i>
           <h2>Sin tiendas todavía</h2>

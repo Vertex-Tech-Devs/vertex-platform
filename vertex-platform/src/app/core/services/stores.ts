@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import {
   getFirestore,
   collection,
@@ -64,12 +64,14 @@ export class StoresService {
     toObservable(this.authService.user).pipe(
       switchMap((u) => {
         if (!u) {
+          this.isLoading.set(false);
           return of([]);
         }
         return new Observable<Store[]>((subscriber) => {
           const unsub = onSnapshot(
             this.storesRef,
             (snap) => {
+              this.isLoading.set(false);
               subscriber.next(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Store));
             },
             (error) => {
@@ -83,6 +85,7 @@ export class StoresService {
                   error?.code || error,
                 );
               }
+              this.isLoading.set(false);
               subscriber.next([]);
             },
           );
@@ -92,6 +95,9 @@ export class StoresService {
     ),
     { initialValue: [] },
   );
+
+  /** True hasta que llega el primer snapshot de tiendas (para skeletons/loadings). */
+  readonly isLoading = signal(true);
 
   async createStore(payload: CreateStorePayload): Promise<string> {
     const fn = httpsCallable<CreateStorePayload, { storeId: string }>(this.fns, 'provisionStore');
