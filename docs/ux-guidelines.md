@@ -48,3 +48,33 @@ Estándares de estados de carga y feedback del panel SaaS.
 }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 ```
+
+## Spinner reutilizable `<app-spinner>`
+
+Componente `AppSpinnerComponent` (`src/app/shared/components/app-spinner/`):
+- **3 tamaños**: `sm` (0.9rem), `md` (1.35rem), `lg` (2.2rem).
+- **Animación continua y detallada**: anillos concéntricos girando en direcciones
+  opuestas + núcleo pulsante (solo `lg`).
+- **Label opcional** accesible (`aria-label` + texto visible).
+
+```html
+<app-spinner size="sm" label="Reintentando…" />
+<app-spinner size="lg" label="Aprovisionando tienda…" />
+```
+
+Se usa en: pasos de aprovisionamiento en ejecución, y botones de
+retry / aplicar versión / redeploy / seed / suspender.
+
+## Verificación de versión desplegada (bundle)
+
+La versión se hornea en el bundle al compilar (`package.json` del tag/commit checkouteado),
+NO se lee en runtime:
+
+```bash
+MAIN=$(curl -s https://vtx-<tienda>.web.app/ | grep -oE 'main-[A-Z0-9]+\.js' | head -1)
+curl -s https://vtx-<tienda>.web.app/$MAIN | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
+```
+
+Si el bundle contiene la versión esperada, el deploy proviene de ese tag. Verificar
+también `window.__VERTEX_STORE_VERSION__`, el `<meta name="app-version">` y
+`appVersion` en `stores/{storeId}` — los tres coinciden con el mismo build.

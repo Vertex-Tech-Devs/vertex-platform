@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { StoresService } from '@core/services/stores';
+import { AppSpinnerComponent } from '../../../../shared/components/app-spinner/app-spinner.component';
 import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
 import type {
@@ -41,7 +42,7 @@ const STEP_ORDER = [
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule],
+  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinnerComponent],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

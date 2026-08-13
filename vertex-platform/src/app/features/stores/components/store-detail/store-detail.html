@@ -64,7 +64,7 @@
               <li class="step-item step-item--{{ step.status }}">
                 <span class="step-item__icon">
                   @if (step.status === 'running') {
-                    <span class="spinner"></span>
+                    <app-spinner size="sm" />
                   } @else {
                     {{ stepIcon(step.status) }}
                   }
@@ -87,7 +87,7 @@
             }
             <button class="btn btn-primary" [disabled]="isRetrying()" (click)="retry()">
               @if (isRetrying()) {
-                <span class="spinner-sm"></span> Reintentando…
+                <app-spinner size="sm" label="Reintentando…" />
               } @else {
                 <i class="bi bi-arrow-repeat"></i> Reintentar aprovisionamiento
               }
@@ -316,7 +316,7 @@
                       (click)="applyVersionUpdate()"
                     >
                       @if (isUpdatingVersion() || store()!.versionUpdateStatus === 'updating') {
-                        <span class="spinner-sm"></span> Iniciando deploy…
+                        <app-spinner size="sm" label="Iniciando deploy…" />
                       } @else {
                         <i class="bi bi-box-arrow-up"></i> Aplicar versión
                       }
@@ -345,7 +345,7 @@
                 <!-- Redeploy -->
                 <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
                   @if (isRedeploying()) {
-                    <span class="spinner-sm"></span> Desplegando…
+                    <app-spinner size="sm" label="Desplegando…" />
                   } @else {
                     <i class="bi bi-arrow-repeat"></i> Re-desplegar versión activa
                   }
@@ -363,7 +363,7 @@
                     (click)="openSeedConfirm()"
                   >
                     @if (isSeeding()) {
-                      <span class="spinner-sm"></span> Semillando datos…
+                      <app-spinner size="sm" label="Semillando datos…" />
                     } @else {
                       <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba
                     }
@@ -1353,7 +1353,7 @@
             (click)="suspend()"
           >
             @if (isSuspending()) {
-              <span class="spinner-sm"></span> Suspendiendo…
+              <app-spinner size="sm" label="Suspendiendo…" />
             } @else {
               <i class="bi bi-moon"></i> Dormir tienda
             }
