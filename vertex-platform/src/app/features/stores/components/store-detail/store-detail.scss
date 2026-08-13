@@ -1828,3 +1828,10 @@
     font-weight: 600;
   }
 }
+
+.oauth-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}

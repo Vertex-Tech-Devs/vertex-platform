@@ -117,14 +117,19 @@
               <code>{{ oauthRedirect()!.redirectUri }}</code> en el client OAuth del master
               (Google Cloud Console — Google no expone API para esto; es un único paso por shard).
             </p>
-            <a
-              class="btn btn-warning btn-sm"
-              [href]="oauthRedirect()!.consoleUrl || 'https://console.cloud.google.com/apis/credentials'"
-              target="_blank"
-              rel="noopener"
-            >
-              <i class="bi bi-box-arrow-up-right"></i> Abrir Google Cloud Console
-            </a>
+            <div class="oauth-alert__actions">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="copyOAuthUri()">
+                <i class="bi bi-clipboard"></i> Copiar URI de Redirección
+              </button>
+              <a
+                class="btn btn-warning btn-sm"
+                [href]="oauthRedirect()!.consoleUrl || 'https://console.cloud.google.com/apis/credentials'"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="bi bi-box-arrow-up-right"></i> Abrir Google Cloud Console
+              </a>
+            </div>
           </div>
         </div>
       }
@@ -219,6 +224,14 @@
                       <span class="badge badge--error ms-1">error en update</span>
                     }
                   </dd>
+                }
+                @if (store()!.appVersion) {
+                  <dt>Versión app</dt>
+                  <dd class="text-accent">{{ store()!.appVersion }}</dd>
+                }
+                @if (store()!.targetChannel) {
+                  <dt>Canal</dt>
+                  <dd class="capitalize">{{ store()!.targetChannel }}</dd>
                 }
                 @if (store()!.schemaVersion) {
                   <dt>Versión esquema</dt>

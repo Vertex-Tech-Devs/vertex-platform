@@ -36,6 +36,8 @@ export interface Store {
   updatedAt: Date;
   lastDeployedAt?: Date;
   templateVersion?: string;
+  appVersion?: string;
+  targetChannel?: string;
   schemaVersion?: number;
   templateCommit?: string;
   versionUpdateStatus?: VersionUpdateStatus;

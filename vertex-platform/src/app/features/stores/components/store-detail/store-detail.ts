@@ -261,6 +261,26 @@ export class StoreDetail implements OnInit {
     }
   }
 
+  async copyOAuthUri(): Promise<void> {
+    const uri = this.oauthRedirect()?.redirectUri;
+    if (!uri) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(uri);
+    } catch {
+      // Fallback para contextos no seguros (http) — textarea + execCommand
+      const ta = document.createElement('textarea');
+      ta.value = uri;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+  }
+
   async loadVersions(): Promise<void> {
     this.isLoadingVersions.set(true);
     try {

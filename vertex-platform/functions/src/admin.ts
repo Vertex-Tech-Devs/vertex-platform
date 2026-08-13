@@ -5,6 +5,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as functions from 'firebase-functions/v1';
 import type { ManageAdminPayload, AdminInfo } from './types';
 import { ALLOWED_ORIGINS } from './helpers';
+import { checkRateLimit, logAuditAction } from './stores';
 import { z } from 'zod';
 
 // Protected super-admin emails — configurable via PROTECTED_SUPER_ADMINS env var.
@@ -41,6 +42,8 @@ export const manageAdmin = onCall<ManageAdminPayload>(
     if (!request.auth?.token['superAdmin']) {
       throw new HttpsError('permission-denied', 'Only super admins can manage platform roles.');
     }
+
+    await checkRateLimit(request.auth.uid, 'manageAdmin', 10, 15);
 
     const { email, action, role } = request.data;
     if (!email || !['add', 'remove'].includes(action)) {
@@ -110,6 +113,14 @@ export const manageAdmin = onCall<ManageAdminPayload>(
           }
         }
       }
+      await logAuditAction(
+        request.auth.uid,
+        request.auth.token.email,
+        'manageAdmin',
+        normalizedEmail,
+        'success',
+        { action, role: targetRole },
+      );
       return { success: true };
     } catch (err: unknown) {
       console.error('manageAdmin error:', err);
@@ -403,6 +414,8 @@ export const provisionStoreAdmin = onCall(
         'Solo administradores de plataforma pueden crear administradores de tienda.',
       );
     }
+
+    await checkRateLimit(request.auth.uid, 'provisionStoreAdmin', 10, 15);
 
     let parsedData;
     try {

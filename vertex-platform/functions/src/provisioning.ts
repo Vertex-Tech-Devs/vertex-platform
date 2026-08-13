@@ -31,7 +31,7 @@ import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
 
-const CURRENT_TEMPLATE_VERSION = '0.1.0';
+const CURRENT_TEMPLATE_VERSION = '0.2.0';
 
 export function normalizeStorageBucket(
   projectId: string,
@@ -3228,6 +3228,8 @@ export const completeStoreDeployment = onCall<{
       status: 'active',
       lastDeployedAt: new Date(),
       templateVersion: version || CURRENT_TEMPLATE_VERSION,
+      appVersion: `v${version || CURRENT_TEMPLATE_VERSION}`,
+      targetChannel: 'stable',
       schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
       updatedAt: new Date(),
     });

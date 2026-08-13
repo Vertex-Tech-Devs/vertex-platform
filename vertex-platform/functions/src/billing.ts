@@ -2,6 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { AddBillingAccountPayload, UpdateBillingAccountPayload } from './types';
 import { ALLOWED_ORIGINS, getOwnerOAuthClient, apiFetch } from './helpers';
+import { checkRateLimit } from './stores';
 
 function normalizeBillingAccountId(rawId: string): string {
   const id = rawId.trim();
@@ -46,6 +47,7 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can add billing accounts.');
     }
+    await checkRateLimit(request.auth.uid, 'addBillingAccount', 20, 15);
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
     const { name, maxProjects = 15 } = request.data;
@@ -107,6 +109,7 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
         'Only platform admins can update billing accounts.',
       );
     }
+    await checkRateLimit(request.auth.uid, 'updateBillingAccount', 20, 15);
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
     const { name, maxProjects, active } = request.data;
@@ -151,6 +154,7 @@ export const removeBillingAccount = onCall<{ id: string }>(
         'Only platform admins can remove billing accounts.',
       );
     }
+    await checkRateLimit(request.auth.uid, 'removeBillingAccount', 20, 15);
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
     if (!normalizedId) throw new HttpsError('invalid-argument', 'id is required.');
