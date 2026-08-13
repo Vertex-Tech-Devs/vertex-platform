@@ -19,7 +19,26 @@ export interface TemplateVersion {
   publishedAt: string;
   isLatest: boolean;
   notes?: string;
+  /**
+   * Esquema de datos que esta versión del template produce/requiere.
+   * Sube SOLO cuando cambia la estructura de datos (products/orders/clients).
+   * Se usa para el gate de compatibilidad del selector.
+   */
+  schemaVersion: number;
 }
+
+/**
+ * Mapa de versión del template → schemaVersion de datos.
+ * Mantener en sync con CURRENT_STORE_SCHEMA_VERSION del provisioning:
+ *  - Igual que el actual = compatible (upgrade/downgrade sin migración).
+ *  - MAYOR que el actual = la versión nueva cambia el esquema (requiere migración).
+ *  - MENOR que el actual = la tienda tiene datos más nuevos (downgrade incompatible).
+ */
+const SCHEMA_BY_VERSION: Record<string, number> = {
+  '0.1.0': 1,
+  '0.2.0': 1,
+  '0.3.0': 1,
+};
 
 export const listTemplateVersions = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -54,12 +73,14 @@ export const listTemplateVersions = onCall(
       // no solo la latest.
       const byVersion = new Map<string, TemplateVersion>();
       for (const r of published) {
-        byVersion.set(r.tag_name.replace(/^v/, ''), {
-          version: r.tag_name.replace(/^v/, ''),
+        const relVersion = r.tag_name.replace(/^v/, '');
+        byVersion.set(relVersion, {
+          version: relVersion,
           tag: r.tag_name,
           publishedAt: r.published_at,
           isLatest: false,
           notes: r.body ?? undefined,
+          schemaVersion: SCHEMA_BY_VERSION[relVersion] ?? 0,
         });
       }
 
@@ -111,6 +132,7 @@ export const listTemplateVersions = onCall(
               publishedAt,
               isLatest: false,
               notes: 'Git tag (sin release publicada)',
+              schemaVersion: SCHEMA_BY_VERSION[v] ?? 0,
             });
           }
         }
@@ -171,6 +193,21 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     if (storeData['versionUpdateStatus'] === 'updating') {
       throw new HttpsError('failed-precondition', 'A version update is already in progress.');
     }
+
+    // ── Gate de compatibilidad por schemaVersion ─────────────────────────────
+    // version.schemaVersion < store.schemaVersion → la versión es más vieja que
+    // los datos → downgrade incompatible (BLOQUEADO).
+    // version.schemaVersion > store.schemaVersion → la versión nueva cambia el
+    // esquema → se permite pero se marca pendingMigration.
+    const targetSchema = SCHEMA_BY_VERSION[version] ?? 0;
+    const storeSchema = Number(storeData['schemaVersion'] ?? 0) || 0;
+    if (targetSchema !== 0 && targetSchema < storeSchema) {
+      throw new HttpsError(
+        'failed-precondition',
+        `La versión v${version} requiere un esquema de datos menor (v${targetSchema}) que el de la tienda (v${storeSchema}). Downgrade incompatible — no se puede aplicar.`,
+      );
+    }
+    const needsMigration = targetSchema > storeSchema;
 
     const pat = await getGitHubPat();
 
@@ -239,6 +276,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
       versionUpdateStatus: 'updating',
       versionUpdateTarget: version,
       versionUpdateProgress: { step: 'Encolando deploy', pct: 5, updatedAt: new Date().toISOString() },
+      pendingMigration: needsMigration ? true : null,
       updatedAt: new Date(),
     });
 
@@ -317,9 +355,11 @@ export const completeVersionUpdate = onCall<{
       templateVersion: version,
       appVersion: `v${version.replace(/^v/, '')}`,
       targetChannel: 'stable',
+      schemaVersion: SCHEMA_BY_VERSION[version] ?? undefined,
       versionUpdateStatus: 'idle',
       versionUpdateTarget: null,
       versionUpdateProgress: null,
+      pendingMigration: null,
       lastDeployedAt: new Date(),
       updatedAt: new Date(),
     });

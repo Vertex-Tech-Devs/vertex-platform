@@ -1146,7 +1146,10 @@ export const provisionStore = onCall<CreateStorePayload>(
         isNewShard,
         includeMockData: includeMockData !== false,
         status: 'provisioning',
-        autoUpdate: true,
+        // Política de versiones: las tiendas nuevas NACEN ESTABLES (autoUpdate = false).
+        // Solo se actualizan automáticamente si el dueño lo habilita explícitamente
+        // o se aplica una versión a mano desde el selector.
+        autoUpdate: false,
         provisioningSteps: steps,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -9,6 +9,8 @@ export interface TemplateVersion {
   publishedAt: string;
   isLatest: boolean;
   notes?: string;
+  /** Esquema de datos que la versión requiere/produce (gate de compatibilidad). */
+  schemaVersion?: number;
 }
 
 export interface ProvisioningStep {
@@ -47,6 +49,7 @@ export interface Store {
     pct?: number;
     updatedAt?: string;
   };
+  pendingMigration?: boolean;
   autoUpdate?: boolean;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;

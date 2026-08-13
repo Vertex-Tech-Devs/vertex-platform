@@ -299,12 +299,35 @@
                       "
                     >
                       @for (v of availableVersions(); track v.version) {
-                        <option [value]="v.version">
+                        <option
+                          [value]="v.version"
+                          [disabled]="
+                            (v.schemaVersion ?? 0) !== 0 &&
+                            (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                          "
+                        >
                           v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
                           {{ v.publishedAt | date: 'dd/MM/yyyy' }}
+                          @if (
+                            (v.schemaVersion ?? 0) !== 0 &&
+                            (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                          ) {
+                            (incompatible — esquema {{ store()!.schemaVersion }})
+                          } @else if (
+                            (v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)
+                          ) {
+                            (requiere migración)
+                          }
                         </option>
                       }
                     </select>
+
+                    @if (store()!.pendingMigration) {
+                      <p class="feedback feedback--warning mt-2">
+                        ⚠️ La versión aplicada cambia el esquema de datos — revisá que los datos
+                        sean compatibles tras el deploy.
+                      </p>
+                    }
 
                     <button
                       class="action-btn action-btn--primary"

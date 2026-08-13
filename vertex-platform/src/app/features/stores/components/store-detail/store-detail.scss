@@ -1868,3 +1868,11 @@
     }
   }
 }
+
+.feedback--warning {
+  color: #f59e0b;
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
