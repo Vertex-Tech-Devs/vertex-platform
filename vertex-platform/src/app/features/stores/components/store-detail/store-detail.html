@@ -323,7 +323,7 @@
                     </button>
                   </div>
 
-                  @if (versionUpdateSuccess()) {
+                  @if (versionUpdateSuccess() && store()!.versionUpdateStatus !== 'failed') {
                     <p class="feedback feedback--success mt-2">{{ versionUpdateSuccess() }}</p>
                   }
                   @if (versionUpdateError()) {
