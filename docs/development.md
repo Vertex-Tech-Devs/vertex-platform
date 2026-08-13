@@ -124,3 +124,16 @@ El admin de producto quedaba colgado si el upload a Storage fallaba (permisos/re
 `product-create.component.ts` ahora limpia `uploadProgress`/`galleryUploadProgress` en
 `error` → el spinner desaparece y el guardado vuelve a estar disponible. El SweetAlert de
 error ya informaba la causa (revisar storage.rules si el fallo es de permisos).
+
+## Runbook: "The query requires an index... currently building"
+
+En un shard recién aprovisionado los índices compuestos pasan por CREATING → READY;
+hasta entonces el admin/shop falla con ese error. `ensureCompositeIndexes` ahora
+**espera a que todos los índices estén READY** (poll cada 15s, timeout 10 min) antes de
+dar la tienda por aprovisionada. Verificación manual del estado:
+
+```bash
+# Estado de índices de un shard
+curl .../v1/projects/<shard>/databases/(default)/collectionGroups/-/indexes
+# state: READY | CREATING
+```

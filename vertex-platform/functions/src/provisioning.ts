@@ -368,14 +368,68 @@ export async function ensureCompositeIndexes(auth: OAuth2Client, projectId: stri
           },
         );
         console.info(
-          `[provisioning:indexes] Created composite index ${key} on ${projectId} (estado CREATING — tarda unos minutos en activarse)`,
+          `[provisioning:indexes] Created composite index ${key} on ${projectId} (estado CREATING)`,
         );
       } catch (err) {
         console.warn(`[provisioning:indexes] Could not create index ${key} on ${projectId}:`, err);
       }
     }
+
+    // Esperar a que los índices pasen a READY antes de dar la tienda por aprovisionada.
+    // Evita que el admin/shop recién desplegado falle con "The query requires an index.
+    // That index is currently building and cannot be used yet."
+    await waitForIndexesReady(auth, projectId, 10 * 60 * 1000);
   } catch (err) {
     console.warn(`[provisioning:indexes] Could not list indexes on ${projectId}:`, err);
+  }
+}
+
+/**
+ * Polla el estado de los índices compuestos hasta que todos estén READY
+ * (o se agote el timeout). Los índices recién creados pasan por CREATING → READY;
+ * un shard recién inicializado no debe marcarse activo antes de que las queries funcionen.
+ */
+async function waitForIndexesReady(
+  auth: OAuth2Client,
+  projectId: string,
+  timeoutMs: number,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let allReady = false;
+  while (Date.now() < deadline) {
+    try {
+      const res = (await apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/-/indexes?pageSize=200`,
+        { quotaProject: projectId },
+      )) as {
+        indexes?: Array<{ state?: string; fields?: Array<{ fieldPath?: string }> }>;
+      };
+      const indexes = res.indexes ?? [];
+      if (indexes.length === 0) {
+        allReady = true; // Sin índices compuestos → nada que esperar
+        break;
+      }
+      const building = indexes.filter((i) => i.state === 'CREATING' || i.state === 'NEEDS_ATTENTION');
+      if (building.length === 0) {
+        allReady = true;
+        console.info(
+          `[provisioning:indexes] All ${indexes.length} composite indexes READY on ${projectId}`,
+        );
+        break;
+      }
+      console.info(
+        `[provisioning:indexes] Waiting for ${building.length} index(es) to become READY on ${projectId}...`,
+      );
+    } catch (err) {
+      console.warn(`[provisioning:indexes] Index readiness poll failed on ${projectId}:`, err);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+  }
+  if (!allReady) {
+    console.warn(
+      `[provisioning:indexes] Timed out waiting for indexes on ${projectId} — las queries podrían fallar temporalmente.`,
+    );
   }
 }
 
