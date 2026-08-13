@@ -2928,6 +2928,81 @@ export const runProvisioning = onDocumentCreated(
   },
 );
 
+export const checkStoreOAuthRedirect = onCall<{ storeId: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 60, memory: '256MiB' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can check store OAuth redirect URIs.',
+      );
+    }
+
+    const { storeId } = request.data;
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId is required.');
+    }
+
+    const db = getFirestore();
+    const snap = await db.collection('stores').doc(storeId).get();
+    if (!snap.exists) {
+      throw new HttpsError('not-found', 'Store not found.');
+    }
+
+    const data = snap.data()!;
+    const shardProjectId =
+      (data['runtimeProjectId'] as string | undefined) ||
+      (data['firebaseProjectId'] as string | undefined);
+
+    if (!shardProjectId || shardProjectId === getMasterStorefrontProjectId()) {
+      return { ok: true, redirectUri: null, clientId: null };
+    }
+
+    // Client OAuth del master (el Google IdP de los shards usa este clientId).
+    const provisioningOwnerId =
+      typeof data['provisioningOwnerId'] === 'string'
+        ? (data['provisioningOwnerId'] as string)
+        : undefined;
+    let clientId = '';
+    try {
+      const auth = await getOwnerOAuthClient(provisioningOwnerId);
+      const masterIdpConfig = (await apiFetch(
+        auth,
+        `https://identitytoolkit.googleapis.com/v2/projects/${getMasterStorefrontProjectId()}/defaultSupportedIdpConfigs/google.com`,
+        { quotaProject: getMasterStorefrontProjectId() },
+      )) as { clientId?: string };
+      clientId = masterIdpConfig?.clientId || '';
+    } catch {
+      clientId = '';
+    }
+
+    const redirectUri = `https://${shardProjectId}.firebaseapp.com/__/auth/handler`;
+
+    let ok = false;
+    if (clientId) {
+      try {
+        const url =
+          `https://accounts.google.com/o/oauth2/v2/auth` +
+          `?client_id=${encodeURIComponent(clientId)}` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+          `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
+        const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+        const location = res.headers.get('location') ?? '';
+        ok = !location.includes('/signin/oauth/error');
+      } catch {
+        ok = false;
+      }
+    }
+
+    return {
+      ok,
+      redirectUri,
+      clientId: clientId || null,
+      consoleUrl: `https://console.cloud.google.com/apis/credentials?project=${getMasterStorefrontProjectId()}`,
+    };
+  },
+);
+
 export const repairStoreAuthDomains = onCall<{ storeId: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 120, memory: '256MiB' },
   async (request) => {

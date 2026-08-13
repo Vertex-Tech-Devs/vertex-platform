@@ -106,6 +106,29 @@
 
     <!-- Main Tabbed dashboard (active / suspended stores) -->
     @if (store()!.status === 'active' || store()!.status === 'suspended') {
+      @if (oauthRedirect() && !oauthRedirect()!.ok && oauthRedirect()!.redirectUri) {
+        <div class="oauth-alert" role="alert">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>
+            <strong>Falta registrar el redirect URI del shard</strong>
+            <p>
+              El login con Google del admin de esta tienda fallará con
+              <code>redirect_uri_mismatch</code> hasta que registres
+              <code>{{ oauthRedirect()!.redirectUri }}</code> en el client OAuth del master
+              (Google Cloud Console — Google no expone API para esto; es un único paso por shard).
+            </p>
+            <a
+              class="btn btn-warning btn-sm"
+              [href]="oauthRedirect()!.consoleUrl || 'https://console.cloud.google.com/apis/credentials'"
+              target="_blank"
+              rel="noopener"
+            >
+              <i class="bi bi-box-arrow-up-right"></i> Abrir Google Cloud Console
+            </a>
+          </div>
+        </div>
+      }
+
       <!-- Premium Glass Tabs -->
       <div class="tabs-container">
         <button

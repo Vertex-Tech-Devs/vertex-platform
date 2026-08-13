@@ -12,6 +12,7 @@ import type { OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { StoresService } from '@core/services/stores';
 import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
@@ -54,6 +55,13 @@ export class StoreDetail implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   readonly deployHistory = signal<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  // Estado del redirect URI OAuth del shard (login con Google del admin de la tienda)
+  readonly oauthRedirect = signal<{
+    ok: boolean;
+    redirectUri: string | null;
+    consoleUrl?: string;
+  } | null>(null);
 
   // Tab management
   readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>(
@@ -233,6 +241,23 @@ export class StoreDetail implements OnInit {
         .subscribe((history) => {
           this.deployHistory.set(history);
         });
+      void this.checkOAuthRedirect(id);
+    }
+  }
+
+  private async checkOAuthRedirect(storeId: string): Promise<void> {
+    try {
+      const fns = getFunctions();
+      const check = httpsCallable<{ storeId: string }, any>(fns, 'checkStoreOAuthRedirect'); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const res = await check({ storeId });
+      const data = res.data as { ok: boolean; redirectUri: string | null; consoleUrl?: string };
+      this.oauthRedirect.set({
+        ok: data.ok,
+        redirectUri: data.redirectUri,
+        consoleUrl: data.consoleUrl,
+      });
+    } catch {
+      this.oauthRedirect.set(null);
     }
   }
 
