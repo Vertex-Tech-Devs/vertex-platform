@@ -30,6 +30,9 @@ export const listTemplateVersions = onCall(
 
     try {
       const pat = await getGitHubPat();
+
+      // Releases publicadas (fuente primaria: notas + fecha real).
+      let releases: GitHubRelease[] = [];
       const res = await fetch(
         'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/releases?per_page=20',
         {
@@ -40,46 +43,58 @@ export const listTemplateVersions = onCall(
           },
         },
       );
-
       if (!res.ok) {
         throw new Error(`GitHub releases API failed: ${res.status}`);
       }
-
-      const releases = (await res.json()) as GitHubRelease[];
+      releases = (await res.json()) as GitHubRelease[];
       const published = releases.filter((r) => !r.draft && !r.prerelease);
 
-      const versions: TemplateVersion[] = published.map((r, i) => ({
-        version: r.tag_name.replace(/^v/, ''),
-        tag: r.tag_name,
-        publishedAt: r.published_at,
-        isLatest: i === 0,
-        notes: r.body ?? undefined,
-      }));
+      // Tags (fuente secundaria): versiones con tag pero sin release publicada.
+      // Se fusionan para que el selector muestre TODAS las versiones compatibles,
+      // no solo la latest.
+      const byVersion = new Map<string, TemplateVersion>();
+      for (const r of published) {
+        byVersion.set(r.tag_name.replace(/^v/, ''), {
+          version: r.tag_name.replace(/^v/, ''),
+          tag: r.tag_name,
+          publishedAt: r.published_at,
+          isLatest: false,
+          notes: r.body ?? undefined,
+        });
+      }
 
-      if (versions.length === 0) {
-        const tagsRes = await fetch(
-          'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/tags?per_page=20',
-          {
-            headers: {
-              Authorization: `Bearer ${pat}`,
-              Accept: 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
+      const tagsRes = await fetch(
+        'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/tags?per_page=20',
+        {
+          headers: {
+            Authorization: `Bearer ${pat}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
           },
-        );
-        if (tagsRes.ok) {
-          const tags = (await tagsRes.json()) as { name: string }[];
-          const tagVersions: TemplateVersion[] = tags
-            .filter((t) => t.name.startsWith('v'))
-            .map((t, i) => ({
-              version: t.name.replace(/^v/, ''),
+        },
+      );
+      if (tagsRes.ok) {
+        const tags = (await tagsRes.json()) as { name: string }[];
+        for (const t of tags.filter((x) => x.name.startsWith('v'))) {
+          const v = t.name.replace(/^v/, '');
+          if (!byVersion.has(v)) {
+            byVersion.set(v, {
+              version: v,
               tag: t.name,
               publishedAt: new Date().toISOString(),
-              isLatest: i === 0,
-              notes: 'Git tag release fallback',
-            }));
-          return { versions: tagVersions };
+              isLatest: false,
+              notes: 'Git tag (sin release publicada)',
+            });
+          }
         }
+      }
+
+      // Orden desc por semver y marca la más alta como latest.
+      const versions = [...byVersion.values()].sort((a, b) =>
+        compareVersions(b.version, a.version),
+      );
+      if (versions.length > 0) {
+        versions[0] = { ...versions[0], isLatest: true };
       }
 
       return { versions };
@@ -89,6 +104,17 @@ export const listTemplateVersions = onCall(
     }
   },
 );
+
+/** Compara versiones semver (x.y.z) numéricamente, ignorando pre-releases. */
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
 
 export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
