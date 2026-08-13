@@ -12,7 +12,7 @@ import {
   listProvisioningOwnerCandidates,
   sendDirectEmail,
 } from './helpers';
-import { resolvePlatformEnvironment, summarizeShardCapacity } from './runtime';
+import { resolvePlatformEnvironment, summarizeShardCapacity, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { verifyGitHubOidcToken } from './github-oidc';
 import type {
   InviteStaffPayload,
@@ -690,25 +690,24 @@ export const deleteStore = onCall<{ storeId: string }>(
     const siteId = resolveRuntimeSiteId(store);
     const runtimeMode = store.runtimeMode ?? 'dedicated-project';
     const inferredProjectId = inferProjectIdFromDefaultUrl(store.defaultUrl);
-    // Determinar si el shard desechable quedará vacío tras eliminar esta tienda.
-    // En ese caso el cleanup debe eliminar también el proyecto GCP/Firebase (fricción cero).
+    // Política de pool: los shards NUNCA se eliminan al vaciarse — permanecen
+    // disponibles para tiendas futuras (el usuario lo pidió explícitamente).
+    // Solo se elimina el proyecto si DELETE_EMPTY_SHARDS === 'true' (opt-in).
     let deleteProjectOnCleanup = false;
     if (runtimeMode === 'shared-shard' && store.shardId) {
-      try {
-        const shardSnap = await db.collection('infrastructure_shards').doc(store.shardId).get();
-        if (shardSnap.exists) {
-          const shardData = shardSnap.data() ?? {};
-          const shardProjectId = String(shardData['projectId'] ?? '');
-          const willBeEmpty = (shardData['currentStores'] ?? 0) - 1 <= 0;
-          deleteProjectOnCleanup = willBeEmpty && isDisposableProject(shardProjectId);
-          if (deleteProjectOnCleanup) {
-            console.info(
-              `[deleteStore] Shard ${store.shardId} (${shardProjectId}) quedará vacío y es desechable. Se eliminará el proyecto.`,
-            );
+      const optIn = process.env['DELETE_EMPTY_SHARDS'] === 'true';
+      if (optIn) {
+        try {
+          const shardSnap = await db.collection('infrastructure_shards').doc(store.shardId).get();
+          if (shardSnap.exists) {
+            const shardData = shardSnap.data() ?? {};
+            const shardProjectId = String(shardData['projectId'] ?? '');
+            const willBeEmpty = (shardData['currentStores'] ?? 0) - 1 <= 0;
+            deleteProjectOnCleanup = willBeEmpty && isDisposableProject(shardProjectId);
           }
+        } catch (err) {
+          console.warn(`[deleteStore] No se pudo evaluar el shard ${store.shardId}:`, err);
         }
-      } catch (err) {
-        console.warn(`[deleteStore] No se pudo evaluar el shard ${store.shardId}:`, err);
       }
     }
 
@@ -749,9 +748,17 @@ export const deleteStore = onCall<{ storeId: string }>(
         await db.runTransaction(async (transaction) => {
           const shardSnap = await transaction.get(shardRef);
           if (shardSnap.exists) {
-            const currentStores = shardSnap.data()?.currentStores || 0;
+            const shardData = shardSnap.data()!;
+            const currentStores = shardData['currentStores'] || 0;
+            const maxCapacity = shardData['maxCapacity'] || DEFAULT_MAX_STORES_PER_SHARD;
+            const newCount = Math.max(0, currentStores - 1);
+            // Liberar cupo real: al bajar del máximo, un shard FULL vuelve a ACTIVE
+            // (disponible para nuevas tiendas — el pool nunca se elimina).
+            const newStatus =
+              shardData['status'] === 'FULL' && newCount < maxCapacity ? 'ACTIVE' : shardData['status'];
             transaction.update(shardRef, {
-              currentStores: Math.max(0, currentStores - 1),
+              currentStores: newCount,
+              ...(newStatus !== shardData['status'] ? { status: newStatus } : {}),
               updatedAt: new Date(),
             });
           }
@@ -788,6 +795,88 @@ export const deleteStore = onCall<{ storeId: string }>(
   },
 );
 
+/**
+ * Borra TODOS los documentos de la tienda en un proyecto (shard) usando
+ * collectionGroup queries por storeId — productos, órdenes, clientes, atributos,
+ * configuracion, banners, páginas, settings, mail, reviews, store_payments.
+ * Batch de 400 docs con presupuesto de tiempo para no exceder el timeout.
+ */
+async function deleteStoreDataInProject(
+  db: ReturnType<typeof getFirestore>,
+  projectId: string,
+  storeId: string,
+): Promise<void> {
+  const collections = [
+    'products',
+    'orders',
+    'clients',
+    'attributes',
+    'configuracion',
+    'banners',
+    'pages',
+    'settings',
+    'mail',
+    'reviews',
+    'store_payments',
+  ];
+  const deadline = Date.now() + 120_000; // 2 min presupuesto
+  for (const collection of collections) {
+    if (Date.now() > deadline) break;
+    try {
+      // collectionGroup sobre la DB del proyecto: admin SDK con firestore() del shard
+      const shardDb = getFirestoreForProject(projectId);
+      let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+      let deletedInCollection = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        if (Date.now() > deadline) break;
+        let query = shardDb
+          .collectionGroup(collection)
+          .where('storeId', '==', storeId)
+          .limit(400);
+        if (cursor) {
+          query = query.startAfter(cursor);
+        }
+        const snap = await query.get();
+        if (snap.empty) break;
+        const batch = shardDb.batch();
+        snap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+        deletedInCollection += snap.size;
+        cursor = snap.docs[snap.size - 1];
+        if (snap.size < 400) break;
+      }
+      if (deletedInCollection > 0) {
+        console.info(
+          `[runtimeCleanup] Eliminados ${deletedInCollection} docs de ${collection} (${storeId} en ${projectId})`,
+        );
+      }
+    } catch (err) {
+      console.warn(`[runtimeCleanup] No se pudieron borrar ${collection} de ${storeId}:`, err);
+    }
+  }
+}
+
+/**
+ * Obtiene una instancia de Firestore admin para un proyecto de shard.
+ */
+function getFirestoreForProject(projectId: string): FirebaseFirestore.Firestore {
+  return getFirestoreForProjectCache[projectId] ??= firestoreForProject(projectId);
+}
+
+const getFirestoreForProjectCache: Record<string, FirebaseFirestore.Firestore> = {};
+
+function firestoreForProject(projectId: string): FirebaseFirestore.Firestore {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { initializeApp, getApps } = require('firebase-admin/app') as typeof import('firebase-admin/app');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { getFirestore: adminGetFirestore } = require('firebase-admin/firestore') as typeof import('firebase-admin/firestore');
+  const appName = `shard-${projectId}`;
+  const existing = getApps().find((a) => a.name === appName);
+  const app = existing ?? initializeApp({ projectId }, appName);
+  return adminGetFirestore(app);
+}
+
 export const processRuntimeCleanupTask = onDocumentCreated(
   { document: 'runtimeCleanupTasks/{taskId}', timeoutSeconds: 300 },
   async (event) => {
@@ -803,6 +892,7 @@ export const processRuntimeCleanupTask = onDocumentCreated(
       preferredOwnerId?: string | null;
       projectIds?: string[];
       siteId?: string;
+      storeId?: string;
       runtimeMode?: StoreRuntimeMode;
       deleteProject?: boolean;
       attempts?: number;
@@ -950,7 +1040,13 @@ export const processRuntimeCleanupTask = onDocumentCreated(
             throw lastHostingError;
           }
 
-          // 3. Si el shard desechable quedó vacío (deleteProject flag), eliminar el proyecto GCP/Firebase.
+          // 3. Borrado TOTAL de los datos de la tienda en el shard (collectionGroup por storeId)
+          if (task.storeId) {
+            await deleteStoreDataInProject(db, projectId, task.storeId);
+          }
+
+          // 4. Si el shard desechable quedó vacío (deleteProject flag + opt-in),
+          //    eliminar el proyecto GCP/Firebase. Por defecto el shard permanece en el pool.
           if (task.deleteProject === true && isDisposableProject(projectId)) {
             try {
               await withAnyProvisioningOwner(db, task.preferredOwnerId ?? undefined, async (auth) =>
