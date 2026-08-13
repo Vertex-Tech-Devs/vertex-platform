@@ -350,5 +350,27 @@ export const checkWarmShardBuffer = functions.pubsub
       }
     }
 
-    await ensureWarmShardAvailable();
+    // ── Pool objetivo: mantener al menos WARM_SHARD_TARGET shards calientes ──
+    // Así el pool de capacidad queda profundo sin configuración manual:
+    // el scheduler provisiona shards nuevos hasta alcanzar el objetivo.
+    const WARM_SHARD_TARGET = Number(process.env['WARM_SHARD_TARGET'] || '8');
+    const warmSnap = await db
+      .collection('infrastructure_shards')
+      .where('environment', '==', env)
+      .where('status', 'in', ['WARMUP_READY', 'WARMUP_PROVISIONING'])
+      .get();
+    const warmCount = warmSnap.size;
+    if (warmCount < WARM_SHARD_TARGET) {
+      const toCreate = Math.min(WARM_SHARD_TARGET - warmCount, 3); // máx 3 por run
+      console.info(
+        `[checkWarmShardBuffer] Pool caliente bajo: ${warmCount}/${WARM_SHARD_TARGET}. Provisionando ${toCreate} shard(s)...`,
+      );
+      for (let i = 0; i < toCreate; i++) {
+        await ensureWarmShardAvailable();
+      }
+    } else {
+      console.info(
+        `[checkWarmShardBuffer] Pool caliente OK: ${warmCount}/${WARM_SHARD_TARGET}`,
+      );
+    }
   });
