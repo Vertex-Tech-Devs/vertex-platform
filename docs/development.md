@@ -137,3 +137,33 @@ dar la tienda por aprovisionada. Verificación manual del estado:
 curl .../v1/projects/<shard>/databases/(default)/collectionGroups/-/indexes
 # state: READY | CREATING
 ```
+
+## Trazabilidad y prueba de versiones (v0.3.0)
+
+### Ciclo de vida de una versión del template
+
+1. **Bump**: `version: "0.3.0"` en `storefront/package.json` y `storefront/functions/package.json`;
+   `CURRENT_TEMPLATE_VERSION = '0.3.0'` en platform. Cambios visibles opcionales (ej. badge
+   de versión en el footer del shop — `HECHO CON VERTEX · v0.3.0`).
+2. **Tag + release**: `git tag v0.3.0 && git push origin v0.3.0` → el workflow `Release`
+   valida que `package.json` coincida con el tag y crea la GitHub Release (idempotente).
+3. **Selector**: `listTemplateVersions` muestra v0.3.0 (latest) + v0.2.0 + v0.1.0.
+4. **Aplicar por tienda**: "Versión de Plantilla" → seleccionar v0.3.0 → "Aplicar versión"
+   → `updateStoreVersion` → deploy desde `refs/tags/v0.3.0` → `completeVersionUpdate`
+   persiste `templateVersion/appVersion/targetChannel/lastDeployedAt`.
+
+### Verificación de que el deploy aplicó la versión correcta (4 señales)
+
+| Señal | Cómo verificarla |
+|---|---|
+| **Visual (v0.3.0+)**: footer del shop | `HECHO CON VERTEX · v0.3.0` (visible sin herramientas) |
+| **Consola**: `[Vertex Storefront] v0.3.0` | DevTools → Console al cargar |
+| **Bundle**: la versión está horneada | `curl <shop>/main-*.js | grep -o 'v0\.3\.0'` |
+| **Firestore/panel**: `appVersion: "v0.3.0"`, `targetChannel: "stable"`, `lastDeployedAt` | Panel → Versión app / Canal / Último deploy |
+
+### Prueba versión a versión
+
+1. Tienda A: aplicar **v0.3.0** → footer muestra `· v0.3.0`, panel `Versión app: v0.3.0`.
+2. Tienda B: dejar en **v0.2.0** → footer sin badge de versión (v0.2.0 no lo trae), panel `Versión app: v0.2.0`.
+3. Downgrade: aplicar **v0.1.0** a una tienda → vuelve al código v0.1.0 (sin badge, sin fix de upload).
+4. El run del deploy en Actions muestra `checkout refs/tags/v0.X.Y` — evidencia del origen.
