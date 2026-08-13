@@ -74,14 +74,41 @@ export const listTemplateVersions = onCall(
         },
       );
       if (tagsRes.ok) {
-        const tags = (await tagsRes.json()) as { name: string }[];
+        const tags = (await tagsRes.json()) as {
+          name: string;
+          commit?: { sha: string };
+        }[];
         for (const t of tags.filter((x) => x.name.startsWith('v'))) {
           const v = t.name.replace(/^v/, '');
           if (!byVersion.has(v)) {
+            // Fecha real del tag: la del commit al que apunta (no "ahora").
+            let publishedAt = new Date().toISOString();
+            if (t.commit?.sha) {
+              try {
+                const cRes = await fetch(
+                  `https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/commits/${t.commit.sha}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${pat}`,
+                      Accept: 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                    },
+                  },
+                );
+                if (cRes.ok) {
+                  const c = (await cRes.json()) as {
+                    commit?: { committer?: { date?: string } };
+                  };
+                  publishedAt = c.commit?.committer?.date ?? publishedAt;
+                }
+              } catch {
+                // Se conserva la fecha fallback si la llamada falla.
+              }
+            }
             byVersion.set(v, {
               version: v,
               tag: t.name,
-              publishedAt: new Date().toISOString(),
+              publishedAt,
               isLatest: false,
               notes: 'Git tag (sin release publicada)',
             });
@@ -106,7 +133,7 @@ export const listTemplateVersions = onCall(
 );
 
 /** Compara versiones semver (x.y.z) numéricamente, ignorando pre-releases. */
-function compareVersions(a: string, b: string): number {
+export function compareVersions(a: string, b: string): number {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
   const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
@@ -257,6 +284,8 @@ export const completeVersionUpdate = onCall<{
   if (success) {
     await storeRef.update({
       templateVersion: version,
+      appVersion: `v${version.replace(/^v/, '')}`,
+      targetChannel: 'stable',
       versionUpdateStatus: 'idle',
       versionUpdateTarget: null,
       lastDeployedAt: new Date(),
