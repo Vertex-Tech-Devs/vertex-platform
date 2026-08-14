@@ -505,4 +505,26 @@ describe('StoresService', () => {
     expect(result.dnsRecords[2].type).toBe('CNAME');
     expect(result.dnsRecords[3].type).toBe('A');
   });
+
+  it('suspendStore calls the suspendStore callable', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+    await service.suspendStore('store-1');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'suspendStore');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-1' });
+  });
+
+  it('activateStore calls the activateStore callable', async () => {
+    const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+    await service.activateStore('store-1');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'activateStore');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-1' });
+  });
 });
