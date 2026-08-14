@@ -22,12 +22,6 @@ const {
 
 let capturedAuthCallback: ((user: unknown) => Promise<void>) | null = null;
 
-vi.mock('firebase/app', () => ({
-  initializeApp: vi.fn(() => ({})),
-  getApps: vi.fn(() => [{}]),
-  getApp: vi.fn(() => ({})),
-}));
-
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({ currentUser: null })),
   onAuthStateChanged: mockOnAuthStateChanged,

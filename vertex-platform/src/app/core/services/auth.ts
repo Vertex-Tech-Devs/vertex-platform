@@ -14,7 +14,13 @@ export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private auth = getAuth();
+  private get auth() {
+    return getAuth();
+  }
+
+  private get fns() {
+    return getFunctions();
+  }
 
   readonly user = signal<User | null | undefined>(undefined);
   readonly isSuperAdmin = signal<boolean>(false);
@@ -30,8 +36,7 @@ export class AuthService {
         let token = await getIdTokenResult(u, true);
         if (!token.claims['platformAdmin']) {
           try {
-            const fns = getFunctions();
-            const refreshClaim = httpsCallable(fns, 'refreshMyPlatformAdminClaim');
+            const refreshClaim = httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
             await refreshClaim();
             token = await getIdTokenResult(u, true);
           } catch (e) {
@@ -61,8 +66,7 @@ export class AuthService {
 
       if (!token.claims['platformAdmin']) {
         try {
-          const fns = getFunctions();
-          const refreshClaim = httpsCallable(fns, 'refreshMyPlatformAdminClaim');
+          const refreshClaim = httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
           await refreshClaim();
           token = await getIdTokenResult(result.user, true);
         } catch (e) {
