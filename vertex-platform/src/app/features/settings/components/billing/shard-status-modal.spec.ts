@@ -68,7 +68,7 @@ describe('ShardStatusModal', () => {
     const text = el.textContent ?? '';
     expect(text).toContain('Billing no vinculado');
     expect(text).toContain('gcloud billing projects link');
-    const supportLink = el.querySelector('a[href*="billing_quota_increase"]');
+    const supportLink = el.querySelector('a[href*="iam-admin/quotas"]');
     expect(supportLink).toBeTruthy();
   });
 

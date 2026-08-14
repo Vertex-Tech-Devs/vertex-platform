@@ -103,11 +103,11 @@ import type { ShardReadiness, ShardReadinessReason } from '@core/services/stores
                         <strong>5 proyectos por billing account</strong>. Si está al límite, pedí el
                         aumento:
                         <a
-                          href="https://support.google.com/code/contact/billing_quota_increase"
+                          href="https://console.cloud.google.com/iam-admin/quotas"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          soporte de Google (billing quota increase)
+                          GCP Console → Cuotas y límites (billing quota increase)
                         </a>
                         .
                       </li>

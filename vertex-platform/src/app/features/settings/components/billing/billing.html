@@ -8,7 +8,7 @@
   }
 
   <div class="page-top">
-    <div>
+    <div class="page-top__titles">
       <h1 class="page-title">Centro de Comando de Facturación GCP</h1>
       <p class="page-sub">
         Gestión automatizada del pool de Billing Accounts y capacidad para tiendas SaaS
@@ -26,7 +26,7 @@
       class="btn btn-primary"
     >
       <i class="bi bi-plus-circle-fill"></i>
-      Crear Cuenta de Facturación
+      <span>Crear Cuenta de Facturación</span>
       <i class="bi bi-box-arrow-up-right"></i>
     </a>
 
@@ -36,17 +36,17 @@
       [disabled]="svc.isSyncing()"
     >
       <i class="bi bi-arrow-repeat" [class.spin]="svc.isSyncing()"></i>
-      {{ svc.isSyncing() ? 'Sincronizando…' : 'Sincronizar Cuentas' }}
+      <span>{{ svc.isSyncing() ? 'Sincronizando…' : 'Sincronizar Cuentas' }}</span>
     </button>
 
     <a
-      href="https://support.google.com/code/contact/billing_quota_increase"
+      href="https://console.cloud.google.com/iam-admin/quotas"
       target="_blank"
       rel="noopener noreferrer"
       class="btn btn-secondary"
     >
       <i class="bi bi-graph-up-arrow"></i>
-      Solicitar Aumento de Cuota (GCP)
+      <span>Solicitar Aumento de Cuota (GCP)</span>
       <i class="bi bi-box-arrow-up-right"></i>
     </a>
   </div>
@@ -113,7 +113,7 @@
             title="Re-verifica en vivo el redirect URI de cada shard contra el client OAuth de Google"
           >
             <i class="bi bi-arrow-repeat" [class.spin]="isCheckingShards()"></i>
-            {{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}
+            <span>{{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}</span>
           </button>
           <span class="badge badge--active">
             {{ runtimeSummary()!.availableSharedSlots }} cupos libres
@@ -190,16 +190,18 @@
                   "
                 ></div>
               </div>
-              <span class="usage__label">
-                @if (isFull) {
-                  Sin cupo disponible
-                } @else {
-                  {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
-                    shard.availableStores
-                  }}
-                  disponibles)
-                }
-              </span>
+              <div class="usage__details">
+                <span class="usage__text">
+                  @if (isFull) {
+                    Sin cupo disponible
+                  } @else {
+                    {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
+                      shard.availableStores
+                    }}
+                    disponibles)
+                  }
+                </span>
+              </div>
             </div>
             @if (status) {
               <div class="shard-card__actions">
@@ -289,15 +291,20 @@
               <!-- View Mode -->
               <div class="account-item__body">
                 <div class="account-item__top">
-                  <div>
-                    <div class="account-name-row">
-                      <span class="account-name">{{ account.name }}</span>
+                  <div class="account-info">
+                    <h3 class="account-name">{{ account.name }}</h3>
+                    <div class="account-id-badge">
+                      <span class="id-label">ID GCP:</span>
                       <button
                         class="btn-copy"
                         (click)="copyAccountId(account.id)"
                         [title]="'Copiar ID: ' + account.id"
                       >
-                        <i class="bi" [class.bi-check2]="copiedId() === account.id" [class.bi-copy]="copiedId() !== account.id"></i>
+                        <i
+                          class="bi"
+                          [class.bi-check2]="copiedId() === account.id"
+                          [class.bi-copy]="copiedId() !== account.id"
+                        ></i>
                         <code>{{ account.id }}</code>
                       </button>
                     </div>
@@ -321,10 +328,12 @@
                       [style.width.%]="gcpUsagePercent(account)"
                     ></div>
                   </div>
-                  <span class="usage__label">
-                    <strong>{{ account.gcpUsedProjects }}</strong> / {{ account.gcpProjectLimit }} proyectos ({{ gcpUsagePercent(account) }}%)
-                    · {{ account.gcpRemaining }} cupos libres
-                  </span>
+                  <div class="usage__details">
+                    <span class="usage__text">
+                      <strong>{{ account.gcpUsedProjects }}</strong> / {{ account.gcpProjectLimit }} proyectos ({{ gcpUsagePercent(account) }}%)
+                    </span>
+                    <span class="usage__sub">· {{ account.gcpRemaining }} cupos libres</span>
+                  </div>
                 </div>
 
                 <div class="account-actions-row">
@@ -335,7 +344,7 @@
                     class="btn btn-secondary btn--sm"
                   >
                     <i class="bi bi-box-arrow-up-right"></i>
-                    Abrir en GCP Console
+                    <span>Abrir en GCP Console</span>
                   </a>
 
                   <div class="account-item__actions">
