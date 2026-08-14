@@ -1,15 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { initializeApp, getApps } from 'firebase/app';
 import { TestBed } from '@angular/core/testing';
 import type { AuthService as AuthServiceType } from './auth';
-
-if (getApps().length === 0) {
-  initializeApp({
-    apiKey: 'fake-api-key-for-testing',
-    projectId: 'vertex-platform-dev',
-    appId: 'test-app-id',
-  });
-}
 
 const {
   mockUnsubscribe,
@@ -30,6 +21,12 @@ const {
 }));
 
 let capturedAuthCallback: ((user: unknown) => Promise<void>) | null = null;
+
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(() => ({})),
+  getApps: vi.fn(() => [{}]),
+  getApp: vi.fn(() => ({})),
+}));
 
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({ currentUser: null })),
