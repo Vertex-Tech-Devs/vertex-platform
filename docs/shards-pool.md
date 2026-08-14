@@ -68,3 +68,17 @@ queda disponible para nuevas tiendas.
 > ⚠️ Los shards del pool deben registrarse con `environment` = **`development`** (dev)
 > o **`production`** (prod) — el monitor y el scheduler filtran por
 > `resolvePlatformEnvironment()`. El script `provision-shards.ts` ya lo hace.
+
+## Requisito previo: cuota de proyectos GCP
+
+Cada shard es un **proyecto GCP**. Google limita cuántos proyectos podés crear
+(cuota por organización/usuario — default típico ~12). Al alcanzarla, la creación de
+shards falla con `The project cannot be created because you have exceeded your allotted
+project quota` (el scheduler lo detecta y aborta el ciclo para no contaminar el pool).
+
+**Cómo aumentarla (una vez, en Google Cloud Console):**
+`IAM y administración → Cuotas → buscar "Project quota" (o "Quota of 'Project Count'")
+→ Editar → Solicitar aumento` (ej. 50). Aplica en minutos.
+
+Con cuota disponible, el scheduler (cada 6h, `WARM_SHARD_TARGET=8`) y el script
+`provision-shards.ts --count 10` crean los shards restantes hasta el objetivo.
