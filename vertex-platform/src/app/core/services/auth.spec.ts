@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps } from '@firebase/app';
 import { TestBed } from '@angular/core/testing';
 import type { AuthService as AuthServiceType } from './auth';
 
@@ -45,15 +45,15 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('firebase/auth', () => mocks.authModule);
 vi.mock('@firebase/auth', () => mocks.authModule);
+vi.mock('firebase/auth', () => mocks.authModule);
 
-vi.mock('firebase/functions', () => ({
+vi.mock('@firebase/functions', () => ({
   getFunctions: mocks.mockGetFunctions,
   httpsCallable: mocks.mockHttpsCallable,
 }));
 
-vi.mock('@firebase/functions', () => ({
+vi.mock('firebase/functions', () => ({
   getFunctions: mocks.mockGetFunctions,
   httpsCallable: mocks.mockHttpsCallable,
 }));

@@ -6,9 +6,9 @@ import {
   signOut,
   onAuthStateChanged,
   getIdTokenResult,
-} from 'firebase/auth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import type { User } from 'firebase/auth';
+} from '@firebase/auth';
+import { getFunctions, httpsCallable } from '@firebase/functions';
+import type { User } from '@firebase/auth';
 
 export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
 
@@ -54,7 +54,7 @@ export class AuthService {
       } else {
         this.isSuperAdmin.set(false);
       }
-      this.user.set(u);
+      this.user.set(u as User);
     });
   }
 
@@ -81,7 +81,7 @@ export class AuthService {
         }
       }
       this.isSuperAdmin.set(token.claims['superAdmin'] === true);
-      this.user.set(result.user);
+      this.user.set(result.user as User);
     } catch (err) {
       const code = (err as { code?: string })?.code ?? '';
       console.error('[Auth] loginWithGoogle failed:', code, err);
