@@ -11,36 +11,51 @@ if (getApps().length === 0) {
   });
 }
 
-const {
-  mockUnsubscribe,
-  mockOnAuthStateChanged,
-  mockSignOut,
-  mockGetIdTokenResult,
-  mockSignInWithPopup,
-  mockGetFunctions,
-  mockHttpsCallable,
-} = vi.hoisted(() => ({
-  mockUnsubscribe: vi.fn(),
-  mockOnAuthStateChanged: vi.fn(),
-  mockSignOut: vi.fn().mockResolvedValue(undefined),
-  mockGetIdTokenResult: vi.fn(),
-  mockSignInWithPopup: vi.fn(),
-  mockGetFunctions: vi.fn(() => ({})),
-  mockHttpsCallable: vi.fn(() => vi.fn().mockResolvedValue({ data: {} })),
-}));
+const mocks = vi.hoisted(() => {
+  const mockUnsubscribe = vi.fn();
+  const mockOnAuthStateChanged = vi.fn();
+  const mockSignOut = vi.fn().mockResolvedValue(undefined);
+  const mockGetIdTokenResult = vi.fn();
+  const mockSignInWithPopup = vi.fn();
+  const mockGetFunctions = vi.fn(() => ({}));
+  const mockHttpsCallable = vi.fn(() => vi.fn().mockResolvedValue({ data: {} }));
+  const mockGetAuth = vi.fn(() => ({ currentUser: null }));
 
-vi.mock('firebase/auth', () => ({
-  getAuth: vi.fn(() => ({ currentUser: null })),
-  onAuthStateChanged: mockOnAuthStateChanged,
-  GoogleAuthProvider: vi.fn(),
-  signInWithPopup: mockSignInWithPopup,
-  signOut: mockSignOut,
-  getIdTokenResult: mockGetIdTokenResult,
-}));
+  class GoogleAuthProvider {}
+
+  const authModule = {
+    getAuth: mockGetAuth,
+    onAuthStateChanged: mockOnAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup: mockSignInWithPopup,
+    signOut: mockSignOut,
+    getIdTokenResult: mockGetIdTokenResult,
+  };
+
+  return {
+    mockUnsubscribe,
+    mockOnAuthStateChanged,
+    mockSignOut,
+    mockGetIdTokenResult,
+    mockSignInWithPopup,
+    mockGetFunctions,
+    mockHttpsCallable,
+    mockGetAuth,
+    authModule,
+  };
+});
+
+vi.mock('firebase/auth', () => mocks.authModule);
+vi.mock('@firebase/auth', () => mocks.authModule);
 
 vi.mock('firebase/functions', () => ({
-  getFunctions: mockGetFunctions,
-  httpsCallable: mockHttpsCallable,
+  getFunctions: mocks.mockGetFunctions,
+  httpsCallable: mocks.mockHttpsCallable,
+}));
+
+vi.mock('@firebase/functions', () => ({
+  getFunctions: mocks.mockGetFunctions,
+  httpsCallable: mocks.mockHttpsCallable,
 }));
 
 import { AuthService } from './auth';
@@ -53,11 +68,11 @@ describe('AuthService', () => {
     vi.clearAllMocks();
     capturedAuthCallback = null;
 
-    mockOnAuthStateChanged.mockImplementation((_auth: unknown, cb: (user: unknown) => void) => {
+    mocks.mockOnAuthStateChanged.mockImplementation((_auth: unknown, cb: (user: unknown) => void) => {
       capturedAuthCallback = cb as (user: unknown) => Promise<void>;
-      return mockUnsubscribe;
+      return mocks.mockUnsubscribe;
     });
-    mockSignOut.mockResolvedValue(undefined);
+    mocks.mockSignOut.mockResolvedValue(undefined);
 
     TestBed.configureTestingModule({ providers: [AuthService] });
     service = TestBed.inject(AuthService);
@@ -78,7 +93,7 @@ describe('AuthService', () => {
 
   it('sets user when platformAdmin claim is present', async () => {
     const mockUser = { uid: 'abc', email: 'admin@test.com' };
-    mockGetIdTokenResult.mockResolvedValue({ claims: { platformAdmin: true } });
+    mocks.mockGetIdTokenResult.mockResolvedValue({ claims: { platformAdmin: true } });
     await capturedAuthCallback?.(mockUser);
     expect(service.user()).toBe(mockUser);
     expect(service.authError()).toBeNull();
@@ -86,39 +101,39 @@ describe('AuthService', () => {
 
   it('signs out and sets unauthorized when non-admin authenticates', async () => {
     const mockUser = { uid: 'xyz', email: 'nonadmin@test.com' };
-    mockGetIdTokenResult.mockResolvedValue({ claims: {} });
+    mocks.mockGetIdTokenResult.mockResolvedValue({ claims: {} });
     await capturedAuthCallback?.(mockUser);
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(mocks.mockSignOut).toHaveBeenCalled();
     expect(service.authError()).toBe('unauthorized');
   });
 
   it('loginWithGoogle signs in with popup when platformAdmin claim is present', async () => {
     const mockUser = { uid: 'abc', email: 'admin@test.com' };
-    mockSignInWithPopup.mockResolvedValue({ user: mockUser });
-    mockGetIdTokenResult.mockResolvedValue({ claims: { platformAdmin: true, superAdmin: true } });
+    mocks.mockSignInWithPopup.mockResolvedValue({ user: mockUser });
+    mocks.mockGetIdTokenResult.mockResolvedValue({ claims: { platformAdmin: true, superAdmin: true } });
     await service.loginWithGoogle();
-    expect(mockSignInWithPopup).toHaveBeenCalled();
+    expect(mocks.mockSignInWithPopup).toHaveBeenCalled();
     expect(service.authError()).toBeNull();
     expect(service.isSuperAdmin()).toBe(true);
   });
 
   it('loginWithGoogle signs out and sets unauthorized when claim is absent', async () => {
     const mockUser = { uid: 'abc', email: 'noadmin@test.com' };
-    mockSignInWithPopup.mockResolvedValue({ user: mockUser });
-    mockGetIdTokenResult.mockResolvedValue({ claims: {} });
+    mocks.mockSignInWithPopup.mockResolvedValue({ user: mockUser });
+    mocks.mockGetIdTokenResult.mockResolvedValue({ claims: {} });
     await service.loginWithGoogle();
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(mocks.mockSignOut).toHaveBeenCalled();
     expect(service.authError()).toBe('unauthorized');
   });
 
   it('loginWithGoogle sets popup-blocked error when popup is blocked', async () => {
-    mockSignInWithPopup.mockRejectedValue({ code: 'auth/popup-blocked' });
+    mocks.mockSignInWithPopup.mockRejectedValue({ code: 'auth/popup-blocked' });
     await service.loginWithGoogle();
     expect(service.authError()).toBe('popup-blocked');
   });
 
   it('loginWithGoogle sets unknown error on unexpected exception', async () => {
-    mockSignInWithPopup.mockRejectedValue(new Error('unexpected'));
+    mocks.mockSignInWithPopup.mockRejectedValue(new Error('unexpected'));
     await service.loginWithGoogle();
     expect(service.authError()).toBe('unknown');
   });
