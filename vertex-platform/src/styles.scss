@@ -175,3 +175,100 @@ a {
     transform: rotate(360deg);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Modern polish & responsive (global)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Botones con icono + texto: separación consistente (fix "iconos pegados").
+   Los .action-btn (columna) se excluyen a propósito: tienen layout propio. */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-warning,
+.btn-refresh,
+.btn-action-small,
+.btn-icon,
+.btn-logout,
+.btn--sm,
+.btn-sm,
+.copy-row__btn,
+.menu-toggle,
+.tab-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Contenedores de página centrados y de ancho completo */
+.page-container,
+.detail-container,
+.team-page {
+  width: 100%;
+  margin: 0 auto;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Código dentro de tarjetas: chips consistentes */
+code {
+  font-size: 0.85em;
+  background: hsla(0, 0%, 100%, 0.07);
+  border: 1px solid hsla(0, 0%, 100%, 0.06);
+  border-radius: 6px;
+  padding: 0.1em 0.45em;
+}
+
+/* Accesibilidad: respetar prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Tipografía y espaciado móvil ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .page-title {
+    font-size: 1.4rem;
+  }
+
+  .page-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-top .btn,
+  .page-top .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stat-chip {
+    justify-content: center;
+  }
+
+  .filter-bar .filter-controls {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats-bar {
+    grid-template-columns: 1fr;
+  }
+}

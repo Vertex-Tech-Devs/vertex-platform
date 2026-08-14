@@ -1876,3 +1876,38 @@
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
 }
+
+/* ── Responsive & polish (detalle de tienda) ──────────────────────────── */
+.detail-header__actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .detail-header__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .detail-header__actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .detail-header__actions {
+    grid-template-columns: 1fr;
+  }
+}

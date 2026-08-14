@@ -574,13 +574,21 @@ describe('StoresService', () => {
     const poolAlertCb = poolAlertCall![1] as (snap: unknown) => void;
 
     poolAlertCb({ data: () => ({ active: true, availableShards: 1, threshold: 2 }) });
-    expect(service.poolAlert()).toEqual({ availableShards: 1, threshold: 2 });
+    expect(service.poolAlert()).toEqual({
+      availableShards: 1,
+      threshold: 2,
+      command: 'npx tsx scripts/provision-shards.ts --target 10',
+    });
 
     poolAlertCb({ data: () => ({ active: false }) });
     expect(service.poolAlert()).toBeNull();
 
     // Sin availableShards ni threshold → usa defaults
     poolAlertCb({ data: () => ({ active: true }) });
-    expect(service.poolAlert()).toEqual({ availableShards: 0, threshold: 2 });
+    expect(service.poolAlert()).toEqual({
+      availableShards: 0,
+      threshold: 2,
+      command: 'npx tsx scripts/provision-shards.ts --target 10',
+    });
   });
 });

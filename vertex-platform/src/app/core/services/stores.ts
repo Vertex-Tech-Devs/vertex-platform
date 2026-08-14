@@ -121,7 +121,11 @@ export class StoresService {
   readonly isLoading = signal(true);
 
   /** Alerta de pool de shards bajo (in-app) — leída de system_alerts/pool_low_{env}. */
-  readonly poolAlert = signal<{ availableShards: number; threshold: number } | null>(null);
+  readonly poolAlert = signal<{
+    availableShards: number;
+    threshold: number;
+    command: string;
+  } | null>(null);
 
   private readonly poolAlertUnsub = (() => {
     try {
@@ -134,11 +138,20 @@ export class StoresService {
         : 'dev';
       return onSnapshot(doc(this.db, `system_alerts/pool_low_${env}`), (snap) => {
         const data = snap.data() as
-          | { active?: boolean; availableShards?: number; threshold?: number }
+          | {
+              active?: boolean;
+              availableShards?: number;
+              threshold?: number;
+              command?: string;
+            }
           | undefined;
         this.poolAlert.set(
           data?.active
-            ? { availableShards: data.availableShards ?? 0, threshold: data.threshold ?? 2 }
+            ? {
+                availableShards: data.availableShards ?? 0,
+                threshold: data.threshold ?? 2,
+                command: data.command ?? 'npx tsx scripts/provision-shards.ts --target 10',
+              }
             : null,
         );
       });

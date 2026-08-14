@@ -349,3 +349,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Responsive & polish (billing) ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .account-item {
+    flex-wrap: wrap;
+  }
+  .account-item__body {
+    flex: 1 1 100%;
+  }
+  .account-item__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .account-item__top {
+    flex-wrap: wrap;
+  }
+}
+
+/* Cards de shards: bordes y hover consistentes con el resto de la plataforma */
+.shard-card {
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &--ready {
+    border-color: var(--platform-status-active-border) !important;
+    box-shadow: 0 0 14px hsla(142, 70%, 45%, 0.08);
+  }
+
+  &--incomplete {
+    border-color: var(--platform-status-provisioning-border) !important;
+  }
+}

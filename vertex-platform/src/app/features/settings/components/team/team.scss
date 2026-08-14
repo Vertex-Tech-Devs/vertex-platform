@@ -257,3 +257,14 @@
     border: 1px solid rgba(16, 185, 129, 0.25);
   }
 }
+
+/* ── Responsive & polish (team) ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .page-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-top .btn {
+    width: 100%;
+  }
+}
