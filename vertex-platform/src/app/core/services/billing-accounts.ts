@@ -89,8 +89,8 @@ export class BillingAccountsService {
     }
 
     return {
-      id: data['accountId'] || id,
-      name: data['name'] || id,
+      id: typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id,
+      name: typeof data['name'] === 'string' && data['name'] ? data['name'] : id,
       maxProjects: gcpProjectLimit,
       active,
       addedAt,
