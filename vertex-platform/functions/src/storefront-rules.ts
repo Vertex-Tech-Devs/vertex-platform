@@ -26,13 +26,14 @@ service cloud.firestore {
 
     // Admin of a given store: custom claim (fast path — set by role.functions.ts after provisioning)
     // or root-level admin_roles composite key {storeId}_{email} fallback.
+    // Hardening: un claim admin SIN tenantId NO tiene acceso por defecto (los claims
+    // siempre se emiten con tenantId; esta cláusula es defense-in-depth).
     function isStoreAdmin(storeId) {
       let targetTenant = (storeId != null && storeId != '') ? storeId : request.auth.token.get('tenantId', '');
       return isAuthenticated() && (
         isSuperAdmin() ||
         (request.auth.token.get('admin', false) == true && (
           targetTenant == '' ||
-          request.auth.token.get('tenantId', '') == '' ||
           request.auth.token.get('tenantId', '') == targetTenant ||
           targetTenant.matches('^vtx-pr-.*')
         )) ||
@@ -237,7 +238,6 @@ service firebase.storage {
       return isAuthenticated() && (
         isSuperAdmin() ||
         (request.auth.token.get('admin', false) == true && (
-          request.auth.token.get('tenantId', '') == '' ||
           request.auth.token.get('tenantId', '') == storeId ||
           storeId.matches('^vtx-pr-.*')
         ))
@@ -251,7 +251,7 @@ service firebase.storage {
     match /stores/{storeId}/{allPaths=**} {
       allow create, update: if isStoreAdmin(storeId)
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp|x-icon|vnd.microsoft.icon|svg\\+xml)');
+        && request.resource.contentType.matches('image/(jpeg|png|webp|x-icon|vnd.microsoft.icon|svg[+]xml)');
       allow delete: if isStoreAdmin(storeId);
     }
   }

@@ -695,9 +695,18 @@ async function verifyRedirectUri(clientId: string, redirectUri: string): Promise
       `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
     const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
     const location = res.headers.get('location') ?? '';
-    // Éxito → redirige EXACTAMENTE al redirect_uri registrado (con ?code=...).
-    // Falla → /signin/oauth/error, error=, o cualquier otra página intermedia.
-    return location.startsWith(redirectUri);
+    // Éxito → redirige al redirect_uri registrado (con ?code=...).
+    if (location.startsWith(redirectUri)) return true;
+    // Fallo inequívoco: redirect a la página de error de OAuth.
+    if (location.includes('/signin/oauth/error') || location.includes('error=')) return false;
+    // Sin sesión Google puede responder 200 (consentimiento) sin Location, o 302 a
+    // un interstitial de login: leer el body para detectar redirect_uri_mismatch.
+    const body = await res.text();
+    const hasErrorPage =
+      body.includes('redirect_uri_mismatch') ||
+      body.includes('signin/oauth/error') ||
+      (body.includes('Error 400') && body.includes('redirect_uri'));
+    return !hasErrorPage;
   } catch {
     return false;
   }

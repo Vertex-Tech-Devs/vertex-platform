@@ -275,7 +275,11 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     await storeRef.update({
       versionUpdateStatus: 'updating',
       versionUpdateTarget: version,
-      versionUpdateProgress: { step: 'Encolando deploy', pct: 5, updatedAt: new Date().toISOString() },
+      versionUpdateProgress: {
+        step: 'Encolando deploy',
+        pct: 5,
+        updatedAt: new Date().toISOString(),
+      },
       pendingMigration: needsMigration ? true : null,
       updatedAt: new Date(),
     });
@@ -302,14 +306,17 @@ export const reportVersionUpdateProgress = onCall<{
   }
 
   const db = getFirestore();
-  await db.collection('stores').doc(storeId).update({
-    versionUpdateProgress: {
-      step,
-      pct: Math.max(0, Math.min(100, Math.round(pct))),
-      updatedAt: new Date().toISOString(),
-    },
-    updatedAt: new Date(),
-  });
+  await db
+    .collection('stores')
+    .doc(storeId)
+    .update({
+      versionUpdateProgress: {
+        step,
+        pct: Math.max(0, Math.min(100, Math.round(pct))),
+        updatedAt: new Date().toISOString(),
+      },
+      updatedAt: new Date(),
+    });
 
   return { success: true };
 });

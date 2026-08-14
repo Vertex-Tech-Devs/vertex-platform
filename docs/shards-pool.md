@@ -55,6 +55,15 @@ npx tsx scripts/provision-shards.ts --count 10 --env dev      # crea 10 shards n
 npx tsx scripts/provision-shards.ts --target 10 --env dev     # crea los que falten hasta 10 totales en el pool
 npx tsx scripts/provision-shards.ts --count 10 --env prod --verify   # crea + verifica redirect URIs
 
+# Reciclaje de huérfanos: completa proyectos vtx-sd-* existentes sin doc en el pool
+# (billing + APIs + Firebase + Firestore + web app + IdP + rules) y los registra.
+# Usa las credenciales owner del platform (Secret Manager). Registra SOLO si el
+# shard queda completo (billing + Firestore + web app + rules).
+npx tsx scripts/complete-shards.ts --env dev [--dry-run]      # completa todos los huérfanos
+npx tsx scripts/complete-shards.ts --env dev --project-ids vtx-sd-x,vtx-sd-y
+npx tsx scripts/complete-shards.ts --env dev --fix-rules      # redespliega rules a todos los shards
+npx tsx scripts/complete-shards.ts --env dev --backfill-billing  # atribuye billing real por shard
+
 # Auditoría del pool (huérfanos GCP + redirect URIs de TODOS los shards):
 npx tsx scripts/audit-shards.ts --env dev
 npx tsx scripts/audit-shards.ts --env prod
@@ -126,8 +135,16 @@ Con cuota disponible, el scheduler (cada 6h, `WARM_SHARD_TARGET=10`) y el script
 
 ## Estado actual (dev, 2026-08-14)
 
-- Pool registrado: **5** shards (2 `WARMUP_READY`, 1 `WARMUP_PROVISIONING`, 2 `ACTIVE`).
-- **17 proyectos GCP huérfanos** (12 `ACTIVE`) sin doc en el pool → consumen la cuota y
-  la tienen **agotada** hoy. Ver `docs/multitenant-audit.md` (O1/O2) antes de expandir.
-- **2 redirect URIs pendientes** en el pool actual: `vtx-sd-3am2uj4h`, `vtx-sd-h8hhzl94`.
-  Registrarlos en la consola (paso manual) para que el pool quede login-ready.
+- Pool registrado: **8** shards utilizables (6 `WARMUP_READY`, 2 `ACTIVE`), 7 con
+  billing vinculado y atribuido (`billingAccountId` real por shard).
+- **5 redirect URIs pendientes** de registrar en la consola (paso manual, una vez por
+  shard): `vtx-sd-3am2uj4h`, `vtx-sd-3z5twz4j`, `vtx-sd-5792sth2`, `vtx-sd-aia7f0ao`,
+  `vtx-sd-qncajqrx`.
+- **9 proyectos huérfanos ACTIVE** sin doc en el pool (`v28rjcsb`, `h8hhzl94`,
+  `m542px06`, `j9db0rkj`, `rkdg3g53`, `nqqr42x0`, `3kwttxmt`, `wlvswkm2`, `xm3rsn2y`):
+  no pudieron vincular billing (cuota de GCP) — se completan automáticamente con
+  `complete-shards.ts` cuando haya cuota.
+- **Límite real = cuota de billing de GCP**, no `maxProjects`: al intentar vincular un
+  proyecto nuevo, GCP responde `Cloud billing quota exceeded`
+  (https://support.google.com/code/contact/billing_quota_increase). Se necesitan ~2
+  proyectos por billing account antes de pedir el aumento. Ver `docs/multitenant-audit.md` (O13/O14).

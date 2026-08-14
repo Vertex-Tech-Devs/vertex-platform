@@ -410,7 +410,9 @@ async function waitForIndexesReady(
         allReady = true; // Sin índices compuestos → nada que esperar
         break;
       }
-      const building = indexes.filter((i) => i.state === 'CREATING' || i.state === 'NEEDS_ATTENTION');
+      const building = indexes.filter(
+        (i) => i.state === 'CREATING' || i.state === 'NEEDS_ATTENTION',
+      );
       if (building.length === 0) {
         allReady = true;
         console.info(

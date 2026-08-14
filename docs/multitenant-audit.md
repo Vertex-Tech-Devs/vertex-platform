@@ -116,13 +116,51 @@ A escala, mover a contadores agregados en el doc de la billing account/shard
 - **O12** Scripts nuevos: `provision-shards.ts --target|--count|--verify` y
   `audit-shards.ts` (huérfanos + redirect URIs del pool completo).
 
+### 🔴 O13 — Cuota de billing de GCP por billing account (Alto, bloqueante)
+
+Al completar shards huérfanos, el vínculo de billing falla con
+`Cloud billing quota exceeded` a partir de **~2 proyectos por billing account**
+(verificado: 016AC2 tiene 4, 01D2F4 tiene 3, y los intentos nuevos fallan). Es el
+límite REAL — distinto del `maxProjects` autoimpuesto de la plataforma (10). Requiere
+solicitar aumento en: https://support.google.com/code/contact/billing_quota_increase.
+
+Impacto: con la cuota actual solo se pudieron completar **4 de 12** huérfanos
+(3z5twz4j, 5792sth2, aia7f0ao, qncajqrx) + 1 ya facturable (3am2uj4h). Los otros
+(9 proyectos ACTIVE) quedan como huérfanos y se completan con `complete-shards.ts`
+cuando haya cuota.
+
+### 🔴 O14 — Storage rules inválidas (`svg\+xml`) en todos los shards (Alto, corregido)
+
+`STOREFRONT_STORAGE_RULES` usaba `svg\+xml` (escape con backslash) que **el parser de
+Firebase Rules API rechaza** (400 "Request contains an invalid argument") — el paso de
+deploy fallaba silenciosamente y **ningún shard provisionado por la plataforma tenía
+storage rules** (uploads rotos o comportamiento por defecto). Corregido con
+`svg[+]xml` (clase de caracteres, válida) en la plataforma y en `storefront/storage.rules`,
+y **redesplegado a los 8 shards de dev** con `complete-shards.ts --fix-rules`.
+
+### ✅ Corregido en esta auditoría (2ª pasada)
+
+- **O15** `complete-shards.ts` (nuevo): recicla huérfanos con las credenciales owner
+  (Secret Manager), con GATE de registro (solo si billing+Firestore+webApp+rules OK),
+  `--fix-rules`, `--backfill-billing` (atribución real de billing por shard — cierra O3).
+- **O16** Atribución de billing: 7 de 8 shards dev tienen `billingAccountId` real
+  (backfill verificado contra GCP); `c3732d17` genuinamente sin billing.
+- **O17** Hardening S2 aplicado en ambos repos (platform + storefront): un claim
+  `admin` sin `tenantId` ya no tiene acceso por defecto en `isStoreAdmin` (firestore y
+  storage); paridad verificada con `validate:rules`.
+- **O18** S5 aplicado: JWKS de GitHub OIDC con TTL de 1h (antes cacheadas para siempre).
+- **O19** Verificación de redirect URIs refinada: distingue `redirect_uri_mismatch`
+  real de las páginas de consentimiento sin sesión (los checks anteriores daban
+  falsos positivos/negativos headless).
+
 ## Pendientes de consola (usuario)
 
 1. Aumentar cuota de proyectos GCP (O2).
-2. Verificar/borrar huérfanos (O1) — sobre todo los 12 `ACTIVE`.
-3. Registrar redirect URIs pendientes en el client OAuth master (hoy: 2 —
-   `vtx-sd-3am2uj4h`, `vtx-sd-h8hhzl94`):
+2. **Aumentar cuota de billing por cuenta** (O13) — pedido a Google.
+3. Verificar/borrar huérfanos (O1) — los 9 `ACTIVE` restantes y los 5 `DELETE_REQUESTED`.
+4. **Registrar 5 redirect URIs pendientes** (dev): `vtx-sd-3am2uj4h`, `vtx-sd-3z5twz4j`,
+   `vtx-sd-5792sth2`, `vtx-sd-aia7f0ao`, `vtx-sd-qncajqrx`:
    `https://console.cloud.google.com/apis/credentials?project=ecommerce-vertex-dev`
    → client `988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com`
    → Authorized redirect URIs → `https://<shard>.firebaseapp.com/__/auth/handler`.
-4. Correr `audit-shards.ts` en prod con credenciales prod para cruzar huérfanos.
+5. Correr `audit-shards.ts` en prod con credenciales prod para cruzar huérfanos.

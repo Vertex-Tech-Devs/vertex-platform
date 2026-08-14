@@ -12,7 +12,11 @@ import {
   listProvisioningOwnerCandidates,
   sendDirectEmail,
 } from './helpers';
-import { resolvePlatformEnvironment, summarizeShardCapacity, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
+import {
+  resolvePlatformEnvironment,
+  summarizeShardCapacity,
+  DEFAULT_MAX_STORES_PER_SHARD,
+} from './runtime';
 import { verifyGitHubOidcToken } from './github-oidc';
 import type {
   InviteStaffPayload,
@@ -754,7 +758,13 @@ export const suspendStore = onCall<{ storeId: string }>(
     const storeRef = db.collection('stores').doc(storeId);
     const snap = await storeRef.get();
     if (!snap.exists) throw new HttpsError('not-found', 'Store not found.');
-    const store = snap.data() as { status?: string; runtimeProjectId?: string; firebaseProjectId?: string; runtimeSiteId?: string; provisioningOwnerId?: string };
+    const store = snap.data() as {
+      status?: string;
+      runtimeProjectId?: string;
+      firebaseProjectId?: string;
+      runtimeSiteId?: string;
+      provisioningOwnerId?: string;
+    };
     if (store.status === 'suspended') {
       return { success: true, already: true };
     }
@@ -815,7 +825,10 @@ export const activateStore = onCall<{ storeId: string }>(
     try {
       await dispatchStoreDeployment(storeId);
     } catch (err) {
-      console.warn(`[activateStore] Dispatch de redeploy falló (se reintentará manualmente) ${storeId}:`, err);
+      console.warn(
+        `[activateStore] Dispatch de redeploy falló (se reintentará manualmente) ${storeId}:`,
+        err,
+      );
     }
 
     await logAuditAction(
@@ -920,7 +933,9 @@ export const deleteStore = onCall<{ storeId: string }>(
             // Liberar cupo real: al bajar del máximo, un shard FULL vuelve a ACTIVE
             // (disponible para nuevas tiendas — el pool nunca se elimina).
             const newStatus =
-              shardData['status'] === 'FULL' && newCount < maxCapacity ? 'ACTIVE' : shardData['status'];
+              shardData['status'] === 'FULL' && newCount < maxCapacity
+                ? 'ACTIVE'
+                : shardData['status'];
             transaction.update(shardRef, {
               currentStores: newCount,
               ...(newStatus !== shardData['status'] ? { status: newStatus } : {}),
@@ -995,10 +1010,7 @@ async function deleteStoreDataInProject(
       // eslint-disable-next-line no-constant-condition
       while (true) {
         if (Date.now() > deadline) break;
-        let query = shardDb
-          .collectionGroup(collection)
-          .where('storeId', '==', storeId)
-          .limit(400);
+        let query = shardDb.collectionGroup(collection).where('storeId', '==', storeId).limit(400);
         if (cursor) {
           query = query.startAfter(cursor);
         }
@@ -1026,16 +1038,18 @@ async function deleteStoreDataInProject(
  * Obtiene una instancia de Firestore admin para un proyecto de shard.
  */
 function getFirestoreForProject(projectId: string): FirebaseFirestore.Firestore {
-  return getFirestoreForProjectCache[projectId] ??= firestoreForProject(projectId);
+  return (getFirestoreForProjectCache[projectId] ??= firestoreForProject(projectId));
 }
 
 const getFirestoreForProjectCache: Record<string, FirebaseFirestore.Firestore> = {};
 
 function firestoreForProject(projectId: string): FirebaseFirestore.Firestore {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { initializeApp, getApps } = require('firebase-admin/app') as typeof import('firebase-admin/app');
+  const { initializeApp, getApps } =
+    require('firebase-admin/app') as typeof import('firebase-admin/app');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { getFirestore: adminGetFirestore } = require('firebase-admin/firestore') as typeof import('firebase-admin/firestore');
+  const { getFirestore: adminGetFirestore } =
+    require('firebase-admin/firestore') as typeof import('firebase-admin/firestore');
   const appName = `shard-${projectId}`;
   const existing = getApps().find((a) => a.name === appName);
   const app = existing ?? initializeApp({ projectId }, appName);

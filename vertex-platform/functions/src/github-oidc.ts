@@ -16,22 +16,28 @@ const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE = 'vertex-platform';
 
-let cachedJwks: Array<{ kid: string; n: string; e: string }> | null = null;
+let cachedJwks: { keys: Array<{ kid: string; n: string; e: string }>; fetchedAt: number } | null =
+  null;
+const JWKS_TTL_MS = 60 * 60 * 1000; // 1h — GitHub rota keys, no cachear para siempre
 
 function base64UrlDecode(input: string): Buffer {
   return Buffer.from(input.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 }
 
 async function fetchJwks(): Promise<Array<{ kid: string; n: string; e: string }>> {
-  if (cachedJwks) return cachedJwks;
+  const now = Date.now();
+  if (cachedJwks && now - cachedJwks.fetchedAt < JWKS_TTL_MS) {
+    return cachedJwks.keys;
+  }
   const res = await fetch(GITHUB_JWKS_URL, { signal: AbortSignal.timeout(10000) });
   const data = (await res.json()) as {
     keys?: Array<{ kid?: string; n?: string; e?: string }>;
   };
-  cachedJwks = (data.keys ?? [])
+  const keys = (data.keys ?? [])
     .filter((k) => k.kid && k.n && k.e)
     .map((k) => ({ kid: k.kid!, n: k.n!, e: k.e! }));
-  return cachedJwks;
+  cachedJwks = { keys, fetchedAt: now };
+  return keys;
 }
 
 /**

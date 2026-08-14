@@ -68,9 +68,7 @@ export function summarizeShardCapacity(
         maxCapacity: shard.maxCapacity,
         availableStores,
         occupancyRatio:
-          shard.maxCapacity > 0
-            ? Number(shard.currentStores ?? 0) / Number(shard.maxCapacity)
-            : 1,
+          shard.maxCapacity > 0 ? Number(shard.currentStores ?? 0) / Number(shard.maxCapacity) : 1,
       };
     })
     .sort((left, right) => {
