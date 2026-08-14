@@ -9,112 +9,43 @@
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
-  <!-- Explainers banner -->
-  <div
-    class="add-card"
-    style="
-      background: rgba(234, 88, 12, 0.05);
-      border-color: rgba(234, 88, 12, 0.2);
-      margin-bottom: 1.5rem;
-    "
-  >
-    <h2
-      class="add-card__title"
-      style="font-size: 1.1rem; color: #ea580c; display: flex; align-items: center; gap: 0.5rem"
-    >
-      <i class="bi bi-info-circle-fill"></i> Infraestructura de la Plataforma & Facturación GCP
-    </h2>
-    <p style="font-size: 0.88rem; line-height: 1.5; color: #475569; margin-top: 0.5rem">
-      • <strong>Tiendas Estándar (Shared-Shards)</strong>: Se crean de forma ilimitada compartiendo
-      shards de infraestructura sin requerir proyectos ni facturación GCP adicional.<br />
-      • <strong>Tiendas Dedicadas (Enterprise / Premium)</strong>: Crean un proyecto GCP exclusivo
-      por cliente y consumen cupo en las cuentas de facturación (Billing Accounts) registradas
-      abajo.
+  <!-- Explicación simple -->
+  <div class="add-card billing-explain" style="margin-bottom: 1.5rem">
+    <p class="billing-explain__intro">
+      <strong>Cada shard es un proyecto de Google Cloud</strong> y todo proyecto debe estar
+      vinculado a una <strong>Billing Account</strong> (la cuenta que paga). Un shard aloja hasta 35
+      tiendas; las tiendas dedicadas crean su propio proyecto.
     </p>
-
-    <!-- Guía expandible: cómo funciona todo -->
     <details class="billing-guide">
       <summary class="billing-guide__summary">
-        <i class="bi bi-question-circle"></i> ¿Cómo funciona? (billing accounts, shards y tiendas)
+        <i class="bi bi-question-circle"></i> ¿Cómo funciona y cuáles son los límites?
       </summary>
       <div class="billing-guide__body">
-        <h4>Los 3 niveles</h4>
-        <ol>
-          <li>
-            <strong>Billing Account</strong> — la cuenta que <em>paga</em> los servicios GCP de los
-            proyectos vinculados (ej. <code>016AC2-…</code>).
-          </li>
-          <li>
-            <strong>Shard</strong> — un proyecto GCP/Firebase <code>vtx-sd-*</code> que aloja hasta
-            <strong>35 tiendas</strong>.
-          </li>
-          <li>
-            <strong>Tienda</strong> — un ecommerce que vive dentro de un shard (las tiendas
-            dedicadas crean su propio proyecto).
-          </li>
-        </ol>
-        <p>
-          <strong>Regla clave:</strong> cada shard es un proyecto GCP y todo proyecto debe estar
-          vinculado a una billing account. Por eso “máximo de proyectos por cuenta” =
-          <em>cuántos shards puede pagar esa cuenta</em>. Un shard sin billing queda en plan Spark
-          (sin Cloud Functions: checkout y Mercado Pago no funcionan).
-        </p>
-
-        <h4>Los límites (y cómo aumentarlos)</h4>
-        <table class="guide-table">
-          <thead>
-            <tr>
-              <th>Límite</th>
-              <th>Valor</th>
-              <th>Cómo aumentarlo</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Proyectos por billing account (GCP)</td>
-              <td>5 default documentado · esta org se corta en 4</td>
-              <td>
-                <a
-                  href="https://support.google.com/code/contact/billing_quota_increase"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >soporte de Google</a
-                >
-                (revisado, no es automático)
-              </td>
-            </tr>
-            <tr>
-              <td>Proyectos por organización (GCP)</td>
-              <td>~20 default (hoy agotado)</td>
-              <td>Consola → <code>IAM → Cuotas → "Project Count" → Editar</code></td>
-            </tr>
-            <tr>
-              <td>Billing accounts por organización</td>
-              <td>Sin número público</td>
-              <td>Soporte de Google Cloud Billing (mecanismo: subaccounts bajo una master)</td>
-            </tr>
-            <tr>
-              <td>Máx. proyectos (plataforma)</td>
-              <td>Editable por cuenta (10 hoy)</td>
-              <td>Panel → editar la cuenta</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h4>El pool de shards</h4>
         <ul>
           <li>
-            El scheduler (cada 6h) mantiene <strong>10 shards calientes</strong>
-            (<code>WARM_SHARD_TARGET=10</code>).
+            <strong>Capacidad por cuenta:</strong> Google permite <strong>5 proyectos</strong> por
+            Billing Account. Las 2 cuentas de dev están al límite (5/5) — para sumar capacidad hay
+            que
+            <a
+              href="https://support.google.com/code/contact/billing_quota_increase"
+              target="_blank"
+              rel="noopener noreferrer"
+              >pedir el aumento a Google</a
+            >
+            (lo revisa soporte, no es automático).
           </li>
           <li>
-            Un shard está <strong>Listo</strong> cuando: estado utilizable + billing vinculado +
-            <strong>redirect URI registrado</strong> (el único paso manual — Google no expone API
-            para redirect URIs; una vez por shard).
+            <strong>Por qué no se pueden crear cuentas desde acá:</strong> Google no expone API para
+            crearlas (solo la consola o soporte).
           </li>
           <li>
-            Si el pool baja a ≤2 disponibles, la plataforma te avisa por email + banner con el
-            comando exacto para reponer 10 de un tirón.
+            <strong>Shard "Listo":</strong> estado utilizable + billing +
+            <strong>redirect URI registrado</strong> (único paso manual — el botón "Cómo configurar"
+            lo explica).
+          </li>
+          <li>
+            <strong>Pool:</strong> el sistema mantiene shards calientes solo; si faltan, te avisa
+            con el comando para reponerlos.
           </li>
         </ul>
       </div>
@@ -288,28 +219,6 @@
           placeholder="Vertex Billing Account Five"
         />
       </div>
-      <div class="form-group">
-        <label class="form-label">Máx. proyectos (límite plataforma)</label>
-        <input
-          class="form-control"
-          type="number"
-          min="1"
-          max="100"
-          [value]="addMax()"
-          (input)="addMax.set(+$any($event.target).value)"
-        />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Límite GCP (default 5, aumentable)</label>
-        <input
-          class="form-control"
-          type="number"
-          min="1"
-          max="500"
-          [value]="addGcpLimit()"
-          (input)="addGcpLimit.set(+$any($event.target).value)"
-        />
-      </div>
       <div class="form-group form-group--action">
         <button
           class="btn btn-primary"
@@ -390,17 +299,7 @@
                     />
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Máx. proyectos (límite plataforma)</label>
-                    <input
-                      class="form-control form-control--sm"
-                      type="number"
-                      min="1"
-                      [value]="editMax()"
-                      (input)="editMax.set(+$any($event.target).value)"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Límite GCP (default 5)</label>
+                    <label class="form-label">Límite aprobado por Google</label>
                     <input
                       class="form-control form-control--sm"
                       type="number"
@@ -461,19 +360,13 @@
                     ><strong>{{ account.gcpUsedProjects }}</strong> /
                     {{ account.gcpProjectLimit }} proyectos en GCP ({{ gcpUsagePercent(account) }}%)
                     <span style="opacity: 0.7"
-                      >· {{ account.usedProjects }} según tiendas · máx. plataforma
-                      {{ account.maxProjects }}</span
+                      >· {{ account.gcpRemaining }} cupo{{
+                        account.gcpRemaining === 1 ? '' : 's'
+                      }}
+                      libre{{ account.gcpRemaining === 1 ? '' : 's' }}</span
                     ></span
                   >
                 </div>
-                <p
-                  style="font-size: 0.75rem; color: var(--platform-text-muted); margin: 0.25rem 0 0"
-                >
-                  Capacidad real en GCP: <strong>{{ account.gcpUsedProjects }}</strong> de
-                  <strong>{{ account.gcpProjectLimit }}</strong> proyectos (máx. documentado por
-                  Google: 5 por cuenta, aumentable por soporte — cuando aprueben más, editá este
-                  límite).
-                </p>
                 @if (account.gcpRemaining === 0) {
                   <p
                     style="

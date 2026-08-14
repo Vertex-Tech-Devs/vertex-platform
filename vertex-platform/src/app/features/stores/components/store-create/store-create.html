@@ -196,6 +196,15 @@
           Crear proyecto de Google Cloud dedicado (Premium)
         </label>
       </div>
+      @if (form.get('dedicatedProject')?.value) {
+        <div class="alert alert-error" style="margin-top: 0.75rem">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Ojo: los proyectos dedicados necesitan crear un proyecto GCP nuevo y la
+          <strong>cuota de proyectos de la organización está agotada</strong> hoy. Si la creación
+          falla, la plataforma intenta volver a la tienda estándar automáticamente. Si solo querés
+          una tienda que funcione ya, dejá esta opción desmarcada.
+        </div>
+      }
     </section>
 
     <section class="form-section">

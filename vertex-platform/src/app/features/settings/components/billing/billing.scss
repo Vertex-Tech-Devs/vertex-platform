@@ -440,19 +440,6 @@
     box-shadow var(--transition-base),
     transform var(--transition-base);
 
-  /* Acento superior con gradiente */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--platform-accent-gradient);
-    opacity: 0;
-    transition: opacity var(--transition-base);
-  }
-
   &:hover {
     transform: translateY(-3px);
     box-shadow: 0 12px 28px -8px hsla(225, 30%, 0%, 0.5);
@@ -462,9 +449,6 @@
   &--ready {
     border-color: var(--platform-status-active-border);
 
-    &::before {
-      opacity: 1;
-    }
     &:hover {
       box-shadow:
         0 12px 28px -8px hsla(142, 70%, 45%, 0.18),
@@ -526,6 +510,17 @@
 }
 
 /* ── Guía "¿Cómo funciona?" (billing) ─────────────────────────────────── */
+.billing-explain__intro {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--platform-text-secondary);
+  margin: 0 0 0.5rem;
+
+  strong {
+    color: var(--platform-text-primary);
+  }
+}
+
 .billing-guide {
   margin-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -538,10 +533,11 @@
     gap: 0.5rem;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #ea580c;
+    color: var(--platform-text-secondary);
     user-select: none;
 
     &:hover {
+      color: var(--platform-text-primary);
       text-decoration: underline;
     }
   }

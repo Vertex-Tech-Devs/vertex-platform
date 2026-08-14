@@ -73,8 +73,23 @@ export class StoreCreate implements OnInit {
       );
       void this.router.navigate(['/stores', id]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '';
-      this.errorMessage.set(message || 'No se pudo crear la tienda. Intentá de nuevo.');
+      const raw = error instanceof Error ? error.message : '';
+      const lower = raw.toLowerCase();
+      let message = raw || 'No se pudo crear la tienda. Intentá de nuevo.';
+      if (lower.includes('permission-denied') || lower.includes('unauthenticated')) {
+        message =
+          'Tu sesión no tiene permisos de administrador de plataforma. Recargá la página y volvé a iniciar sesión.';
+      } else if (
+        lower.includes('quota') ||
+        lower.includes('project count') ||
+        lower.includes('exceeded')
+      ) {
+        message =
+          'No hay cuota de proyectos GCP disponible para esta operación. Usá la tienda estándar (sin marcar "proyecto dedicado") o pedí el aumento de cuota de proyectos.';
+      } else if (lower.includes('already exists') || lower.includes('ya existe')) {
+        message = 'Ya existe una tienda con ese slug o nombre.';
+      }
+      this.errorMessage.set(message);
       this.isSubmitting.set(false);
     }
   }

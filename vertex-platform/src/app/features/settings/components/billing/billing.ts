@@ -32,14 +32,12 @@ export class Billing implements OnInit {
 
   readonly addId = signal('');
   readonly addName = signal('');
-  readonly addMax = signal(15);
   readonly addGcpLimit = signal(5);
   readonly isAdding = signal(false);
   readonly addError = signal('');
 
   readonly editingId = signal<string | null>(null);
   readonly editName = signal('');
-  readonly editMax = signal(15);
   readonly editGcpLimit = signal(5);
   readonly isSaving = signal(false);
   readonly saveError = signal('');
@@ -78,21 +76,6 @@ export class Billing implements OnInit {
       return 0;
     }
     return Math.round((r.readyCount / r.total) * 100);
-  }
-
-  usagePercent(a: BillingAccount): number {
-    return Math.round((a.usedProjects / a.maxProjects) * 100);
-  }
-
-  usageClass(a: BillingAccount): string {
-    const p = this.usagePercent(a);
-    if (p >= 90) {
-      return 'usage--critical';
-    }
-    if (p >= 70) {
-      return 'usage--warning';
-    }
-    return 'usage--ok';
   }
 
   /** % REAL de GCP: proyectos vinculados / límite de la billing account. */
@@ -139,7 +122,6 @@ export class Billing implements OnInit {
   startAdd(): void {
     this.addId.set('');
     this.addName.set(this.nextAccountName());
-    this.addMax.set(15);
     this.addGcpLimit.set(5);
     this.addError.set('');
   }
@@ -157,7 +139,6 @@ export class Billing implements OnInit {
       await this.svc.addAccount({
         id,
         name,
-        maxProjects: this.addMax(),
         gcpProjectLimit: this.addGcpLimit(),
       });
       this.addId.set('');
@@ -172,7 +153,6 @@ export class Billing implements OnInit {
   startEdit(a: BillingAccount): void {
     this.editingId.set(a.id);
     this.editName.set(a.name);
-    this.editMax.set(a.maxProjects);
     this.editGcpLimit.set(a.gcpProjectLimit || 5);
     this.saveError.set('');
   }
@@ -189,7 +169,6 @@ export class Billing implements OnInit {
       await this.svc.updateAccount({
         id,
         name: this.editName().trim(),
-        maxProjects: this.editMax(),
         gcpProjectLimit: this.editGcpLimit(),
       });
       this.editingId.set(null);

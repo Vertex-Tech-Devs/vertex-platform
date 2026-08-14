@@ -174,15 +174,6 @@ describe('Billing', () => {
     expect(text).toContain('1/1 listos (100%)');
   });
 
-  it('usagePercent y usageClass usan maxProjects de la plataforma', () => {
-    const account = makeAccount({ usedProjects: 10, maxProjects: 10 });
-    expect(component.usagePercent(account)).toBe(100);
-    expect(component.usageClass(account)).toBe('usage--critical');
-    expect(component.usageClass(makeAccount({ usedProjects: 8, maxProjects: 10 }))).toBe(
-      'usage--warning',
-    );
-  });
-
   it('nextAccountName genera nombres correlativos', () => {
     billingSvc.accounts.set([makeAccount()]);
     expect(component.nextAccountName()).toBe('Billing Account Two');
@@ -198,7 +189,6 @@ describe('Billing', () => {
   it('startAdd resetea el form con límite GCP default 5', () => {
     component.startAdd();
     expect(component.addName()).toBe('Billing Account One');
-    expect(component.addMax()).toBe(15);
     expect(component.addGcpLimit()).toBe(5);
   });
 
@@ -213,13 +203,11 @@ describe('Billing', () => {
   it('addAccount agrega la cuenta y limpia el form', async () => {
     component.addId.set('billingAccounts/0123-4567');
     component.addName.set('Vertex Billing Two');
-    component.addMax.set(20);
     component.addGcpLimit.set(10);
     await component.addAccount();
     expect(billingSvc.addAccount).toHaveBeenCalledWith({
       id: '0123-4567',
       name: 'Vertex Billing Two',
-      maxProjects: 20,
       gcpProjectLimit: 10,
     });
     expect(component.addId()).toBe('');
@@ -250,13 +238,11 @@ describe('Billing', () => {
     const account = makeAccount({ gcpProjectLimit: 5 });
     component.startEdit(account);
     component.editName.set('Nuevo nombre');
-    component.editMax.set(30);
     component.editGcpLimit.set(25);
     await component.saveEdit(account.id);
     expect(billingSvc.updateAccount).toHaveBeenCalledWith({
       id: account.id,
       name: 'Nuevo nombre',
-      maxProjects: 30,
       gcpProjectLimit: 25,
     });
     expect(component.editingId()).toBeNull();
@@ -307,9 +293,9 @@ describe('Billing', () => {
     component.startEdit(makeAccount({ gcpProjectLimit: 12 }));
     fixture.detectChanges();
     const inputs = fixture.nativeElement.querySelectorAll('input.form-control--sm');
-    expect(inputs.length).toBeGreaterThanOrEqual(3);
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Límite GCP (default 5)');
+    expect(text).toContain('Límite aprobado por Google');
   });
 
   it('muestra el error de agregar cuenta en el template', async () => {
