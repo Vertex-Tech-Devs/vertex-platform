@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject, InjectionToken } from '@angular/core';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -12,14 +12,39 @@ import type { User } from 'firebase/auth';
 
 export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
 
+export interface AuthFirebaseDeps {
+  getAuth: typeof getAuth;
+  onAuthStateChanged: typeof onAuthStateChanged;
+  signInWithPopup: typeof signInWithPopup;
+  signOut: typeof signOut;
+  getIdTokenResult: typeof getIdTokenResult;
+  getFunctions: typeof getFunctions;
+  httpsCallable: typeof httpsCallable;
+}
+
+export const AUTH_FIREBASE_DEPS = new InjectionToken<AuthFirebaseDeps>('AUTH_FIREBASE_DEPS', {
+  providedIn: 'root',
+  factory: () => ({
+    getAuth,
+    onAuthStateChanged,
+    signInWithPopup,
+    signOut,
+    getIdTokenResult,
+    getFunctions,
+    httpsCallable,
+  }),
+});
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private firebase = inject(AUTH_FIREBASE_DEPS);
+
   private get auth() {
-    return getAuth();
+    return this.firebase.getAuth();
   }
 
   private get fns() {
-    return getFunctions();
+    return this.firebase.getFunctions();
   }
 
   readonly user = signal<User | null | undefined>(undefined);
@@ -31,20 +56,20 @@ export class AuthService {
 
   constructor() {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    onAuthStateChanged(this.auth, async (u) => {
+    this.firebase.onAuthStateChanged(this.auth, async (u) => {
       if (u) {
-        let token = await getIdTokenResult(u, true);
+        let token = await this.firebase.getIdTokenResult(u, true);
         if (!token.claims['platformAdmin']) {
           try {
-            const refreshClaim = httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
+            const refreshClaim = this.firebase.httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
             await refreshClaim();
-            token = await getIdTokenResult(u, true);
+            token = await this.firebase.getIdTokenResult(u, true);
           } catch (e) {
             console.error('[Auth] Failed to refresh platformAdmin claim', e);
           }
 
           if (!token.claims['platformAdmin']) {
-            await signOut(this.auth);
+            await this.firebase.signOut(this.auth);
             this.authError.set('unauthorized');
             this.isSuperAdmin.set(false);
             return;
@@ -61,20 +86,20 @@ export class AuthService {
   async loginWithGoogle(): Promise<void> {
     this.authError.set(null);
     try {
-      const result = await signInWithPopup(this.auth, new GoogleAuthProvider());
-      let token = await getIdTokenResult(result.user, true);
+      const result = await this.firebase.signInWithPopup(this.auth, new GoogleAuthProvider());
+      let token = await this.firebase.getIdTokenResult(result.user, true);
 
       if (!token.claims['platformAdmin']) {
         try {
-          const refreshClaim = httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
+          const refreshClaim = this.firebase.httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
           await refreshClaim();
-          token = await getIdTokenResult(result.user, true);
+          token = await this.firebase.getIdTokenResult(result.user, true);
         } catch (e) {
           console.error('[Auth] Failed to refresh platformAdmin claim after login', e);
         }
 
         if (!token.claims['platformAdmin']) {
-          await signOut(this.auth);
+          await this.firebase.signOut(this.auth);
           this.authError.set('unauthorized');
           this.isSuperAdmin.set(false);
           return;
@@ -97,6 +122,6 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.isSuperAdmin.set(false);
-    await signOut(this.auth);
+    await this.firebase.signOut(this.auth);
   }
 }
