@@ -176,21 +176,38 @@ async function main(): Promise<void> {
   const poolIds = await getPoolProjectIds(adcToken);
 
   // Cuentas registradas en la plataforma (con su límite configurado)
-  const url = `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents:runQuery`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${adcToken}`,
-      'Content-Type': 'application/json',
-      'x-goog-user-project': platformProject,
-    },
-    body: JSON.stringify({
-      structuredQuery: { from: [{ collectionId: 'billingAccounts' }], limit: 100 },
-    }),
-  });
-  const docs = (await res.json()) as Array<{
-    document?: { name: string; fields?: Record<string, any> };
-  }>;
+  const firestoreUrl = `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents:runQuery`;
+  const fetchAccounts = async (collectionId: string) => {
+    const res = await fetch(firestoreUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${adcToken}`,
+        'Content-Type': 'application/json',
+        'x-goog-user-project': platformProject,
+      },
+      body: JSON.stringify({
+        structuredQuery: { from: [{ collectionId }], limit: 100 },
+      }),
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as Array<{
+      document?: { name: string; fields?: Record<string, any> };
+    }>;
+    return Array.isArray(json) ? json : [];
+  };
+
+  const docs1 = await fetchAccounts('billing_accounts');
+  const docs2 = await fetchAccounts('billingAccounts');
+  const docsMap = new Map<string, { name: string; fields?: Record<string, any> }>();
+  for (const d of [...docs1, ...docs2]) {
+    if (d.document) {
+      const id = d.document.name.split('/').pop()!;
+      if (!docsMap.has(id)) {
+        docsMap.set(id, d.document);
+      }
+    }
+  }
+  const docs = Array.from(docsMap.values()).map((doc) => ({ document: doc }));
 
   console.log(`=== Auditoría de billing (${opts.env}) → ${platformProject} ===\n`);
   let totalFree = 0;
