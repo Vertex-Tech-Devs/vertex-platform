@@ -143,6 +143,39 @@ describe('StoresService', () => {
     expect(result.availableSharedSlots).toBe(48);
   });
 
+  it('getShardReadiness calls the matching cloud function', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        environment: 'development',
+        total: 2,
+        readyCount: 1,
+        checkedAt: '2026-08-14T00:00:00.000Z',
+        shards: [
+          {
+            id: 'shard-a',
+            projectId: 'vtx-sd-aaaa',
+            status: 'WARMUP_READY',
+            billingAccountId: 'acc-1',
+            redirectUri: 'https://vtx-sd-aaaa.firebaseapp.com/__/auth/handler',
+            ready: true,
+            missing: [],
+            checkedAt: '2026-08-14T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+    const result = await service.getShardReadiness();
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getShardReadiness');
+    expect(result.readyCount).toBe(1);
+    expect(result.shards[0].ready).toBe(true);
+  });
+
   it('inviteStaff returns false when invite email dispatch failed', async () => {
     const mockFn = vi.fn().mockResolvedValue({
       data: {

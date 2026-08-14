@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { AddBillingAccountPayload, UpdateBillingAccountPayload } from './types';
-import { ALLOWED_ORIGINS, getOwnerOAuthClient, apiFetch } from './helpers';
+import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, apiFetch } from './helpers';
 import { checkRateLimit } from './stores';
 
 function normalizeBillingAccountId(rawId: string): string {
@@ -28,14 +28,54 @@ export const listBillingAccounts = onCall(
       if (bid) usageMap[bid] = (usageMap[bid] ?? 0) + 1;
     });
 
-    const accounts = accountsSnap.docs.map((d) => ({
-      id: d.id,
-      name: d.data()['name'] as string,
-      maxProjects: d.data()['maxProjects'] as number,
-      active: d.data()['active'] as boolean,
-      addedAt: (d.data()['addedAt'] as FirebaseFirestore.Timestamp)?.toDate().toISOString() ?? null,
-      usedProjects: usageMap[d.id] ?? 0,
-    }));
+    // Uso REAL de GCP: proyectos vinculados a cada billing account (la fuente de
+    // verdad; el default de GCP es 5 proyectos por cuenta, aumentable por soporte).
+    let gcpUsageMap: Record<string, number> = {};
+    try {
+      const auth = await getOwnerOAuthClient();
+      const accounts = accountsSnap.docs.map((d) => d.id);
+      await Promise.all(
+        accounts.map(async (accountId) => {
+          let count = 0;
+          let pageToken = '';
+          do {
+            const res = (await apiFetch(
+              auth,
+              `https://cloudbilling.googleapis.com/v1/billingAccounts/${encodeURIComponent(accountId)}/projects${
+                pageToken ? `?pageToken=${pageToken}` : ''
+              }`,
+              { quotaProject: PLATFORM_PROJECT },
+            )) as { projects?: unknown[]; nextPageToken?: string };
+            count += (res.projects ?? []).length;
+            pageToken = res.nextPageToken ?? '';
+          } while (pageToken && count < 1000);
+          gcpUsageMap[accountId] = count;
+        }),
+      );
+    } catch (err) {
+      console.error('[listBillingAccounts] No se pudo leer el uso real de GCP:', err);
+      gcpUsageMap = {};
+    }
+
+    const accounts = accountsSnap.docs.map((d) => {
+      const data = d.data();
+      // Límite real de GCP por billing account (default 5, documentado; se actualiza
+      // cuando Google aprueba el aumento vía soporte).
+      const gcpProjectLimit = (data['gcpProjectLimit'] as number | undefined) ?? 5;
+      const gcpUsedProjects = gcpUsageMap[d.id] ?? usageMap[d.id] ?? 0;
+      return {
+        id: d.id,
+        name: data['name'] as string,
+        maxProjects: data['maxProjects'] as number,
+        active: data['active'] as boolean,
+        addedAt: (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate().toISOString() ?? null,
+        usedProjects: usageMap[d.id] ?? 0,
+        gcpProjectLimit,
+        gcpUsedProjects,
+        gcpRemaining: Math.max(0, gcpProjectLimit - gcpUsedProjects),
+        gcpUsageRatio: gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / gcpProjectLimit) : 0,
+      };
+    });
 
     return { accounts };
   },
@@ -50,9 +90,12 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
     await checkRateLimit(request.auth.uid, 'addBillingAccount', 20, 15);
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
-    const { name, maxProjects = 15 } = request.data;
+    const { name, maxProjects = 15, gcpProjectLimit = 5 } = request.data;
     if (!normalizedId || !name)
       throw new HttpsError('invalid-argument', 'id and name are required.');
+    if (!Number.isFinite(gcpProjectLimit) || gcpProjectLimit < 1) {
+      throw new HttpsError('invalid-argument', 'gcpProjectLimit must be >= 1.');
+    }
 
     const db = getFirestore();
     const existing = await db.collection('billingAccounts').doc(normalizedId).get();
@@ -92,6 +135,7 @@ export const addBillingAccount = onCall<AddBillingAccountPayload>(
     await db.collection('billingAccounts').doc(normalizedId).set({
       name,
       maxProjects,
+      gcpProjectLimit,
       active: true,
       addedAt: new Date(),
     });
@@ -112,7 +156,7 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
     await checkRateLimit(request.auth.uid, 'updateBillingAccount', 20, 15);
 
     const normalizedId = normalizeBillingAccountId(request.data.id || '');
-    const { name, maxProjects, active } = request.data;
+    const { name, maxProjects, active, gcpProjectLimit } = request.data;
     if (!normalizedId) throw new HttpsError('invalid-argument', 'id is required.');
 
     const db = getFirestore();
@@ -125,6 +169,12 @@ export const updateBillingAccount = onCall<UpdateBillingAccountPayload>(
     if (name !== undefined) updates['name'] = name;
     if (maxProjects !== undefined) updates['maxProjects'] = maxProjects;
     if (active !== undefined) updates['active'] = active;
+    if (gcpProjectLimit !== undefined) {
+      if (!Number.isFinite(gcpProjectLimit) || gcpProjectLimit < 1) {
+        throw new HttpsError('invalid-argument', 'gcpProjectLimit must be >= 1.');
+      }
+      updates['gcpProjectLimit'] = gcpProjectLimit;
+    }
 
     await docRef.update(updates);
 

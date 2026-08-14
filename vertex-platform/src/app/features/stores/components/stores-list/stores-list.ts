@@ -41,8 +41,8 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
           <div>
             <strong>Pool de shards bajo</strong>
             <p>
-              Quedan <strong>{{ stores.poolAlert()!.availableShards }}</strong> shard(s) disponible(s)
-              (umbral: {{ stores.poolAlert()!.threshold }}). Provisioná más:
+              Quedan <strong>{{ stores.poolAlert()!.availableShards }}</strong> shard(s)
+              disponible(s) (umbral: {{ stores.poolAlert()!.threshold }}). Provisioná más:
               <code>npx tsx scripts/provision-shards.ts --count 10</code>
             </p>
           </div>

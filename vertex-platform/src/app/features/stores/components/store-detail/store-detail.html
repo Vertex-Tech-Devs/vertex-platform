@@ -114,8 +114,8 @@
             <p>
               El login con Google del admin de esta tienda fallará con
               <code>redirect_uri_mismatch</code> hasta que registres
-              <code>{{ oauthRedirect()!.redirectUri }}</code> en el client OAuth del master
-              (Google Cloud Console — Google no expone API para esto; es un único paso por shard).
+              <code>{{ oauthRedirect()!.redirectUri }}</code> en el client OAuth del master (Google
+              Cloud Console — Google no expone API para esto; es un único paso por shard).
             </p>
             <div class="oauth-alert__actions">
               <button type="button" class="btn btn-secondary btn-sm" (click)="copyOAuthUri()">
@@ -123,7 +123,9 @@
               </button>
               <a
                 class="btn btn-warning btn-sm"
-                [href]="oauthRedirect()!.consoleUrl || 'https://console.cloud.google.com/apis/credentials'"
+                [href]="
+                  oauthRedirect()!.consoleUrl || 'https://console.cloud.google.com/apis/credentials'
+                "
                 target="_blank"
                 rel="noopener"
               >
@@ -313,9 +315,7 @@
                             (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
                           ) {
                             (incompatible — esquema {{ store()!.schemaVersion }})
-                          } @else if (
-                            (v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)
-                          ) {
+                          } @else if ((v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)) {
                             (requiere migración)
                           }
                         </option>

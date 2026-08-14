@@ -9,6 +9,10 @@ interface RawAccount {
   active: boolean;
   addedAt: string | null;
   usedProjects: number;
+  gcpProjectLimit: number;
+  gcpUsedProjects: number;
+  gcpRemaining: number;
+  gcpUsageRatio: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,7 +42,12 @@ export class BillingAccountsService {
     }
   }
 
-  async addAccount(payload: { id: string; name: string; maxProjects?: number }): Promise<void> {
+  async addAccount(payload: {
+    id: string;
+    name: string;
+    maxProjects?: number;
+    gcpProjectLimit?: number;
+  }): Promise<void> {
     const fn = httpsCallable<typeof payload, { success: boolean }>(this.fns, 'addBillingAccount');
     await fn(payload);
     await this.loadAccounts();
@@ -49,6 +58,7 @@ export class BillingAccountsService {
     name?: string;
     maxProjects?: number;
     active?: boolean;
+    gcpProjectLimit?: number;
   }): Promise<void> {
     const fn = httpsCallable<typeof payload, { success: boolean }>(
       this.fns,

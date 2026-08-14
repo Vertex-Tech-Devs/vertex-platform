@@ -4,14 +4,20 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { BillingAccountsService } from '@core/services/billing-accounts';
-import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
+import {
+  StoresService,
+  type RuntimeCapacitySummary,
+  type ShardReadiness,
+  type ShardReadinessReport,
+} from '@core/services/stores';
 import type { BillingAccount } from '@core/models/billing-account';
 import { errorMessage } from '@core/utils/error.util';
+import { ShardStatusModal } from './shard-status-modal';
 
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, ShardStatusModal],
   templateUrl: './billing.html',
   styleUrl: './billing.scss',
 })
@@ -20,16 +26,21 @@ export class Billing implements OnInit {
   readonly storesSvc = inject(StoresService);
 
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
+  readonly readiness = signal<ShardReadinessReport | null>(null);
+  readonly isCheckingShards = signal(false);
+  readonly selectedShard = signal<ShardReadiness | null>(null);
 
   readonly addId = signal('');
   readonly addName = signal('');
   readonly addMax = signal(15);
+  readonly addGcpLimit = signal(5);
   readonly isAdding = signal(false);
   readonly addError = signal('');
 
   readonly editingId = signal<string | null>(null);
   readonly editName = signal('');
   readonly editMax = signal(15);
+  readonly editGcpLimit = signal(5);
   readonly isSaving = signal(false);
   readonly saveError = signal('');
 
@@ -38,13 +49,35 @@ export class Billing implements OnInit {
 
   ngOnInit(): void {
     void this.svc.loadAccounts();
-    void (async () => {
-      try {
-        this.runtimeSummary.set(await this.storesSvc.getRuntimeCapacitySummary());
-      } catch {
-        /* silent catch */
-      }
-    })();
+    void this.loadRuntime();
+    void this.checkShards();
+  }
+
+  private async loadRuntime(): Promise<void> {
+    try {
+      this.runtimeSummary.set(await this.storesSvc.getRuntimeCapacitySummary());
+    } catch {
+      /* silent catch */
+    }
+  }
+
+  async checkShards(): Promise<void> {
+    this.isCheckingShards.set(true);
+    try {
+      this.readiness.set(await this.storesSvc.getShardReadiness());
+    } catch {
+      /* silent catch */
+    } finally {
+      this.isCheckingShards.set(false);
+    }
+  }
+
+  readyRatio(): number {
+    const r = this.readiness();
+    if (!r || r.total === 0) {
+      return 0;
+    }
+    return Math.round((r.readyCount / r.total) * 100);
   }
 
   usagePercent(a: BillingAccount): number {
@@ -60,6 +93,33 @@ export class Billing implements OnInit {
       return 'usage--warning';
     }
     return 'usage--ok';
+  }
+
+  /** % REAL de GCP: proyectos vinculados / límite de la billing account. */
+  gcpUsagePercent(a: BillingAccount): number {
+    if (!a.gcpProjectLimit) {
+      return 0;
+    }
+    return Math.round((a.gcpUsedProjects / a.gcpProjectLimit) * 100);
+  }
+
+  gcpUsageClass(a: BillingAccount): string {
+    const p = this.gcpUsagePercent(a);
+    if (p >= 90) {
+      return 'usage--critical';
+    }
+    if (p >= 70) {
+      return 'usage--warning';
+    }
+    return 'usage--ok';
+  }
+
+  totalGcpUsed(): number {
+    return this.svc.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0);
+  }
+
+  totalGcpLimit(): number {
+    return this.svc.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 0), 0);
   }
 
   nextAccountName(): string {
@@ -80,6 +140,7 @@ export class Billing implements OnInit {
     this.addId.set('');
     this.addName.set(this.nextAccountName());
     this.addMax.set(15);
+    this.addGcpLimit.set(5);
     this.addError.set('');
   }
 
@@ -93,7 +154,12 @@ export class Billing implements OnInit {
     this.isAdding.set(true);
     this.addError.set('');
     try {
-      await this.svc.addAccount({ id, name, maxProjects: this.addMax() });
+      await this.svc.addAccount({
+        id,
+        name,
+        maxProjects: this.addMax(),
+        gcpProjectLimit: this.addGcpLimit(),
+      });
       this.addId.set('');
       this.addName.set('');
     } catch (err: unknown) {
@@ -107,6 +173,7 @@ export class Billing implements OnInit {
     this.editingId.set(a.id);
     this.editName.set(a.name);
     this.editMax.set(a.maxProjects);
+    this.editGcpLimit.set(a.gcpProjectLimit || 5);
     this.saveError.set('');
   }
 
@@ -123,6 +190,7 @@ export class Billing implements OnInit {
         id,
         name: this.editName().trim(),
         maxProjects: this.editMax(),
+        gcpProjectLimit: this.editGcpLimit(),
       });
       this.editingId.set(null);
     } catch (err: unknown) {

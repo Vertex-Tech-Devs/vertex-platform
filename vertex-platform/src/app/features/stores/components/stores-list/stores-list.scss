@@ -401,19 +401,37 @@
 }
 
 .skeleton {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.14) 50%, rgba(255, 255, 255, 0.06) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   border-radius: 6px;
 }
 
-.skeleton--title { height: 1.15rem; width: 55%; }
-.skeleton--url { height: 0.85rem; width: 80%; }
-.skeleton--meta { height: 0.85rem; width: 40%; }
+.skeleton--title {
+  height: 1.15rem;
+  width: 55%;
+}
+.skeleton--url {
+  height: 0.85rem;
+  width: 80%;
+}
+.skeleton--meta {
+  height: 0.85rem;
+  width: 40%;
+}
 
 @keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Pool de shards bajo */
@@ -432,7 +450,9 @@
     color: #f59e0b;
     margin-top: 0.1rem;
   }
-  strong { color: #f59e0b; }
+  strong {
+    color: #f59e0b;
+  }
   p {
     margin: 0.25rem 0 0;
     color: var(--platform-text-secondary, #94a3b8);

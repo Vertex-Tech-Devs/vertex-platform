@@ -38,6 +38,11 @@ export interface StoreShard {
   reservedStores: number;
   currentTemplateVersion?: string;
   currentDataVersion?: string;
+  /** Billing account GCP que paga este shard (atribución real, ver complete-shards.ts). */
+  billingAccountId?: string;
+  /** Estado del redirect URI en el client OAuth master (cache persistida). */
+  redirectUriStatus?: 'registered' | 'missing';
+  redirectUriCheckedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +59,7 @@ export interface AddBillingAccountPayload {
   id: string;
   name: string;
   maxProjects?: number;
+  gcpProjectLimit?: number;
 }
 
 export interface UpdateBillingAccountPayload {
@@ -61,6 +67,7 @@ export interface UpdateBillingAccountPayload {
   name?: string;
   maxProjects?: number;
   active?: boolean;
+  gcpProjectLimit?: number;
 }
 
 export interface StoreContact {

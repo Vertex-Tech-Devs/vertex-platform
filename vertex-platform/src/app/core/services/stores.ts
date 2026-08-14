@@ -36,7 +36,7 @@ export interface RuntimeShardCapacity {
   projectId: string;
   siteId: string;
   region: string;
-  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE';
+  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE' | 'WARMUP_READY' | 'WARMUP_PROVISIONING';
   currentStores: number;
   reservedStores: number;
   maxCapacity: number;
@@ -51,6 +51,27 @@ export interface RuntimeCapacitySummary {
   availableSharedSlots: number;
   recommendedRuntimeMode: 'shared-shard' | 'dedicated-project';
   shards: RuntimeShardCapacity[];
+}
+
+export type ShardReadinessReason = 'status' | 'billing' | 'redirect_uri';
+
+export interface ShardReadiness {
+  id: string;
+  projectId: string;
+  status: string;
+  billingAccountId: string;
+  redirectUri: string;
+  ready: boolean;
+  missing: ShardReadinessReason[];
+  checkedAt: string;
+}
+
+export interface ShardReadinessReport {
+  environment: 'development' | 'production';
+  total: number;
+  readyCount: number;
+  checkedAt: string;
+  shards: ShardReadiness[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -106,12 +127,11 @@ export class StoresService {
     try {
       // Solo suscribirse si la app de Firebase está inicializada (los tests unitarios
       // sin initializeApp no deben romper la construcción del servicio).
-      const env =
-        this.authService.user()?.uid
-          ? this.db.app?.options?.projectId === 'vertex-platform-app'
-            ? 'prod'
-            : 'dev'
-          : 'dev';
+      const env = this.authService.user()?.uid
+        ? this.db.app?.options?.projectId === 'vertex-platform-app'
+          ? 'prod'
+          : 'dev'
+        : 'dev';
       return onSnapshot(doc(this.db, `system_alerts/pool_low_${env}`), (snap) => {
         const data = snap.data() as
           | { active?: boolean; availableShards?: number; threshold?: number }
@@ -140,6 +160,15 @@ export class StoresService {
     >(this.fns, 'getRuntimeCapacitySummary');
     const result = await fn({});
     return result.data.summary ?? (result.data as RuntimeCapacitySummary);
+  }
+
+  async getShardReadiness(): Promise<ShardReadinessReport> {
+    const fn = httpsCallable<Record<string, never>, ShardReadinessReport>(
+      this.fns,
+      'getShardReadiness',
+    );
+    const result = await fn({});
+    return result.data;
   }
 
   async redeployStore(storeId: string): Promise<void> {
@@ -191,19 +220,13 @@ export class StoresService {
 
   /** Dormir tienda (suspender sin eliminar): pausa el sitio y la excluye de deploys. */
   async suspendStore(storeId: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
-      this.fns,
-      'suspendStore',
-    );
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'suspendStore');
     await fn({ storeId });
   }
 
   /** Reactivar tienda dormida: restaura el sitio con su versión activa. */
   async activateStore(storeId: string): Promise<void> {
-    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(
-      this.fns,
-      'activateStore',
-    );
+    const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'activateStore');
     await fn({ storeId });
   }
 

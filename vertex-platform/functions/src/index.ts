@@ -5,6 +5,7 @@ initializeApp();
 export * from './admin';
 export * from './provisioning';
 export * from './shards';
+export * from './shard-readiness';
 export * from './stores';
 export * from './billing';
 export * from './monitoring';
