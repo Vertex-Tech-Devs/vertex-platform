@@ -1,4 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -11,6 +12,19 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { User } from 'firebase/auth';
 
 export type AuthError = 'unauthorized' | 'popup-blocked' | 'unknown';
+
+// Ensure a default Firebase App exists if running in test runner context before main.ts
+if (getApps().length === 0) {
+  try {
+    initializeApp({
+      apiKey: 'test-api-key',
+      authDomain: 'vertex-platform-dev.firebaseapp.com',
+      projectId: 'vertex-platform-dev',
+    });
+  } catch {
+    /* App already initialized */
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
