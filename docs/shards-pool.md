@@ -33,6 +33,20 @@ no crearlos a mano (hoy `WARM_SHARD_TARGET=10`). No hay que confundirlos: uno es
 el otro es de capacidad operativa. El GCP además tiene su propia cuota global de creación de
 proyectos (ver “Cuota de proyectos GCP” abajo), que es el tope físico que termina mandando.
 
+### ¿Cuál es el máximo permitido de proyectos por billing account?
+
+- **Default documentado por Google: 5 proyectos por billing account** (orgs nuevas).
+  Se aumenta (no es self-service) vía
+  https://support.google.com/code/contact/billing_quota_increase.
+- **En la práctica esta org se corta en 4** por cuenta: hoy `016AC2` tiene 4 proyectos
+  vinculados y `01D2F4` tiene 4 (incluye `vertex-platform-dev`); el 5º intento de vínculo
+  falla con `Cloud billing quota exceeded`. El panel muestra el uso REAL (leído de la API de
+  GCP) contra el límite configurado en `gcpProjectLimit` (hoy 4) — cuando Google apruebe más,
+  se edita ese valor y el % se recalcula.
+- **Cantidad de billing accounts por organización**: Google no publica un número; se pueden
+  crear más (mecanismo oficial: subaccounts bajo una master). Pedir aumento a soporte ante
+  dudas.
+
 ## Mantenimiento automático (scheduler)
 
 `checkWarmShardBuffer` (pubsub, cada 6h, UTC):

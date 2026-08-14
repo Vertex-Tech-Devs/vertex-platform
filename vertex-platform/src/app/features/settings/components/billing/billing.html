@@ -35,25 +35,17 @@
 
   @if (runtimeSummary()) {
     <!-- Shards Monitor Card -->
-    <div class="add-card" style="margin-bottom: 1.5rem">
-      <h2
-        class="add-card__title"
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          flex-wrap: wrap;
-        "
-      >
-        <span><i class="bi bi-server"></i> Monitor de Infrastructure Shards</span>
-        <span style="display: flex; align-items: center; gap: 0.75rem">
+    <div class="monitor-card">
+      <div class="monitor-card__head">
+        <h2 class="monitor-card__title">
+          <i class="bi bi-server"></i> Monitor de Infrastructure Shards
+        </h2>
+        <div class="monitor-card__tools">
           @if (readiness()) {
             <span
               class="badge"
               [class.badge--active]="readyRatio() === 100"
               [class.badge--inactive]="readyRatio() < 100"
-              style="font-size: 0.8rem; font-weight: 600"
             >
               {{ readiness()!.readyCount }}/{{ readiness()!.total }} listos ({{ readyRatio() }}%)
             </span>
@@ -66,64 +58,34 @@
             <i class="bi bi-arrow-repeat"></i>
             {{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}
           </button>
-          <span class="badge badge--active" style="font-size: 0.8rem; font-weight: 600">
+          <span class="badge badge--active">
             {{ runtimeSummary()!.availableSharedSlots }} cupos libres
           </span>
-        </span>
-      </h2>
-      <p class="add-card__hint" style="margin-bottom: 1rem">
+        </div>
+      </div>
+      <p class="monitor-card__hint">
         Capacidad actual de los shards compartidos. “Listo” = redirect URI registrado en el client
         OAuth master, billing vinculado y estado utilizable (puede recibir tiendas sin
         configuración). “Incompleto” = falta algo; usá “Cómo configurar” para ver el paso a paso.
       </p>
 
-      <div
-        style="
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1rem;
-        "
-      >
+      <div class="shard-grid">
         @for (shard of runtimeSummary()!.shards; track shard.id) {
           @let status = readiness()?.shards?.find((r) => r.id === shard.id);
+          @let isFull = shard.status === 'FULL';
           <div
             class="shard-card"
             [class.shard-card--ready]="status?.ready === true"
             [class.shard-card--incomplete]="status?.ready === false"
-            style="
-              background: rgba(255, 255, 255, 0.03);
-              border: 1px solid rgba(255, 255, 255, 0.08);
-              border-radius: 8px;
-              padding: 1rem;
-              display: flex;
-              flex-direction: column;
-              gap: 0.5rem;
-            "
+            [class.shard-card--full]="isFull"
           >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 0.5rem;
-              "
-            >
-              <strong
-                style="
-                  font-size: 0.95rem;
-                  color: var(--platform-text-primary);
-                  overflow: hidden;
-                  text-overflow: ellipsis;
-                  white-space: nowrap;
-                "
-                >{{ shard.id }}</strong
-              >
+            <div class="shard-card__top">
+              <strong class="shard-card__name" [title]="shard.id">{{ shard.id }}</strong>
               @if (status) {
                 <span
                   class="badge"
                   [class.badge--active]="status.ready"
                   [class.badge--inactive]="!status.ready"
-                  style="font-size: 0.75rem; white-space: nowrap"
                 >
                   <i
                     class="bi"
@@ -133,93 +95,64 @@
                   {{ status.ready ? 'Listo' : 'Incompleto' }}
                 </span>
               } @else {
-                <span class="badge" style="font-size: 0.75rem">…</span>
+                <span class="badge">…</span>
               }
             </div>
-            <div
-              style="
-                font-size: 0.8rem;
-                color: var(--platform-text-muted);
-                display: flex;
-                justify-content: space-between;
-                gap: 0.5rem;
-                align-items: center;
-              "
-            >
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+            <div class="shard-card__meta">
+              <span class="shard-card__project"
                 >GCP: <code>{{ shard.projectId }}</code></span
               >
               <span
                 class="badge"
-                [class.badge--active]="shard.status === 'ACTIVE'"
-                [class.badge--inactive]="shard.status !== 'ACTIVE'"
-                style="font-size: 0.7rem"
+                [class.badge--active]="shard.status === 'ACTIVE' || shard.status === 'WARMUP_READY'"
+                [class.badge--inactive]="isFull"
               >
                 {{
                   shard.status === 'ACTIVE'
                     ? 'Activo'
-                    : shard.status === 'FULL'
-                      ? 'Lleno'
+                    : isFull
+                      ? 'Sin cupo'
                       : shard.status === 'WARMUP_READY'
                         ? 'Standby'
                         : shard.status
                 }}
               </span>
             </div>
-            <div class="usage" style="margin-top: 0.25rem">
-              <div
-                class="usage__bar"
-                style="
-                  height: 6px;
-                  background: rgba(255, 255, 255, 0.1);
-                  border-radius: 3px;
-                  overflow: hidden;
-                "
-              >
+            <div class="usage">
+              <div class="usage__bar">
                 <div
                   class="usage__fill"
-                  [style.width.%]="shard.occupancyRatio * 100"
+                  [style.width.%]="isFull ? 100 : shard.occupancyRatio * 100"
                   [style.background]="
-                    shard.occupancyRatio >= 1
-                      ? '#ef4444'
-                      : shard.occupancyRatio >= 0.8
-                        ? '#f59e0b'
-                        : '#10b981'
+                    isFull
+                      ? 'rgba(245, 158, 11, 0.6)'
+                      : shard.occupancyRatio >= 1
+                        ? '#ef4444'
+                        : shard.occupancyRatio >= 0.8
+                          ? '#f59e0b'
+                          : '#10b981'
                   "
-                  style="height: 100%"
                 ></div>
               </div>
-              <span
-                class="usage__label"
-                style="
-                  font-size: 0.8rem;
-                  display: block;
-                  margin-top: 0.35rem;
-                  color: var(--platform-text-secondary);
-                "
-              >
-                {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
-                  shard.availableStores
-                }}
-                disponibles)
+              <span class="usage__label">
+                @if (isFull) {
+                  Sin cupo disponible (revisar estado)
+                } @else {
+                  {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
+                    shard.availableStores
+                  }}
+                  disponibles)
+                }
               </span>
             </div>
             @if (status) {
-              <div style="margin-top: auto; display: flex; gap: 0.5rem">
+              <div class="shard-card__actions">
                 @if (!status.ready) {
-                  <button
-                    class="btn btn-primary btn--sm"
-                    style="flex: 1"
-                    (click)="selectedShard.set(status)"
-                  >
+                  <button class="btn btn-primary btn--sm" (click)="selectedShard.set(status)">
                     <i class="bi bi-wrench-adjustable"></i> Cómo configurar
                   </button>
                 } @else {
-                  <button
-                    class="btn btn-secondary btn--sm"
-                    style="flex: 1"
-                    (click)="selectedShard.set(status)"
-                  >
+                  <button class="btn btn-secondary btn--sm" (click)="selectedShard.set(status)">
                     <i class="bi bi-eye"></i> Ver estado
                   </button>
                 }
@@ -439,8 +372,10 @@
                 <p
                   style="font-size: 0.75rem; color: var(--platform-text-muted); margin: 0.25rem 0 0"
                 >
-                  Límite real de GCP por billing account (default <strong>5</strong>, aumentable por
-                  soporte). Cuando Google apruebe el aumento, editá este valor.
+                  Capacidad real en GCP: <strong>{{ account.gcpUsedProjects }}</strong> de
+                  <strong>{{ account.gcpProjectLimit }}</strong> proyectos (máx. documentado por
+                  Google: 5 por cuenta, aumentable por soporte — cuando aprueben más, editá este
+                  límite).
                 </p>
 
                 @if (account.addedAt) {

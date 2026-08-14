@@ -1911,3 +1911,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Capa moderna: hover de tarjetas y tabs ───────────────────────────── */
+.detail-card,
+.config-card {
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+
+  &:hover {
+    border-color: hsla(0, 0%, 100%, 0.12);
+  }
+}
+
+.tab-button.is-active {
+  background: linear-gradient(135deg, hsla(199, 89%, 48%, 0.16) 0%, hsla(244, 75%, 64%, 0.16) 100%);
+  border-color: hsla(244, 75%, 64%, 0.3);
+}
+
+.deploy-history-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.045);
+}

@@ -146,8 +146,9 @@ import type { ShardReadiness, ShardReadinessReason } from '@core/services/stores
                         </li>
                       } @else if (shard.status === 'FULL') {
                         <li>
-                          Está lleno: vuelve a ACTIVE automáticamente al liberar cupo (deleteStore /
-                          activateStore).
+                          Está sin cupo (FULL). Si es un warmup fallido (0 tiendas), el scheduler lo
+                          purga automáticamente a las 24h. Si tiene tiendas, vuelve a ACTIVE al
+                          liberar cupo (deleteStore / activateStore).
                         </li>
                       } @else {
                         <li>Revisá su estado en la consola de GCP o el scheduler del platform.</li>

@@ -9,6 +9,17 @@ function normalizeBillingAccountId(rawId: string): string {
   return id.startsWith('billingAccounts/') ? id.slice('billingAccounts/'.length) : id;
 }
 
+/**
+ * Cuenta los proyectos vinculados a una billing account a partir de la respuesta
+ * de `billingAccounts/{id}/projects` (el endpoint devuelve `projectBillingInfo`,
+ * NO `projects` — error histórico que daba 0 de uso real en el panel).
+ */
+export function countLinkedProjects(payload: {
+  projectBillingInfo?: Array<{ billingEnabled?: boolean }>;
+}): number {
+  return (payload.projectBillingInfo ?? []).filter((p) => p.billingEnabled !== false).length;
+}
+
 export const listBillingAccounts = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -29,7 +40,8 @@ export const listBillingAccounts = onCall(
     });
 
     // Uso REAL de GCP: proyectos vinculados a cada billing account (la fuente de
-    // verdad; el default de GCP es 5 proyectos por cuenta, aumentable por soporte).
+    // verdad; el default documentado de GCP es 5 proyectos por cuenta, aumentable
+    // por soporte — en la práctica esta org se corta en 4).
     let gcpUsageMap: Record<string, number> = {};
     try {
       const auth = await getOwnerOAuthClient();
@@ -45,8 +57,13 @@ export const listBillingAccounts = onCall(
                 pageToken ? `?pageToken=${pageToken}` : ''
               }`,
               { quotaProject: PLATFORM_PROJECT },
-            )) as { projects?: unknown[]; nextPageToken?: string };
-            count += (res.projects ?? []).length;
+            )) as {
+              projectBillingInfo?: Array<{ billingEnabled?: boolean }>;
+              nextPageToken?: string;
+            };
+            // El endpoint devuelve projectBillingInfo (NO projects) — contar los
+            // proyectos vinculados a esta cuenta.
+            count += countLinkedProjects(res);
             pageToken = res.nextPageToken ?? '';
           } while (pageToken && count < 1000);
           gcpUsageMap[accountId] = count;
