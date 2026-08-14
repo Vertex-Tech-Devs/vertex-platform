@@ -40,8 +40,8 @@ export const listBillingAccounts = onCall(
     });
 
     // Uso REAL de GCP: proyectos vinculados a cada billing account (la fuente de
-    // verdad; el default documentado de GCP es 5 proyectos por cuenta, aumentable
-    // por soporte — en la práctica esta org se corta en 4).
+    // verdad; el límite real de GCP es 5 proyectos por cuenta — default documentado,
+    // aumentable por soporte).
     let gcpUsageMap: Record<string, number> = {};
     try {
       const auth = await getOwnerOAuthClient();

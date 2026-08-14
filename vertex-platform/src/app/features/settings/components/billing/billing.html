@@ -474,6 +474,35 @@
                   Google: 5 por cuenta, aumentable por soporte — cuando aprueben más, editá este
                   límite).
                 </p>
+                @if (account.gcpRemaining === 0) {
+                  <p
+                    style="
+                      font-size: 0.78rem;
+                      color: #f59e0b;
+                      background: rgba(245, 158, 11, 0.08);
+                      border: 1px solid rgba(245, 158, 11, 0.2);
+                      border-radius: 8px;
+                      padding: 0.4rem 0.6rem;
+                      margin: 0.4rem 0 0;
+                      line-height: 1.4;
+                    "
+                  >
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong
+                      >Cuenta al límite ({{ account.gcpUsedProjects }}/{{
+                        account.gcpProjectLimit
+                      }}).</strong
+                    >
+                    Para vincular más proyectos: pedí el aumento a
+                    <a
+                      href="https://support.google.com/code/contact/billing_quota_increase"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >soporte de Google</a
+                    >, o liberá cupo desvinculando proyectos de prueba con
+                    <code>npx tsx scripts/audit-billing.ts</code>.
+                  </p>
+                }
 
                 @if (account.addedAt) {
                   <span class="account-meta"

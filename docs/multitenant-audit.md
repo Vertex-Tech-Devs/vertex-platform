@@ -125,9 +125,12 @@ límite REAL — distinto del `maxProjects` autoimpuesto de la plataforma (10). 
 solicitar aumento en: https://support.google.com/code/contact/billing_quota_increase.
 
 Impacto: con la cuota actual solo se pudieron completar **4 de 12** huérfanos
-(3z5twz4j, 5792sth2, aia7f0ao, qncajqrx) + 1 ya facturable (3am2uj4h). Los otros
-(9 proyectos ACTIVE) quedan como huérfanos y se completan con `complete-shards.ts`
-cuando haya cuota.
+(3z5twz4j, 5792sth2, aia7f0ao, qncajqrx) + 1 ya facturable (3am2uj4h) + **1 liberado por
+desvincular un proyecto de prueba** (j9db0rkj, vía `audit-billing.ts` + unlink). Los otros
+(8 proyectos ACTIVE) quedan como huérfanos y se completan con `complete-shards.ts`
+cuando haya cuota. Límite real verificado: **5 proyectos por billing account**
+(no 4 como se estimó; ambas cuentas de dev están a 5/5). La creación de billing accounts
+por API está bloqueada por Google (400 en `create`/`subAccounts.create`).
 
 ### 🔴 O14 — Storage rules inválidas (`svg\+xml`) en todos los shards (Alto, corregido)
 

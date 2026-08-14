@@ -35,14 +35,24 @@ proyectos (ver “Cuota de proyectos GCP” abajo), que es el tope físico que t
 
 ### ¿Cuál es el máximo permitido de proyectos por billing account?
 
-- **Default documentado por Google: 5 proyectos por billing account** (orgs nuevas).
-  Se aumenta (no es self-service) vía
-  https://support.google.com/code/contact/billing_quota_increase.
-- **En la práctica esta org se corta en 4** por cuenta: hoy `016AC2` tiene 4 proyectos
-  vinculados y `01D2F4` tiene 4 (incluye `vertex-platform-dev`); el 5º intento de vínculo
-  falla con `Cloud billing quota exceeded`. El panel muestra el uso REAL (leído de la API de
-  GCP) contra el límite configurado en `gcpProjectLimit` (hoy 4) — cuando Google apruebe más,
-  se edita ese valor y el % se recalcula.
+- **Límite real verificado: 5 proyectos por billing account** (default documentado por
+  Google). Las 2 cuentas de dev están a 5/5: el 6º vínculo falla con
+  `Cloud billing quota exceeded`.
+- **¿Se pueden crear billing accounts desde la plataforma/script?** No por API: el
+  Cloud Billing API rechaza `billingAccounts.create` y `subAccounts.create` con 400
+  (la cuenta no está "provisioned for subaccounts" ni el token tiene la entitlement
+  org-level). Solo la consola de Google (o soporte) crea cuentas.
+- **Cómo liberar cupo SIN esperar a soporte**: si una cuenta tiene proyectos de prueba
+  vinculados, desvincularlos libera el slot al instante:
+  ```bash
+  npx tsx scripts/audit-billing.ts --env dev   # marca 🟡 los candidatos a desvincular
+  gcloud billing projects unlink <projectId>   # libera 1 cupo
+  npx tsx scripts/complete-shards.ts --env dev --project-ids vtx-sd-<huérfano>
+  ```
+  (se hizo una vez: se desvinculó el probe `vtx-probando-wrr5` y se completó
+  `vtx-sd-j9db0rkj`).
+- **Aumento real (para más capacidad)**: https://support.google.com/code/contact/billing_quota_increase
+  — formulario revisado por soporte (no self-service).
 - **Cantidad de billing accounts por organización**: Google no publica un número; se pueden
   crear más (mecanismo oficial: subaccounts bajo una master). Pedir aumento a soporte ante
   dudas.
