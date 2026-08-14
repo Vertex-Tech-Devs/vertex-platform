@@ -527,4 +527,27 @@ describe('StoresService', () => {
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'activateStore');
     expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-1' });
   });
+
+  it('updates poolAlert from system_alerts snapshot (active/inactive)', async () => {
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // El listener de la alerta de pool es el onSnapshot cuyo ref es el doc mock (undefined);
+    // el listener de stores usa collection (ref { id: 'stores' }).
+    const poolAlertCall = mockOnSnapshot.mock.calls.find((c) => c[0] === undefined);
+    expect(poolAlertCall).toBeDefined();
+    const poolAlertCb = poolAlertCall![1] as (snap: unknown) => void;
+
+    poolAlertCb({ data: () => ({ active: true, availableShards: 1, threshold: 2 }) });
+    expect(service.poolAlert()).toEqual({ availableShards: 1, threshold: 2 });
+
+    poolAlertCb({ data: () => ({ active: false }) });
+    expect(service.poolAlert()).toBeNull();
+
+    // Sin availableShards ni threshold → usa defaults
+    poolAlertCb({ data: () => ({ active: true }) });
+    expect(service.poolAlert()).toEqual({ availableShards: 0, threshold: 2 });
+  });
 });

@@ -108,7 +108,7 @@ export class StoresService {
       // sin initializeApp no deben romper la construcción del servicio).
       const env =
         this.authService.user()?.uid
-          ? this.db.app.options.projectId === 'vertex-platform-app'
+          ? this.db.app?.options?.projectId === 'vertex-platform-app'
             ? 'prod'
             : 'dev'
           : 'dev';
