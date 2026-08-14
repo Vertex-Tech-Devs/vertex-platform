@@ -104,7 +104,9 @@ export async function checkPoolLowAndAlert(
  * exists in standby for the current platform environment.
  * If no warm shard exists, it creates and pre-configures a GCP project in the background.
  */
-export async function ensureWarmShardAvailable(): Promise<string | null> {
+export async function ensureWarmShardAvailable(
+  forceCreate = false,
+): Promise<string | null> {
   if (process.env.FUNCTIONS_EMULATOR === 'true') {
     console.log(
       '[ensureWarmShardAvailable] Emulator mode active. Skipping background warm shard GCP API calls.',
@@ -115,7 +117,8 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
   const db = getFirestore();
   const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-  // Check if a warm shard already exists in standby
+  // Check if a warm shard already exists in standby (salvo forceCreate — usado por
+  // el scheduler para rellenar el pool hasta el objetivo, creando shards nuevos).
   const warmSnap = await db
     .collection('infrastructure_shards')
     .where('environment', '==', env)
@@ -123,7 +126,7 @@ export async function ensureWarmShardAvailable(): Promise<string | null> {
     .limit(1)
     .get();
 
-  if (!warmSnap.empty) {
+  if (!warmSnap.empty && !forceCreate) {
     const existing = warmSnap.docs[0];
     console.info(
       `[ensureWarmShardAvailable] Standby warm shard already exists: ${existing.id} (${existing.data()['status']})`,
@@ -451,12 +454,15 @@ export const checkWarmShardBuffer = functions.pubsub
       .get();
     const warmCount = warmSnap.size;
     if (warmCount < WARM_SHARD_TARGET) {
-      const toCreate = Math.min(WARM_SHARD_TARGET - warmCount, 3); // máx 3 por run
+      const toCreate = Math.max(0, WARM_SHARD_TARGET - warmCount); // crear hasta el objetivo
       console.info(
         `[checkWarmShardBuffer] Pool caliente bajo: ${warmCount}/${WARM_SHARD_TARGET}. Provisionando ${toCreate} shard(s)...`,
       );
       for (let i = 0; i < toCreate; i++) {
-        await ensureWarmShardAvailable();
+        // forceCreate: ignora el short-circuit de "ya existe un warm" para rellenar
+        // el pool hasta el objetivo (sin esto solo se creaba 1 shard).
+        await ensureWarmShardAvailable(true);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } else {
       console.info(
