@@ -11,11 +11,21 @@ import {
 } from './helpers';
 
 /**
+ * Lee una variable de entorno numérica con fallback seguro (evita NaN con
+ * valores basura que romperían la lógica de pool/alertas).
+ */
+function readEnvInt(name: string, fallback: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : fallback;
+}
+
+/**
  * Umbral de pool bajo: cuando quedan ≤ POOL_LOW_THRESHOLD shards disponibles
  * (WARMUP_READY + ACTIVE con cupo), se dispara la alerta (in-app + email).
  * "Disponible" = puede recibir tiendas nuevas sin configuración.
+ * Configurable por entorno con POOL_LOW_THRESHOLD.
  */
-export const POOL_LOW_THRESHOLD = 2;
+export const POOL_LOW_THRESHOLD = readEnvInt('POOL_LOW_THRESHOLD', 2);
 
 /** Email al que llegan las notificaciones de pool bajo. */
 const POOL_ALERT_EMAIL = process.env['POOL_ALERT_EMAIL'] || 'juan.l.espeche@gmail.com';
@@ -25,10 +35,7 @@ export async function countAvailableShards(
   db: FirebaseFirestore.Firestore,
   env: string,
 ): Promise<number> {
-  const snap = await db
-    .collection('infrastructure_shards')
-    .where('environment', '==', env)
-    .get();
+  const snap = await db.collection('infrastructure_shards').where('environment', '==', env).get();
   let available = 0;
   for (const doc of snap.docs) {
     const data = doc.data();
@@ -52,6 +59,9 @@ export async function checkPoolLowAndAlert(
 ): Promise<number> {
   const available = await countAvailableShards(db, env);
   const alertRef = db.collection('system_alerts').doc(`pool_low_${env}`);
+  // Recomendación: cuántos shards crear de un tirón para volver al objetivo del scheduler.
+  const WARM_SHARD_TARGET = readEnvInt('WARM_SHARD_TARGET', 10);
+  const recommendedCount = Math.max(WARM_SHARD_TARGET, 10);
 
   if (available > POOL_LOW_THRESHOLD) {
     // Pool OK: limpiar la alerta activa si existía.
@@ -64,15 +74,18 @@ export async function checkPoolLowAndAlert(
 
   const alertSnap = await alertRef.get();
   const lastAlertedAt = alertSnap.exists
-    ? alertSnap.data()?.['lastAlertedAt']?.toDate?.() ?? new Date(0)
+    ? (alertSnap.data()?.['lastAlertedAt']?.toDate?.() ?? new Date(0))
     : new Date(0);
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const shouldNotify = lastAlertedAt < oneDayAgo;
 
+  const command = `npx tsx scripts/provision-shards.ts --target ${recommendedCount} --env ${env === 'production' ? 'prod' : 'dev'}`;
   await alertRef.set({
     active: true,
     availableShards: available,
     threshold: POOL_LOW_THRESHOLD,
+    recommendedCount,
+    command,
     lastAlertedAt: shouldNotify ? new Date() : lastAlertedAt,
     updatedAt: new Date(),
   });
@@ -87,10 +100,13 @@ export async function checkPoolLowAndAlert(
         `⚠️ Vertex — Pool de shards bajo (${available} disponibles)`,
         `<p>El pool de shards de <strong>${env}</strong> está bajo:</p>
          <p><strong>${available}</strong> shard(s) disponible(s) (umbral: ${POOL_LOW_THRESHOLD}).</p>
-         <p>Provisioná más shards con:
-         <code>npx tsx scripts/provision-shards.ts --count 10 --env ${env}</code></p>
-         <p>O el scheduler lo hará automáticamente (WARM_SHARD_TARGET).</p>`,
-        `Pool de shards bajo (${available} disponibles) en ${env}. Ejecutá: npx tsx scripts/provision-shards.ts --count 10 --env ${env}`,
+         <p>Provisioná <strong>${recommendedCount}</strong> shards de un tirón con:
+         <code>${command}</code></p>
+         <p>Después registrá los redirect URIs que imprime el script (paso manual en
+         Google Cloud Console, una vez por shard) y verificá con
+         <code>npx tsx scripts/check-oauth-redirects.ts</code>.</p>
+         <p>O el scheduler lo hará automáticamente (WARM_SHARD_TARGET=${WARM_SHARD_TARGET}).</p>`,
+        `Pool de shards bajo (${available} disponibles) en ${env}. Ejecutá: ${command}`,
       );
     } catch (err) {
       console.error('[checkPoolLowAndAlert] Falló el envío del email:', err);
@@ -104,9 +120,7 @@ export async function checkPoolLowAndAlert(
  * exists in standby for the current platform environment.
  * If no warm shard exists, it creates and pre-configures a GCP project in the background.
  */
-export async function ensureWarmShardAvailable(
-  forceCreate = false,
-): Promise<string | null> {
+export async function ensureWarmShardAvailable(forceCreate = false): Promise<string | null> {
   if (process.env.FUNCTIONS_EMULATOR === 'true') {
     console.log(
       '[ensureWarmShardAvailable] Emulator mode active. Skipping background warm shard GCP API calls.',
@@ -422,14 +436,15 @@ export const checkWarmShardBuffer = functions.pubsub
   .onRun(async () => {
     const db = getFirestore();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Purge stale failed warm shard records with 0 active stores
+    // Purge stale failed warm shard records with 0 active stores.
+    // FULL: fallo conocido. WARMUP_PROVISIONING: quedó colgado (función murió a
+    // mitad de provisioning) y no debe contar para el objetivo ni ocupar cupo.
     const staleFailedSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
       .where('currentStores', '==', 0)
-      .where('status', '==', 'FULL')
+      .where('status', 'in', ['FULL', 'WARMUP_PROVISIONING'])
       .get();
 
     for (const doc of staleFailedSnap.docs) {
@@ -437,8 +452,12 @@ export const checkWarmShardBuffer = functions.pubsub
       const updatedAt = data['updatedAt']?.toDate
         ? data['updatedAt'].toDate()
         : new Date(data['updatedAt']);
-      if (updatedAt < cutoff) {
-        console.info(`[checkWarmShardBuffer] Purging stale failed warm shard record ${doc.id}`);
+      // FULL: >24h. WARMUP_PROVISIONING: >12h (un ciclo de scheduler completo).
+      const staleAfter = data['status'] === 'WARMUP_PROVISIONING' ? 12 * 3600_000 : 24 * 3600_000;
+      if (updatedAt < new Date(Date.now() - staleAfter)) {
+        console.info(
+          `[checkWarmShardBuffer] Purging stale ${data['status']} shard record ${doc.id} (updatedAt ${updatedAt.toISOString()})`,
+        );
         await doc.ref.delete();
       }
     }
@@ -446,7 +465,8 @@ export const checkWarmShardBuffer = functions.pubsub
     // ── Pool objetivo: mantener al menos WARM_SHARD_TARGET shards calientes ──
     // Así el pool de capacidad queda profundo sin configuración manual:
     // el scheduler provisiona shards nuevos hasta alcanzar el objetivo.
-    const WARM_SHARD_TARGET = Number(process.env['WARM_SHARD_TARGET'] || '8');
+    // Default 10 (configurable con WARM_SHARD_TARGET).
+    const WARM_SHARD_TARGET = readEnvInt('WARM_SHARD_TARGET', 10);
     const warmSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
@@ -477,9 +497,7 @@ export const checkWarmShardBuffer = functions.pubsub
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } else {
-      console.info(
-        `[checkWarmShardBuffer] Pool caliente OK: ${warmCount}/${WARM_SHARD_TARGET}`,
-      );
+      console.info(`[checkWarmShardBuffer] Pool caliente OK: ${warmCount}/${WARM_SHARD_TARGET}`);
     }
 
     // ── Alerta de pool bajo (in-app + email, dedupe 24h) ──

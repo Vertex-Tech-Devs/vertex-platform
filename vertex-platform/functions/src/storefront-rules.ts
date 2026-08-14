@@ -57,6 +57,10 @@ service cloud.firestore {
     }
 
     // ── Public catalog collections (flat root-level, storeId-tagged) ────────────
+    // ⚠️ Naming constraint: estas colecciones son de LECTURA PÚBLICA por diseño.
+    // No guardar secretos/credenciales en products, categories, attributes,
+    // configuracion, banners o pages (los tokens de pago viven en store_payments
+    // y Secret Manager, no acá).
     match /products/{productId} {
       allow read: if true;
       allow create: if canCreateForStore();
@@ -112,6 +116,18 @@ service cloud.firestore {
       allow update: if canUpdateStoreDoc();
       allow delete: if canDeleteStoreDoc();
     }
+
+    // ── Lectura pública universal en cualquier nivel de anidamiento ─────────────
+    // Cubre subcolecciones y Collection Groups (p. ej. stores/{id}/products) para que
+    // el storefront lea sin token sin importar la estructura. Los writes se mantienen
+    // aislados por tienda (canCreateForStore / canUpdateStoreDoc / canDeleteStoreDoc).
+    // Mantener sincronizado con storefront/firestore.rules.
+    match /{path=**}/products/{docId} { allow read: if true; }
+    match /{path=**}/categories/{docId} { allow read: if true; }
+    match /{path=**}/attributes/{docId} { allow read: if true; }
+    match /{path=**}/configuracion/{docId} { allow read: if true; }
+    match /{path=**}/banners/{docId} { allow read: if true; }
+    match /{path=**}/pages/{docId} { allow read: if true; }
 
     // ── Transactional / admin collections ────────────────────────────────────────
 

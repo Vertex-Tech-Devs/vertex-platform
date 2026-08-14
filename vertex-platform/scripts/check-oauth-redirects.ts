@@ -50,7 +50,9 @@ async function verifyRedirectUri(clientId: string, redirectUri: string): Promise
       `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
     const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
     const location = res.headers.get('location') ?? '';
-    return !location.includes('/signin/oauth/error');
+    // Éxito → redirige EXACTAMENTE al redirect_uri registrado (con ?code=...).
+    // Falla → /signin/oauth/error u otra página intermedia.
+    return location.startsWith(redirectUri);
   } catch {
     return false;
   }

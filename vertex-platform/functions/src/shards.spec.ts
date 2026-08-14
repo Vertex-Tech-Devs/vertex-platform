@@ -24,7 +24,7 @@ vi.mock('./helpers', () => ({
 }));
 
 import { getFirestore } from 'firebase-admin/firestore';
-import { ensureWarmShardAvailable, checkWarmShardBuffer } from './shards';
+import { ensureWarmShardAvailable, checkWarmShardBuffer, checkPoolLowAndAlert } from './shards';
 
 describe('Warm Shard Pre-Provisioning (shards.ts)', () => {
   beforeEach(() => {
@@ -63,5 +63,45 @@ describe('Warm Shard Pre-Provisioning (shards.ts)', () => {
 
   it('registers checkWarmShardBuffer schedule handler', () => {
     expect(checkWarmShardBuffer).toBeDefined();
+  });
+
+  it('pool-low alert persists recommended command to reach target in one go', async () => {
+    const setMock = vi.fn().mockResolvedValue(undefined);
+    const alertDocGet = vi.fn().mockResolvedValue({
+      exists: true,
+      data: () => ({ lastAlertedAt: new Date() }), // notifica dedupe: sin email
+    });
+
+    // 1 shard disponible (≤ POOL_LOW_THRESHOLD=2) → alerta activa.
+    const shardSnap = {
+      docs: [{ data: () => ({ status: 'WARMUP_READY', currentStores: 0, maxCapacity: 35 }) }],
+    };
+    const infraCollection = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue(shardSnap as any),
+      }),
+    });
+    const alertCollection = vi.fn().mockReturnValue({
+      doc: vi.fn().mockReturnValue({
+        get: alertDocGet,
+        set: setMock,
+      }),
+    });
+    (getFirestore as any).mockReturnValue({
+      collection: vi.fn((name: string) =>
+        name === 'infrastructure_shards' ? infraCollection(name) : alertCollection(name),
+      ),
+    });
+
+    const available = await checkPoolLowAndAlert(getFirestore() as any, 'development');
+    expect(available).toBe(1);
+    expect(setMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        active: true,
+        availableShards: 1,
+        recommendedCount: 10,
+        command: expect.stringMatching(/--target 10.*--env dev/),
+      }),
+    );
   });
 });
