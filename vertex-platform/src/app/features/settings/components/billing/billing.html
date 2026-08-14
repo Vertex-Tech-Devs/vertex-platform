@@ -31,6 +31,94 @@
       por cliente y consumen cupo en las cuentas de facturación (Billing Accounts) registradas
       abajo.
     </p>
+
+    <!-- Guía expandible: cómo funciona todo -->
+    <details class="billing-guide">
+      <summary class="billing-guide__summary">
+        <i class="bi bi-question-circle"></i> ¿Cómo funciona? (billing accounts, shards y tiendas)
+      </summary>
+      <div class="billing-guide__body">
+        <h4>Los 3 niveles</h4>
+        <ol>
+          <li>
+            <strong>Billing Account</strong> — la cuenta que <em>paga</em> los servicios GCP de los
+            proyectos vinculados (ej. <code>016AC2-…</code>).
+          </li>
+          <li>
+            <strong>Shard</strong> — un proyecto GCP/Firebase <code>vtx-sd-*</code> que aloja hasta
+            <strong>35 tiendas</strong>.
+          </li>
+          <li>
+            <strong>Tienda</strong> — un ecommerce que vive dentro de un shard (las tiendas
+            dedicadas crean su propio proyecto).
+          </li>
+        </ol>
+        <p>
+          <strong>Regla clave:</strong> cada shard es un proyecto GCP y todo proyecto debe estar
+          vinculado a una billing account. Por eso “máximo de proyectos por cuenta” =
+          <em>cuántos shards puede pagar esa cuenta</em>. Un shard sin billing queda en plan Spark
+          (sin Cloud Functions: checkout y Mercado Pago no funcionan).
+        </p>
+
+        <h4>Los límites (y cómo aumentarlos)</h4>
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th>Límite</th>
+              <th>Valor</th>
+              <th>Cómo aumentarlo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Proyectos por billing account (GCP)</td>
+              <td>5 default documentado · esta org se corta en 4</td>
+              <td>
+                <a
+                  href="https://support.google.com/code/contact/billing_quota_increase"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >soporte de Google</a
+                >
+                (revisado, no es automático)
+              </td>
+            </tr>
+            <tr>
+              <td>Proyectos por organización (GCP)</td>
+              <td>~20 default (hoy agotado)</td>
+              <td>Consola → <code>IAM → Cuotas → "Project Count" → Editar</code></td>
+            </tr>
+            <tr>
+              <td>Billing accounts por organización</td>
+              <td>Sin número público</td>
+              <td>Soporte de Google Cloud Billing (mecanismo: subaccounts bajo una master)</td>
+            </tr>
+            <tr>
+              <td>Máx. proyectos (plataforma)</td>
+              <td>Editable por cuenta (10 hoy)</td>
+              <td>Panel → editar la cuenta</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>El pool de shards</h4>
+        <ul>
+          <li>
+            El scheduler (cada 6h) mantiene <strong>10 shards calientes</strong>
+            (<code>WARM_SHARD_TARGET=10</code>).
+          </li>
+          <li>
+            Un shard está <strong>Listo</strong> cuando: estado utilizable + billing vinculado +
+            <strong>redirect URI registrado</strong> (el único paso manual — Google no expone API
+            para redirect URIs; una vez por shard).
+          </li>
+          <li>
+            Si el pool baja a ≤2 disponibles, la plataforma te avisa por email + banner con el
+            comando exacto para reponer 10 de un tirón.
+          </li>
+        </ul>
+      </div>
+    </details>
   </div>
 
   @if (runtimeSummary()) {
@@ -54,6 +142,7 @@
             class="btn btn-secondary btn--sm"
             (click)="checkShards()"
             [disabled]="isCheckingShards()"
+            title="Re-verifica en vivo el redirect URI de cada shard contra el client OAuth de Google"
           >
             <i class="bi bi-arrow-repeat"></i>
             {{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}
@@ -148,11 +237,19 @@
             @if (status) {
               <div class="shard-card__actions">
                 @if (!status.ready) {
-                  <button class="btn btn-primary btn--sm" (click)="selectedShard.set(status)">
+                  <button
+                    class="btn btn-primary btn--sm"
+                    (click)="selectedShard.set(status)"
+                    title="Abrir el paso a paso exacto para dejar este shard listo (redirect URI, billing, estado)"
+                  >
                     <i class="bi bi-wrench-adjustable"></i> Cómo configurar
                   </button>
                 } @else {
-                  <button class="btn btn-secondary btn--sm" (click)="selectedShard.set(status)">
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    (click)="selectedShard.set(status)"
+                    title="Ver el estado detallado de este shard"
+                  >
                     <i class="bi bi-eye"></i> Ver estado
                   </button>
                 }

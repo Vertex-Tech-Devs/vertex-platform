@@ -524,3 +524,99 @@
     }
   }
 }
+
+/* ── Guía "¿Cómo funciona?" (billing) ─────────────────────────────────── */
+.billing-guide {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.75rem;
+
+  &__summary {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ea580c;
+    user-select: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__body {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--platform-text-secondary);
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+
+    h4 {
+      margin: 1rem 0 0.4rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--platform-text-primary);
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    ol,
+    ul {
+      margin: 0 0 0.5rem;
+      padding-left: 1.3rem;
+
+      li {
+        margin-bottom: 0.3rem;
+      }
+    }
+
+    code {
+      font-size: 0.78em;
+    }
+
+    a {
+      color: #60a5fa;
+    }
+  }
+}
+
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0.35rem 0 0.75rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: top;
+  }
+
+  th {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    color: var(--platform-text-muted);
+  }
+}
+
+@media (max-width: 640px) {
+  .guide-table {
+    font-size: 0.72rem;
+
+    th,
+    td {
+      padding: 0.4rem 0.4rem;
+    }
+  }
+}
