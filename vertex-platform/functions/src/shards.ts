@@ -458,10 +458,22 @@ export const checkWarmShardBuffer = functions.pubsub
       console.info(
         `[checkWarmShardBuffer] Pool caliente bajo: ${warmCount}/${WARM_SHARD_TARGET}. Provisionando ${toCreate} shard(s)...`,
       );
+      let consecutiveFailures = 0;
       for (let i = 0; i < toCreate; i++) {
         // forceCreate: ignora el short-circuit de "ya existe un warm" para rellenar
         // el pool hasta el objetivo (sin esto solo se creaba 1 shard).
-        await ensureWarmShardAvailable(true);
+        const created = await ensureWarmShardAvailable(true);
+        if (!created) {
+          consecutiveFailures++;
+          if (consecutiveFailures >= 2) {
+            console.warn(
+              '[checkWarmShardBuffer] Fallos consecutivos al provisionar (¿cuota de proyectos GCP agotada?). Abortando el ciclo para no contaminar el pool.',
+            );
+            break;
+          }
+        } else {
+          consecutiveFailures = 0;
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } else {
