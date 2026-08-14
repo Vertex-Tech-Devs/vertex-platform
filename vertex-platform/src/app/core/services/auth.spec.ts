@@ -1,6 +1,11 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { initializeApp, getApps } from 'firebase/app';
 import { TestBed } from '@angular/core/testing';
 import type { AuthService as AuthServiceType } from './auth';
+
+if (getApps().length === 0) {
+  initializeApp({ projectId: 'vertex-platform-dev', appId: 'test-app-id' });
+}
 
 const {
   mockUnsubscribe,
