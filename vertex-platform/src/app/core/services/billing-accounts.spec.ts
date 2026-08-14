@@ -1,22 +1,25 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-let primarySnapshotCb: any = null;
-let primaryErrorCb: any = null;
-let fallbackSnapshotCb: any = null;
-let fallbackErrorCb: any = null;
+type SnapshotCb = (snap: { empty: boolean; docs: unknown[] }) => void;
+type ErrorCb = (err: Error) => void;
+
+let primarySnapshotCb: SnapshotCb | null = null;
+let primaryErrorCb: ErrorCb | null = null;
+let fallbackSnapshotCb: SnapshotCb | null = null;
+let fallbackErrorCb: ErrorCb | null = null;
 
 const mocks = vi.hoisted(() => ({
   mockGetFunctions: vi.fn(() => ({})),
   mockHttpsCallable: vi.fn(),
   mockGetFirestore: vi.fn(() => ({})),
   mockCollection: vi.fn((_db: unknown, name: string) => ({ name })),
-  mockOnSnapshot: vi.fn((ref: { name: string }, onNext: any, onError?: any) => {
+  mockOnSnapshot: vi.fn((ref: { name: string }, onNext: SnapshotCb, onError?: ErrorCb) => {
     if (ref.name === 'billing_accounts') {
       primarySnapshotCb = onNext;
-      primaryErrorCb = onError;
+      primaryErrorCb = onError ?? null;
     } else if (ref.name === 'billingAccounts') {
       fallbackSnapshotCb = onNext;
-      fallbackErrorCb = onError;
+      fallbackErrorCb = onError ?? null;
     }
     return vi.fn();
   }),
@@ -55,7 +58,7 @@ describe('BillingAccountsService', () => {
 
   it('inicializa listeners de Firestore y procesa snapshot primario no vacío', () => {
     expect(mocks.mockOnSnapshot).toHaveBeenCalled();
-    primarySnapshotCb({
+    primarySnapshotCb!({
       empty: false,
       docs: [
         {
@@ -83,10 +86,10 @@ describe('BillingAccountsService', () => {
   });
 
   it('procesa snapshot vacio y utiliza fallback a billingAccounts', () => {
-    primarySnapshotCb({ empty: true, docs: [] });
+    primarySnapshotCb!({ empty: true, docs: [] });
     expect(fallbackSnapshotCb).toBeDefined();
 
-    fallbackSnapshotCb({
+    fallbackSnapshotCb!({
       empty: false,
       docs: [
         {
@@ -110,7 +113,7 @@ describe('BillingAccountsService', () => {
   });
 
   it('cubre ramas opcionales en mapDocToBillingAccount', () => {
-    primarySnapshotCb({
+    primarySnapshotCb!({
       empty: false,
       docs: [
         {
@@ -132,11 +135,11 @@ describe('BillingAccountsService', () => {
 
   it('maneja errores en snapshot primario y fallback', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    primaryErrorCb(new Error('primary fail'));
+    primaryErrorCb!(new Error('primary fail'));
     expect(svc.isLoading()).toBe(false);
 
-    primarySnapshotCb({ empty: true, docs: [] });
-    fallbackErrorCb(new Error('fallback fail'));
+    primarySnapshotCb!({ empty: true, docs: [] });
+    fallbackErrorCb!(new Error('fallback fail'));
     expect(svc.isLoading()).toBe(false);
     consoleSpy.mockRestore();
   });
@@ -144,7 +147,7 @@ describe('BillingAccountsService', () => {
   it('calcula correctamente los signals computados', () => {
     expect(svc.usagePercent()).toBe(0);
 
-    primarySnapshotCb({
+    primarySnapshotCb!({
       empty: false,
       docs: [
         {
