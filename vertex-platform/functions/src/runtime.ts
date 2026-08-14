@@ -43,7 +43,11 @@ export function resolvePlatformEnvironment(projectId = PLATFORM_PROJECT): Platfo
 export function getAvailableShardSlots(
   shard: Pick<StoreShard, 'maxCapacity' | 'currentStores' | 'reservedStores'>,
 ): number {
-  return Math.max(0, shard.maxCapacity - shard.currentStores - shard.reservedStores);
+  // Defensivo: campos ausentes se tratan como 0 (evita NaN → 500 en el panel).
+  const max = Number(shard.maxCapacity ?? 0);
+  const current = Number(shard.currentStores ?? 0);
+  const reserved = Number(shard.reservedStores ?? 0);
+  return Math.max(0, max - current - reserved);
 }
 
 export function summarizeShardCapacity(
@@ -63,7 +67,10 @@ export function summarizeShardCapacity(
         reservedStores: shard.reservedStores,
         maxCapacity: shard.maxCapacity,
         availableStores,
-        occupancyRatio: shard.maxCapacity > 0 ? shard.currentStores / shard.maxCapacity : 1,
+        occupancyRatio:
+          shard.maxCapacity > 0
+            ? Number(shard.currentStores ?? 0) / Number(shard.maxCapacity)
+            : 1,
       };
     })
     .sort((left, right) => {
