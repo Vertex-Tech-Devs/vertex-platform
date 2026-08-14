@@ -64,3 +64,7 @@ queda disponible para nuevas tiendas.
 ## Dormir tiendas (pagos)
 
 `suspendStore`/`activateStore` — ver "Ciclo de vida de una tienda" en `docs/development.md`.
+
+> ⚠️ Los shards del pool deben registrarse con `environment` = **`development`** (dev)
+> o **`production`** (prod) — el monitor y el scheduler filtran por
+> `resolvePlatformEnvironment()`. El script `provision-shards.ts` ya lo hace.

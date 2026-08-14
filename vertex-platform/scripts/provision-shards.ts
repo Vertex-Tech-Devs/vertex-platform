@@ -287,12 +287,14 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
 }
 
 async function registerShardDoc(token: string, projectId: string): Promise<void> {
-  const shardId = `shard-${opts.env}-${projectId.replace('vtx-sd-', '')}`;
+  // El platform filtra por resolvePlatformEnvironment(): 'development' | 'production'.
+  const envValue = opts.env === 'prod' ? 'production' : 'development';
+  const shardId = `shard-${envValue}-${projectId.replace('vtx-sd-', '')}`;
   const docUrl = `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents/infrastructure_shards/${shardId}`;
   const body = {
     fields: {
       id: { stringValue: shardId },
-      environment: { stringValue: opts.env },
+      environment: { stringValue: envValue },
       runtimeMode: { stringValue: 'shared-shard' },
       projectId: { stringValue: projectId },
       siteId: { stringValue: 'default' },
