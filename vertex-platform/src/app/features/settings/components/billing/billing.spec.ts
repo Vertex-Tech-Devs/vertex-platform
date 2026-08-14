@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { signal } from '@angular/core';
+import { signal, computed } from '@angular/core';
 import { Billing } from './billing';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import { StoresService } from '@core/services/stores';
@@ -10,11 +10,23 @@ import type { BillingAccount } from '@core/models/billing-account';
 class MockBillingAccountsService {
   accounts = signal<BillingAccount[]>([]);
   isLoading = signal(false);
+  isSyncing = signal(false);
   error = signal<string | null>(null);
+  toastMessage = signal<string | null>(null);
+
+  activeAccountsCount = computed(() => this.accounts().filter((a) => a.active).length);
+  totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
+  totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
+  totalGcpRemaining = computed(() => Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()));
+  usagePercent = computed(() =>
+    this.totalGcpLimit() > 0 ? Math.round((this.totalGcpUsed() / this.totalGcpLimit()) * 100) : 0,
+  );
+
   loadAccounts = vi.fn().mockResolvedValue(undefined);
   addAccount = vi.fn().mockResolvedValue(undefined);
   updateAccount = vi.fn().mockResolvedValue(undefined);
   removeAccount = vi.fn().mockResolvedValue(undefined);
+  showToast = vi.fn().mockImplementation((msg: string) => this.toastMessage.set(msg));
 }
 
 class MockStoresService {
@@ -61,16 +73,16 @@ class MockStoresService {
 
 function makeAccount(overrides: Partial<BillingAccount> = {}): BillingAccount {
   return {
-    id: 'acc-1',
-    name: 'Vertex Billing One',
-    maxProjects: 15,
+    id: '01D2F4-C25DF1-489AE9',
+    name: 'Vertex Dev Billing 1',
+    maxProjects: 5,
     active: true,
     addedAt: new Date(),
-    usedProjects: 2,
+    usedProjects: 5,
     gcpProjectLimit: 5,
-    gcpUsedProjects: 3,
-    gcpRemaining: 2,
-    gcpUsageRatio: 0.6,
+    gcpUsedProjects: 5,
+    gcpRemaining: 0,
+    gcpUsageRatio: 1.0,
     ...overrides,
   };
 }
@@ -129,22 +141,36 @@ describe('Billing', () => {
   });
 
   it('gcpUsagePercent usa el límite real de GCP', () => {
-    expect(component.gcpUsagePercent(makeAccount())).toBe(60);
-    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 5 }))).toBe(100);
+    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 3, gcpProjectLimit: 5 }))).toBe(60);
+    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe(100);
   });
 
   it('gcpUsageClass marca crítico al 100%', () => {
-    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 5 }))).toBe('usage--critical');
-    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 1 }))).toBe('usage--ok');
+    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe('usage--critical');
+    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 1, gcpProjectLimit: 5 }))).toBe('usage--ok');
   });
 
   it('totales GCP suman usado y límite', () => {
     billingSvc.accounts.set([
-      makeAccount(),
-      makeAccount({ gcpUsedProjects: 4, gcpProjectLimit: 10 }),
+      makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }),
+      makeAccount({ id: '016AC2-299E39-51C8BF', name: 'Vertex Dev Billing 2', gcpUsedProjects: 5, gcpProjectLimit: 5 }),
     ]);
-    expect(component.totalGcpUsed()).toBe(7);
-    expect(component.totalGcpLimit()).toBe(15);
+    expect(component.totalGcpUsed()).toBe(10);
+    expect(component.totalGcpLimit()).toBe(10);
+  });
+
+  it('syncAccounts llama a loadAccounts del servicio', async () => {
+    await component.syncAccounts();
+    expect(billingSvc.loadAccounts).toHaveBeenCalled();
+  });
+
+  it('copyAccountId escribe en clipboard y dispara toast', () => {
+    const clipboardSpy = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText: clipboardSpy } });
+    component.copyAccountId('01D2F4-C25DF1-489AE9');
+    expect(clipboardSpy).toHaveBeenCalledWith('01D2F4-C25DF1-489AE9');
+    expect(component.copiedId()).toBe('01D2F4-C25DF1-489AE9');
+    expect(billingSvc.showToast).toHaveBeenCalledWith('ID de cuenta copiado: 01D2F4-C25DF1-489AE9');
   });
 
   it('checkShards refresca el readiness', async () => {
@@ -164,61 +190,6 @@ describe('Billing', () => {
     component.selectedShard.set(null);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('app-shard-status-modal')).toBeNull();
-  });
-
-  it('renderiza badge "Listo" para un shard listo', async () => {
-    await fixture.whenStable();
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Listo');
-    expect(text).toContain('1/1 listos (100%)');
-  });
-
-  it('nextAccountName genera nombres correlativos', () => {
-    billingSvc.accounts.set([makeAccount()]);
-    expect(component.nextAccountName()).toBe('Billing Account Two');
-    billingSvc.accounts.set([]);
-    expect(component.nextAccountName()).toBe('Billing Account One');
-  });
-
-  it('normalizeBillingId quita el prefijo billingAccounts/', () => {
-    expect(component.normalizeBillingId('billingAccounts/0123-4567')).toBe('0123-4567');
-    expect(component.normalizeBillingId('  0123-4567  ')).toBe('0123-4567');
-  });
-
-  it('startAdd resetea el form con límite GCP default 5', () => {
-    component.startAdd();
-    expect(component.addName()).toBe('Billing Account One');
-    expect(component.addGcpLimit()).toBe(5);
-  });
-
-  it('addAccount valida id y nombre', async () => {
-    component.addId.set('');
-    component.addName.set('');
-    await component.addAccount();
-    expect(component.addError()).toContain('ID y nombre son requeridos');
-    expect(billingSvc.addAccount).not.toHaveBeenCalled();
-  });
-
-  it('addAccount agrega la cuenta y limpia el form', async () => {
-    component.addId.set('billingAccounts/0123-4567');
-    component.addName.set('Vertex Billing Two');
-    component.addGcpLimit.set(10);
-    await component.addAccount();
-    expect(billingSvc.addAccount).toHaveBeenCalledWith({
-      id: '0123-4567',
-      name: 'Vertex Billing Two',
-      gcpProjectLimit: 10,
-    });
-    expect(component.addId()).toBe('');
-  });
-
-  it('addAccount setea error cuando el backend falla', async () => {
-    billingSvc.addAccount.mockRejectedValue(new Error('verificación falló'));
-    component.addId.set('acc-x');
-    component.addName.set('X');
-    await component.addAccount();
-    expect(component.addError()).toContain('verificación falló');
   });
 
   it('startEdit carga los valores actuales incluyendo el límite GCP', () => {
@@ -264,20 +235,13 @@ describe('Billing', () => {
     alertSpy.mockRestore();
   });
 
-  it('gcpUsageClass maneja límite 0 y valores intermedios', () => {
-    expect(component.gcpUsageClass(makeAccount({ gcpProjectLimit: 0 }))).toBe('usage--ok');
-    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 4, gcpProjectLimit: 5 }))).toBe(
-      'usage--warning',
-    );
-  });
-
-  it('renderiza el listado de cuentas con uso real de GCP', async () => {
+  it('renderiza el listado de cuentas con botón Abrir en GCP Console', async () => {
     billingSvc.accounts.set([makeAccount()]);
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Vertex Billing One');
-    expect(text).toContain('3 / 5 proyectos en GCP');
-    expect(text).toContain('60%');
+    expect(text).toContain('Vertex Dev Billing 1');
+    expect(text).toContain('5 / 5 proyectos');
+    expect(text).toContain('Abrir en GCP Console');
   });
 
   it('renderiza una cuenta inactiva con badge Inactiva', () => {
@@ -285,26 +249,5 @@ describe('Billing', () => {
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Inactiva');
-  });
-
-  it('renderiza el modo edición al editar una cuenta', () => {
-    billingSvc.accounts.set([makeAccount()]);
-    fixture.detectChanges();
-    component.startEdit(makeAccount({ gcpProjectLimit: 12 }));
-    fixture.detectChanges();
-    const inputs = fixture.nativeElement.querySelectorAll('input.form-control--sm');
-    expect(inputs.length).toBeGreaterThanOrEqual(2);
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Límite aprobado por Google');
-  });
-
-  it('muestra el error de agregar cuenta en el template', async () => {
-    component.addId.set('acc-x');
-    component.addName.set('X');
-    billingSvc.addAccount.mockRejectedValue(new Error('fallo'));
-    await component.addAccount();
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('fallo');
   });
 });

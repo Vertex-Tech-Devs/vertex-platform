@@ -1,8 +1,6 @@
 import type { OnInit } from '@angular/core';
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import {
   StoresService,
@@ -17,7 +15,7 @@ import { ShardStatusModal } from './shard-status-modal';
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe, ShardStatusModal],
+  imports: [RouterLink, ShardStatusModal],
   templateUrl: './billing.html',
   styleUrl: './billing.scss',
 })
@@ -29,12 +27,7 @@ export class Billing implements OnInit {
   readonly readiness = signal<ShardReadinessReport | null>(null);
   readonly isCheckingShards = signal(false);
   readonly selectedShard = signal<ShardReadiness | null>(null);
-
-  readonly addId = signal('');
-  readonly addName = signal('');
-  readonly addGcpLimit = signal(5);
-  readonly isAdding = signal(false);
-  readonly addError = signal('');
+  readonly copiedId = signal<string | null>(null);
 
   readonly editingId = signal<string | null>(null);
   readonly editName = signal('');
@@ -70,6 +63,23 @@ export class Billing implements OnInit {
     }
   }
 
+  async syncAccounts(): Promise<void> {
+    await this.svc.loadAccounts();
+  }
+
+  copyAccountId(id: string): void {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(id);
+      this.copiedId.set(id);
+      this.svc.showToast(`ID de cuenta copiado: ${id}`);
+      setTimeout(() => {
+        if (this.copiedId() === id) {
+          this.copiedId.set(null);
+        }
+      }, 3000);
+    }
+  }
+
   readyRatio(): number {
     const r = this.readiness();
     if (!r || r.total === 0) {
@@ -98,56 +108,11 @@ export class Billing implements OnInit {
   }
 
   totalGcpUsed(): number {
-    return this.svc.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0);
+    return this.svc.totalGcpUsed();
   }
 
   totalGcpLimit(): number {
-    return this.svc.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 0), 0);
-  }
-
-  nextAccountName(): string {
-    const count = this.svc.accounts().length + 1;
-    const names = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-    return `Billing Account ${names[count - 1] ?? count}`;
-  }
-
-  normalizeBillingId(raw: string): string {
-    const value = raw.trim();
-    if (!value) {
-      return '';
-    }
-    return value.startsWith('billingAccounts/') ? value.slice('billingAccounts/'.length) : value;
-  }
-
-  startAdd(): void {
-    this.addId.set('');
-    this.addName.set(this.nextAccountName());
-    this.addGcpLimit.set(5);
-    this.addError.set('');
-  }
-
-  async addAccount(): Promise<void> {
-    const id = this.normalizeBillingId(this.addId());
-    const name = this.addName().trim();
-    if (!id || !name) {
-      this.addError.set('ID y nombre son requeridos.');
-      return;
-    }
-    this.isAdding.set(true);
-    this.addError.set('');
-    try {
-      await this.svc.addAccount({
-        id,
-        name,
-        gcpProjectLimit: this.addGcpLimit(),
-      });
-      this.addId.set('');
-      this.addName.set('');
-    } catch (err: unknown) {
-      this.addError.set(errorMessage(err, 'Error al agregar cuenta.'));
-    } finally {
-      this.isAdding.set(false);
-    }
+    return this.svc.totalGcpLimit();
   }
 
   startEdit(a: BillingAccount): void {

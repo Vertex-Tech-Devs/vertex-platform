@@ -3,11 +3,23 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 const mocks = vi.hoisted(() => ({
   mockGetFunctions: vi.fn(() => ({})),
   mockHttpsCallable: vi.fn(),
+  mockGetFirestore: vi.fn(() => ({})),
+  mockCollection: vi.fn(() => ({})),
+  mockOnSnapshot: vi.fn((_ref: unknown, onNext: (snap: { empty: boolean; docs: unknown[] }) => void) => {
+    onNext({ empty: true, docs: [] });
+    return vi.fn();
+  }),
 }));
 
 vi.mock('firebase/functions', () => ({
   getFunctions: mocks.mockGetFunctions,
   httpsCallable: mocks.mockHttpsCallable,
+}));
+
+vi.mock('firebase/firestore', () => ({
+  getFirestore: mocks.mockGetFirestore,
+  collection: mocks.mockCollection,
+  onSnapshot: mocks.mockOnSnapshot,
 }));
 
 import { BillingAccountsService } from './billing-accounts';

@@ -1,55 +1,92 @@
 <div class="billing-page">
+  <!-- Toast notification -->
+  @if (svc.toastMessage()) {
+    <div class="toast-banner">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>{{ svc.toastMessage() }}</span>
+    </div>
+  }
+
   <div class="page-top">
     <div>
-      <h1 class="page-title">Facturación Google Cloud</h1>
+      <h1 class="page-title">Centro de Comando de Facturación GCP</h1>
       <p class="page-sub">
-        Gestión de Cuentas de Facturación para el Aprovisionamiento de Tiendas SaaS
+        Gestión automatizada del pool de Billing Accounts y capacidad para tiendas SaaS
       </p>
     </div>
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
-  <!-- Explicación simple -->
-  <div class="add-card billing-explain" style="margin-bottom: 1.5rem">
-    <p class="billing-explain__intro">
-      <strong>Cada shard es un proyecto de Google Cloud</strong> y todo proyecto debe estar
-      vinculado a una <strong>Billing Account</strong> (la cuenta que paga). Un shard aloja hasta 35
-      tiendas; las tiendas dedicadas crean su propio proyecto.
-    </p>
-    <details class="billing-guide">
-      <summary class="billing-guide__summary">
-        <i class="bi bi-question-circle"></i> ¿Cómo funciona y cuáles son los límites?
-      </summary>
-      <div class="billing-guide__body">
-        <ul>
-          <li>
-            <strong>Capacidad por cuenta:</strong> Google permite <strong>5 proyectos</strong> por
-            Billing Account. Las 2 cuentas de dev están al límite (5/5) — para sumar capacidad hay
-            que
-            <a
-              href="https://support.google.com/code/contact/billing_quota_increase"
-              target="_blank"
-              rel="noopener noreferrer"
-              >pedir el aumento a Google</a
-            >
-            (lo revisa soporte, no es automático).
-          </li>
-          <li>
-            <strong>Por qué no se pueden crear cuentas desde acá:</strong> Google no expone API para
-            crearlas (solo la consola o soporte).
-          </li>
-          <li>
-            <strong>Shard "Listo":</strong> estado utilizable + billing +
-            <strong>redirect URI registrado</strong> (único paso manual — el botón "Cómo configurar"
-            lo explica).
-          </li>
-          <li>
-            <strong>Pool:</strong> el sistema mantiene shards calientes solo; si faltan, te avisa
-            con el comando para reponerlos.
-          </li>
-        </ul>
+  <!-- Barra de Acciones Principales (Action Bar) -->
+  <div class="action-bar">
+    <a
+      href="https://console.cloud.google.com/billing"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="btn btn-primary"
+    >
+      <i class="bi bi-plus-circle-fill"></i>
+      Crear Cuenta de Facturación
+      <i class="bi bi-box-arrow-up-right"></i>
+    </a>
+
+    <button
+      class="btn btn-secondary"
+      (click)="syncAccounts()"
+      [disabled]="svc.isSyncing()"
+    >
+      <i class="bi bi-arrow-repeat" [class.spin]="svc.isSyncing()"></i>
+      {{ svc.isSyncing() ? 'Sincronizando…' : 'Sincronizar Cuentas' }}
+    </button>
+
+    <a
+      href="https://support.google.com/code/contact/billing_quota_increase"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="btn btn-secondary"
+    >
+      <i class="bi bi-graph-up-arrow"></i>
+      Solicitar Aumento de Cuota (GCP)
+      <i class="bi bi-box-arrow-up-right"></i>
+    </a>
+  </div>
+
+  <!-- KPIs del Monitor de Facturación -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-card__label">Cuentas Activas</span>
+      <span class="kpi-card__value">{{ svc.activeAccountsCount() }} Cuentas</span>
+      <span class="kpi-card__sub">Pool Registrado</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Capacidad Total</span>
+      <span class="kpi-card__value">{{ svc.totalGcpLimit() }} Proyectos</span>
+      <span class="kpi-card__sub">Límite Aprobado</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Proyectos en Uso</span>
+      <span class="kpi-card__value"
+        >{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }} ({{ svc.usagePercent() }}%)</span
+      >
+      <span class="kpi-card__sub">Asignación GCP</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Cupos Libres</span>
+      <div class="kpi-card__status-row">
+        <span class="kpi-card__value">{{ svc.totalGcpRemaining() }} Disponibles</span>
+        <span
+          class="badge"
+          [class.badge--active]="svc.totalGcpRemaining() > 0"
+          [class.badge--inactive]="svc.totalGcpRemaining() === 0"
+        >
+          {{ svc.totalGcpRemaining() > 0 ? 'Saludable' : 'Al Límite' }}
+        </span>
       </div>
-    </details>
+      <span class="kpi-card__sub">Para nuevos shards</span>
+    </div>
   </div>
 
   @if (runtimeSummary()) {
@@ -75,7 +112,7 @@
             [disabled]="isCheckingShards()"
             title="Re-verifica en vivo el redirect URI de cada shard contra el client OAuth de Google"
           >
-            <i class="bi bi-arrow-repeat"></i>
+            <i class="bi bi-arrow-repeat" [class.spin]="isCheckingShards()"></i>
             {{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}
           </button>
           <span class="badge badge--active">
@@ -85,8 +122,7 @@
       </div>
       <p class="monitor-card__hint">
         Capacidad actual de los shards compartidos. “Listo” = redirect URI registrado en el client
-        OAuth master, billing vinculado y estado utilizable (puede recibir tiendas sin
-        configuración). “Incompleto” = falta algo; usá “Cómo configurar” para ver el paso a paso.
+        OAuth master, billing vinculado y estado utilizable.
       </p>
 
       <div class="shard-grid">
@@ -156,7 +192,7 @@
               </div>
               <span class="usage__label">
                 @if (isFull) {
-                  Sin cupo disponible (revisar estado)
+                  Sin cupo disponible
                 } @else {
                   {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
                     shard.availableStores
@@ -171,7 +207,6 @@
                   <button
                     class="btn btn-primary btn--sm"
                     (click)="selectedShard.set(status)"
-                    title="Abrir el paso a paso exacto para dejar este shard listo (redirect URI, billing, estado)"
                   >
                     <i class="bi bi-wrench-adjustable"></i> Cómo configurar
                   </button>
@@ -179,7 +214,6 @@
                   <button
                     class="btn btn-secondary btn--sm"
                     (click)="selectedShard.set(status)"
-                    title="Ver el estado detallado de este shard"
                   >
                     <i class="bi bi-eye"></i> Ver estado
                   </button>
@@ -192,102 +226,28 @@
     </div>
   }
 
-  <!-- Add account card -->
-  <div class="add-card">
-    <h2 class="add-card__title">Agregar cuenta de facturación GCP</h2>
-    <p class="add-card__hint">
-      Introduce la ID de la cuenta (ej. <code>012345-6789AB-CDEF01</code>). La cuenta debe estar
-      activa en GCP Console.
-    </p>
-    <div class="add-grid">
-      <div class="form-group">
-        <label class="form-label">ID de la cuenta *</label>
-        <input
-          class="form-control"
-          [value]="addId()"
-          (input)="addId.set($any($event.target).value)"
-          placeholder="XXXXXX-XXXXXX-XXXXXX o billingAccounts/XXXXXX-XXXXXX-XXXXXX"
-          (focus)="startAdd()"
-        />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nombre *</label>
-        <input
-          class="form-control"
-          [value]="addName()"
-          (input)="addName.set($any($event.target).value)"
-          placeholder="Vertex Billing Account Five"
-        />
-      </div>
-      <div class="form-group form-group--action">
-        <button
-          class="btn btn-primary"
-          (click)="addAccount()"
-          [disabled]="isAdding() || !addId().trim() || !addName().trim()"
-        >
-          {{ isAdding() ? 'Verificando…' : 'Agregar' }}
-        </button>
-      </div>
-    </div>
-    @if (addError()) {
-      <p class="add-card__error">{{ addError() }}</p>
-    }
-  </div>
-
-  <!-- Accounts list -->
+  <!-- Accounts List -->
   <div class="accounts-card">
     <h2 class="accounts-card__title">
-      Cuentas registradas
+      Cuentas de Facturación Registradas
       @if (!svc.isLoading()) {
         <span class="count">{{ svc.accounts().length }}</span>
       }
     </h2>
 
-    @if (!svc.isLoading() && svc.accounts().length > 0) {
-      <div
-        class="add-card"
-        style="
-          padding: 0.85rem;
-          margin-bottom: 1rem;
-          background: rgba(37, 99, 235, 0.05);
-          border-color: rgba(37, 99, 235, 0.2);
-          font-size: 0.85rem;
-          color: var(--platform-text-secondary);
-          line-height: 1.5;
-        "
-      >
-        <strong>Capacidad de facturación GCP:</strong>
-        {{ totalGcpUsed() }} / {{ totalGcpLimit() }} proyectos usados en
-        {{ svc.accounts().length }} billing account(s) ({{
-          totalGcpLimit() > 0 ? ((totalGcpUsed() / totalGcpLimit()) * 100).toFixed(0) : 0
-        }}%).
-        <br />
-        • Límite de <strong>proyectos por billing account</strong>: default <strong>5</strong> en
-        GCP (aumentable por
-        <a
-          href="https://support.google.com/code/contact/billing_quota_increase"
-          target="_blank"
-          rel="noopener noreferrer"
-          >soporte de Google</a
-        >).<br />
-        • Cantidad de <strong>billing accounts por organización</strong>: Google no publica un
-        límite — se pueden crear más (el mecanismo oficial son subaccounts bajo una master); ante
-        dudas, pedí aumento a soporte de Google Cloud Billing.
-      </div>
-    }
-
     @if (svc.isLoading()) {
-      <div class="loading">Cargando…</div>
+      <div class="loading">Cargando cuentas en tiempo real…</div>
     } @else if (svc.error()) {
       <div class="error-msg">{{ svc.error() }}</div>
     } @else if (svc.accounts().length === 0) {
-      <p class="empty">No hay billing accounts registradas.</p>
+      <p class="empty">No hay billing accounts registradas en Firestore.</p>
     } @else {
       <ul class="account-list">
         @for (account of svc.accounts(); track account.id) {
+          @let isAtLimit = account.gcpRemaining === 0;
           <li class="account-item" [class.account-item--inactive]="!account.active">
             @if (editingId() === account.id) {
-              <!-- Edit mode -->
+              <!-- Edit Mode -->
               <div class="account-item__edit">
                 <div class="edit-row">
                   <div class="form-group">
@@ -299,7 +259,7 @@
                     />
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Límite aprobado por Google</label>
+                    <label class="form-label">Límite Aprobado GCP</label>
                     <input
                       class="form-control form-control--sm"
                       type="number"
@@ -326,20 +286,32 @@
                 </div>
               </div>
             } @else {
-              <!-- View mode -->
+              <!-- View Mode -->
               <div class="account-item__body">
                 <div class="account-item__top">
                   <div>
-                    <span class="account-name">{{ account.name }}</span>
-                    <span class="account-id">{{ account.id }}</span>
+                    <div class="account-name-row">
+                      <span class="account-name">{{ account.name }}</span>
+                      <button
+                        class="btn-copy"
+                        (click)="copyAccountId(account.id)"
+                        [title]="'Copiar ID: ' + account.id"
+                      >
+                        <i class="bi" [class.bi-check2]="copiedId() === account.id" [class.bi-copy]="copiedId() !== account.id"></i>
+                        <code>{{ account.id }}</code>
+                      </button>
+                    </div>
                   </div>
-                  <span
-                    class="badge"
-                    [class.badge--active]="account.active"
-                    [class.badge--inactive]="!account.active"
-                  >
-                    {{ account.active ? 'Activa' : 'Inactiva' }}
-                  </span>
+                  <div class="account-badges">
+                    <span
+                      class="badge"
+                      [class.badge--active]="account.active && !isAtLimit"
+                      [class.badge--warning]="account.active && isAtLimit"
+                      [class.badge--inactive]="!account.active"
+                    >
+                      {{ !account.active ? 'Inactiva' : isAtLimit ? 'Al Límite' : 'Activa' }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="usage" [class]="gcpUsageClass(account)">
@@ -347,86 +319,51 @@
                     <div
                       class="usage__fill"
                       [style.width.%]="gcpUsagePercent(account)"
-                      [style.background]="
-                        gcpUsagePercent(account) >= 90
-                          ? '#ef4444'
-                          : gcpUsagePercent(account) >= 70
-                            ? '#f59e0b'
-                            : '#10b981'
-                      "
                     ></div>
                   </div>
-                  <span class="usage__label"
-                    ><strong>{{ account.gcpUsedProjects }}</strong> /
-                    {{ account.gcpProjectLimit }} proyectos en GCP ({{ gcpUsagePercent(account) }}%)
-                    <span style="opacity: 0.7"
-                      >· {{ account.gcpRemaining }} cupo{{
-                        account.gcpRemaining === 1 ? '' : 's'
-                      }}
-                      libre{{ account.gcpRemaining === 1 ? '' : 's' }}</span
-                    ></span
-                  >
+                  <span class="usage__label">
+                    <strong>{{ account.gcpUsedProjects }}</strong> / {{ account.gcpProjectLimit }} proyectos ({{ gcpUsagePercent(account) }}%)
+                    · {{ account.gcpRemaining }} cupos libres
+                  </span>
                 </div>
-                @if (account.gcpRemaining === 0) {
-                  <p
-                    style="
-                      font-size: 0.78rem;
-                      color: #f59e0b;
-                      background: rgba(245, 158, 11, 0.08);
-                      border: 1px solid rgba(245, 158, 11, 0.2);
-                      border-radius: 8px;
-                      padding: 0.4rem 0.6rem;
-                      margin: 0.4rem 0 0;
-                      line-height: 1.4;
-                    "
-                  >
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    <strong
-                      >Cuenta al límite ({{ account.gcpUsedProjects }}/{{
-                        account.gcpProjectLimit
-                      }}).</strong
-                    >
-                    Para vincular más proyectos: pedí el aumento a
-                    <a
-                      href="https://support.google.com/code/contact/billing_quota_increase"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      >soporte de Google</a
-                    >, o liberá cupo desvinculando proyectos de prueba con
-                    <code>npx tsx scripts/audit-billing.ts</code>.
-                  </p>
-                }
 
-                @if (account.addedAt) {
-                  <span class="account-meta"
-                    >Agregada {{ account.addedAt | date: 'dd/MM/yyyy' }}</span
+                <div class="account-actions-row">
+                  <a
+                    [href]="'https://console.cloud.google.com/billing/' + account.id"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-secondary btn--sm"
                   >
-                }
-              </div>
-              <div class="account-item__actions">
-                <button class="btn-icon" title="Editar" (click)="startEdit(account)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button
-                  class="btn-icon"
-                  [title]="account.active ? 'Desactivar' : 'Activar'"
-                  (click)="toggleActive(account)"
-                  [disabled]="togglingId() === account.id"
-                >
-                  <i
-                    class="bi"
-                    [class.bi-pause-circle]="account.active"
-                    [class.bi-play-circle]="!account.active"
-                  ></i>
-                </button>
-                <button
-                  class="btn-icon btn-icon--danger"
-                  title="Eliminar"
-                  (click)="remove(account)"
-                  [disabled]="removingId() === account.id"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    Abrir en GCP Console
+                  </a>
+
+                  <div class="account-item__actions">
+                    <button class="btn-icon" title="Editar" (click)="startEdit(account)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      class="btn-icon"
+                      [title]="account.active ? 'Desactivar' : 'Activar'"
+                      (click)="toggleActive(account)"
+                      [disabled]="togglingId() === account.id"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-pause-circle]="account.active"
+                        [class.bi-play-circle]="!account.active"
+                      ></i>
+                    </button>
+                    <button
+                      class="btn-icon btn-icon--danger"
+                      title="Eliminar"
+                      (click)="remove(account)"
+                      [disabled]="removingId() === account.id"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             }
           </li>
@@ -435,7 +372,7 @@
     }
   </div>
 
-  <!-- Shard status / cómo configurar modal -->
+  <!-- Shard status modal -->
   @if (selectedShard()) {
     <app-shard-status-modal
       [shard]="selectedShard()"

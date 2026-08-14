@@ -28,10 +28,13 @@ export const listBillingAccounts = onCall(
     }
 
     const db = getFirestore();
-    const [accountsSnap, storesSnap] = await Promise.all([
+    const [newSnap, oldSnap, storesSnap] = await Promise.all([
+      db.collection('billing_accounts').get(),
       db.collection('billingAccounts').orderBy('addedAt', 'asc').get(),
       db.collection('stores').where('status', 'in', ['provisioning', 'active', 'suspended']).get(),
     ]);
+
+    const accountsSnap = !newSnap.empty ? newSnap : oldSnap;
 
     const usageMap: Record<string, number> = {};
     storesSnap.docs.forEach((d) => {
@@ -61,8 +64,6 @@ export const listBillingAccounts = onCall(
               projectBillingInfo?: Array<{ billingEnabled?: boolean }>;
               nextPageToken?: string;
             };
-            // El endpoint devuelve projectBillingInfo (NO projects) — contar los
-            // proyectos vinculados a esta cuenta.
             count += countLinkedProjects(res);
             pageToken = res.nextPageToken ?? '';
           } while (pageToken && count < 1000);
@@ -76,16 +77,16 @@ export const listBillingAccounts = onCall(
 
     const accounts = accountsSnap.docs.map((d) => {
       const data = d.data();
-      // Límite real de GCP por billing account (default 5, documentado; se actualiza
-      // cuando Google aprueba el aumento vía soporte).
-      const gcpProjectLimit = (data['gcpProjectLimit'] as number | undefined) ?? 5;
-      const gcpUsedProjects = gcpUsageMap[d.id] ?? usageMap[d.id] ?? 0;
+      const gcpProjectLimit = (data['gcpProjectLimit'] as number | undefined) ?? (data['maxProjects'] as number | undefined) ?? 5;
+      const gcpUsedProjects = gcpUsageMap[d.id] ?? (data['currentProjects'] as number | undefined) ?? usageMap[d.id] ?? 0;
+      const active = data['status'] ? data['status'] === 'ACTIVE' : (data['active'] as boolean | undefined) !== false;
+      const addedAtDate = (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate() ?? (data['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() ?? null;
       return {
         id: d.id,
-        name: data['name'] as string,
-        maxProjects: data['maxProjects'] as number,
-        active: data['active'] as boolean,
-        addedAt: (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate().toISOString() ?? null,
+        name: (data['name'] as string | undefined) ?? d.id,
+        maxProjects: gcpProjectLimit,
+        active,
+        addedAt: addedAtDate ? addedAtDate.toISOString() : null,
         usedProjects: usageMap[d.id] ?? 0,
         gcpProjectLimit,
         gcpUsedProjects,
