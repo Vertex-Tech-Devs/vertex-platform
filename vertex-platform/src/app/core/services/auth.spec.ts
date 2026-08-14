@@ -4,7 +4,11 @@ import { TestBed } from '@angular/core/testing';
 import type { AuthService as AuthServiceType } from './auth';
 
 if (getApps().length === 0) {
-  initializeApp({ projectId: 'vertex-platform-dev', appId: 'test-app-id' });
+  initializeApp({
+    apiKey: 'fake-api-key-for-testing',
+    projectId: 'vertex-platform-dev',
+    appId: 'test-app-id',
+  });
 }
 
 const {
