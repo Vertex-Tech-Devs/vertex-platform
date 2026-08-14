@@ -8,12 +8,16 @@ const {
   mockSignOut,
   mockGetIdTokenResult,
   mockSignInWithPopup,
+  mockGetFunctions,
+  mockHttpsCallable,
 } = vi.hoisted(() => ({
   mockUnsubscribe: vi.fn(),
   mockOnAuthStateChanged: vi.fn(),
   mockSignOut: vi.fn().mockResolvedValue(undefined),
   mockGetIdTokenResult: vi.fn(),
   mockSignInWithPopup: vi.fn(),
+  mockGetFunctions: vi.fn(() => ({})),
+  mockHttpsCallable: vi.fn(() => vi.fn().mockResolvedValue({ data: {} })),
 }));
 
 let capturedAuthCallback: ((user: unknown) => Promise<void>) | null = null;
@@ -25,6 +29,11 @@ vi.mock('firebase/auth', () => ({
   signInWithPopup: mockSignInWithPopup,
   signOut: mockSignOut,
   getIdTokenResult: mockGetIdTokenResult,
+}));
+
+vi.mock('firebase/functions', () => ({
+  getFunctions: mockGetFunctions,
+  httpsCallable: mockHttpsCallable,
 }));
 
 import { AuthService } from './auth';
