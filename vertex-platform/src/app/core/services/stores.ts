@@ -103,22 +103,28 @@ export class StoresService {
   readonly poolAlert = signal<{ availableShards: number; threshold: number } | null>(null);
 
   private readonly poolAlertUnsub = (() => {
-    const env =
-      this.authService.user()?.uid
-        ? this.db.app.options.projectId === 'vertex-platform-app'
-          ? 'prod'
-          : 'dev'
-        : 'dev';
-    return onSnapshot(doc(this.db, `system_alerts/pool_low_${env}`), (snap) => {
-      const data = snap.data() as
-        | { active?: boolean; availableShards?: number; threshold?: number }
-        | undefined;
-      this.poolAlert.set(
-        data?.active
-          ? { availableShards: data.availableShards ?? 0, threshold: data.threshold ?? 2 }
-          : null,
-      );
-    });
+    try {
+      // Solo suscribirse si la app de Firebase está inicializada (los tests unitarios
+      // sin initializeApp no deben romper la construcción del servicio).
+      const env =
+        this.authService.user()?.uid
+          ? this.db.app.options.projectId === 'vertex-platform-app'
+            ? 'prod'
+            : 'dev'
+          : 'dev';
+      return onSnapshot(doc(this.db, `system_alerts/pool_low_${env}`), (snap) => {
+        const data = snap.data() as
+          | { active?: boolean; availableShards?: number; threshold?: number }
+          | undefined;
+        this.poolAlert.set(
+          data?.active
+            ? { availableShards: data.availableShards ?? 0, threshold: data.threshold ?? 2 }
+            : null,
+        );
+      });
+    } catch {
+      return () => {};
+    }
   })();
 
   async createStore(payload: CreateStorePayload): Promise<string> {

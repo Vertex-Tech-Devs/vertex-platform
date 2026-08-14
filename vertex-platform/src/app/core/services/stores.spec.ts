@@ -60,12 +60,13 @@ describe('StoresService', () => {
     expect(service.stores()).toEqual([]);
   });
 
-  it('registers onSnapshot listener on construction', async () => {
+  it('registers onSnapshot listeners on construction (stores + pool alert)', async () => {
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
     TestBed.inject(StoresService);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockOnSnapshot).toHaveBeenCalledOnce();
+    // 1 listener para la colección stores + 1 para la alerta de pool de shards.
+    expect(mockOnSnapshot).toHaveBeenCalledTimes(2);
   });
 
   it('returns unsubscribe function from onSnapshot (no leak)', async () => {
