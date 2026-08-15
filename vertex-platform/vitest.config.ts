@@ -20,6 +20,14 @@ export default defineConfig({
         'firebase/app',
       ],
     },
+    coverage: {
+      thresholds: {
+        statements: 80,
+        lines: 80,
+        functions: 80,
+        branches: 70,
+      },
+    },
     exclude: [
       '**/node_modules/**',
       '**/dist/**',

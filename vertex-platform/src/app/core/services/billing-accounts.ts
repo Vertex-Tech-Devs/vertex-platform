@@ -22,11 +22,15 @@ export class BillingAccountsService {
   private db = getFirestore();
 
   readonly accounts = signal<BillingAccount[]>([]);
+  readonly shardBillingCounts = signal<Record<string, number>>({});
   readonly isLoading = signal(false);
   readonly isSyncing = signal(false);
   readonly error = signal<string | null>(null);
   readonly toastMessage = signal<string | null>(null);
 
+  readonly sortedAccounts = computed(() =>
+    [...this.accounts()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+  );
   readonly activeAccountsCount = computed(() => this.accounts().filter((a) => a.active).length);
   readonly totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
   readonly totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
@@ -36,7 +40,48 @@ export class BillingAccountsService {
   );
 
   constructor() {
+    this.initShardsListener();
     this.initFirestoreListener();
+  }
+
+  private initShardsListener(): void {
+    try {
+      const shardsRef = collection(this.db, 'infrastructure_shards');
+      onSnapshot(
+        shardsRef,
+        (snapshot) => {
+          const counts: Record<string, number> = {};
+          snapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            const bId = String(data['billingAccountId'] || '').trim();
+            if (bId) {
+              counts[bId] = (counts[bId] || 0) + 1;
+            }
+          });
+          this.shardBillingCounts.set(counts);
+          // Refresh mapping with new shard counts if accounts exist
+          if (this.accounts().length > 0) {
+            this.accounts.update((current) =>
+              current.map((a) => {
+                const count = counts[a.id];
+                if (count !== undefined && count !== a.gcpUsedProjects) {
+                  const gcpUsedProjects = count;
+                  const gcpRemaining = Math.max(0, a.gcpProjectLimit - gcpUsedProjects);
+                  const gcpUsageRatio = a.gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / a.gcpProjectLimit) : 0;
+                  return { ...a, usedProjects: gcpUsedProjects, gcpUsedProjects, gcpRemaining, gcpUsageRatio };
+                }
+                return a;
+              }),
+            );
+          }
+        },
+        (err) => {
+          console.warn('[BillingAccountsService] Shards listener warning:', err);
+        },
+      );
+    } catch {
+      /* silent catch for test environments */
+    }
   }
 
   private initFirestoreListener(): void {
@@ -48,7 +93,7 @@ export class BillingAccountsService {
       (snapshot) => {
         if (!snapshot.empty) {
           const list = snapshot.docs.map((doc) => this.mapDocToBillingAccount(doc.id, doc.data()));
-          this.accounts.set(list);
+          this.accounts.set(list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
           this.isLoading.set(false);
         } else {
           // Fallback to billingAccounts collection
@@ -57,7 +102,7 @@ export class BillingAccountsService {
             fallbackRef,
             (fbSnap) => {
               const list = fbSnap.docs.map((doc) => this.mapDocToBillingAccount(doc.id, doc.data()));
-              this.accounts.set(list);
+              this.accounts.set(list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
               this.isLoading.set(false);
             },
             (err) => {
@@ -76,8 +121,16 @@ export class BillingAccountsService {
 
   private mapDocToBillingAccount(id: string, data: Record<string, unknown>): BillingAccount {
     const active = data['status'] ? data['status'] === 'ACTIVE' : data['active'] !== false;
+    const accountId = typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id;
     const gcpProjectLimit = Number(data['maxProjects'] ?? data['gcpProjectLimit'] ?? 5);
-    const gcpUsedProjects = Number(data['currentProjects'] ?? data['gcpUsedProjects'] ?? data['usedProjects'] ?? 0);
+
+    // Dynamic real project usage calculation from infrastructure_shards or doc fallback
+    const countFromShards = this.shardBillingCounts()[id] ?? this.shardBillingCounts()[accountId];
+    const gcpUsedProjects =
+      countFromShards !== undefined
+        ? countFromShards
+        : Number(data['currentProjects'] ?? data['gcpUsedProjects'] ?? data['usedProjects'] ?? 0);
+
     const gcpRemaining = Math.max(0, gcpProjectLimit - gcpUsedProjects);
     const gcpUsageRatio = gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / gcpProjectLimit) : 0;
 
@@ -89,7 +142,7 @@ export class BillingAccountsService {
     }
 
     return {
-      id: typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id,
+      id: accountId,
       name: typeof data['name'] === 'string' && data['name'] ? data['name'] : id,
       maxProjects: gcpProjectLimit,
       active,

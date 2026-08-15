@@ -17,6 +17,77 @@
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
+  <!-- Smart Guidance Hub (Barra de Diagnóstico y Guía Contextual) -->
+  @if (isCriticalGcp()) {
+    <div class="guidance-banner guidance-banner--critical">
+      <div class="guidance-banner__header">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <div>
+          <strong>Alerta Crítica de Facturación GCP: Capacidad Baja</strong>
+          <p>
+            Solo quedan <strong>{{ svc.totalGcpRemaining() }} cupos libres</strong> en el pool de proyectos GCP para nuevos shards.
+          </p>
+        </div>
+      </div>
+      <div class="guidance-banner__steps">
+        <a
+          href="https://console.cloud.google.com/billing"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="guidance-step"
+        >
+          <span class="step-num">1</span>
+          <span>Crear Billing Account en GCP</span>
+          <i class="bi bi-box-arrow-up-right"></i>
+        </a>
+        <button (click)="syncAccounts()" [disabled]="svc.isSyncing()" class="guidance-step">
+          <span class="step-num">2</span>
+          <span>Sincronizar Cuentas</span>
+          <i class="bi bi-arrow-repeat" [class.spin]="svc.isSyncing()"></i>
+        </button>
+        <a
+          href="https://console.cloud.google.com/iam-admin/quotas"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="guidance-step"
+        >
+          <span class="step-num">3</span>
+          <span>Solicitar Aumento de Cuota (GCP)</span>
+          <i class="bi bi-box-arrow-up-right"></i>
+        </a>
+      </div>
+    </div>
+  } @else if (isWarningShards()) {
+    <div class="guidance-banner guidance-banner--warning">
+      <div class="guidance-banner__header">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div>
+          <strong>Advertencia Preventiva: Pool de Shards Listos Bajo</strong>
+          <p>
+            Quedan solo <strong>{{ readiness()?.readyCount || 0 }} shards listos</strong> de
+            {{ readiness()?.total || 0 }} en el pool de infraestructura SaaS.
+          </p>
+        </div>
+      </div>
+      <button class="btn btn-warning btn--sm" (click)="scrollToShards()">
+        <i class="bi bi-wrench-adjustable"></i> Completar configuración de Shards pendientes
+      </button>
+    </div>
+  } @else {
+    <div class="guidance-banner guidance-banner--optimal">
+      <div class="guidance-banner__header">
+        <i class="bi bi-check-circle-fill"></i>
+        <div>
+          <strong>Capacidad Óptima y Escalable</strong>
+          <p>
+            Pool de Billing Accounts y Shards operando con holgura ({{ svc.totalGcpRemaining() }} cupos GCP libres,
+            {{ readiness()?.readyCount || 0 }} shards listos).
+          </p>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Barra de Acciones Principales (Action Bar) -->
   <div class="action-bar">
     <a
@@ -49,6 +120,53 @@
       <span>Solicitar Aumento de Cuota (GCP)</span>
       <i class="bi bi-box-arrow-up-right"></i>
     </a>
+  </div>
+
+  <!-- Acordeón / Guía de Arquitectura de Capacidad -->
+  <div class="architecture-guide-card">
+    <button class="architecture-guide-card__toggle" (click)="toggleCapacityGuide()">
+      <div class="toggle-title">
+        <i class="bi bi-journal-bookmark-fill"></i>
+        <span>¿Cómo funciona la capacidad y escalamiento en Vertex SaaS?</span>
+      </div>
+      <i class="bi" [class.bi-chevron-down]="!showCapacityGuide()" [class.bi-chevron-up]="showCapacityGuide()"></i>
+    </button>
+
+    @if (showCapacityGuide()) {
+      <div class="architecture-guide-card__body">
+        <div class="guide-flow">
+          <div class="flow-step">
+            <i class="bi bi-shop"></i>
+            <strong>1. Tienda SaaS</strong>
+            <p>Cada cliente dispone de su tienda aislada (/shop y /admin).</p>
+          </div>
+          <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+          <div class="flow-step">
+            <i class="bi bi-server"></i>
+            <strong>2. Infrastructure Shard</strong>
+            <p>Alberga hasta <strong>35 tiendas SaaS</strong> por shard (Proyecto GCP).</p>
+          </div>
+          <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+          <div class="flow-step">
+            <i class="bi bi-credit-card-2-front"></i>
+            <strong>3. Billing Account GCP</strong>
+            <p>Permite vincular hasta <strong>5 proyectos GCP</strong> por cuenta de facturación.</p>
+          </div>
+        </div>
+
+        <div class="guide-rules">
+          <h4>Protocolo de Escalamiento Automático:</h4>
+          <ul>
+            <li>
+              <strong>Aprovisionamiento de Shards:</strong> Cuando los shards listos son &le; 2, complete la activación de los shards standby pendientes.
+            </li>
+            <li>
+              <strong>Aumento de Cuotas Billing:</strong> Si los cupos GCP libres son &le; 2, registre nuevas Billing Accounts o pida aumento de cuota en GCP.
+            </li>
+          </ul>
+        </div>
+      </div>
+    }
   </div>
 
   <!-- KPIs del Monitor de Facturación -->
@@ -91,7 +209,7 @@
 
   @if (runtimeSummary()) {
     <!-- Shards Monitor Card -->
-    <div class="monitor-card">
+    <div class="monitor-card" id="shards-section">
       <div class="monitor-card__head">
         <h2 class="monitor-card__title">
           <i class="bi bi-server"></i> Monitor de Infrastructure Shards
@@ -121,12 +239,11 @@
         </div>
       </div>
       <p class="monitor-card__hint">
-        Capacidad actual de los shards compartidos. “Listo” = redirect URI registrado en el client
-        OAuth master, billing vinculado y estado utilizable.
+        Capacidad actual de los shards compartidos (ordenados por prioridad de negocio: Activos con tiendas, Standby listos e Incompletos).
       </p>
 
       <div class="shard-grid">
-        @for (shard of runtimeSummary()!.shards; track shard.id) {
+        @for (shard of sortedShards(); track shard.id) {
           @let status = readiness()?.shards?.find((r) => r.id === shard.id);
           @let isFull = shard.status === 'FULL';
           <div
@@ -245,7 +362,7 @@
       <p class="empty">No hay billing accounts registradas en Firestore.</p>
     } @else {
       <ul class="account-list">
-        @for (account of svc.accounts(); track account.id) {
+        @for (account of svc.sortedAccounts(); track account.id) {
           @let isAtLimit = account.gcpRemaining === 0;
           <li class="account-item" [class.account-item--inactive]="!account.active">
             @if (editingId() === account.id) {
