@@ -88,11 +88,23 @@ export class Billing implements OnInit {
 
   readonly isCriticalGcp = computed(() => this.svc.totalGcpRemaining() <= 2);
   readonly isWarningShards = computed(
-    () => !this.isCriticalGcp() && (this.readiness()?.readyCount ?? 0) <= 2,
+    () => !this.isCriticalGcp() && (this.readiness()?.readyCount ?? 0) <= 2 && this.pendingShardsCount() > 0,
   );
   readonly isOptimalCapacity = computed(
     () => !this.isCriticalGcp() && !this.isWarningShards(),
   );
+
+  readonly totalAvailableStores = computed(() => {
+    return this.sortedShards().reduce((sum, s) => sum + s.availableStores, 0);
+  });
+
+  readonly pendingShardsCount = computed(() => {
+    const r = this.readiness();
+    if (!r) {
+      return 0;
+    }
+    return Math.max(0, r.total - r.readyCount);
+  });
 
   readonly editingId = signal<string | null>(null);
   readonly editName = signal('');
