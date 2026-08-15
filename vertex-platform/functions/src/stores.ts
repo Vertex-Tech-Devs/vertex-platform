@@ -624,7 +624,14 @@ export const redeployStore = onCall<{ storeId: string }>(
     const deployTokenValue = await getDeployToken();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
-    const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
+    // En entorno de desarrollo, re-desplegar SIEMPRE compila la última versión de develop
+    // para que cualquier cambio de código pusheado se refleje de inmediato en la tienda.
+    const ref =
+      env === 'development'
+        ? 'develop'
+        : store.templateVersion
+          ? `refs/tags/v${store.templateVersion}`
+          : targetRef;
 
     const res = await fetch(
       'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
