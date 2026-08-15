@@ -62,16 +62,15 @@
       <div class="guidance-banner__header">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
-          <strong>Verificación Pendiente de Shards Standby</strong>
+          <strong>Alerta de Capacidad: Último Shard Listo</strong>
           <p>
-            Capacidad total disponible de <strong>{{ totalAvailableStores() }} tiendas</strong>.
-            Actualmente hay <strong>{{ readiness()?.readyCount || 0 }} shards listos</strong> con OAuth de los
-            {{ readiness()?.total || 0 }} totales en el pool. Puedes verificar los {{ pendingShardsCount() }} shards restantes para dejarlos 100% listos.
+            Queda solo <strong>{{ readiness()?.readyCount || 0 }} shard listo con OAuth</strong> para aprovisionamiento inmediato.
+            Capacidad total disponible en el pool: <strong>{{ totalAvailableStores() }} tiendas</strong>. Puedes verificar los {{ pendingShardsCount() }} shards standby restantes.
           </p>
         </div>
       </div>
       <button class="btn btn-warning btn--sm" (click)="scrollToShards()">
-        <i class="bi bi-wrench-adjustable"></i> Verificar y Configurar Shards Standby
+        <i class="bi bi-wrench-adjustable"></i> Verificar Shards Standby
       </button>
     </div>
   } @else {
@@ -79,9 +78,9 @@
       <div class="guidance-banner__header">
         <i class="bi bi-check-circle-fill"></i>
         <div>
-          <strong>Capacidad Saludable y Amplia Escala</strong>
+          <strong>Capacidad Óptima y Escalable</strong>
           <p>
-            Pool de infraestructura operando con <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en
+            Infraestructura SaaS con <strong>{{ totalAvailableStores() }} tiendas de capacidad disponible</strong> distribuida en
             {{ readiness()?.total || 0 }} shards ({{ svc.totalGcpRemaining() }} cupos GCP libres).
           </p>
         </div>

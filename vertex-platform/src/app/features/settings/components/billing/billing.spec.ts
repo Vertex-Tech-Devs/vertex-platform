@@ -294,8 +294,8 @@ describe('Billing', () => {
     expect(component.isWarningShards()).toBe(true);
     expect(component.isOptimalCapacity()).toBe(false);
 
-    // Forzar totalGcpRemaining <= 2
-    billingSvc.accounts.set([makeAccount({ gcpUsedProjects: 4, gcpProjectLimit: 5 })]);
+    // Forzar totalGcpRemaining <= 1 (5 / 5 en uso)
+    billingSvc.accounts.set([makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 })]);
     expect(component.isCriticalGcp()).toBe(true);
     expect(component.isWarningShards()).toBe(false);
     expect(component.isOptimalCapacity()).toBe(false);

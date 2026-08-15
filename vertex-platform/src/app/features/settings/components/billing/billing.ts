@@ -86,9 +86,9 @@ export class Billing implements OnInit {
     });
   });
 
-  readonly isCriticalGcp = computed(() => this.svc.totalGcpRemaining() <= 2);
+  readonly isCriticalGcp = computed(() => this.svc.totalGcpRemaining() <= 1);
   readonly isWarningShards = computed(
-    () => !this.isCriticalGcp() && (this.readiness()?.readyCount ?? 0) <= 2 && this.pendingShardsCount() > 0,
+    () => !this.isCriticalGcp() && (this.readiness()?.readyCount ?? 0) <= 1 && this.pendingShardsCount() > 0,
   );
   readonly isOptimalCapacity = computed(
     () => !this.isCriticalGcp() && !this.isWarningShards(),
