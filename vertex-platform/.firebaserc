@@ -9,6 +9,9 @@
       "hosting": {
         "prod": [
           "vertex-platform-app"
+        ],
+        "prod-clean": [
+          "vertex-platform"
         ]
       }
     },

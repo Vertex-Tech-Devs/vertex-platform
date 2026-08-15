@@ -267,7 +267,7 @@ jobs:
         run: |
           npx firebase-tools deploy \
             --project vertex-platform-app \
-            --only hosting:prod \
+            --only hosting:prod,hosting:prod-clean \
             --non-interactive \
             --force
 
