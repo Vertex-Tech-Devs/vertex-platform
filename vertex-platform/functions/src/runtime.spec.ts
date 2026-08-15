@@ -174,14 +174,16 @@ describe('reconcileActiveStores scheduler', () => {
     const mockStores = [
       { id: 'store-1', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-2', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
-      { id: 'store-3', shardId: 'shard-2', runtimeMode: 'shared-shard', status: 'active' },
-      { id: 'store-no-shard', runtimeMode: 'shared-shard', status: 'active' }, // Falsy shardId to cover skip branch
+      { id: 'store-3', firebaseProjectId: 'vtx-sd-proj2', runtimeMode: 'shared-shard', status: 'active' },
+      { id: 'store-4', projectId: 'vtx-sd-proj3', runtimeMode: 'shared-shard', status: 'active' },
+      { id: 'store-no-shard', runtimeMode: 'shared-shard', status: 'active' }, // Falsy shardId and projectId to cover skip branch
     ];
 
     const mockShards = [
-      { id: 'shard-1', currentStores: 5 }, // Should be corrected to 2
-      { id: 'shard-2', currentStores: 1 }, // Correct
-      { id: 'shard-3' }, // Undefined currentStores and 0 physical stores
+      { id: 'shard-1', projectId: 'vtx-sd-proj1', currentStores: 5 }, // Should be corrected to 2
+      { id: 'shard-2', projectId: 'vtx-sd-proj2', currentStores: 1 }, // Correct (1 physical store by projectId)
+      { id: 'shard-3', projectId: 'vtx-sd-proj3', currentStores: 0 }, // Should be corrected to 1 (by projectId)
+      { id: 'shard-4' }, // Undefined currentStores and 0 physical stores
     ];
 
     const updatedShards: Record<string, number> = {};
@@ -242,10 +244,10 @@ describe('reconcileActiveStores scheduler', () => {
     expect(updatedShards['shard-2']).toBeUndefined(); // Shard-2 was correct, no update
 
     // Verify audit logs were written
-    expect(auditLogs.length).toBe(2); // 1 for WARNING (correction) + 1 for INFO (completion)
+    expect(auditLogs.length).toBe(3); // 2 WARNING (corrections) + 1 INFO (completion)
     expect(auditLogs[0].severity).toBe('WARNING');
     expect(auditLogs[0].details.newValue).toBe(2);
-    expect(auditLogs[1].severity).toBe('INFO');
+    expect(auditLogs[2].severity).toBe('INFO');
   });
 
   it('handles and logs errors during reconciliation', async () => {
