@@ -136,9 +136,21 @@ async function main(): Promise<void> {
   // Paso 3: Sincronizar en Firestore collection `billing_accounts`
   console.log('[3/3] Registrando/Sincronizando cuentas en Firestore (`vertex-platform-dev` → `billing_accounts`)...');
 
+  // Obtener shards reales de Firestore para calcular currentProjects real por Billing Account
+  const shardsSnap = await db.collection('infrastructure_shards').get();
+  const shardBillingCounts: Record<string, number> = {};
+  shardsSnap.docs.forEach((doc) => {
+    const data = doc.data();
+    const bId = String(data.billingAccountId || '').trim();
+    if (bId) {
+      shardBillingCounts[bId] = (shardBillingCounts[bId] || 0) + 1;
+    }
+  });
+
   const billingCollectionRef = db.collection('billing_accounts');
   let newRegisteredCount = 0;
   let totalQuotaAvailable = 0;
+  let totalProjectsUsed = 0;
 
   for (let index = 0; index < activeAccounts.length; index++) {
     const acc = activeAccounts[index];
@@ -148,6 +160,8 @@ async function main(): Promise<void> {
 
     const displayName = acc.displayName || `Vertex Billing ${index + 1}`;
     const maxProjects = 5;
+    const realUsed = shardBillingCounts[rawId] ?? 0;
+    totalProjectsUsed += realUsed;
 
     if (!docSnap.exists) {
       await docRef.set({
@@ -155,15 +169,19 @@ async function main(): Promise<void> {
         name: displayName,
         status: 'ACTIVE',
         maxProjects,
-        currentProjects: 0,
+        currentProjects: realUsed,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
-      console.log(`➕ Registrada nueva Billing Account: ${displayName} (ID: ${rawId}) [Límite: ${maxProjects} proyectos]`);
+      console.log(`➕ Registrada nueva Billing Account: ${displayName} (ID: ${rawId}) [Límite: ${maxProjects}, Usados: ${realUsed}]`);
       newRegisteredCount++;
     } else {
       const data = docSnap.data();
-      console.log(`ℹ️ Billing Account ya registrada: ${displayName} (ID: ${rawId}) [Límite: ${data?.maxProjects ?? maxProjects} proyectos]`);
+      await docRef.update({
+        currentProjects: realUsed,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      console.log(`ℹ️ Billing Account actualizada: ${displayName} (ID: ${rawId}) [Límite: ${data?.maxProjects ?? maxProjects}, Usados: ${realUsed}]`);
     }
 
     totalQuotaAvailable += maxProjects;
@@ -175,6 +193,7 @@ async function main(): Promise<void> {
   console.log(`Total Billing Accounts activas: ${activeAccounts.length}`);
   console.log(`Nuevas Billing Accounts auto-registradas: ${newRegisteredCount}`);
   console.log(`Capacidad Total de Cupos para Shards: ${totalQuotaAvailable} proyectos (${activeAccounts.length} cuentas × 5 proyectos/cuenta)`);
+  console.log(`Proyectos GCP en Uso Real: ${totalProjectsUsed} / ${totalQuotaAvailable} (${Math.round((totalProjectsUsed / (totalQuotaAvailable || 1)) * 100)}%)`);
   console.log('==================================================\n');
 }
 

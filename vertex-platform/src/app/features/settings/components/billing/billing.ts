@@ -1,5 +1,5 @@
 import type { OnInit } from '@angular/core';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import {
@@ -7,10 +7,20 @@ import {
   type RuntimeCapacitySummary,
   type ShardReadiness,
   type ShardReadinessReport,
+  type RuntimeShardCapacity,
 } from '@core/services/stores';
 import type { BillingAccount } from '@core/models/billing-account';
 import { errorMessage } from '@core/utils/error.util';
 import { ShardStatusModal } from './shard-status-modal';
+
+export interface MergedShard extends ShardReadiness {
+  currentStores: number;
+  reservedStores: number;
+  maxCapacity: number;
+  availableStores: number;
+  occupancyRatio: number;
+  runtimeStatus: string;
+}
 
 @Component({
   selector: 'app-billing',
@@ -28,6 +38,61 @@ export class Billing implements OnInit {
   readonly isCheckingShards = signal(false);
   readonly selectedShard = signal<ShardReadiness | null>(null);
   readonly copiedId = signal<string | null>(null);
+  readonly showCapacityGuide = signal(false);
+
+  readonly sortedShards = computed<MergedShard[]>(() => {
+    const report = this.readiness();
+    if (!report || !report.shards) {
+      return [];
+    }
+    const summary = this.runtimeSummary();
+    const runtimeMap = new Map<string, RuntimeShardCapacity>();
+    if (summary && summary.shards) {
+      for (const s of summary.shards) {
+        runtimeMap.set(s.id, s);
+      }
+    }
+
+    const merged: MergedShard[] = report.shards.map((r) => {
+      const rt = runtimeMap.get(r.id);
+      return {
+        ...r,
+        currentStores: rt?.currentStores ?? 0,
+        reservedStores: rt?.reservedStores ?? 0,
+        maxCapacity: rt?.maxCapacity ?? 35,
+        availableStores: rt?.availableStores ?? 35,
+        occupancyRatio: rt?.occupancyRatio ?? 0,
+        runtimeStatus: rt?.status ?? r.status,
+      };
+    });
+
+    return merged.sort((a, b) => {
+      const isP1A = (a.status === 'ACTIVE' || a.status === 'WARMUP_READY') && a.currentStores > 0;
+      const isP1B = (b.status === 'ACTIVE' || b.status === 'WARMUP_READY') && b.currentStores > 0;
+      if (isP1A !== isP1B) {
+        return isP1A ? -1 : 1;
+      }
+
+      const isP2A = a.ready;
+      const isP2B = b.ready;
+      if (isP2A !== isP2B) {
+        return isP2A ? -1 : 1;
+      }
+
+      if (a.currentStores !== b.currentStores) {
+        return b.currentStores - a.currentStores;
+      }
+      return a.id.localeCompare(b.id, undefined, { numeric: true });
+    });
+  });
+
+  readonly isCriticalGcp = computed(() => this.svc.totalGcpRemaining() <= 2);
+  readonly isWarningShards = computed(
+    () => !this.isCriticalGcp() && (this.readiness()?.readyCount ?? 0) <= 2,
+  );
+  readonly isOptimalCapacity = computed(
+    () => !this.isCriticalGcp() && !this.isWarningShards(),
+  );
 
   readonly editingId = signal<string | null>(null);
   readonly editName = signal('');
@@ -64,7 +129,24 @@ export class Billing implements OnInit {
   }
 
   async syncAccounts(): Promise<void> {
-    await this.svc.loadAccounts();
+    try {
+      await this.svc.loadAccounts();
+    } catch {
+      /* silent catch */
+    }
+  }
+
+  toggleCapacityGuide(): void {
+    this.showCapacityGuide.set(!this.showCapacityGuide());
+  }
+
+  scrollToShards(): void {
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('shards-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }
 
   copyAccountId(id: string): void {

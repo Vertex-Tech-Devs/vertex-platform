@@ -107,4 +107,66 @@ describe('AuthService', () => {
     await service.loginWithGoogle();
     expect(service.authError()).toBe('unknown');
   });
+
+  it('logout resetea el estado y desloguea', async () => {
+    await service.logout();
+    expect(mockSignOut).toHaveBeenCalled();
+    expect(service.isSuperAdmin()).toBe(false);
+  });
+
+  it('intenta refrescar el claim platformAdmin en onAuthStateChanged cuando falta', async () => {
+    const mockUser = { uid: 'abc', email: 'admin@test.com' };
+    mockGetIdTokenResult
+      .mockResolvedValueOnce({ claims: {} }) // primero sin claim
+      .mockResolvedValueOnce({ claims: { platformAdmin: true } }); // despues de refrescar
+
+    await capturedAuthCallback?.(mockUser);
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'refreshMyPlatformAdminClaim');
+    expect(service.user()).toBe(mockUser);
+  });
+
+  it('maneja excepcion en refreshMyPlatformAdminClaim durante onAuthStateChanged', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const mockUser = { uid: 'abc', email: 'admin@test.com' };
+    mockGetIdTokenResult.mockResolvedValue({ claims: {} });
+    mockHttpsCallable.mockImplementationOnce(() => vi.fn().mockRejectedValue(new Error('claim fail')));
+
+    await capturedAuthCallback?.(mockUser);
+    expect(mockSignOut).toHaveBeenCalled();
+    expect(service.authError()).toBe('unauthorized');
+    consoleSpy.mockRestore();
+  });
+
+  it('loginWithGoogle intenta refrescar el claim platformAdmin cuando falta', async () => {
+    const mockUser = { uid: 'abc', email: 'admin@test.com' };
+    mockSignInWithPopup.mockResolvedValue({ user: mockUser });
+    mockGetIdTokenResult
+      .mockResolvedValueOnce({ claims: {} })
+      .mockResolvedValueOnce({ claims: { platformAdmin: true, superAdmin: false } });
+
+    await service.loginWithGoogle();
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'refreshMyPlatformAdminClaim');
+    expect(service.user()).toBe(mockUser);
+  });
+
+  it('loginWithGoogle captura error al refrescar claim', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const mockUser = { uid: 'abc', email: 'admin@test.com' };
+    mockSignInWithPopup.mockResolvedValue({ user: mockUser });
+    mockGetIdTokenResult.mockResolvedValue({ claims: {} });
+    mockHttpsCallable.mockImplementationOnce(() => vi.fn().mockRejectedValue(new Error('refresh err')));
+
+    await service.loginWithGoogle();
+    expect(mockSignOut).toHaveBeenCalled();
+    expect(service.authError()).toBe('unauthorized');
+    consoleSpy.mockRestore();
+  });
+
+  it('loginWithGoogle soporta auth/popup-closed-by-user', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockSignInWithPopup.mockRejectedValue({ code: 'auth/popup-closed-by-user' });
+    await service.loginWithGoogle();
+    expect(service.authError()).toBe('popup-blocked');
+    consoleSpy.mockRestore();
+  });
 });
