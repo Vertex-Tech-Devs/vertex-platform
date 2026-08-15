@@ -62,15 +62,16 @@
       <div class="guidance-banner__header">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
-          <strong>Advertencia Preventiva: Pool de Shards Listos Bajo</strong>
+          <strong>Verificación Pendiente de Shards Standby</strong>
           <p>
-            Quedan solo <strong>{{ readiness()?.readyCount || 0 }} shards listos</strong> de
-            {{ readiness()?.total || 0 }} en el pool de infraestructura SaaS.
+            Capacidad total disponible de <strong>{{ totalAvailableStores() }} tiendas</strong>.
+            Actualmente hay <strong>{{ readiness()?.readyCount || 0 }} shards listos</strong> con OAuth de los
+            {{ readiness()?.total || 0 }} totales en el pool. Puedes verificar los {{ pendingShardsCount() }} shards restantes para dejarlos 100% listos.
           </p>
         </div>
       </div>
       <button class="btn btn-warning btn--sm" (click)="scrollToShards()">
-        <i class="bi bi-wrench-adjustable"></i> Completar configuración de Shards pendientes
+        <i class="bi bi-wrench-adjustable"></i> Verificar y Configurar Shards Standby
       </button>
     </div>
   } @else {
@@ -78,17 +79,17 @@
       <div class="guidance-banner__header">
         <i class="bi bi-check-circle-fill"></i>
         <div>
-          <strong>Capacidad Óptima y Escalable</strong>
+          <strong>Capacidad Saludable y Amplia Escala</strong>
           <p>
-            Pool de Billing Accounts y Shards operando con holgura ({{ svc.totalGcpRemaining() }} cupos GCP libres,
-            {{ readiness()?.readyCount || 0 }} shards listos).
+            Pool de infraestructura operando con <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en
+            {{ readiness()?.total || 0 }} shards ({{ svc.totalGcpRemaining() }} cupos GCP libres).
           </p>
         </div>
       </div>
     </div>
   }
 
-  <!-- Barra de Acciones Principales (Action Bar) -->
+  <!-- Barra de Acciones Principales (Action Bar - Botones Independientes) -->
   <div class="action-bar">
     <a
       href="https://console.cloud.google.com/billing"
@@ -234,7 +235,7 @@
             <span>{{ isCheckingShards() ? 'Verificando…' : 'Verificar' }}</span>
           </button>
           <span class="badge badge--active">
-            {{ runtimeSummary()!.availableSharedSlots }} cupos libres
+            {{ totalAvailableStores() }} tiendas disponibles
           </span>
         </div>
       </div>
@@ -245,7 +246,7 @@
       <div class="shard-grid">
         @for (shard of sortedShards(); track shard.id) {
           @let status = readiness()?.shards?.find((r) => r.id === shard.id);
-          @let isFull = shard.status === 'FULL';
+          @let isFull = shard.currentStores >= shard.maxCapacity || shard.availableStores <= 0;
           <div
             class="shard-card"
             [class.shard-card--ready]="status?.ready === true"
@@ -278,6 +279,7 @@
               <span
                 class="badge"
                 [class.badge--active]="shard.status === 'ACTIVE' || shard.status === 'WARMUP_READY'"
+                [class.badge--warning]="shard.status === 'WARMUP_PROVISIONING' || shard.status === 'STANDBY'"
                 [class.badge--inactive]="isFull"
               >
                 {{
@@ -285,7 +287,7 @@
                     ? 'Activo'
                     : isFull
                       ? 'Sin cupo'
-                      : shard.status === 'WARMUP_READY'
+                      : shard.status === 'WARMUP_READY' || shard.status === 'STANDBY'
                         ? 'Standby'
                         : shard.status
                 }}
@@ -310,7 +312,7 @@
               <div class="usage__details">
                 <span class="usage__text">
                   @if (isFull) {
-                    Sin cupo disponible
+                    Sin cupo disponible ({{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas)
                   } @else {
                     {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
                       shard.availableStores
