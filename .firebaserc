@@ -3,5 +3,22 @@
     "default": "vertex-platform-dev",
     "prod": "vertex-platform-app",
     "dev": "vertex-platform-dev"
+  },
+  "targets": {
+    "vertex-platform-app": {
+      "hosting": {
+        "prod": [
+          "vertex-platform-app",
+          "vertex-platform"
+        ]
+      }
+    },
+    "vertex-platform-dev": {
+      "hosting": {
+        "dev": [
+          "vertex-platform-dev"
+        ]
+      }
+    }
   }
 }
