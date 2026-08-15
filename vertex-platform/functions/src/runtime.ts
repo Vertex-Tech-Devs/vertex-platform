@@ -112,12 +112,18 @@ export const reconcileActiveStores = functions.pubsub
         .where('status', '==', 'active')
         .get();
 
-      // 2. Count active stores physically per shardId
-      const physicalCounts: Record<string, number> = {};
+      // 2. Count active stores physically per shardId and per GCP projectId
+      const physicalCountsByShardId: Record<string, number> = {};
+      const physicalCountsByProjectId: Record<string, number> = {};
       for (const doc of storesSnap.docs) {
-        const shardId = doc.data()['shardId'];
+        const data = doc.data();
+        const shardId = data['shardId'];
+        const projectId = data['runtimeProjectId'] || data['firebaseProjectId'] || data['projectId'];
         if (shardId) {
-          physicalCounts[shardId] = (physicalCounts[shardId] || 0) + 1;
+          physicalCountsByShardId[shardId] = (physicalCountsByShardId[shardId] || 0) + 1;
+        }
+        if (projectId) {
+          physicalCountsByProjectId[projectId] = (physicalCountsByProjectId[projectId] || 0) + 1;
         }
       }
 
@@ -127,8 +133,13 @@ export const reconcileActiveStores = functions.pubsub
 
       for (const shardDoc of shardsSnap.docs) {
         const shardId = shardDoc.id;
-        const currentActiveStores = shardDoc.data()['currentStores'] || 0;
-        const physicalActiveStores = physicalCounts[shardId] || 0;
+        const shardData = shardDoc.data();
+        const projectId = shardData['projectId'];
+        const currentActiveStores = shardData['currentStores'] || 0;
+        const physicalActiveStores =
+          physicalCountsByShardId[shardId] ??
+          (projectId ? physicalCountsByProjectId[projectId] : 0) ??
+          0;
 
         if (currentActiveStores !== physicalActiveStores) {
           console.warn(
