@@ -219,6 +219,7 @@ describe('provisionStore handler', () => {
         maxCapacity: 100,
         currentStores: 10,
         reservedStores: 2,
+        billingAccountId: '01D2F4-C25DF1-489AE9',
       },
     ];
     const dbMock = {

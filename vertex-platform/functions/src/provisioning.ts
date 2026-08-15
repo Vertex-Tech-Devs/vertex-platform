@@ -949,6 +949,9 @@ export const provisionStore = onCall<CreateStorePayload>(
     let maxAvailableSlots = 0;
 
     allActiveShards.forEach((shard) => {
+      // Defensivo: omitir shards activos que no tengan cuenta de facturación vinculada (billingAccountId)
+      if (!shard.billingAccountId) return;
+
       const projectUsage = projectUsageMap[shard.projectId] || 0;
       const projectCap = Math.min(
         shard.maxCapacity || DEFAULT_MAX_STORES_PER_SHARD,
@@ -2091,6 +2094,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         msg.includes('Datastore Mode') ||
         msg.includes('DATASTORE_MODE') ||
         msg.includes('FAILED_PRECONDITION') ||
+        msg.includes('requires billing') ||
+        msg.includes('billing to be enabled') ||
+        msg.includes('PERMISSION_DENIED') ||
+        msg.includes('403') ||
         msg.includes('400');
 
       if (isDatastoreError && runtimeMode === 'shared-shard' && shardId) {
