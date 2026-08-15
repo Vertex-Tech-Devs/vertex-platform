@@ -287,7 +287,7 @@
                     ? 'Activo'
                     : isFull
                       ? 'Sin cupo'
-                      : shard.status === 'WARMUP_READY' || shard.status === 'STANDBY'
+                      : shard.status === 'WARMUP_READY' || shard.status === 'STANDBY' || shard.status === 'FULL' || shard.status === 'WARMUP_PROVISIONING'
                         ? 'Standby'
                         : shard.status
                 }}
