@@ -38,6 +38,8 @@ export const PLATFORM_PROJECT = (() => {
 export const ALLOWED_ORIGINS = [
   'https://vertex-platform-app.web.app',
   'https://vertex-platform-dev.web.app',
+  'https://vertex-platform.web.app',
+  'https://vertex-platform.firebaseapp.com',
   'http://localhost:4200',
 ];
 
