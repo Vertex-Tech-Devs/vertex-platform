@@ -1725,6 +1725,20 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               );
               break;
             }
+            if (msg.includes('reserved by another project') || msg.includes('Invalid name')) {
+              const fallbackSiteId = `vtx-${slug}-${storeId.slice(0, 5)}`.slice(0, 30);
+              console.warn(
+                `[provisioning:createWebApp] Site ID ${runtimeSiteId} is reserved by another project. Falling back to unique siteId ${fallbackSiteId}`,
+              );
+              runtimeSiteId = fallbackSiteId;
+              const fallbackUrl = `https://${fallbackSiteId}.web.app`;
+              await db.collection('stores').doc(storeId).update({
+                runtimeSiteId: fallbackSiteId,
+                defaultUrl: fallbackUrl,
+                updatedAt: new Date(),
+              });
+              continue;
+            }
             const isPropagationError =
               msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
             if (siteAttempt === MAX_SITE_ATTEMPTS || !isPropagationError) {
@@ -1897,7 +1911,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 );
               } catch (siteErr: any) {
                 const siteMsg = siteErr instanceof Error ? siteErr.message : String(siteErr);
-                if (!siteMsg.includes('already exists') && !siteMsg.includes('409')) throw siteErr;
+                if (
+                  !siteMsg.includes('already exists') &&
+                  !siteMsg.includes('409') &&
+                  !siteMsg.includes('reserved by another project') &&
+                  !siteMsg.includes('Invalid name')
+                )
+                  throw siteErr;
               }
             }
 
@@ -2913,7 +2933,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           );
         } catch (err: any) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes('already exists') && !msg.includes('409')) {
+          if (
+            !msg.includes('already exists') &&
+            !msg.includes('409') &&
+            !msg.includes('reserved by another project') &&
+            !msg.includes('Invalid name')
+          ) {
             console.warn(
               `[provisioning:triggerDeploy] Warning: custom hosting site ${runtimeSiteId} check failed on shard ${projectId}: ${msg}`,
             );
