@@ -981,11 +981,14 @@ export const provisionStore = onCall<CreateStorePayload>(
           .collection('infrastructure_shards')
           .where('environment', '==', env)
           .where('status', '==', 'WARMUP_READY')
-          .limit(1)
           .get();
 
         if (!warmSnap.empty) {
-          const warmDoc = warmSnap.docs[0];
+          const registeredDoc = warmSnap.docs.find((d) => {
+            const data = d.data();
+            return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
+          });
+          const warmDoc = registeredDoc || warmSnap.docs[0];
           const warmData = warmDoc.data() as StoreShard;
           selectedShard = { ...warmData, id: warmDoc.id };
           // Promote warm shard to ACTIVE
@@ -1847,11 +1850,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           .collection('infrastructure_shards')
           .where('environment', '==', env)
           .where('status', '==', 'WARMUP_READY')
-          .limit(1)
           .get();
 
         if (!warmSnap.empty) {
-          const warmDoc = warmSnap.docs[0];
+          const registeredDoc = warmSnap.docs.find((d) => {
+            const data = d.data();
+            return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
+          });
+          const warmDoc = registeredDoc || warmSnap.docs[0];
           const warmData = warmDoc.data() as StoreShard;
           const newShardId = warmDoc.id;
           const newProjectId = warmData.projectId;
@@ -2117,11 +2123,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           .collection('infrastructure_shards')
           .where('environment', '==', env)
           .where('status', '==', 'WARMUP_READY')
-          .limit(1)
           .get();
 
         if (!warmSnap.empty) {
-          const warmDoc = warmSnap.docs[0];
+          const registeredDoc = warmSnap.docs.find((d) => {
+            const data = d.data();
+            return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
+          });
+          const warmDoc = registeredDoc || warmSnap.docs[0];
           const warmData = warmDoc.data() as StoreShard;
           const newShardId = warmDoc.id;
           const newProjectId = warmData.projectId;
