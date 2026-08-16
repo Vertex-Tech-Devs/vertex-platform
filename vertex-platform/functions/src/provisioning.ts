@@ -2956,8 +2956,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               firebase_config: JSON.stringify(firebaseConfig),
               store_name: name,
               platform_project_id: PLATFORM_PROJECT,
-              // SECURITY: el deploy token NO se envía en el client_payload (visible/logueable).
-              // El workflow del storefront lo lee del secret PLATFORM_DEPLOY_TOKEN.
               environment: env,
               ref: targetRef,
             },

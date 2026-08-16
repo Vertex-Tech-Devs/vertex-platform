@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getGitHubPat, ALLOWED_ORIGINS, PLATFORM_PROJECT, getDeployToken } from './helpers';
+import { resolvePlatformEnvironment } from './runtime';
 import { verifyGitHubOidcToken } from './github-oidc';
 
 interface GitHubRelease {
@@ -263,6 +264,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
             version,
             platform_project_id: PLATFORM_PROJECT,
             deploy_token: deployToken,
+            environment: resolvePlatformEnvironment(PLATFORM_PROJECT),
           },
         }),
       },
