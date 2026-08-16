@@ -1726,7 +1726,17 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               break;
             }
             if (msg.includes('reserved by another project') || msg.includes('Invalid name')) {
-              const fallbackSiteId = `vtx-${slug}-${storeId.slice(0, 5)}`.slice(0, 30);
+              const sameSlugSnap = await db
+                .collection('stores')
+                .where('slug', '==', slug)
+                .get();
+              const storeIndex = Math.max(2, sameSlugSnap.size);
+              const now = new Date();
+              const monthDay = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+              const fallbackSiteId = `vtx-${slug}-${storeIndex}-${monthDay}`
+                .slice(0, 30)
+                .replace(/-+$/, '');
+
               console.warn(
                 `[provisioning:createWebApp] Site ID ${runtimeSiteId} is reserved by another project. Falling back to unique siteId ${fallbackSiteId}`,
               );
