@@ -27,7 +27,7 @@ import {
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
-import { ensureWarmShardAvailable, checkPoolLowAndAlert } from './shards';
+import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
 
@@ -916,6 +916,8 @@ export const provisionStore = onCall<CreateStorePayload>(
           siteId: 'default',
           region: 'us-central1',
           status: 'ACTIVE',
+          redirectUriStatus: 'registered',
+          billingAccountId: '01D2F4-C25DF1-489AE9',
           maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
           currentStores: 0,
           reservedStores: 0,
@@ -948,16 +950,17 @@ export const provisionStore = onCall<CreateStorePayload>(
     let selectedShard: StoreShard | null = null;
     let maxAvailableSlots = 0;
 
-    allActiveShards.forEach((shard) => {
-      // Defensivo: omitir shards activos que no tengan cuenta de facturación vinculada (billingAccountId)
-      if (!shard.billingAccountId) return;
+    const verifiedActiveShards = allActiveShards.filter((shard) => {
+      const isRegistered = shard.redirectUriStatus === 'registered' || shard.ready === true;
+      const hasBilling = !!shard.billingAccountId;
+      const availableSlots =
+        shard.maxCapacity - (shard.currentStores || 0) - (shard.reservedStores || 0);
+      return isRegistered && hasBilling && availableSlots > 0;
+    });
 
-      const projectUsage = projectUsageMap[shard.projectId] || 0;
-      const projectCap = Math.min(
-        shard.maxCapacity || DEFAULT_MAX_STORES_PER_SHARD,
-        DEFAULT_MAX_STORES_PER_SHARD,
-      );
-      const availableSlots = Math.max(0, projectCap - projectUsage);
+    verifiedActiveShards.forEach((shard) => {
+      const availableSlots =
+        shard.maxCapacity - (shard.currentStores || 0) - (shard.reservedStores || 0);
       if (availableSlots > maxAvailableSlots) {
         maxAvailableSlots = availableSlots;
         selectedShard = shard;
@@ -976,38 +979,10 @@ export const provisionStore = onCall<CreateStorePayload>(
       runtimeSiteId = 'default';
     } else {
       if (!selectedShard) {
-        // Query for a pre-provisioned warm-up shard (status == 'warmup_ready')
-        const warmSnap = await db
-          .collection('infrastructure_shards')
-          .where('environment', '==', env)
-          .where('status', '==', 'WARMUP_READY')
-          .get();
-
-        if (!warmSnap.empty) {
-          const registeredDoc = warmSnap.docs.find((d) => {
-            const data = d.data();
-            return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
-          });
-          const warmDoc = registeredDoc || warmSnap.docs[0];
-          const warmData = warmDoc.data() as StoreShard;
-          selectedShard = { ...warmData, id: warmDoc.id };
-          // Promote warm shard to ACTIVE
-          await db.collection('infrastructure_shards').doc(warmDoc.id).update({
-            status: 'ACTIVE',
-            updatedAt: new Date(),
-          });
-          // Trigger asynchronous background creation of the NEXT warm shard for the future!
-          void ensureWarmShardAvailable().catch((err) => {
-            console.error(
-              '[provisionStore] Failed to trigger background warm shard creation:',
-              err,
-            );
-          });
-          // Alerta de pool bajo (best-effort, no bloquea el aprovisionamiento)
-          void checkPoolLowAndAlert(db, env).catch((err) => {
-            console.error('[provisionStore] checkPoolLowAndAlert failed:', err);
-          });
-        }
+        throw new HttpsError(
+          'failed-precondition',
+          'No hay shards configurados y verificados con capacidad disponible. Por favor, verifica y autoriza el Redirect URI de un shard standby en la sección de Facturación / Shards de la plataforma para habilitar la creación de nuevas tiendas.',
+        );
       }
 
       if (selectedShard) {

@@ -62,6 +62,17 @@ function makeRequest(data: Record<string, unknown>, isAdmin = true) {
 }
 
 function makeDb(slugExists = false, mockShards: any[] = []) {
+  const defaultShard = {
+    id: 'shared-dev-01',
+    environment: 'development',
+    status: 'ACTIVE',
+    redirectUriStatus: 'registered',
+    billingAccountId: 'billing-1',
+    maxCapacity: 100,
+    currentStores: 0,
+    reservedStores: 0,
+  };
+  const shardsToUse = mockShards.length > 0 ? mockShards : [defaultShard];
   const docMock = {
     set: vi.fn().mockResolvedValue(undefined),
     get: vi.fn().mockResolvedValue({ exists: false }),
@@ -76,13 +87,13 @@ function makeDb(slugExists = false, mockShards: any[] = []) {
           doc: vi.fn(() => docMock),
         };
       }
-      if (colName === 'shards') {
+      if (colName === 'infrastructure_shards' || colName === 'shards') {
         return {
           where: vi.fn().mockReturnThis(),
           limit: vi.fn().mockReturnThis(),
           get: vi.fn().mockResolvedValue({
-            empty: mockShards.length === 0,
-            docs: mockShards.map((s) => ({
+            empty: false,
+            docs: shardsToUse.map((s) => ({
               id: s.id,
               data: () => s,
             })),
@@ -220,6 +231,7 @@ describe('provisionStore handler', () => {
         currentStores: 10,
         reservedStores: 2,
         billingAccountId: '01D2F4-C25DF1-489AE9',
+        redirectUriStatus: 'registered',
       },
     ];
     const dbMock = {
@@ -268,12 +280,12 @@ describe('provisionStore handler', () => {
     expect(savedData.shardId).toBe('shard-dev-1');
   });
 
-  it('autonomously generates a new shard if no active shards are available', async () => {
+  it('rejects store provisioning with a clear error when no active verified shards are available', async () => {
     const docMock = {
       set: vi.fn().mockResolvedValue(undefined),
       get: vi.fn().mockResolvedValue({ exists: false }),
     };
-    const dbMock = {
+    vi.mocked(getFirestore).mockReturnValue({
       collection: vi.fn((colName) => {
         if (colName === 'stores') {
           return {
@@ -281,14 +293,13 @@ describe('provisionStore handler', () => {
             limit: vi.fn().mockReturnThis(),
             get: vi.fn().mockResolvedValue({ empty: true }),
             doc: vi.fn(() => docMock),
-            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
         }
         if (colName === 'infrastructure_shards') {
           return {
             where: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
-            get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+            get: vi.fn().mockResolvedValue({ empty: true }),
             doc: vi.fn(() => docMock),
             add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
           };
@@ -301,20 +312,11 @@ describe('provisionStore handler', () => {
           add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
         };
       }),
-    };
-    vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
+    } as unknown as ReturnType<typeof getFirestore>);
 
-    const result = (await handler(makeRequest(VALID_PAYLOAD))) as { projectId: string };
-    expect(result.projectId).toContain('vtx-sd-');
-
-    expect(docMock.set).toHaveBeenCalled();
-    const storeCall = docMock.set.mock.calls.find(
-      (call: any[]) => call[0]?.ownerEmail === VALID_PAYLOAD.ownerEmail,
+    await expect(handler(makeRequest(VALID_PAYLOAD))).rejects.toThrow(
+      'No hay shards configurados y verificados con capacidad disponible',
     );
-    const savedData = storeCall ? storeCall[0] : docMock.set.mock.calls[0][0];
-    expect(savedData.runtimeMode).toBe('shared-shard');
-    expect(savedData.shardId).toContain('shard-development-');
-    expect(savedData.isNewShard).toBe(true);
   });
 });
 

@@ -42,6 +42,7 @@ export interface StoreShard {
   billingAccountId?: string;
   /** Estado del redirect URI en el client OAuth master (cache persistida). */
   redirectUriStatus?: 'registered' | 'missing';
+  ready?: boolean;
   redirectUriCheckedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
