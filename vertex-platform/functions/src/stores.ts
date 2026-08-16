@@ -654,6 +654,7 @@ export const redeployStore = onCall<{ storeId: string }>(
             store_name: store.name,
             platform_project_id: PLATFORM_PROJECT,
             deploy_token: deployTokenValue,
+            environment: env,
             ref: ref,
           },
         }),
@@ -710,7 +711,12 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
   const deployTokenValue = await getDeployToken();
   const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
   const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
-  const ref = store.templateVersion ? `refs/tags/v${store.templateVersion}` : targetRef;
+  const ref =
+    env === 'development'
+      ? 'develop'
+      : store.templateVersion
+        ? `refs/tags/v${store.templateVersion}`
+        : targetRef;
 
   const res = await fetch(
     'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
@@ -733,7 +739,8 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
           store_name: store.name,
           platform_project_id: PLATFORM_PROJECT,
           deploy_token: deployTokenValue,
-          ref,
+          environment: env,
+          ref: ref,
         },
       }),
     },
