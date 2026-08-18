@@ -145,6 +145,7 @@ const secretCache = new Map<string, string>();
 - **NO** hardcodear versiones de template fuera de `provisioning.ts`
 - **NO** invalidar `authDomain` en `shared-shard` sobreescribiéndolo a `{projectId}.firebaseapp.com`
 - **Sincronización de custom claims**: Utilizar la callable `refreshMyPlatformAdminClaim` al iniciar sesión en el storefront para refrescar tanto `platformAdmin` como `admin`/`tenantId`/`role` consultando la colección `admin_roles`.
+- **Aprovisionamiento Automático de Permisos IAM en Shards**: El aprovisionador de la plataforma (`ensureShardProjectIam` en `provisioning.ts`) asigna automáticamente de forma transparente en cada shard los roles `roles/datastore.user`, `roles/owner`, `roles/editor`, `roles/firebasehosting.admin` y `roles/firebaserules.admin` a todas las Service Accounts de ejecucion del sistema, incluyendo las Service Accounts de 2da generación de Cloud Run (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`). Esto permite el acceso backend directo al Firestore de cada tienda sin intervención manual.
 
 ---
 
