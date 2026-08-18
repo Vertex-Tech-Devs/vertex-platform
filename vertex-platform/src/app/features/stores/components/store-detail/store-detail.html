@@ -540,13 +540,6 @@
                   }
                 </div>
 
-                @if (actionError()) {
-                  <p class="action-error alert alert-error">{{ actionError() }}</p>
-                }
-                @if (actionSuccess()) {
-                  <p class="action-success alert alert-success">{{ actionSuccess() }}</p>
-                }
-
                 <!-- Danger Zone -->
                 @if (auth.isSuperAdmin()) {
                   <div class="danger-zone">
