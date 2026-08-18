@@ -575,6 +575,89 @@ async function upsertSecretInProject(
   }
 }
 
+export const generatePasswordResetLink = onCall<{ storeId: string; email: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can generate reset links.');
+    }
+
+    throw new HttpsError(
+      'failed-precondition',
+      'Password reset links are disabled. Store admin access is Google OAuth only.',
+    );
+  },
+);
+
+export const sendAdvancedTestEmail = onCall(
+  {
+    cors: ALLOWED_ORIGINS,
+  },
+  async (request) => {
+    const { recipientEmail, testData, templates } = (request.data || {}) as {
+      recipientEmail?: string;
+      testData?: {
+        orderId?: string;
+        clientName?: string;
+        clientEmail?: string;
+        clientPhone?: string;
+        totalAmount?: string;
+      };
+      templates?: {
+        adminNotification?: { subject?: string; body?: string };
+        customerConfirmation?: { subject?: string; body?: string };
+      };
+    };
+
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      throw new HttpsError(
+        'invalid-argument',
+        'El email destinatario es obligatorio y debe ser un correo válido.',
+      );
+    }
+
+    const orderId = testData?.orderId || 'TEST-1001';
+    const clientName = testData?.clientName || 'Cliente Pruebas';
+    const totalAmount = testData?.totalAmount || '$15,000';
+
+    const customSubject = templates?.customerConfirmation?.subject;
+    const subject = customSubject
+      ? customSubject.replace('{orderId}', orderId)
+      : `Confirmación de Compra #${orderId} - Tienda SaaS`;
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+        <h2 style="color: #4f46e5; text-align: center;">¡Gracias por tu compra, ${clientName}!</h2>
+        <p style="font-size: 16px; color: #374151; line-height: 1.5;">Este es un email de prueba enviado desde el Gestor de Correos de tu tienda SaaS.</p>
+        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 6px 0; color: #1f2937;"><strong>Número de Orden:</strong> #${orderId}</p>
+          <p style="margin: 6px 0; color: #1f2937;"><strong>Destinatario:</strong> ${clientName} (${recipientEmail})</p>
+          <p style="margin: 6px 0; color: #1f2937;"><strong>Monto Total:</strong> ${totalAmount}</p>
+        </div>
+        <p style="font-size: 13px; color: #6b7280; text-align: center; margin-top: 30px;">
+          Motor de Emails Transaccionales Vertex SaaS — 100% Funcional.
+        </p>
+      </div>
+    `;
+
+    const textBody = `¡Gracias por tu compra, ${clientName}! Orden #${orderId}. Total: ${totalAmount}.`;
+
+    try {
+      await sendDirectEmail(recipientEmail, subject, htmlBody, textBody);
+      return {
+        success: true,
+        message: `Email de prueba enviado con éxito a ${recipientEmail}`,
+      };
+    } catch (err: any) {
+      console.error('[sendAdvancedTestEmail] Error sending email:', err);
+      throw new HttpsError(
+        'internal',
+        `Error al enviar el correo de prueba: ${err.message || String(err)}`,
+      );
+    }
+  },
+);
+
 export const redeployStore = onCall<{ storeId: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -2210,19 +2293,5 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       const msg = err instanceof Error ? err.message : String(err);
       throw new HttpsError('internal', `Failed to seed store data: ${msg}`);
     }
-  },
-);
-
-export const generatePasswordResetLink = onCall<{ storeId: string; email: string }>(
-  { cors: ALLOWED_ORIGINS, invoker: 'public' },
-  async (request) => {
-    if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform admins can generate reset links.');
-    }
-
-    throw new HttpsError(
-      'failed-precondition',
-      'Password reset links are disabled. Store admin access is Google OAuth only.',
-    );
   },
 );
