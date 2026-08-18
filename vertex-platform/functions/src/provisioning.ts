@@ -2767,6 +2767,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         `vertex-platform-app@appspot.gserviceaccount.com`,
         `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
         `ecommerce-vertex@appspot.gserviceaccount.com`,
+        `988454979046-compute@developer.gserviceaccount.com`,
+        `1011688892358-compute@developer.gserviceaccount.com`,
+        `291764287509-compute@developer.gserviceaccount.com`,
       ]),
     );
 
