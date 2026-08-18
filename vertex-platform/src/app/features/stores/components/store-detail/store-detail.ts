@@ -758,10 +758,15 @@ export class StoreDetail implements OnInit {
     }
     this.isRedeploying.set(true);
     this.actionError.set('');
+    this.actionSuccess.set('');
     try {
       await this.storesService.redeployStore(id);
-    } catch {
-      this.actionError.set('No se pudo iniciar el redeploy. Intentá de nuevo.');
+      this.actionSuccess.set(
+        '🚀 Proceso de re-despliegue iniciado correctamente. El flujo automatizado de CI/CD de GitHub se está ejecutando para actualizar el storefront de la tienda (demora ~1 minuto).',
+      );
+    } catch (err: unknown) {
+      const msg = errorMessage(err);
+      this.actionError.set('No se pudo iniciar el re-despliegue: ' + msg);
     } finally {
       this.isRedeploying.set(false);
     }
