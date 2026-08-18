@@ -344,6 +344,27 @@
                         <i class="bi bi-box-arrow-up"></i> Aplicar versión
                       }
                     </button>
+
+                    @if (applyVersionActionState().status !== 'idle') {
+                      <div class="action-progress action-progress--{{ applyVersionActionState().status }}">
+                        <div class="action-progress__bar">
+                          <div
+                            class="action-progress__fill"
+                            [style.width.%]="applyVersionActionState().progress"
+                          ></div>
+                        </div>
+                        <div class="action-progress__info">
+                          @if (applyVersionActionState().status === 'running') {
+                            <span class="spinner-sm"></span>
+                          } @else if (applyVersionActionState().status === 'success') {
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          } @else if (applyVersionActionState().status === 'error') {
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                          }
+                          <span class="action-progress__text">{{ applyVersionActionState().message }}</span>
+                        </div>
+                      </div>
+                    }
                   </div>
 
                   @if (versionUpdateSuccess() && store()!.versionUpdateStatus !== 'failed') {
@@ -388,65 +409,136 @@
               <h2 class="detail-card__title">Operaciones de Infraestructura</h2>
               <div class="action-list">
                 <!-- Redeploy -->
-                <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
-                  @if (isRedeploying()) {
-                    <app-spinner size="sm" label="Desplegando…" />
-                  } @else {
-                    <i class="bi bi-arrow-repeat"></i> Re-desplegar versión activa
+                <div class="action-item-wrapper">
+                  <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
+                    @if (isRedeploying()) {
+                      <app-spinner size="sm" label="Desplegando…" />
+                    } @else {
+                      <i class="bi bi-arrow-repeat"></i> Re-desplegar tienda
+                    }
+                    <small>
+                      Re-despliega el código y la infraestructura. En DEV compila la rama
+                      <code>develop</code> (últimos cambios); en PROD compila la versión activa (v{{
+                        store()!.templateVersion || 'asignada'
+                      }}).
+                    </small>
+                  </button>
+
+                  @if (redeployActionState().status !== 'idle') {
+                    <div class="action-progress action-progress--{{ redeployActionState().status }}">
+                      <div class="action-progress__bar">
+                        <div
+                          class="action-progress__fill"
+                          [style.width.%]="redeployActionState().progress"
+                        ></div>
+                      </div>
+                      <div class="action-progress__info">
+                        @if (redeployActionState().status === 'running') {
+                          <span class="spinner-sm"></span>
+                        } @else if (redeployActionState().status === 'success') {
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        } @else if (redeployActionState().status === 'error') {
+                          <i class="bi bi-x-circle-fill text-danger"></i>
+                        }
+                        <span class="action-progress__text">{{ redeployActionState().message }}</span>
+                      </div>
+                    </div>
                   }
-                  <small
-                    >Re-despliega la infraestructura y el código de la tienda utilizando su versión
-                    activa (v{{ store()!.templateVersion || 'asignada' }}).</small
-                  >
-                </button>
+                </div>
 
                 <!-- Seed Mock Data -->
                 @if (store()!.status === 'active') {
-                  <button
-                    class="action-btn action-btn--info"
-                    [disabled]="isSeeding()"
-                    (click)="openSeedConfirm()"
-                  >
-                    @if (isSeeding()) {
-                      <app-spinner size="sm" label="Semillando datos…" />
-                    } @else {
-                      <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba
-                    }
-                    <small
-                      >Carga un catálogo completo de productos, categorías e imágenes de
-                      demostración en el Firestore de la tienda</small
+                  <div class="action-item-wrapper">
+                    <button
+                      class="action-btn action-btn--info"
+                      [disabled]="isSeeding()"
+                      (click)="openSeedConfirm()"
                     >
-                  </button>
+                      @if (isSeeding()) {
+                        <app-spinner size="sm" label="Semillando datos…" />
+                      } @else {
+                        <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba
+                      }
+                      <small
+                        >Carga un catálogo completo de productos, categorías e imágenes de
+                        demostración en el Firestore de la tienda</small
+                      >
+                    </button>
+
+                    @if (seedActionState().status !== 'idle') {
+                      <div class="action-progress action-progress--{{ seedActionState().status }}">
+                        <div class="action-progress__bar">
+                          <div
+                            class="action-progress__fill"
+                            [style.width.%]="seedActionState().progress"
+                          ></div>
+                        </div>
+                        <div class="action-progress__info">
+                          @if (seedActionState().status === 'running') {
+                            <span class="spinner-sm"></span>
+                          } @else if (seedActionState().status === 'success') {
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          } @else if (seedActionState().status === 'error') {
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                          }
+                          <span class="action-progress__text">{{ seedActionState().message }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
                 }
 
                 <!-- Suspend / Activate -->
-                @if (store()!.status === 'active') {
-                  <button
-                    class="action-btn action-btn--warning"
-                    [disabled]="isSuspending()"
-                    (click)="showSleepConfirm.set(true)"
-                  >
-                    <i class="bi bi-moon"></i> Dormir tienda (Suspender)
-                    <small
-                      >Suspende el proyecto temporalmente y lo excluye del ciclo de deploys
-                      globales</small
+                <div class="action-item-wrapper">
+                  @if (store()!.status === 'active') {
+                    <button
+                      class="action-btn action-btn--warning"
+                      [disabled]="isSuspending()"
+                      (click)="showSleepConfirm.set(true)"
                     >
-                  </button>
-                }
-                @if (store()!.status === 'suspended') {
-                  <button
-                    class="action-btn action-btn--success"
-                    [disabled]="isActivating()"
-                    (click)="activate()"
-                  >
-                    @if (isActivating()) {
-                      <span class="spinner-sm"></span> Activando…
-                    } @else {
-                      <i class="bi bi-play-circle"></i> Reactivar tienda
-                    }
-                    <small>Restaura la tienda y reactiva el acceso al storefront del cliente</small>
-                  </button>
-                }
+                      <i class="bi bi-moon"></i> Dormir tienda (Suspender)
+                      <small
+                        >Suspende el proyecto temporalmente y lo excluye del ciclo de deploys
+                        globales</small
+                      >
+                    </button>
+                  }
+                  @if (store()!.status === 'suspended') {
+                    <button
+                      class="action-btn action-btn--success"
+                      [disabled]="isActivating()"
+                      (click)="activate()"
+                    >
+                      @if (isActivating()) {
+                        <span class="spinner-sm"></span> Activando…
+                      } @else {
+                        <i class="bi bi-play-circle"></i> Reactivar tienda
+                      }
+                      <small>Restaura la tienda y reactiva el acceso al storefront del cliente</small>
+                    </button>
+                  }
+
+                  @if (suspendActionState().status !== 'idle') {
+                    <div class="action-progress action-progress--{{ suspendActionState().status }}">
+                      <div class="action-progress__bar">
+                        <div
+                          class="action-progress__fill"
+                          [style.width.%]="suspendActionState().progress"
+                        ></div>
+                      </div>
+                      <div class="action-progress__info">
+                        @if (suspendActionState().status === 'running') {
+                          <span class="spinner-sm"></span>
+                        } @else if (suspendActionState().status === 'success') {
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        } @else if (suspendActionState().status === 'error') {
+                          <i class="bi bi-x-circle-fill text-danger"></i>
+                        }
+                        <span class="action-progress__text">{{ suspendActionState().message }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
 
                 @if (actionError()) {
                   <p class="action-error alert alert-error">{{ actionError() }}</p>
