@@ -2754,24 +2754,49 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
+  async function fetchProjectNumber(auth: OAuth2Client, projId: string): Promise<string | null> {
+    try {
+      const res = (await apiFetch(
+        auth,
+        `https://cloudresourcemanager.googleapis.com/v1/projects/${projId}`,
+      )) as { projectNumber?: string } | undefined;
+      return res?.projectNumber ?? null;
+    } catch (err) {
+      console.warn(`[fetchProjectNumber] Failed for ${projId}:`, err);
+      return null;
+    }
+  }
+
   async function ensureShardProjectIam(auth: OAuth2Client, projectId: string): Promise<void> {
-    const serviceAccounts = Array.from(
-      new Set([
-        `firebase-adminsdk-fbsvc@${PLATFORM_PROJECT}.iam.gserviceaccount.com`,
-        `firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com`,
-        `firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com`,
-        `firebase-adminsdk-fbsvc@ecommerce-vertex-dev.iam.gserviceaccount.com`,
-        `firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com`,
-        `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`,
-        `vertex-platform-dev@appspot.gserviceaccount.com`,
-        `vertex-platform-app@appspot.gserviceaccount.com`,
-        `ecommerce-vertex-dev@appspot.gserviceaccount.com`,
-        `ecommerce-vertex@appspot.gserviceaccount.com`,
-        `988454979046-compute@developer.gserviceaccount.com`,
-        `1011688892358-compute@developer.gserviceaccount.com`,
-        `291764287509-compute@developer.gserviceaccount.com`,
-      ]),
-    );
+    const platformProjectId = PLATFORM_PROJECT;
+    const defaultShardProjectId =
+      PLATFORM_PROJECT === 'vertex-platform-dev' ? 'ecommerce-vertex-dev' : 'ecommerce-vertex';
+
+    // Resolución dinámica de Service Accounts y Números de Proyecto GCP (sin valores hardcodeados)
+    const [platformNum, storefrontNum, shardNum] = await Promise.all([
+      fetchProjectNumber(auth, platformProjectId),
+      fetchProjectNumber(auth, defaultShardProjectId),
+      fetchProjectNumber(auth, projectId),
+    ]);
+
+    const saList = [
+      `firebase-adminsdk-fbsvc@${platformProjectId}.iam.gserviceaccount.com`,
+      `firebase-adminsdk-fbsvc@${defaultShardProjectId}.iam.gserviceaccount.com`,
+      `${platformProjectId}@appspot.gserviceaccount.com`,
+      `${defaultShardProjectId}@appspot.gserviceaccount.com`,
+    ];
+
+    if (platformNum) {
+      saList.push(`${platformNum}-compute@developer.gserviceaccount.com`);
+    }
+    if (storefrontNum) {
+      saList.push(`${storefrontNum}-compute@developer.gserviceaccount.com`);
+    }
+    if (shardNum) {
+      saList.push(`${shardNum}-compute@developer.gserviceaccount.com`);
+    }
+
+    const serviceAccounts = Array.from(new Set(saList));
 
     let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null =
       null;
