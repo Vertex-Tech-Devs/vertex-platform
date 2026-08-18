@@ -818,25 +818,26 @@ export class StoreDetail implements OnInit {
       return;
     }
     this.isRedeploying.set(true);
-    this.actionError.set('');
-    this.actionSuccess.set('');
     this.redeployActionState.set({
       status: 'running',
-      progress: 40,
-      message: 'Despachando evento de re-despliegue en GitHub Actions...',
+      progress: 25,
+      message: 'Conectando con la API de GitHub Actions...',
     });
     try {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      this.redeployActionState.set({
+        status: 'running',
+        progress: 65,
+        message: 'Despachando orden de compilación de infraestructura...',
+      });
       await this.storesService.redeployStore(id);
-      const msg = '🚀 Re-despliegue iniciado correctamente en GitHub Actions (~1 min).';
-      this.actionSuccess.set(msg);
       this.redeployActionState.set({
         status: 'success',
         progress: 100,
-        message: msg,
+        message: '🚀 Re-despliegue iniciado correctamente. GitHub Actions CI/CD en ejecución (~1 min).',
       });
     } catch (err: unknown) {
       const msg = errorMessage(err);
-      this.actionError.set('No se pudo iniciar el re-despliegue: ' + msg);
       this.redeployActionState.set({
         status: 'error',
         progress: 100,
