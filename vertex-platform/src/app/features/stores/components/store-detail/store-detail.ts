@@ -39,6 +39,14 @@ const STEP_ORDER = [
   'triggerDeploy',
 ];
 
+export interface ActionProgressState {
+  status: 'idle' | 'running' | 'success' | 'error';
+  progress: number;
+  message: string;
+}
+
+const IDLE_ACTION_STATE: ActionProgressState = { status: 'idle', progress: 0, message: '' };
+
 @Component({
   selector: 'app-store-detail',
   standalone: true,
@@ -136,6 +144,14 @@ export class StoreDetail implements OnInit {
   readonly actionSuccess = signal('');
   readonly saveError = signal('');
   readonly dnsRecords = signal<DnsRecord[]>([]);
+
+  // Individual Action Mini Progress Bar Signals
+  readonly redeployActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly applyVersionActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly seedActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly suspendActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly domainActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly retryActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
 
   readonly domainInput = signal('');
   deleteConfirmInput = '';
@@ -310,13 +326,28 @@ export class StoreDetail implements OnInit {
     this.isUpdatingVersion.set(true);
     this.versionUpdateError.set('');
     this.versionUpdateSuccess.set('');
+    this.applyVersionActionState.set({
+      status: 'running',
+      progress: 45,
+      message: `Enviando solicitud de cambio a plantilla v${version}...`,
+    });
     try {
       await this.storesService.updateStoreVersion(s.id, version);
-      this.versionUpdateSuccess.set(
-        `Actualización a v${version} iniciada. El deploy puede tardar unos minutos.`,
-      );
+      const msg = `✓ Plantilla v${version} aplicada a la tienda. El deploy automatizado en GitHub Actions iniciará la actualización.`;
+      this.versionUpdateSuccess.set(msg);
+      this.applyVersionActionState.set({
+        status: 'success',
+        progress: 100,
+        message: msg,
+      });
     } catch (err: unknown) {
-      this.versionUpdateError.set(errorMessage(err, 'Error al iniciar la actualización.'));
+      const msg = errorMessage(err, 'Error al iniciar la actualización.');
+      this.versionUpdateError.set(msg);
+      this.applyVersionActionState.set({
+        status: 'error',
+        progress: 100,
+        message: `✗ Error al aplicar versión v${version}: ${msg}`,
+      });
     } finally {
       this.isUpdatingVersion.set(false);
     }
@@ -710,11 +741,26 @@ export class StoreDetail implements OnInit {
     }
     this.isSuspending.set(true);
     this.actionError.set('');
+    this.suspendActionState.set({
+      status: 'running',
+      progress: 50,
+      message: 'Suspendiendo proyecto temporalmente...',
+    });
     try {
       await this.storesService.suspendStore(id);
       this.showSleepConfirm.set(false);
+      this.suspendActionState.set({
+        status: 'success',
+        progress: 100,
+        message: '✓ Tienda suspendida correctamente.',
+      });
     } catch {
       this.actionError.set('No se pudo suspender la tienda.');
+      this.suspendActionState.set({
+        status: 'error',
+        progress: 100,
+        message: '✗ Error al suspender la tienda.',
+      });
     } finally {
       this.isSuspending.set(false);
       this.sleepConfirmInput = '';
@@ -728,10 +774,25 @@ export class StoreDetail implements OnInit {
     }
     this.isActivating.set(true);
     this.actionError.set('');
+    this.suspendActionState.set({
+      status: 'running',
+      progress: 50,
+      message: 'Reactivando tienda y acceso al storefront...',
+    });
     try {
       await this.storesService.activateStore(id);
+      this.suspendActionState.set({
+        status: 'success',
+        progress: 100,
+        message: '✓ Tienda reactivada exitosamente.',
+      });
     } catch {
       this.actionError.set('No se pudo reactivar la tienda.');
+      this.suspendActionState.set({
+        status: 'error',
+        progress: 100,
+        message: '✗ Error al reactivar la tienda.',
+      });
     } finally {
       this.isActivating.set(false);
     }
@@ -759,14 +820,28 @@ export class StoreDetail implements OnInit {
     this.isRedeploying.set(true);
     this.actionError.set('');
     this.actionSuccess.set('');
+    this.redeployActionState.set({
+      status: 'running',
+      progress: 40,
+      message: 'Despachando evento de re-despliegue en GitHub Actions...',
+    });
     try {
       await this.storesService.redeployStore(id);
-      this.actionSuccess.set(
-        '🚀 Proceso de re-despliegue iniciado correctamente. El flujo automatizado de CI/CD de GitHub se está ejecutando para actualizar el storefront de la tienda (demora ~1 minuto).',
-      );
+      const msg = '🚀 Re-despliegue iniciado correctamente en GitHub Actions (~1 min).';
+      this.actionSuccess.set(msg);
+      this.redeployActionState.set({
+        status: 'success',
+        progress: 100,
+        message: msg,
+      });
     } catch (err: unknown) {
       const msg = errorMessage(err);
       this.actionError.set('No se pudo iniciar el re-despliegue: ' + msg);
+      this.redeployActionState.set({
+        status: 'error',
+        progress: 100,
+        message: '✗ Error al iniciar re-despliegue: ' + msg,
+      });
     } finally {
       this.isRedeploying.set(false);
     }
@@ -786,14 +861,28 @@ export class StoreDetail implements OnInit {
     this.isSeeding.set(true);
     this.actionError.set('');
     this.actionSuccess.set('');
+    this.seedActionState.set({
+      status: 'running',
+      progress: 45,
+      message: 'Generando e insertando catálogo de prueba en Firestore...',
+    });
     try {
       await this.storesService.seedStore(id, this.seedIncludeMock());
-      this.actionSuccess.set(
-        '¡Catálogo y productos de prueba cargados con éxito! Ya podés verlos en tu tienda.',
-      );
+      const msg = '✓ ¡Catálogo de productos de prueba cargado con éxito en tu tienda!';
+      this.actionSuccess.set(msg);
+      this.seedActionState.set({
+        status: 'success',
+        progress: 100,
+        message: msg,
+      });
     } catch (err: unknown) {
       const msg = errorMessage(err);
       this.actionError.set('Error al semillar datos: ' + msg);
+      this.seedActionState.set({
+        status: 'error',
+        progress: 100,
+        message: '✗ Error al semillar datos: ' + msg,
+      });
     } finally {
       this.isSeeding.set(false);
     }
@@ -806,14 +895,26 @@ export class StoreDetail implements OnInit {
     }
     this.isRetrying.set(true);
     this.actionError.set('');
+    this.retryActionState.set({
+      status: 'running',
+      progress: 30,
+      message: 'Reintentando aprovisionamiento del proyecto...',
+    });
     try {
       await this.storesService.retryProvisioning(id);
+      this.retryActionState.set({
+        status: 'success',
+        progress: 100,
+        message: '✓ Reintento de aprovisionamiento iniciado.',
+      });
     } catch (err: unknown) {
-      this.actionError.set(
-        err instanceof Error
-          ? err.message
-          : 'No se pudo reintentar el aprovisionamiento. Intentá de nuevo.',
-      );
+      const msg = err instanceof Error ? err.message : 'No se pudo reintentar aprovisionamiento.';
+      this.actionError.set(msg);
+      this.retryActionState.set({
+        status: 'error',
+        progress: 100,
+        message: '✗ Error: ' + msg,
+      });
     } finally {
       this.isRetrying.set(false);
     }
