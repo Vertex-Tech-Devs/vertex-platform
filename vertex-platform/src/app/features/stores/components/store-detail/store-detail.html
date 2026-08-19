@@ -456,68 +456,6 @@
               </div>
 
               <div class="ops-card__grid">
-                <!-- Redeploy Control Card -->
-                <div class="op-control-card" [class.op-control-card--active]="redeployActionState().status === 'running'">
-                  <div class="op-control-card__header">
-                    <div class="op-control-card__info">
-                      <div class="op-control-card__icon text-primary">
-                        <i class="bi bi-arrow-repeat"></i>
-                      </div>
-                      <div class="op-control-card__meta">
-                        <div class="op-control-card__title-row">
-                          <h4 class="op-control-card__title">Re-desplegar Tienda</h4>
-                          <span class="op-control-card__badge badge--primary">
-                            v{{ store()!.templateVersion || '0.3.0' }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      class="btn btn-primary btn-sm px-3 shadow-sm op-control-card__btn"
-                      [disabled]="isRedeploying() || redeployActionState().status === 'running'"
-                      (click)="redeploy()"
-                    >
-                      @if (isRedeploying() || redeployActionState().status === 'running') {
-                        <app-spinner size="sm" label="Ejecutando…" />
-                      } @else {
-                        <i class="bi bi-rocket-takeoff me-1"></i> Re-desplegar
-                      }
-                    </button>
-                  </div>
-
-                  <p class="op-control-card__desc">
-                    Actualizá y publicá al instante los cambios de código más recientes en el sitio web de la tienda.
-                  </p>
-
-                  @if (redeployActionState().status !== 'idle') {
-                    <div class="action-progress action-progress--{{ redeployActionState().status }}">
-                      <div class="action-progress__bar">
-                        <div
-                          class="action-progress__fill"
-                          [style.width.%]="redeployActionState().progress"
-                        ></div>
-                      </div>
-                      <div class="action-progress__info">
-                        @if (redeployActionState().status === 'running') {
-                          <span class="spinner-sm"></span>
-                        } @else if (redeployActionState().status === 'success') {
-                          <i class="bi bi-check-circle-fill text-success"></i>
-                        } @else if (redeployActionState().status === 'error') {
-                          <i class="bi bi-x-circle-fill text-danger"></i>
-                        }
-                        <span class="action-progress__text">{{ redeployActionState().message }}</span>
-                        @if (redeployActionState().status !== 'running') {
-                          <button
-                            type="button"
-                            class="btn-close btn-close-white btn-sm ms-2"
-                            aria-label="Cerrar notificación"
-                            (click)="dismissRedeployProgress()"
-                          ></button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
 
                 <!-- Seed Control Card -->
                 @if (store()!.status === 'active') {
