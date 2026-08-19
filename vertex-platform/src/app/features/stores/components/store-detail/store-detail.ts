@@ -303,7 +303,7 @@ export class StoreDetail implements OnInit {
         .getStoreDeploymentHistory(id)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((history) => {
-          this.deployHistory.set(history);
+          this.deployHistory.set(this.formatDeployHistory(history));
         });
       void this.checkOAuthRedirect(id);
     }
@@ -1008,6 +1008,17 @@ export class StoreDetail implements OnInit {
     }
   }
 
+  private formatDeployHistory(history: Record<string, unknown>[]): Record<string, unknown>[] {
+    const storeVer = this.store()?.templateVersion || this.store()?.appVersion;
+    return history.map((item) => {
+      const ver = String(item['version'] || '');
+      if ((!ver || ver === '0.1.0') && storeVer) {
+        return { ...item, version: storeVer.replace(/^v/, '') };
+      }
+      return item;
+    });
+  }
+
   refreshDeployHistory(): void {
     this.deployHistory.set([]);
     const id = this.route.snapshot.paramMap.get('id');
@@ -1016,7 +1027,7 @@ export class StoreDetail implements OnInit {
         .getStoreDeploymentHistory(id)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((history) => {
-          this.deployHistory.set(history);
+          this.deployHistory.set(this.formatDeployHistory(history));
         });
     }
   }

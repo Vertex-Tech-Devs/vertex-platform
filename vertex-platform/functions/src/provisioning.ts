@@ -3297,6 +3297,14 @@ export const completeStoreDeployment = onCall<{
   }
 
   // Create a deployment history log entry
+  const storeVersion = (storeData['templateVersion'] as string) || (storeData['appVersion'] as string);
+  const effectiveVersion =
+    version && version !== '0.1.0'
+      ? version
+      : storeVersion
+        ? storeVersion.replace(/^v/, '')
+        : CURRENT_TEMPLATE_VERSION;
+
   const deployLogRef = storeRef.collection('deploys').doc();
   await deployLogRef.set({
     timestamp: new Date(),
@@ -3304,7 +3312,7 @@ export const completeStoreDeployment = onCall<{
     commitSha: commitSha || '',
     commitMessage: commitMessage || '',
     ref: ref || '',
-    version: version || CURRENT_TEMPLATE_VERSION,
+    version: effectiveVersion,
     error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.',
   });
 
