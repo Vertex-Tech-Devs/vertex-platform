@@ -174,7 +174,12 @@ describe('reconcileActiveStores scheduler', () => {
     const mockStores = [
       { id: 'store-1', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-2', shardId: 'shard-1', runtimeMode: 'shared-shard', status: 'active' },
-      { id: 'store-3', firebaseProjectId: 'vtx-sd-proj2', runtimeMode: 'shared-shard', status: 'active' },
+      {
+        id: 'store-3',
+        firebaseProjectId: 'vtx-sd-proj2',
+        runtimeMode: 'shared-shard',
+        status: 'active',
+      },
       { id: 'store-4', projectId: 'vtx-sd-proj3', runtimeMode: 'shared-shard', status: 'active' },
       { id: 'store-no-shard', runtimeMode: 'shared-shard', status: 'active' }, // Falsy shardId and projectId to cover skip branch
     ];

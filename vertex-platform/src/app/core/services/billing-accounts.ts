@@ -32,9 +32,15 @@ export class BillingAccountsService {
     [...this.accounts()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
   );
   readonly activeAccountsCount = computed(() => this.accounts().filter((a) => a.active).length);
-  readonly totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
-  readonly totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
-  readonly totalGcpRemaining = computed(() => Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()));
+  readonly totalGcpLimit = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0),
+  );
+  readonly totalGcpUsed = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0),
+  );
+  readonly totalGcpRemaining = computed(() =>
+    Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()),
+  );
   readonly usagePercent = computed(() =>
     this.totalGcpLimit() > 0 ? Math.round((this.totalGcpUsed() / this.totalGcpLimit()) * 100) : 0,
   );
@@ -67,8 +73,15 @@ export class BillingAccountsService {
                 if (count !== undefined && count !== a.gcpUsedProjects) {
                   const gcpUsedProjects = count;
                   const gcpRemaining = Math.max(0, a.gcpProjectLimit - gcpUsedProjects);
-                  const gcpUsageRatio = a.gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / a.gcpProjectLimit) : 0;
-                  return { ...a, usedProjects: gcpUsedProjects, gcpUsedProjects, gcpRemaining, gcpUsageRatio };
+                  const gcpUsageRatio =
+                    a.gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / a.gcpProjectLimit) : 0;
+                  return {
+                    ...a,
+                    usedProjects: gcpUsedProjects,
+                    gcpUsedProjects,
+                    gcpRemaining,
+                    gcpUsageRatio,
+                  };
                 }
                 return a;
               }),
@@ -93,7 +106,9 @@ export class BillingAccountsService {
       (snapshot) => {
         if (!snapshot.empty) {
           const list = snapshot.docs.map((doc) => this.mapDocToBillingAccount(doc.id, doc.data()));
-          this.accounts.set(list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
+          this.accounts.set(
+            list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+          );
           this.isLoading.set(false);
         } else {
           // Fallback to billingAccounts collection
@@ -101,8 +116,12 @@ export class BillingAccountsService {
           onSnapshot(
             fallbackRef,
             (fbSnap) => {
-              const list = fbSnap.docs.map((doc) => this.mapDocToBillingAccount(doc.id, doc.data()));
-              this.accounts.set(list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
+              const list = fbSnap.docs.map((doc) =>
+                this.mapDocToBillingAccount(doc.id, doc.data()),
+              );
+              this.accounts.set(
+                list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+              );
               this.isLoading.set(false);
             },
             (err) => {
@@ -121,7 +140,8 @@ export class BillingAccountsService {
 
   private mapDocToBillingAccount(id: string, data: Record<string, unknown>): BillingAccount {
     const active = data['status'] ? data['status'] === 'ACTIVE' : data['active'] !== false;
-    const accountId = typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id;
+    const accountId =
+      typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id;
     const gcpProjectLimit = Number(data['maxProjects'] ?? data['gcpProjectLimit'] ?? 5);
 
     // Dynamic real project usage calculation from infrastructure_shards or doc fallback
@@ -135,7 +155,11 @@ export class BillingAccountsService {
     const gcpUsageRatio = gcpProjectLimit > 0 ? Math.min(1, gcpUsedProjects / gcpProjectLimit) : 0;
 
     let addedAt: Date | null = null;
-    if (data['createdAt'] && typeof data['createdAt'] === 'object' && 'toDate' in data['createdAt']) {
+    if (
+      data['createdAt'] &&
+      typeof data['createdAt'] === 'object' &&
+      'toDate' in data['createdAt']
+    ) {
       addedAt = (data['createdAt'] as { toDate: () => Date }).toDate();
     } else if (data['addedAt']) {
       addedAt = new Date(data['addedAt'] as string);

@@ -77,10 +77,19 @@ export const listBillingAccounts = onCall(
 
     const accounts = accountsSnap.docs.map((d) => {
       const data = d.data();
-      const gcpProjectLimit = (data['gcpProjectLimit'] as number | undefined) ?? (data['maxProjects'] as number | undefined) ?? 5;
-      const gcpUsedProjects = gcpUsageMap[d.id] ?? (data['currentProjects'] as number | undefined) ?? usageMap[d.id] ?? 0;
-      const active = data['status'] ? data['status'] === 'ACTIVE' : (data['active'] as boolean | undefined) !== false;
-      const addedAtDate = (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate() ?? (data['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() ?? null;
+      const gcpProjectLimit =
+        (data['gcpProjectLimit'] as number | undefined) ??
+        (data['maxProjects'] as number | undefined) ??
+        5;
+      const gcpUsedProjects =
+        gcpUsageMap[d.id] ?? (data['currentProjects'] as number | undefined) ?? usageMap[d.id] ?? 0;
+      const active = data['status']
+        ? data['status'] === 'ACTIVE'
+        : (data['active'] as boolean | undefined) !== false;
+      const addedAtDate =
+        (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate() ??
+        (data['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() ??
+        null;
       return {
         id: d.id,
         name: (data['name'] as string | undefined) ?? d.id,

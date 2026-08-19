@@ -118,7 +118,8 @@ export const reconcileActiveStores = functions.pubsub
       for (const doc of storesSnap.docs) {
         const data = doc.data();
         const shardId = data['shardId'];
-        const projectId = data['runtimeProjectId'] || data['firebaseProjectId'] || data['projectId'];
+        const projectId =
+          data['runtimeProjectId'] || data['firebaseProjectId'] || data['projectId'];
         if (shardId) {
           physicalCountsByShardId[shardId] = (physicalCountsByShardId[shardId] || 0) + 1;
         }

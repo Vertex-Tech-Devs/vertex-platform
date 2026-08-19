@@ -71,9 +71,7 @@ export class StoreDetail implements OnInit {
   } | null>(null);
 
   // Tab management
-  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>(
-    'orquestacion',
-  );
+  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
 
   readonly store = computed(() => {
     const id = this.route.snapshot.paramMap.get('id');
@@ -242,8 +240,6 @@ export class StoreDetail implements OnInit {
     logoUrl: [''],
   });
 
-
-
   // Team RBAC fields
   readonly staff = signal<StaffMember[]>([]);
   readonly invitations = signal<PendingInvitation[]>([]);
@@ -396,9 +392,7 @@ export class StoreDetail implements OnInit {
   }
 
   // Dynamic Tabs switching
-  async setTab(
-    tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial',
-  ): Promise<void> {
+  async setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial'): Promise<void> {
     this.activeTab.set(tab);
     const s = this.store();
     if (!s) {
@@ -414,8 +408,6 @@ export class StoreDetail implements OnInit {
       }
     }
   }
-
-
 
   // Staff management
   async loadStaff(): Promise<void> {

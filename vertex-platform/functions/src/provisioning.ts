@@ -3297,7 +3297,8 @@ export const completeStoreDeployment = onCall<{
   }
 
   // Create a deployment history log entry
-  const storeVersion = (storeData['templateVersion'] as string) || (storeData['appVersion'] as string);
+  const storeVersion =
+    (storeData['templateVersion'] as string) || (storeData['appVersion'] as string);
   const effectiveVersion =
     version && version !== '0.1.0'
       ? version

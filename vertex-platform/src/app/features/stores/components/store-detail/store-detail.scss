@@ -939,8 +939,6 @@
   }
 }
 
-
-
 // ==========================================================================
 // TAB 3: EQUIPO & RBAC (Multi-User Collaboration)
 // ==========================================================================
@@ -1922,8 +1920,12 @@
 }
 
 @keyframes progressPulsate {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Full Wireframe Detail Skeletons ─────────────────────────────────────── */

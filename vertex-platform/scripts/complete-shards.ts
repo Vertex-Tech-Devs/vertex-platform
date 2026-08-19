@@ -49,7 +49,12 @@ function parseArgs(): Options {
   return {
     env,
     dryRun: args.includes('--dry-run'),
-    projectIds: idsRaw ? idsRaw.split(',').map((s) => s.trim()).filter(Boolean) : null,
+    projectIds: idsRaw
+      ? idsRaw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : null,
     backfillBilling: args.includes('--backfill-billing'),
     fixRules: args.includes('--fix-rules'),
   };
@@ -59,8 +64,7 @@ const opts = parseArgs();
 const platformProject = opts.env === 'prod' ? 'vertex-platform-app' : 'vertex-platform-dev';
 const envValue = opts.env === 'prod' ? 'production' : 'development';
 const masterStorefrontProject = opts.env === 'prod' ? 'ecommerce-vertex' : 'ecommerce-vertex-dev';
-const MASTER_CLIENT_ID =
-  '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+const MASTER_CLIENT_ID = '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
 const BILLING_ACCOUNTS =
   opts.env === 'prod'
     ? [] // en prod se usa pickBillingAccount del platform (o se pasa --project-ids con la cuenta)
@@ -107,7 +111,11 @@ async function getAadcToken(): Promise<string> {
   throw new Error('No Application Default Credentials found.');
 }
 
-async function refreshToken(client_id: string, client_secret: string, refresh_token: string): Promise<string> {
+async function refreshToken(
+  client_id: string,
+  client_secret: string,
+  refresh_token: string,
+): Promise<string> {
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
     client_id,
@@ -132,7 +140,9 @@ async function getOwnerToken(adcToken: string): Promise<string> {
     { headers: { Authorization: `Bearer ${adcToken}`, 'x-goog-user-project': platformProject } },
   );
   if (!r.ok) {
-    throw new Error(`No se pudo leer platform-owner-credentials (${r.status}) — el ADC necesita secretAccessor.`);
+    throw new Error(
+      `No se pudo leer platform-owner-credentials (${r.status}) — el ADC necesita secretAccessor.`,
+    );
   }
   const j = (await r.json()) as { payload: { data: string } };
   const creds = JSON.parse(Buffer.from(j.payload.data, 'base64').toString()) as {
@@ -176,7 +186,8 @@ async function poll(token: string, opName: string, base: string, quota?: string)
   for (let i = 0; i < 40; i++) {
     const res = await api(token, url, 'GET', undefined, quota);
     if (res.done) {
-      if (res.error) throw new Error(`LRO fallida: ${res.error.message || JSON.stringify(res.error)}`);
+      if (res.error)
+        throw new Error(`LRO fallida: ${res.error.message || JSON.stringify(res.error)}`);
       return;
     }
     await new Promise((r) => setTimeout(r, 5000));
@@ -186,7 +197,9 @@ async function poll(token: string, opName: string, base: string, quota?: string)
 
 // ─────────────────────────── Estado ───────────────────────────
 
-async function listShardProjects(token: string): Promise<Array<{ projectId: string; createTime?: string }>> {
+async function listShardProjects(
+  token: string,
+): Promise<Array<{ projectId: string; createTime?: string }>> {
   const all: Array<{ projectId: string; createTime?: string }> = [];
   let pageToken = '';
   do {
@@ -220,7 +233,9 @@ async function getPoolProjectIds(token: string): Promise<Set<string>> {
     }),
   });
   if (!res.ok) throw new Error(`Pool read failed (${res.status}).`);
-  const docs = (await res.json()) as Array<{ document?: { name: string; fields?: Record<string, any> } }>;
+  const docs = (await res.json()) as Array<{
+    document?: { name: string; fields?: Record<string, any> };
+  }>;
   const ids = new Set<string>();
   for (const d of docs) {
     const f = d.document?.fields;
@@ -262,25 +277,64 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 3000):
 
 /** Despliega firestore.rules + storage.rules en un shard (con retry por transitorios). */
 async function deployShardRules(token: string, projectId: string): Promise<void> {
-  const deployRuleset = async (fileName: string, content: string, releaseId: string): Promise<void> => {
-    await withRetry(async () => {
-      const rs = await api(token, `${FIREBASERULES_URL}/projects/${projectId}/rulesets`, 'POST', { source: { files: [{ name: fileName, content }] } }, projectId);
-      if (rs.name) {
-        try { await api(token, `${FIREBASERULES_URL}/projects/${projectId}/releases/${releaseId}`, 'DELETE', undefined, projectId); } catch { /* 404 ok */ }
-        try {
-          await api(token, `${FIREBASERULES_URL}/projects/${projectId}/releases`, 'POST', { name: `projects/${projectId}/releases/${releaseId}`, rulesetName: rs.name }, projectId);
-        } catch (err: any) {
-          const msg = String(err?.message || '');
-          if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+  const deployRuleset = async (
+    fileName: string,
+    content: string,
+    releaseId: string,
+  ): Promise<void> => {
+    await withRetry(
+      async () => {
+        const rs = await api(
+          token,
+          `${FIREBASERULES_URL}/projects/${projectId}/rulesets`,
+          'POST',
+          { source: { files: [{ name: fileName, content }] } },
+          projectId,
+        );
+        if (rs.name) {
+          try {
+            await api(
+              token,
+              `${FIREBASERULES_URL}/projects/${projectId}/releases/${releaseId}`,
+              'DELETE',
+              undefined,
+              projectId,
+            );
+          } catch {
+            /* 404 ok */
+          }
+          try {
+            await api(
+              token,
+              `${FIREBASERULES_URL}/projects/${projectId}/releases`,
+              'POST',
+              { name: `projects/${projectId}/releases/${releaseId}`, rulesetName: rs.name },
+              projectId,
+            );
+          } catch (err: any) {
+            const msg = String(err?.message || '');
+            if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+          }
         }
-      }
-    }, 3, 4000);
+      },
+      3,
+      4000,
+    );
   };
   await deployRuleset('firestore.rules', STOREFRONT_FIRESTORE_RULES, 'cloud.firestore');
   await deployRuleset('storage.rules', STOREFRONT_STORAGE_RULES, 'firebase.storage');
 }
 
-async function configureProject(token: string, projectId: string, billingAccountId: string): Promise<{ billingLinked: string | null; firestoreOk: boolean; webAppOk: boolean; rulesOk: boolean }> {
+async function configureProject(
+  token: string,
+  projectId: string,
+  billingAccountId: string,
+): Promise<{
+  billingLinked: string | null;
+  firestoreOk: boolean;
+  webAppOk: boolean;
+  rulesOk: boolean;
+}> {
   console.log(`\n▶ Completando ${projectId} (billing ${billingAccountId})...`);
   let firestoreOk = false;
   let webAppOk = false;
@@ -291,7 +345,13 @@ async function configureProject(token: string, projectId: string, billingAccount
   // probar la siguiente (FAILED_PRECONDITION = restricción/cuota de la cuenta).
   let billingLinked: string | null = null;
   try {
-    const current = await api(token, `${BILLING_URL}/projects/${projectId}/billingInfo`, 'GET', undefined, platformProject);
+    const current = await api(
+      token,
+      `${BILLING_URL}/projects/${projectId}/billingInfo`,
+      'GET',
+      undefined,
+      platformProject,
+    );
     const existing = current?.billingAccountName?.replace('billingAccounts/', '');
     if (current?.billingEnabled === true && existing) {
       billingLinked = existing;
@@ -308,13 +368,14 @@ async function configureProject(token: string, projectId: string, billingAccount
   for (const account of billingCandidates) {
     try {
       await withRetry(
-        () => api(
-          token,
-          `${BILLING_URL}/projects/${projectId}/billingInfo`,
-          'PUT',
-          { billingAccountName: `billingAccounts/${account}` },
-          platformProject,
-        ),
+        () =>
+          api(
+            token,
+            `${BILLING_URL}/projects/${projectId}/billingInfo`,
+            'PUT',
+            { billingAccountName: `billingAccounts/${account}` },
+            platformProject,
+          ),
         2,
         2000,
       );
@@ -349,7 +410,13 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 3. Firebase
   try {
-    const fb = await api(token, `${FIREBASE_URL}/projects/${projectId}:addFirebase`, 'POST', {}, platformProject);
+    const fb = await api(
+      token,
+      `${FIREBASE_URL}/projects/${projectId}:addFirebase`,
+      'POST',
+      {},
+      platformProject,
+    );
     if (fb.name) await poll(token, fb.name, FIREBASE_URL, platformProject);
     console.log('  ✅ Firebase activado');
   } catch (err: any) {
@@ -369,7 +436,10 @@ async function configureProject(token: string, projectId: string, billingAccount
     firestoreOk = true;
     console.log('  ✅ Firestore nativo');
   } catch (err: any) {
-    if (!String(err?.message || '').includes('409') && !String(err?.message || '').includes('already')) {
+    if (
+      !String(err?.message || '').includes('409') &&
+      !String(err?.message || '').includes('already')
+    ) {
       console.warn(`  ⚠️ firestore: ${String(err?.message || '').slice(0, 160)}`);
     }
   }
@@ -377,25 +447,59 @@ async function configureProject(token: string, projectId: string, billingAccount
   // 5. Storage bucket default + CORS
   try {
     const corsConfig = {
-      cors: [{ origin: ['*'], method: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], responseHeader: ['Content-Type', 'Authorization', 'Content-Length', 'x-firebase-storage-version', 'x-goog-resumable'], maxAgeSeconds: 3600 }],
+      cors: [
+        {
+          origin: ['*'],
+          method: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+          responseHeader: [
+            'Content-Type',
+            'Authorization',
+            'Content-Length',
+            'x-firebase-storage-version',
+            'x-goog-resumable',
+          ],
+          maxAgeSeconds: 3600,
+        },
+      ],
     };
     const setCors = async (bucketName: string): Promise<boolean> => {
       try {
-        await withRetry(() => api(token, `${STORAGE_URL}/b/${bucketName}`, 'PATCH', corsConfig, projectId), 3, 3000);
+        await withRetry(
+          () => api(token, `${STORAGE_URL}/b/${bucketName}`, 'PATCH', corsConfig, projectId),
+          3,
+          3000,
+        );
         return true;
       } catch {
         return false;
       }
     };
-    const buckets = await api(token, `${STORAGE_URL}/b?project=${projectId}`, 'GET', undefined, projectId);
+    const buckets = await api(
+      token,
+      `${STORAGE_URL}/b?project=${projectId}`,
+      'GET',
+      undefined,
+      projectId,
+    );
     const names = (buckets.items || []).map((b: any) => b.name);
     const hasNew = names.includes(`${projectId}.firebasestorage.app`);
     if (!hasNew) {
       try {
-        await api(token, `${STORAGE_URL}/b?project=${projectId}`, 'POST', { name: `${projectId}.firebasestorage.app` }, projectId);
+        await api(
+          token,
+          `${STORAGE_URL}/b?project=${projectId}`,
+          'POST',
+          { name: `${projectId}.firebasestorage.app` },
+          projectId,
+        );
       } catch (err: any) {
         const msg = String(err?.message || '');
-        if (!msg.includes('owns the domain') && !msg.includes('already exists') && !msg.includes('409')) throw err;
+        if (
+          !msg.includes('owns the domain') &&
+          !msg.includes('already exists') &&
+          !msg.includes('409')
+        )
+          throw err;
         console.log('  · bucket nuevo ya existe (otro owner) — continúo');
       }
     }
@@ -403,7 +507,11 @@ async function configureProject(token: string, projectId: string, billingAccount
     // {projectId}.firebasestorage.app o {projectId}.appspot.com según quién lo creó).
     let corsOk = await setCors(`${projectId}.firebasestorage.app`);
     if (!corsOk) {
-      const actual = names.find((n: string) => n.startsWith(projectId) && (n.endsWith('.appspot.com') || n.endsWith('.firebasestorage.app')));
+      const actual = names.find(
+        (n: string) =>
+          n.startsWith(projectId) &&
+          (n.endsWith('.appspot.com') || n.endsWith('.firebasestorage.app')),
+      );
       if (actual) corsOk = await setCors(actual);
     }
     if (!corsOk && names.length > 0) {
@@ -417,10 +525,22 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 6. Web app + config
   try {
-    const apps = await api(token, `${FIREBASE_URL}/projects/${projectId}/webApps`, 'GET', undefined, projectId);
+    const apps = await api(
+      token,
+      `${FIREBASE_URL}/projects/${projectId}/webApps`,
+      'GET',
+      undefined,
+      projectId,
+    );
     const existing = (apps.apps || [])[0];
     if (!existing) {
-      const wa = await api(token, `${FIREBASE_URL}/projects/${projectId}/webApps`, 'POST', { displayName: `Storefront ${projectId.replace('vtx-sd-', '')}` }, projectId);
+      const wa = await api(
+        token,
+        `${FIREBASE_URL}/projects/${projectId}/webApps`,
+        'POST',
+        { displayName: `Storefront ${projectId.replace('vtx-sd-', '')}` },
+        projectId,
+      );
       if (wa.name) await poll(token, wa.name, FIREBASE_URL, projectId);
     }
     webAppOk = true;
@@ -431,7 +551,13 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 7. Identity Platform
   try {
-    await api(token, `${IDTOOLKIT_URL}/v2/projects/${projectId}/identityPlatform:initializeAuth`, 'POST', {}, projectId);
+    await api(
+      token,
+      `${IDTOOLKIT_URL}/v2/projects/${projectId}/identityPlatform:initializeAuth`,
+      'POST',
+      {},
+      projectId,
+    );
     console.log('  ✅ Identity Platform');
   } catch (err: any) {
     console.warn(`  ⚠️ initializeAuth: ${String(err?.message || '').slice(0, 120)}`);
@@ -439,14 +565,26 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 8. Google IdP (clientId/secret del master)
   try {
-    const masterIdp = await api(token, `${IDTOOLKIT_URL}/v2/projects/${masterStorefrontProject}/defaultSupportedIdpConfigs/google.com`, 'GET', undefined, masterStorefrontProject);
+    const masterIdp = await api(
+      token,
+      `${IDTOOLKIT_URL}/v2/projects/${masterStorefrontProject}/defaultSupportedIdpConfigs/google.com`,
+      'GET',
+      undefined,
+      masterStorefrontProject,
+    );
     if (masterIdp.clientId && masterIdp.clientSecret) {
-      await api(token, `${IDTOOLKIT_URL}/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`, 'POST', {
-        name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
-        enabled: true,
-        clientId: masterIdp.clientId,
-        clientSecret: masterIdp.clientSecret,
-      }, projectId);
+      await api(
+        token,
+        `${IDTOOLKIT_URL}/v2/projects/${projectId}/defaultSupportedIdpConfigs?idpId=google.com`,
+        'POST',
+        {
+          name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
+          enabled: true,
+          clientId: masterIdp.clientId,
+          clientSecret: masterIdp.clientSecret,
+        },
+        projectId,
+      );
       console.log('  ✅ Google IdP');
     }
   } catch (err: any) {
@@ -455,13 +593,29 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 9. authorizedDomains
   try {
-    const cfg = await api(token, `${IDTOOLKIT_URL}/v2/projects/${projectId}/config`, 'GET', undefined, projectId);
-    const domains = Array.from(new Set([
-      ...(cfg.authorizedDomains || []),
-      'localhost', '127.0.0.1',
-      `${projectId}.firebaseapp.com`, `${projectId}.web.app`,
-    ]));
-    await api(token, `${IDTOOLKIT_URL}/v2/projects/${projectId}/config?updateMask=authorizedDomains`, 'PATCH', { authorizedDomains: domains }, projectId);
+    const cfg = await api(
+      token,
+      `${IDTOOLKIT_URL}/v2/projects/${projectId}/config`,
+      'GET',
+      undefined,
+      projectId,
+    );
+    const domains = Array.from(
+      new Set([
+        ...(cfg.authorizedDomains || []),
+        'localhost',
+        '127.0.0.1',
+        `${projectId}.firebaseapp.com`,
+        `${projectId}.web.app`,
+      ]),
+    );
+    await api(
+      token,
+      `${IDTOOLKIT_URL}/v2/projects/${projectId}/config?updateMask=authorizedDomains`,
+      'PATCH',
+      { authorizedDomains: domains },
+      projectId,
+    );
     console.log('  ✅ authorizedDomains');
   } catch (err: any) {
     console.warn(`  ⚠️ domains: ${String(err?.message || '').slice(0, 120)}`);
@@ -479,13 +633,31 @@ async function configureProject(token: string, projectId: string, billingAccount
 
   // 11. API keys sin restricciones (dominios multi-tenant)
   try {
-    const projInfo = await api(token, `${CRM_URL}/projects/${projectId}`, 'GET', undefined, platformProject);
+    const projInfo = await api(
+      token,
+      `${CRM_URL}/projects/${projectId}`,
+      'GET',
+      undefined,
+      platformProject,
+    );
     const num = projInfo.projectNumber;
     if (num) {
-      const keys = await api(token, `${APIKEYS_URL}/projects/${num}/locations/global/keys`, 'GET', undefined, projectId);
+      const keys = await api(
+        token,
+        `${APIKEYS_URL}/projects/${num}/locations/global/keys`,
+        'GET',
+        undefined,
+        projectId,
+      );
       for (const k of keys.keys || []) {
         if (k.restrictions && Object.keys(k.restrictions).length > 0) {
-          await api(token, `${APIKEYS_URL}/${k.name}?updateMask=restrictions`, 'PATCH', { restrictions: {} }, projectId);
+          await api(
+            token,
+            `${APIKEYS_URL}/${k.name}?updateMask=restrictions`,
+            'PATCH',
+            { restrictions: {} },
+            projectId,
+          );
         }
       }
     }
@@ -497,7 +669,11 @@ async function configureProject(token: string, projectId: string, billingAccount
   return { billingLinked, firestoreOk, webAppOk, rulesOk };
 }
 
-async function registerShardDoc(token: string, projectId: string, billingAccountId: string): Promise<void> {
+async function registerShardDoc(
+  token: string,
+  projectId: string,
+  billingAccountId: string,
+): Promise<void> {
   const shardId = `shard-${envValue}-${projectId.replace('vtx-sd-', '')}`;
   const fields = {
     id: { stringValue: shardId },
@@ -520,7 +696,9 @@ async function registerShardDoc(token: string, projectId: string, billingAccount
     .join('&');
   const docUrl = `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents/infrastructure_shards/${shardId}?${mask}`;
   await api(token, docUrl, 'PATCH', { fields }, platformProject);
-  console.log(`  ✅ registrado en infrastructure_shards (${shardId}${billingAccountId ? `, billing=${billingAccountId}` : ', sin billing'})`);
+  console.log(
+    `  ✅ registrado en infrastructure_shards (${shardId}${billingAccountId ? `, billing=${billingAccountId}` : ', sin billing'})`,
+  );
 }
 
 async function backfillBilling(token: string, adcToken: string): Promise<void> {
@@ -528,10 +706,18 @@ async function backfillBilling(token: string, adcToken: string): Promise<void> {
   const url = `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents:runQuery`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${adcToken}`, 'Content-Type': 'application/json', 'x-goog-user-project': platformProject },
-    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'infrastructure_shards' }], limit: 500 } }),
+    headers: {
+      Authorization: `Bearer ${adcToken}`,
+      'Content-Type': 'application/json',
+      'x-goog-user-project': platformProject,
+    },
+    body: JSON.stringify({
+      structuredQuery: { from: [{ collectionId: 'infrastructure_shards' }], limit: 500 },
+    }),
   });
-  const docs = (await res.json()) as Array<{ document?: { name: string; fields?: Record<string, any> } }>;
+  const docs = (await res.json()) as Array<{
+    document?: { name: string; fields?: Record<string, any> };
+  }>;
   let updated = 0;
   for (const d of docs) {
     const f = d.document?.fields;
@@ -541,14 +727,25 @@ async function backfillBilling(token: string, adcToken: string): Promise<void> {
     const docId = d.document!.name.split('/').pop()!;
     if (!projectId) continue;
     try {
-      const bi = await api(token, `${BILLING_URL}/projects/${projectId}/billingInfo`, 'GET', undefined, platformProject);
+      const bi = await api(
+        token,
+        `${BILLING_URL}/projects/${projectId}/billingInfo`,
+        'GET',
+        undefined,
+        platformProject,
+      );
       const account = bi.billingAccountName?.replace('billingAccounts/', '');
       if (account) {
         await api(
           token,
           `${FIRESTORE_URL}/projects/${platformProject}/databases/(default)/documents/infrastructure_shards/${docId}?updateMask.fieldPaths=billingAccountId&updateMask.fieldPaths=updatedAt`,
           'PATCH',
-          { fields: { billingAccountId: { stringValue: account }, updatedAt: { timestampValue: new Date().toISOString() } } },
+          {
+            fields: {
+              billingAccountId: { stringValue: account },
+              updatedAt: { timestampValue: new Date().toISOString() },
+            },
+          },
           platformProject,
         );
         console.log(`  ${projectId} → ${account}`);
@@ -604,15 +801,17 @@ async function main(): Promise<void> {
     .sort();
   // --project-ids opera sobre los IDs dados (registrados o no) para poder
   // reconfigurar shards que quedaron a medio completar en un run anterior.
-  const targets = opts.projectIds
-    ? opts.projectIds
-    : orphans;
+  const targets = opts.projectIds ? opts.projectIds : orphans;
 
   console.log(`=== Reciclaje de huérfanos (${opts.env}) → ${platformProject} ===`);
-  console.log(`  proyectos vtx-sd-* en GCP: ${gcpShards.length} | registrados: ${poolIds.size} | huérfanos: ${orphans.length}`);
+  console.log(
+    `  proyectos vtx-sd-* en GCP: ${gcpShards.length} | registrados: ${poolIds.size} | huérfanos: ${orphans.length}`,
+  );
   if (opts.projectIds) {
     const missing = opts.projectIds.filter((id) => !orphans.includes(id));
-    console.log(`  --project-ids: ${opts.projectIds.length} pedidos (${missing.length} no son huérfanos)`);
+    console.log(
+      `  --project-ids: ${opts.projectIds.length} pedidos (${missing.length} no son huérfanos)`,
+    );
   }
   if (targets.length === 0) {
     console.log('  Nada que completar.');
@@ -624,7 +823,9 @@ async function main(): Promise<void> {
     return;
   }
   if (targets.length > BILLING_ACCOUNTS.length * 10 && BILLING_ACCOUNTS.length > 0) {
-    console.warn(`  ⚠️ Más proyectos que cupo de billing (${BILLING_ACCOUNTS.length * 10}). Se reparten round-robin respetando maxProjects.`);
+    console.warn(
+      `  ⚠️ Más proyectos que cupo de billing (${BILLING_ACCOUNTS.length * 10}). Se reparten round-robin respetando maxProjects.`,
+    );
   }
 
   const redirects: string[] = [];
@@ -633,11 +834,16 @@ async function main(): Promise<void> {
   for (let i = 0; i < targets.length; i++) {
     const projectId = targets[i];
     // Reparto round-robin respetando maxProjects=10 por cuenta.
-    const billingAccountId = BILLING_ACCOUNTS.length > 0
-      ? BILLING_ACCOUNTS[Math.min(BILLING_ACCOUNTS.length - 1, Math.floor(i / 10))]
-      : 'LINK_MANUAL';
+    const billingAccountId =
+      BILLING_ACCOUNTS.length > 0
+        ? BILLING_ACCOUNTS[Math.min(BILLING_ACCOUNTS.length - 1, Math.floor(i / 10))]
+        : 'LINK_MANUAL';
     try {
-      const { billingLinked, firestoreOk, webAppOk, rulesOk } = await configureProject(ownerToken, projectId, billingAccountId);
+      const { billingLinked, firestoreOk, webAppOk, rulesOk } = await configureProject(
+        ownerToken,
+        projectId,
+        billingAccountId,
+      );
       // GATE de registro: solo entran al pool los shards realmente utilizables
       // (billing + Firestore + web app + rules). Si falta alguno, queda como
       // huérfano para completar cuando haya cuota de billing.
@@ -645,8 +851,8 @@ async function main(): Promise<void> {
         failed++;
         console.warn(
           `  ⚠️ ${projectId} NO se registra (billing=${billingLinked ? 'OK' : 'FALTA'}, ` +
-          `firestore=${firestoreOk ? 'OK' : 'FALTA'}, webApp=${webAppOk ? 'OK' : 'FALTA'}, ` +
-          `rules=${rulesOk ? 'OK' : 'FALTA'}) — queda huérfano hasta tener cuota de billing.`,
+            `firestore=${firestoreOk ? 'OK' : 'FALTA'}, webApp=${webAppOk ? 'OK' : 'FALTA'}, ` +
+            `rules=${rulesOk ? 'OK' : 'FALTA'}) — queda huérfano hasta tener cuota de billing.`,
         );
         continue;
       }
@@ -660,10 +866,14 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n=== RESUMEN ===`);
-  console.log(`  completados: ${ok} | fallidos: ${failed} | pool total ahora: ${poolIds.size + ok}`);
+  console.log(
+    `  completados: ${ok} | fallidos: ${failed} | pool total ahora: ${poolIds.size + ok}`,
+  );
   if (redirects.length > 0) {
     console.log('\n=== PASO MANUAL (redirect URIs, una vez por shard) ===');
-    console.log(`Consola: https://console.cloud.google.com/apis/credentials?project=${masterStorefrontProject}`);
+    console.log(
+      `Consola: https://console.cloud.google.com/apis/credentials?project=${masterStorefrontProject}`,
+    );
     console.log(`client OAuth master: ${MASTER_CLIENT_ID}\n`);
     for (const uri of redirects) console.log(`  ${uri}`);
   }
