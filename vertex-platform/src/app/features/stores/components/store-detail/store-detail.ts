@@ -375,6 +375,14 @@ export class StoreDetail implements OnInit {
     }
   }
 
+  async triggerDeployment(): Promise<void> {
+    if (this.selectedVersion() === this.store()?.templateVersion) {
+      await this.redeploy();
+    } else {
+      await this.applyVersionUpdate();
+    }
+  }
+
   async applyVersionUpdate(): Promise<void> {
     const s = this.store();
     const version = this.selectedVersion();
