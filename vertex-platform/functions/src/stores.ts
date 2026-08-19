@@ -716,6 +716,13 @@ export const redeployStore = onCall<{ storeId: string }>(
           ? `refs/tags/v${store.templateVersion}`
           : targetRef;
 
+    await db.collection('stores').doc(storeId).update({
+      redeployStatus: 'deploying',
+      redeployError: null,
+      redeployStartedAt: new Date(),
+      updatedAt: new Date(),
+    });
+
     const res = await fetch(
       'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/dispatches',
       {
@@ -747,15 +754,13 @@ export const redeployStore = onCall<{ storeId: string }>(
     if (!res.ok && res.status !== 204) {
       const body = await res.text();
       console.error('redeployStore GitHub dispatch error:', res.status, body);
+      await db.collection('stores').doc(storeId).update({
+        redeployStatus: 'failed',
+        redeployError: 'No se pudo iniciar el flujo de compilación en GitHub Actions.',
+        updatedAt: new Date(),
+      });
       throw new HttpsError('internal', 'Failed to trigger deployment. Please try again.');
     }
-
-    await db.collection('stores').doc(storeId).update({
-      redeployStatus: 'deploying',
-      redeployError: null,
-      redeployStartedAt: new Date(),
-      updatedAt: new Date(),
-    });
 
     return { success: true };
   },

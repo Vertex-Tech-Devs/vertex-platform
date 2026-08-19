@@ -295,10 +295,10 @@
                           [value]="selectedVersion()"
                           (change)="selectedVersion.set($any($event.target).value)"
                           [disabled]="
-                            isUpdatingVersion() ||
-                            isRedeploying() ||
+                            isDeploying() ||
                             store()!.versionUpdateStatus === 'updating' ||
-                            redeployActionState().status === 'running'
+                            store()!.redeployStatus === 'deploying' ||
+                            deployActionState().status === 'running'
                           "
                         >
                           @for (v of availableVersions(); track v.version) {
@@ -327,18 +327,19 @@
                         <button
                           class="action-btn action-btn--primary"
                           [disabled]="
-                            isUpdatingVersion() ||
-                            isRedeploying() ||
+                            isDeploying() ||
+                            store()!.status !== 'active' ||
                             store()!.versionUpdateStatus === 'updating' ||
-                            redeployActionState().status === 'running'
+                            store()!.redeployStatus === 'deploying' ||
+                            deployActionState().status === 'running'
                           "
                           (click)="triggerDeployment()"
                         >
                           @if (
-                            isUpdatingVersion() ||
-                            isRedeploying() ||
+                            isDeploying() ||
                             store()!.versionUpdateStatus === 'updating' ||
-                            redeployActionState().status === 'running'
+                            store()!.redeployStatus === 'deploying' ||
+                            deployActionState().status === 'running'
                           ) {
                             <app-spinner size="sm" label="Desplegando…" />
                           } @else {
@@ -355,90 +356,35 @@
                       </p>
                     }
 
-                    @if (redeployActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ redeployActionState().status }} mt-3">
+                    @if (deployActionState().status !== 'idle') {
+                      <div class="action-progress action-progress--{{ deployActionState().status }} mt-3">
                         <div class="action-progress__bar">
                           <div
                             class="action-progress__fill"
-                            [style.width.%]="redeployActionState().progress"
+                            [style.width.%]="deployActionState().progress"
                           ></div>
                         </div>
                         <div class="action-progress__info">
-                          @if (redeployActionState().status === 'running') {
+                          @if (deployActionState().status === 'running') {
                             <span class="spinner-sm"></span>
-                          } @else if (redeployActionState().status === 'success') {
+                          } @else if (deployActionState().status === 'success') {
                             <i class="bi bi-check-circle-fill text-success"></i>
-                          } @else if (redeployActionState().status === 'error') {
+                          } @else if (deployActionState().status === 'error') {
                             <i class="bi bi-x-circle-fill text-danger"></i>
                           }
-                          <span class="action-progress__text">{{ redeployActionState().message }}</span>
-                          @if (redeployActionState().status !== 'running') {
+                          <span class="action-progress__text">{{ deployActionState().message }}</span>
+                          @if (deployActionState().status !== 'running') {
                             <button
                               type="button"
                               class="btn-close btn-close-white btn-sm ms-2"
                               aria-label="Cerrar notificación"
-                              (click)="dismissRedeployProgress()"
+                              (click)="dismissDeployProgress()"
                             ></button>
                           }
                         </div>
                       </div>
                     }
-
-                    @if (applyVersionActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ applyVersionActionState().status }} mt-3">
-                        <div class="action-progress__bar">
-                          <div
-                            class="action-progress__fill"
-                            [style.width.%]="applyVersionActionState().progress"
-                          ></div>
-                        </div>
-                        <div class="action-progress__info">
-                          @if (applyVersionActionState().status === 'running') {
-                            <span class="spinner-sm"></span>
-                          } @else if (applyVersionActionState().status === 'success') {
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                          } @else if (applyVersionActionState().status === 'error') {
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                          }
-                          <span class="action-progress__text">{{ applyVersionActionState().message }}</span>
-                        </div>
-                      </div>
-                    }
                   </div>
-
-                  @if (versionUpdateSuccess() && store()!.versionUpdateStatus !== 'failed') {
-                    <p class="feedback feedback--success mt-2">{{ versionUpdateSuccess() }}</p>
-                  }
-                  @if (versionUpdateError()) {
-                    <p class="feedback feedback--error mt-2">{{ versionUpdateError() }}</p>
-                  }
-                  @if (store()!.versionUpdateStatus === 'updating') {
-                    <div class="version-progress mt-3">
-                      <div class="version-progress__head">
-                        <span class="version-progress__step">
-                          <app-spinner size="sm" />
-                          {{ store()!.versionUpdateProgress?.step || 'Desplegando…' }}
-                        </span>
-                        <span class="version-progress__pct">
-                          {{ store()!.versionUpdateProgress?.pct ?? 0 }}%
-                        </span>
-                      </div>
-                      <div class="progress-bar">
-                        <div
-                          class="progress-bar__fill"
-                          [style.width.%]="store()!.versionUpdateProgress?.pct ?? 5"
-                        ></div>
-                      </div>
-                      <p class="version-progress__hint">
-                        El deploy corre en GitHub Actions y actualiza esta barra en vivo.
-                      </p>
-                    </div>
-                  }
-                  @if (store()!.versionUpdateStatus === 'failed') {
-                    <p class="feedback feedback--error mt-2">
-                      El último intento de actualización falló. Revisá los logs de GitHub Actions.
-                    </p>
-                  }
                 }
               </div>
             }
