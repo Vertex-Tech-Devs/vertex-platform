@@ -42,22 +42,15 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure Dummy Build Output Directory for Cleanup
-        if: steps.check.outputs.available == 'true'
-        run: |
-          mkdir -p dist/vertex-platform/browser
-          echo '<!DOCTYPE html><html><body>Preview expired</body></html>' > dist/vertex-platform/browser/index.html
-
       - name: Delete Firebase Hosting Preview Channel
         if: steps.check.outputs.available == 'true'
         continue-on-error: true
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}'
-          projectId: 'vertex-platform-dev'
-          channelId: 'pr-${{ github.event.number }}'
-          expires: 0d
+        env:
+          FIREBASE_SERVICE_ACCOUNT_DEV: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_DEV" > sa_key.json
+          GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/sa_key.json" npx firebase-tools hosting:channel:delete pr-${{ github.event.number }} --project vertex-platform-dev --force || true
+          rm -f sa_key.json
 
       - name: Clean Firestore PR Tenant Data
         if: steps.check.outputs.available == 'true'
@@ -66,4 +59,5 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
           NODE_PATH: vertex-platform/functions/node_modules
         run: |
+          npm --prefix vertex-platform/functions install
           npx tsx scripts/cleanup-pr-tenant.ts
