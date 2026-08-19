@@ -120,7 +120,6 @@ export class StoreDetail implements OnInit {
   });
 
   // Action loading signals
-  readonly isRedeploying = signal(false);
   readonly isSeeding = signal(false);
   readonly isRetrying = signal(false);
   readonly isDeleting = signal(false);
@@ -143,14 +142,15 @@ export class StoreDetail implements OnInit {
   readonly saveError = signal('');
   readonly dnsRecords = signal<DnsRecord[]>([]);
 
-  readonly localRedeployError = signal('');
+  readonly localDeployError = signal('');
+  readonly isDeployProgressDismissed = signal(false);
+  readonly hasUserInitiatedDeploy = signal(false);
+  readonly deploySessionTimestamp = signal<number>(0);
+  readonly isDeploying = signal(false);
 
-  readonly isRedeployProgressDismissed = signal(false);
-  readonly hasUserInitiatedRedeploy = signal(false);
-
-  // Individual Action Mini Progress Bar Signals
-  readonly redeployActionState = computed<ActionProgressState>(() => {
-    if (this.isRedeployProgressDismissed()) {
+  // Unified Deploy Action Progress State (Real-time sync with GHA & Firestore)
+  readonly deployActionState = computed<ActionProgressState>(() => {
+    if (this.isDeployProgressDismissed()) {
       return IDLE_ACTION_STATE;
     }
 
@@ -159,22 +159,16 @@ export class StoreDetail implements OnInit {
       return IDLE_ACTION_STATE;
     }
 
-    if (this.localRedeployError()) {
+    // 1. Error de invocación local
+    if (this.localDeployError()) {
       return {
         status: 'error',
         progress: 100,
-        message: this.localRedeployError(),
+        message: this.localDeployError(),
       };
     }
 
-    if (s.redeployStatus === 'deploying' || this.isRedeploying()) {
-      return {
-        status: 'running',
-        progress: 60,
-        message: '🔨 Compilando e instalando infraestructura en GitHub Actions (en curso...)',
-      };
-    }
-
+    // 2. Errores reportados por Firestore / GitHub Actions
     if (s.redeployStatus === 'failed') {
       return {
         status: 'error',
@@ -182,29 +176,55 @@ export class StoreDetail implements OnInit {
         message: s.redeployError || '✗ Falló el despliegue del storefront en GitHub Actions.',
       };
     }
+    if (s.versionUpdateStatus === 'failed') {
+      return {
+        status: 'error',
+        progress: 100,
+        message: s.redeployError || '✗ Falló la actualización de versión en GitHub Actions.',
+      };
+    }
 
-    if (
-      this.hasUserInitiatedRedeploy() &&
-      s.redeployStatus === 'idle' &&
-      s.lastDeployedAt &&
-      s.redeployStartedAt
-    ) {
-      const lastDeployTime = new Date(this.formatDate(s.lastDeployedAt) ?? 0).getTime();
-      const redeployStartTime = new Date(this.formatDate(s.redeployStartedAt) ?? 0).getTime();
+    // 3. Ejecución en curso (despacho local en vuelo o GitHub Actions reportando actividad)
+    const isGhaRunning = s.redeployStatus === 'deploying' || s.versionUpdateStatus === 'updating';
+    if (this.isDeploying() || isGhaRunning) {
+      const stepText =
+        s.versionUpdateProgress?.step ||
+        'Compilando e instalando infraestructura en GitHub Actions…';
+      const pct = s.versionUpdateProgress?.pct || (this.isDeploying() ? 30 : 65);
+      return {
+        status: 'running',
+        progress: pct,
+        message: `🔨 ${stepText}`,
+      };
+    }
 
-      if (lastDeployTime >= redeployStartTime) {
+    // 4. Si el usuario disparó el despliegue en esta sesión activa:
+    if (this.hasUserInitiatedDeploy()) {
+      const lastDeployTime = s.lastDeployedAt
+        ? new Date(this.formatDate(s.lastDeployedAt) ?? 0).getTime()
+        : 0;
+      const sessionTriggerTime = this.deploySessionTimestamp();
+
+      // Solo mostramos éxito si la fecha de último deploy en Firestore es POSTERIOR al clic de despliegue
+      if (lastDeployTime > sessionTriggerTime) {
         return {
           status: 'success',
           progress: 100,
-          message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
+          message:
+            '✓ Despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
         };
       }
+
+      // Si GitHub Actions todavía no finalizó ni actualizó lastDeployedAt, seguimos en progreso
+      return {
+        status: 'running',
+        progress: 45,
+        message: '🔨 Iniciando flujo de compilación en GitHub Actions…',
+      };
     }
 
     return IDLE_ACTION_STATE;
   });
-
-  readonly applyVersionActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
   readonly seedActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
   readonly suspendActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
   readonly domainActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
@@ -244,11 +264,8 @@ export class StoreDetail implements OnInit {
   // Version management
   readonly availableVersions = signal<TemplateVersion[]>([]);
   readonly isLoadingVersions = signal(false);
-  readonly isUpdatingVersion = signal(false);
   readonly isUpdatingAutoUpdate = signal(false);
   readonly selectedVersion = signal('');
-  readonly versionUpdateError = signal('');
-  readonly versionUpdateSuccess = signal('');
 
   // Domain DNS fields
   readonly domainStatus = signal<'live' | 'pending' | 'none'>('none');
@@ -335,49 +352,30 @@ export class StoreDetail implements OnInit {
   }
 
   async triggerDeployment(): Promise<void> {
-    if (this.selectedVersion() === this.store()?.templateVersion) {
-      await this.redeploy();
-    } else {
-      await this.applyVersionUpdate();
-    }
-  }
-
-  async applyVersionUpdate(): Promise<void> {
     const s = this.store();
+    const id = s?.id;
     const version = this.selectedVersion();
-    if (!s || !version || s.templateVersion === version) {
+    if (!id || !version) {
       return;
     }
 
-    this.isUpdatingVersion.set(true);
-    this.isRedeployProgressDismissed.set(false);
-    this.hasUserInitiatedRedeploy.set(true);
-    this.versionUpdateError.set('');
-    this.versionUpdateSuccess.set('');
-    this.applyVersionActionState.set({
-      status: 'running',
-      progress: 45,
-      message: `Enviando solicitud de cambio a plantilla v${version}...`,
-    });
+    this.isDeployProgressDismissed.set(false);
+    this.hasUserInitiatedDeploy.set(true);
+    this.deploySessionTimestamp.set(Date.now());
+    this.isDeploying.set(true);
+    this.localDeployError.set('');
+
     try {
-      await this.storesService.updateStoreVersion(s.id, version);
-      const msg = `✓ Plantilla v${version} aplicada a la tienda. El deploy automatizado en GitHub Actions iniciará la actualización.`;
-      this.versionUpdateSuccess.set(msg);
-      this.applyVersionActionState.set({
-        status: 'success',
-        progress: 100,
-        message: msg,
-      });
+      if (version === s.templateVersion) {
+        await this.storesService.redeployStore(id);
+      } else {
+        await this.storesService.updateStoreVersion(id, version);
+      }
     } catch (err: unknown) {
-      const msg = errorMessage(err, 'Error al iniciar la actualización.');
-      this.versionUpdateError.set(msg);
-      this.applyVersionActionState.set({
-        status: 'error',
-        progress: 100,
-        message: `✗ Error al aplicar versión v${version}: ${msg}`,
-      });
+      const msg = errorMessage(err, 'No se pudo iniciar el despliegue.');
+      this.localDeployError.set(msg);
     } finally {
-      this.isUpdatingVersion.set(false);
+      this.isDeploying.set(false);
     }
   }
 
@@ -678,27 +676,8 @@ export class StoreDetail implements OnInit {
     return { pending: '○', running: '…', done: '✓', error: '✗' }[status] ?? '○';
   }
 
-  dismissRedeployProgress(): void {
-    this.isRedeployProgressDismissed.set(true);
-  }
-
-  async redeploy(): Promise<void> {
-    const id = this.store()?.id;
-    if (!id) {
-      return;
-    }
-    this.isRedeployProgressDismissed.set(false);
-    this.hasUserInitiatedRedeploy.set(true);
-    this.isRedeploying.set(true);
-    this.localRedeployError.set('');
-    try {
-      await this.storesService.redeployStore(id);
-    } catch (err: unknown) {
-      const msg = errorMessage(err);
-      this.localRedeployError.set('No se pudo iniciar el re-despliegue: ' + msg);
-    } finally {
-      this.isRedeploying.set(false);
-    }
+  dismissDeployProgress(): void {
+    this.isDeployProgressDismissed.set(true);
   }
 
   openSeedConfirm(): void {
