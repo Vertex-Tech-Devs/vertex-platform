@@ -248,14 +248,17 @@
               </dl>
             </div>
 
-            <!-- Version selector card -->
+            <!-- Unified Version & Deployment Card -->
             @if (store()!.status === 'active') {
               <div class="detail-card">
-                <h2 class="detail-card__title">Versión de Plantilla</h2>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h2 class="detail-card__title mb-0">Publicación y Despliegue de Plantilla</h2>
+                  <span class="badge badge--primary px-2 py-1">
+                    Versión activa: v{{ store()!.templateVersion || '0.3.0' }}
+                  </span>
+                </div>
                 <p class="detail-card__desc">
-                  <strong>Versión activa: v{{ store()!.templateVersion || '—' }}</strong> — usá el
-                  selector para elegir otra versión y desplegarla a esta tienda. El deploy se
-                  realiza directamente sobre su proyecto Firebase al confirmar.
+                  Elegí la versión de la plantilla storefront que deseás compilar y publicar en Firebase Hosting, o re-desplegá la versión activa para aplicar los cambios más recientes.
                 </p>
 
                 <div
@@ -292,35 +295,76 @@
                   <p class="text-muted">No se encontraron releases publicados.</p>
                 } @else {
                   <div class="version-selector">
-                    <select
-                      class="form-select"
-                      [value]="selectedVersion()"
-                      (change)="selectedVersion.set($any($event.target).value)"
-                      [disabled]="
-                        isUpdatingVersion() || store()!.versionUpdateStatus === 'updating'
-                      "
-                    >
-                      @for (v of availableVersions(); track v.version) {
-                        <option
-                          [value]="v.version"
+                    <div class="row g-2 align-items-center">
+                      <div class="col">
+                        <select
+                          class="form-select"
+                          [value]="selectedVersion()"
+                          (change)="selectedVersion.set($any($event.target).value)"
                           [disabled]="
-                            (v.schemaVersion ?? 0) !== 0 &&
-                            (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                            isUpdatingVersion() ||
+                            isRedeploying() ||
+                            store()!.versionUpdateStatus === 'updating' ||
+                            redeployActionState().status === 'running'
                           "
                         >
-                          v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
-                          {{ v.publishedAt | date: 'dd/MM/yyyy' }}
-                          @if (
-                            (v.schemaVersion ?? 0) !== 0 &&
-                            (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
-                          ) {
-                            (incompatible — esquema {{ store()!.schemaVersion }})
-                          } @else if ((v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)) {
-                            (requiere migración)
+                          @for (v of availableVersions(); track v.version) {
+                            <option
+                              [value]="v.version"
+                              [disabled]="
+                                (v.schemaVersion ?? 0) !== 0 &&
+                                (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                              "
+                            >
+                              v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
+                              {{ v.publishedAt | date: 'dd/MM/yyyy' }}
+                              @if (
+                                (v.schemaVersion ?? 0) !== 0 &&
+                                (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                              ) {
+                                (incompatible — esquema {{ store()!.schemaVersion }})
+                              } @else if ((v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)) {
+                                (requiere migración)
+                              }
+                            </option>
                           }
-                        </option>
-                      }
-                    </select>
+                        </select>
+                      </div>
+                      <div class="col-auto">
+                        @if (selectedVersion() === store()!.templateVersion) {
+                          <button
+                            class="action-btn action-btn--primary"
+                            [disabled]="
+                              isRedeploying() ||
+                              redeployActionState().status === 'running' ||
+                              store()!.versionUpdateStatus === 'updating'
+                            "
+                            (click)="redeploy()"
+                          >
+                            @if (isRedeploying() || redeployActionState().status === 'running') {
+                              <app-spinner size="sm" label="Ejecutando…" />
+                            } @else {
+                              <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
+                            }
+                          </button>
+                        } @else {
+                          <button
+                            class="action-btn action-btn--primary"
+                            [disabled]="
+                              isUpdatingVersion() ||
+                              store()!.versionUpdateStatus === 'updating'
+                            "
+                            (click)="applyVersionUpdate()"
+                          >
+                            @if (isUpdatingVersion() || store()!.versionUpdateStatus === 'updating') {
+                              <app-spinner size="sm" label="Iniciando deploy…" />
+                            } @else {
+                              <i class="bi bi-rocket-takeoff"></i> Desplegar v{{ selectedVersion() }}
+                            }
+                          </button>
+                        }
+                      </div>
+                    </div>
 
                     @if (store()!.pendingMigration) {
                       <p class="feedback feedback--warning mt-2">
@@ -329,24 +373,37 @@
                       </p>
                     }
 
-                    <button
-                      class="action-btn action-btn--primary"
-                      [disabled]="
-                        isUpdatingVersion() ||
-                        store()!.versionUpdateStatus === 'updating' ||
-                        selectedVersion() === store()!.templateVersion
-                      "
-                      (click)="applyVersionUpdate()"
-                    >
-                      @if (isUpdatingVersion() || store()!.versionUpdateStatus === 'updating') {
-                        <app-spinner size="sm" label="Iniciando deploy…" />
-                      } @else {
-                        <i class="bi bi-box-arrow-up"></i> Aplicar versión
-                      }
-                    </button>
+                    @if (redeployActionState().status !== 'idle') {
+                      <div class="action-progress action-progress--{{ redeployActionState().status }} mt-3">
+                        <div class="action-progress__bar">
+                          <div
+                            class="action-progress__fill"
+                            [style.width.%]="redeployActionState().progress"
+                          ></div>
+                        </div>
+                        <div class="action-progress__info">
+                          @if (redeployActionState().status === 'running') {
+                            <span class="spinner-sm"></span>
+                          } @else if (redeployActionState().status === 'success') {
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          } @else if (redeployActionState().status === 'error') {
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                          }
+                          <span class="action-progress__text">{{ redeployActionState().message }}</span>
+                          @if (redeployActionState().status !== 'running') {
+                            <button
+                              type="button"
+                              class="btn-close btn-close-white btn-sm ms-2"
+                              aria-label="Cerrar notificación"
+                              (click)="dismissRedeployProgress()"
+                            ></button>
+                          }
+                        </div>
+                      </div>
+                    }
 
                     @if (applyVersionActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ applyVersionActionState().status }}">
+                      <div class="action-progress action-progress--{{ applyVersionActionState().status }} mt-3">
                         <div class="action-progress__bar">
                           <div
                             class="action-progress__fill"

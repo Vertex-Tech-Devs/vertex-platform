@@ -148,6 +148,7 @@ export class StoreDetail implements OnInit {
   readonly localRedeployError = signal('');
 
   readonly isRedeployProgressDismissed = signal(false);
+  readonly hasUserInitiatedRedeploy = signal(false);
 
   // Individual Action Mini Progress Bar Signals
   readonly redeployActionState = computed<ActionProgressState>(() => {
@@ -184,20 +185,21 @@ export class StoreDetail implements OnInit {
       };
     }
 
-    if (s.redeployStatus === 'idle' && s.lastDeployedAt && s.redeployStartedAt) {
+    if (
+      this.hasUserInitiatedRedeploy() &&
+      s.redeployStatus === 'idle' &&
+      s.lastDeployedAt &&
+      s.redeployStartedAt
+    ) {
       const lastDeployTime = new Date(this.formatDate(s.lastDeployedAt) ?? 0).getTime();
       const redeployStartTime = new Date(this.formatDate(s.redeployStartedAt) ?? 0).getTime();
 
       if (lastDeployTime >= redeployStartTime) {
-        const timeSinceSuccessMs = Date.now() - lastDeployTime;
-        // Muestra la notificación de éxito solo durante 2 minutos (120.000 ms) tras completarse
-        if (timeSinceSuccessMs >= 0 && timeSinceSuccessMs < 120000) {
-          return {
-            status: 'success',
-            progress: 100,
-            message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
-          };
-        }
+        return {
+          status: 'success',
+          progress: 100,
+          message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
+        };
       }
     }
 
@@ -381,6 +383,8 @@ export class StoreDetail implements OnInit {
     }
 
     this.isUpdatingVersion.set(true);
+    this.isRedeployProgressDismissed.set(false);
+    this.hasUserInitiatedRedeploy.set(true);
     this.versionUpdateError.set('');
     this.versionUpdateSuccess.set('');
     this.applyVersionActionState.set({
@@ -879,6 +883,7 @@ export class StoreDetail implements OnInit {
       return;
     }
     this.isRedeployProgressDismissed.set(false);
+    this.hasUserInitiatedRedeploy.set(true);
     this.isRedeploying.set(true);
     this.localRedeployError.set('');
     try {
