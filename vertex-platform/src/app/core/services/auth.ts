@@ -61,7 +61,10 @@ export class AuthService {
         let token = await this.firebase.getIdTokenResult(u, true);
         if (!token.claims['platformAdmin']) {
           try {
-            const refreshClaim = this.firebase.httpsCallable(this.fns, 'refreshMyPlatformAdminClaim');
+            const refreshClaim = this.firebase.httpsCallable(
+              this.fns,
+              'refreshMyPlatformAdminClaim',
+            );
             await refreshClaim();
             token = await this.firebase.getIdTokenResult(u, true);
           } catch (e) {

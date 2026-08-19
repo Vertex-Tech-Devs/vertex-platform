@@ -68,7 +68,9 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function attemptCreateSubaccounts(token: string): Promise<number> {
-  console.log(`[1/3] Intentando crear subcuentas bajo la cuenta master billingAccounts/${MASTER_BILLING_ACCOUNT}...`);
+  console.log(
+    `[1/3] Intentando crear subcuentas bajo la cuenta master billingAccounts/${MASTER_BILLING_ACCOUNT}...`,
+  );
   let createdCount = 0;
 
   for (let i = 3; i <= 12; i++) {
@@ -88,8 +90,12 @@ async function attemptCreateSubaccounts(token: string): Promise<number> {
 
       if (!res.ok) {
         const errText = await res.text();
-        console.log(`⚠️ No se pudo crear subcuenta programática '${displayName}': Status ${res.status} (${errText.trim()})`);
-        console.log('ℹ️ La creación de subcuentas standalone está restringida por el método de pago/cuenta de Google.');
+        console.log(
+          `⚠️ No se pudo crear subcuenta programática '${displayName}': Status ${res.status} (${errText.trim()})`,
+        );
+        console.log(
+          'ℹ️ La creación de subcuentas standalone está restringida por el método de pago/cuenta de Google.',
+        );
         break;
       }
 
@@ -107,7 +113,9 @@ async function attemptCreateSubaccounts(token: string): Promise<number> {
 
 function getActiveBillingAccountsFromGcloud(): BillingAccountItem[] {
   try {
-    const output = execSync('gcloud beta billing accounts list --format=json', { encoding: 'utf8' });
+    const output = execSync('gcloud beta billing accounts list --format=json', {
+      encoding: 'utf8',
+    });
     const parsed = JSON.parse(output) as BillingAccountItem[];
     return parsed.filter((acc) => acc.open !== false);
   } catch (err: any) {
@@ -134,7 +142,9 @@ async function main(): Promise<void> {
   console.log(`Se detectaron ${activeAccounts.length} Billing Accounts abiertas/activas:\n`);
 
   // Paso 3: Sincronizar en Firestore collection `billing_accounts`
-  console.log('[3/3] Registrando/Sincronizando cuentas en Firestore (`vertex-platform-dev` → `billing_accounts`)...');
+  console.log(
+    '[3/3] Registrando/Sincronizando cuentas en Firestore (`vertex-platform-dev` → `billing_accounts`)...',
+  );
 
   // Obtener shards reales de Firestore para calcular currentProjects real por Billing Account
   const shardsSnap = await db.collection('infrastructure_shards').get();
@@ -173,7 +183,9 @@ async function main(): Promise<void> {
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
-      console.log(`➕ Registrada nueva Billing Account: ${displayName} (ID: ${rawId}) [Límite: ${maxProjects}, Usados: ${realUsed}]`);
+      console.log(
+        `➕ Registrada nueva Billing Account: ${displayName} (ID: ${rawId}) [Límite: ${maxProjects}, Usados: ${realUsed}]`,
+      );
       newRegisteredCount++;
     } else {
       const data = docSnap.data();
@@ -181,7 +193,9 @@ async function main(): Promise<void> {
         currentProjects: realUsed,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      console.log(`ℹ️ Billing Account actualizada: ${displayName} (ID: ${rawId}) [Límite: ${data?.maxProjects ?? maxProjects}, Usados: ${realUsed}]`);
+      console.log(
+        `ℹ️ Billing Account actualizada: ${displayName} (ID: ${rawId}) [Límite: ${data?.maxProjects ?? maxProjects}, Usados: ${realUsed}]`,
+      );
     }
 
     totalQuotaAvailable += maxProjects;
@@ -192,8 +206,12 @@ async function main(): Promise<void> {
   console.log('==================================================');
   console.log(`Total Billing Accounts activas: ${activeAccounts.length}`);
   console.log(`Nuevas Billing Accounts auto-registradas: ${newRegisteredCount}`);
-  console.log(`Capacidad Total de Cupos para Shards: ${totalQuotaAvailable} proyectos (${activeAccounts.length} cuentas × 5 proyectos/cuenta)`);
-  console.log(`Proyectos GCP en Uso Real: ${totalProjectsUsed} / ${totalQuotaAvailable} (${Math.round((totalProjectsUsed / (totalQuotaAvailable || 1)) * 100)}%)`);
+  console.log(
+    `Capacidad Total de Cupos para Shards: ${totalQuotaAvailable} proyectos (${activeAccounts.length} cuentas × 5 proyectos/cuenta)`,
+  );
+  console.log(
+    `Proyectos GCP en Uso Real: ${totalProjectsUsed} / ${totalQuotaAvailable} (${Math.round((totalProjectsUsed / (totalQuotaAvailable || 1)) * 100)}%)`,
+  );
   console.log('==================================================\n');
 }
 

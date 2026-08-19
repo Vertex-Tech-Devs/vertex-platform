@@ -251,7 +251,9 @@
                   </span>
                 </div>
                 <p class="detail-card__desc">
-                  Elegí la versión de la plantilla storefront que deseás compilar y publicar en Firebase Hosting, o re-desplegá la versión activa para aplicar los cambios más recientes.
+                  Elegí la versión de la plantilla storefront que deseás compilar y publicar en
+                  Firebase Hosting, o re-desplegá la versión activa para aplicar los cambios más
+                  recientes.
                 </p>
 
                 <div
@@ -357,7 +359,11 @@
                     }
 
                     @if (deployActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ deployActionState().status }} mt-3">
+                      <div
+                        class="action-progress action-progress--{{
+                          deployActionState().status
+                        }} mt-3"
+                      >
                         <div class="action-progress__bar">
                           <div
                             class="action-progress__fill"
@@ -372,7 +378,9 @@
                           } @else if (deployActionState().status === 'error') {
                             <i class="bi bi-x-circle-fill text-danger"></i>
                           }
-                          <span class="action-progress__text">{{ deployActionState().message }}</span>
+                          <span class="action-progress__text">{{
+                            deployActionState().message
+                          }}</span>
                           @if (deployActionState().status !== 'running') {
                             <button
                               type="button"
@@ -397,15 +405,19 @@
                 </div>
                 <div>
                   <h2 class="detail-card__title mb-0">Acciones & Mantenimiento</h2>
-                  <p class="ops-card__subtitle">Control de publicaciones, catálogo de prueba y estado de la tienda</p>
+                  <p class="ops-card__subtitle">
+                    Control de publicaciones, catálogo de prueba y estado de la tienda
+                  </p>
                 </div>
               </div>
 
               <div class="ops-card__grid">
-
                 <!-- Seed Control Card -->
                 @if (store()!.status === 'active') {
-                  <div class="op-control-card" [class.op-control-card--active]="seedActionState().status === 'running'">
+                  <div
+                    class="op-control-card"
+                    [class.op-control-card--active]="seedActionState().status === 'running'"
+                  >
                     <div class="op-control-card__header">
                       <div class="op-control-card__info">
                         <div class="op-control-card__icon text-info">
@@ -432,7 +444,8 @@
                     </div>
 
                     <p class="op-control-card__desc">
-                      Generá automáticamente un catálogo completo de productos, categorías e imágenes de muestra para probar la tienda.
+                      Generá automáticamente un catálogo completo de productos, categorías e
+                      imágenes de muestra para probar la tienda.
                     </p>
 
                     @if (seedActionState().status !== 'idle') {
@@ -468,7 +481,9 @@
                       <div class="op-control-card__meta">
                         <div class="op-control-card__title-row">
                           <h4 class="op-control-card__title">
-                            {{ store()!.status === 'active' ? 'Pausar Tienda' : 'Reactivar Tienda' }}
+                            {{
+                              store()!.status === 'active' ? 'Pausar Tienda' : 'Reactivar Tienda'
+                            }}
                           </h4>
                           <span class="op-control-card__badge badge--warning">
                             {{ store()!.status === 'active' ? 'Activa' : 'Pausada' }}
@@ -502,7 +517,8 @@
                   </div>
 
                   <p class="op-control-card__desc">
-                    Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e imágenes resguardados.
+                    Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e
+                    imágenes resguardados.
                   </p>
 
                   @if (suspendActionState().status !== 'idle') {
@@ -521,7 +537,9 @@
                         } @else if (suspendActionState().status === 'error') {
                           <i class="bi bi-x-circle-fill text-danger"></i>
                         }
-                        <span class="action-progress__text">{{ suspendActionState().message }}</span>
+                        <span class="action-progress__text">{{
+                          suspendActionState().message
+                        }}</span>
                       </div>
                     </div>
                   }
@@ -552,7 +570,8 @@
                     </div>
 
                     <p class="op-control-card__desc">
-                      Eliminación permanente e irreversible de la tienda, su catálogo y toda su infraestructura asociada.
+                      Eliminación permanente e irreversible de la tienda, su catálogo y toda su
+                      infraestructura asociada.
                     </p>
                   </div>
                 }
@@ -560,8 +579,6 @@
             </div>
           </div>
         }
-
-
 
         <!-- Tab 3: Equipo (RBAC) -->
         @if (activeTab() === 'equipo') {
@@ -967,7 +984,10 @@
                   line-height: 1.5;
                 "
               >
-                Registro de compilaciones y publicaciones ejecutadas por GitHub Actions en Firebase Hosting. Cada entrada detalla la versión instalada, la rama de origen y el commit exacto desplegado (incluyendo actualizaciones automáticas de versión y re-despliegues manuales).
+                Registro de compilaciones y publicaciones ejecutadas por GitHub Actions en Firebase
+                Hosting. Cada entrada detalla la versión instalada, la rama de origen y el commit
+                exacto desplegado (incluyendo actualizaciones automáticas de versión y
+                re-despliegues manuales).
                 <button
                   class="btn btn-secondary btn--sm ms-2"
                   style="float: right"
@@ -1275,8 +1295,94 @@
     </div>
   }
 } @else {
-  <div class="loading-state">
-    <span class="spinner"></span>
-    <p>Cargando información consolidada de la tienda...</p>
+  <!-- Full-Page Detail Skeleton Wireframe -->
+  <div class="detail-page detail-page--skeleton" aria-busy="true">
+    <div class="detail-page__back mb-3">
+      <div class="skeleton skeleton--back-link"></div>
+    </div>
+
+    <!-- Skeleton Header -->
+    <div class="detail-header detail-header--skeleton">
+      <div class="detail-header__color skeleton skeleton--avatar"></div>
+      <div class="detail-header__info">
+        <div class="skeleton skeleton--title"></div>
+        <div class="skeleton skeleton--badge"></div>
+        <div class="skeleton skeleton--link"></div>
+      </div>
+      <div class="detail-header__actions">
+        <div class="skeleton skeleton--btn"></div>
+        <div class="skeleton skeleton--btn"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Tabs -->
+    <div class="detail-tabs detail-tabs--skeleton">
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+    </div>
+
+    <!-- Skeleton Content Grid -->
+    <div class="detail-grid mt-4">
+      <!-- Skeleton Info Card -->
+      <div class="detail-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="skeleton-rows mt-3">
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skeleton Template Card -->
+      <div class="detail-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="skeleton skeleton--text mb-3 mt-2"></div>
+        <div class="skeleton-row-actions mt-4">
+          <div class="skeleton skeleton--input"></div>
+          <div class="skeleton skeleton--btn"></div>
+        </div>
+      </div>
+
+      <!-- Skeleton Operations Card -->
+      <div class="detail-card ops-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="ops-card__grid mt-3">
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 }

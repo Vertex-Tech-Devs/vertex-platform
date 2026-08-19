@@ -30,7 +30,8 @@ describe('AuthService', () => {
 
     const mockDeps: AuthFirebaseDeps = {
       getAuth: mockGetAuth as unknown as AuthFirebaseDeps['getAuth'],
-      onAuthStateChanged: mockOnAuthStateChanged as unknown as AuthFirebaseDeps['onAuthStateChanged'],
+      onAuthStateChanged:
+        mockOnAuthStateChanged as unknown as AuthFirebaseDeps['onAuthStateChanged'],
       signInWithPopup: mockSignInWithPopup as unknown as AuthFirebaseDeps['signInWithPopup'],
       signOut: mockSignOut as unknown as AuthFirebaseDeps['signOut'],
       getIdTokenResult: mockGetIdTokenResult as unknown as AuthFirebaseDeps['getIdTokenResult'],
@@ -39,10 +40,7 @@ describe('AuthService', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        AuthService,
-        { provide: AUTH_FIREBASE_DEPS, useValue: mockDeps },
-      ],
+      providers: [AuthService, { provide: AUTH_FIREBASE_DEPS, useValue: mockDeps }],
     });
 
     service = TestBed.inject(AuthService);
@@ -121,7 +119,10 @@ describe('AuthService', () => {
       .mockResolvedValueOnce({ claims: { platformAdmin: true } }); // despues de refrescar
 
     await capturedAuthCallback?.(mockUser);
-    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'refreshMyPlatformAdminClaim');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'refreshMyPlatformAdminClaim',
+    );
     expect(service.user()).toBe(mockUser);
   });
 
@@ -129,7 +130,9 @@ describe('AuthService', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const mockUser = { uid: 'abc', email: 'admin@test.com' };
     mockGetIdTokenResult.mockResolvedValue({ claims: {} });
-    mockHttpsCallable.mockImplementationOnce(() => vi.fn().mockRejectedValue(new Error('claim fail')));
+    mockHttpsCallable.mockImplementationOnce(() =>
+      vi.fn().mockRejectedValue(new Error('claim fail')),
+    );
 
     await capturedAuthCallback?.(mockUser);
     expect(mockSignOut).toHaveBeenCalled();
@@ -145,7 +148,10 @@ describe('AuthService', () => {
       .mockResolvedValueOnce({ claims: { platformAdmin: true, superAdmin: false } });
 
     await service.loginWithGoogle();
-    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'refreshMyPlatformAdminClaim');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'refreshMyPlatformAdminClaim',
+    );
     expect(service.user()).toBe(mockUser);
   });
 
@@ -154,7 +160,9 @@ describe('AuthService', () => {
     const mockUser = { uid: 'abc', email: 'admin@test.com' };
     mockSignInWithPopup.mockResolvedValue({ user: mockUser });
     mockGetIdTokenResult.mockResolvedValue({ claims: {} });
-    mockHttpsCallable.mockImplementationOnce(() => vi.fn().mockRejectedValue(new Error('refresh err')));
+    mockHttpsCallable.mockImplementationOnce(() =>
+      vi.fn().mockRejectedValue(new Error('refresh err')),
+    );
 
     await service.loginWithGoogle();
     expect(mockSignOut).toHaveBeenCalled();

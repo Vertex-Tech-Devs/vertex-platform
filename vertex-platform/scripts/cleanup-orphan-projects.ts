@@ -40,7 +40,9 @@ async function main(): Promise<void> {
   console.log('[1/2] Validando proyectos contra SAFE_LIST...');
   const unsafeTargets = ORPHAN_PROJECTS_TO_DELETE.filter((id) => SAFE_LIST.has(id));
   if (unsafeTargets.length > 0) {
-    console.error(`❌ ERROR CRÍTICO DE SEGURIDAD: Intentando borrar proyectos intocables: ${unsafeTargets.join(', ')}`);
+    console.error(
+      `❌ ERROR CRÍTICO DE SEGURIDAD: Intentando borrar proyectos intocables: ${unsafeTargets.join(', ')}`,
+    );
     process.exit(1);
   }
   console.log('✅ Validación completada. Ningún proyecto a borrar pertenece a la SAFE_LIST.\n');

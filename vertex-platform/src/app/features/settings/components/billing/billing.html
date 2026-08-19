@@ -25,7 +25,8 @@
         <div>
           <strong>Alerta Crítica de Facturación GCP: Capacidad Baja</strong>
           <p>
-            Solo quedan <strong>{{ svc.totalGcpRemaining() }} cupos libres</strong> en el pool de proyectos GCP para nuevos shards.
+            Solo quedan <strong>{{ svc.totalGcpRemaining() }} cupos libres</strong> en el pool de
+            proyectos GCP para nuevos shards.
           </p>
         </div>
       </div>
@@ -64,8 +65,11 @@
         <div>
           <strong>Alerta de Capacidad: Último Shard Listo</strong>
           <p>
-            Queda solo <strong>{{ readiness()?.readyCount || 0 }} shard listo con OAuth</strong> para aprovisionamiento inmediato.
-            Capacidad total disponible en el pool: <strong>{{ totalAvailableStores() }} tiendas</strong>. Puedes verificar los {{ pendingShardsCount() }} shards standby restantes.
+            Queda solo
+            <strong>{{ readiness()?.readyCount || 0 }} shard listo con OAuth</strong> para
+            aprovisionamiento inmediato. Capacidad total disponible en el pool:
+            <strong>{{ totalAvailableStores() }} tiendas</strong>. Puedes verificar los
+            {{ pendingShardsCount() }} shards standby restantes.
           </p>
         </div>
       </div>
@@ -80,8 +84,10 @@
         <div>
           <strong>Capacidad Óptima y Escalable</strong>
           <p>
-            Infraestructura SaaS con <strong>{{ totalAvailableStores() }} tiendas de capacidad disponible</strong> distribuida en
-            {{ readiness()?.total || 0 }} shards ({{ svc.totalGcpRemaining() }} cupos GCP libres).
+            Infraestructura SaaS con
+            <strong>{{ totalAvailableStores() }} tiendas de capacidad disponible</strong>
+            distribuida en {{ readiness()?.total || 0 }} shards ({{ svc.totalGcpRemaining() }} cupos
+            GCP libres).
           </p>
         </div>
       </div>
@@ -101,11 +107,7 @@
       <i class="bi bi-box-arrow-up-right"></i>
     </a>
 
-    <button
-      class="btn btn-secondary"
-      (click)="syncAccounts()"
-      [disabled]="svc.isSyncing()"
-    >
+    <button class="btn btn-secondary" (click)="syncAccounts()" [disabled]="svc.isSyncing()">
       <i class="bi bi-arrow-repeat" [class.spin]="svc.isSyncing()"></i>
       <span>{{ svc.isSyncing() ? 'Sincronizando…' : 'Sincronizar Cuentas' }}</span>
     </button>
@@ -129,7 +131,11 @@
         <i class="bi bi-journal-bookmark-fill"></i>
         <span>¿Cómo funciona la capacidad y escalamiento en Vertex SaaS?</span>
       </div>
-      <i class="bi" [class.bi-chevron-down]="!showCapacityGuide()" [class.bi-chevron-up]="showCapacityGuide()"></i>
+      <i
+        class="bi"
+        [class.bi-chevron-down]="!showCapacityGuide()"
+        [class.bi-chevron-up]="showCapacityGuide()"
+      ></i>
     </button>
 
     @if (showCapacityGuide()) {
@@ -150,7 +156,9 @@
           <div class="flow-step">
             <i class="bi bi-credit-card-2-front"></i>
             <strong>3. Billing Account GCP</strong>
-            <p>Permite vincular hasta <strong>5 proyectos GCP</strong> por cuenta de facturación.</p>
+            <p>
+              Permite vincular hasta <strong>5 proyectos GCP</strong> por cuenta de facturación.
+            </p>
           </div>
         </div>
 
@@ -158,10 +166,12 @@
           <h4>Protocolo de Escalamiento Automático:</h4>
           <ul>
             <li>
-              <strong>Aprovisionamiento de Shards:</strong> Cuando los shards listos son &le; 2, complete la activación de los shards standby pendientes.
+              <strong>Aprovisionamiento de Shards:</strong> Cuando los shards listos son &le; 2,
+              complete la activación de los shards standby pendientes.
             </li>
             <li>
-              <strong>Aumento de Cuotas Billing:</strong> Si los cupos GCP libres son &le; 2, registre nuevas Billing Accounts o pida aumento de cuota en GCP.
+              <strong>Aumento de Cuotas Billing:</strong> Si los cupos GCP libres son &le; 2,
+              registre nuevas Billing Accounts o pida aumento de cuota en GCP.
             </li>
           </ul>
         </div>
@@ -239,7 +249,8 @@
         </div>
       </div>
       <p class="monitor-card__hint">
-        Capacidad actual de los shards compartidos (ordenados por prioridad de negocio: Activos con tiendas, Standby listos e Incompletos).
+        Capacidad actual de los shards compartidos (ordenados por prioridad de negocio: Activos con
+        tiendas, Standby listos e Incompletos).
       </p>
 
       <div class="shard-grid">
@@ -278,7 +289,9 @@
               <span
                 class="badge"
                 [class.badge--active]="shard.status === 'ACTIVE' || shard.status === 'WARMUP_READY'"
-                [class.badge--warning]="shard.status === 'WARMUP_PROVISIONING' || shard.status === 'STANDBY'"
+                [class.badge--warning]="
+                  shard.status === 'WARMUP_PROVISIONING' || shard.status === 'STANDBY'
+                "
                 [class.badge--inactive]="isFull"
               >
                 {{
@@ -286,7 +299,10 @@
                     ? 'Activo'
                     : isFull
                       ? 'Sin cupo'
-                      : shard.status === 'WARMUP_READY' || shard.status === 'STANDBY' || shard.status === 'FULL' || shard.status === 'WARMUP_PROVISIONING'
+                      : shard.status === 'WARMUP_READY' ||
+                          shard.status === 'STANDBY' ||
+                          shard.status === 'FULL' ||
+                          shard.status === 'WARMUP_PROVISIONING'
                         ? 'Standby'
                         : shard.status
                 }}
@@ -311,7 +327,8 @@
               <div class="usage__details">
                 <span class="usage__text">
                   @if (isFull) {
-                    Sin cupo disponible ({{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas)
+                    Sin cupo disponible ({{ shard.currentStores }} /
+                    {{ shard.maxCapacity }} tiendas)
                   } @else {
                     {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas ({{
                       shard.availableStores
@@ -324,17 +341,11 @@
             @if (status) {
               <div class="shard-card__actions">
                 @if (!status.ready) {
-                  <button
-                    class="btn btn-primary btn--sm"
-                    (click)="selectedShard.set(status)"
-                  >
+                  <button class="btn btn-primary btn--sm" (click)="selectedShard.set(status)">
                     <i class="bi bi-wrench-adjustable"></i> Cómo configurar
                   </button>
                 } @else {
-                  <button
-                    class="btn btn-secondary btn--sm"
-                    (click)="selectedShard.set(status)"
-                  >
+                  <button class="btn btn-secondary btn--sm" (click)="selectedShard.set(status)">
                     <i class="bi bi-eye"></i> Ver estado
                   </button>
                 }
@@ -441,14 +452,12 @@
 
                 <div class="usage" [class]="gcpUsageClass(account)">
                   <div class="usage__bar">
-                    <div
-                      class="usage__fill"
-                      [style.width.%]="gcpUsagePercent(account)"
-                    ></div>
+                    <div class="usage__fill" [style.width.%]="gcpUsagePercent(account)"></div>
                   </div>
                   <div class="usage__details">
                     <span class="usage__text">
-                      <strong>{{ account.gcpUsedProjects }}</strong> / {{ account.gcpProjectLimit }} proyectos ({{ gcpUsagePercent(account) }}%)
+                      <strong>{{ account.gcpUsedProjects }}</strong> /
+                      {{ account.gcpProjectLimit }} proyectos ({{ gcpUsagePercent(account) }}%)
                     </span>
                     <span class="usage__sub">· {{ account.gcpRemaining }} cupos libres</span>
                   </div>

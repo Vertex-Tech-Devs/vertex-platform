@@ -398,31 +398,40 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--platform-card-bg);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 16px;
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.06) 25%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.06) 75%
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.05) 75%
   );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
-  border-radius: 6px;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
 }
 
 .skeleton--title {
+  height: 1.25rem;
+  width: 50%;
+}
+.skeleton--badge {
   height: 1.15rem;
-  width: 55%;
+  width: 70px;
+  border-radius: 12px;
 }
 .skeleton--url {
-  height: 0.85rem;
-  width: 80%;
+  height: 0.9rem;
+  width: 75%;
 }
 .skeleton--meta {
   height: 0.85rem;
-  width: 40%;
+  width: 45%;
 }
 
 @keyframes skeleton-shimmer {

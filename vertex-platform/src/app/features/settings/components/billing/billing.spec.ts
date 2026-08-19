@@ -18,8 +18,12 @@ class MockBillingAccountsService {
   sortedAccounts = computed(() =>
     [...this.accounts()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
   );
-  totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
-  totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
+  totalGcpLimit = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0),
+  );
+  totalGcpUsed = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0),
+  );
   totalGcpRemaining = computed(() => Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()));
   usagePercent = computed(() =>
     this.totalGcpLimit() > 0 ? Math.round((this.totalGcpUsed() / this.totalGcpLimit()) * 100) : 0,
@@ -144,19 +148,32 @@ describe('Billing', () => {
   });
 
   it('gcpUsagePercent usa el límite real de GCP', () => {
-    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 3, gcpProjectLimit: 5 }))).toBe(60);
-    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe(100);
+    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 3, gcpProjectLimit: 5 }))).toBe(
+      60,
+    );
+    expect(component.gcpUsagePercent(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe(
+      100,
+    );
   });
 
   it('gcpUsageClass marca crítico al 100%', () => {
-    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe('usage--critical');
-    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 1, gcpProjectLimit: 5 }))).toBe('usage--ok');
+    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }))).toBe(
+      'usage--critical',
+    );
+    expect(component.gcpUsageClass(makeAccount({ gcpUsedProjects: 1, gcpProjectLimit: 5 }))).toBe(
+      'usage--ok',
+    );
   });
 
   it('totales GCP suman usado y límite', () => {
     billingSvc.accounts.set([
       makeAccount({ gcpUsedProjects: 5, gcpProjectLimit: 5 }),
-      makeAccount({ id: '016AC2-299E39-51C8BF', name: 'Vertex Dev Billing 2', gcpUsedProjects: 5, gcpProjectLimit: 5 }),
+      makeAccount({
+        id: '016AC2-299E39-51C8BF',
+        name: 'Vertex Dev Billing 2',
+        gcpUsedProjects: 5,
+        gcpProjectLimit: 5,
+      }),
     ]);
     expect(component.totalGcpUsed()).toBe(10);
     expect(component.totalGcpLimit()).toBe(10);
@@ -308,9 +325,36 @@ describe('Billing', () => {
       readyCount: 2,
       checkedAt: new Date().toISOString(),
       shards: [
-        { id: 'shard-incomplete', projectId: 'p3', status: 'STANDBY', billingAccountId: 'b1', redirectUri: '', ready: false, missing: ['redirect_uri'], checkedAt: '' },
-        { id: 'shard-ready-empty', projectId: 'p2', status: 'WARMUP_READY', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
-        { id: 'shard-active-stores', projectId: 'p1', status: 'ACTIVE', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
+        {
+          id: 'shard-incomplete',
+          projectId: 'p3',
+          status: 'STANDBY',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: false,
+          missing: ['redirect_uri'],
+          checkedAt: '',
+        },
+        {
+          id: 'shard-ready-empty',
+          projectId: 'p2',
+          status: 'WARMUP_READY',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
+        {
+          id: 'shard-active-stores',
+          projectId: 'p1',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
       ],
     });
     component.runtimeSummary.set({
@@ -320,9 +364,42 @@ describe('Billing', () => {
       availableSharedSlots: 35,
       recommendedRuntimeMode: 'shared-shard',
       shards: [
-        { id: 'shard-active-stores', projectId: 'p1', siteId: 'd', region: 'us', status: 'ACTIVE', currentStores: 5, reservedStores: 0, maxCapacity: 35, availableStores: 30, occupancyRatio: 0.14 },
-        { id: 'shard-ready-empty', projectId: 'p2', siteId: 'd', region: 'us', status: 'WARMUP_READY', currentStores: 0, reservedStores: 0, maxCapacity: 35, availableStores: 35, occupancyRatio: 0 },
-        { id: 'shard-incomplete', projectId: 'p3', siteId: 'd', region: 'us', status: 'WARMUP_PROVISIONING', currentStores: 0, reservedStores: 0, maxCapacity: 35, availableStores: 35, occupancyRatio: 0 },
+        {
+          id: 'shard-active-stores',
+          projectId: 'p1',
+          siteId: 'd',
+          region: 'us',
+          status: 'ACTIVE',
+          currentStores: 5,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 30,
+          occupancyRatio: 0.14,
+        },
+        {
+          id: 'shard-ready-empty',
+          projectId: 'p2',
+          siteId: 'd',
+          region: 'us',
+          status: 'WARMUP_READY',
+          currentStores: 0,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 35,
+          occupancyRatio: 0,
+        },
+        {
+          id: 'shard-incomplete',
+          projectId: 'p3',
+          siteId: 'd',
+          region: 'us',
+          status: 'WARMUP_PROVISIONING',
+          currentStores: 0,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 35,
+          occupancyRatio: 0,
+        },
       ],
     });
 
@@ -363,8 +440,26 @@ describe('Billing', () => {
       readyCount: 1,
       checkedAt: new Date().toISOString(),
       shards: [
-        { id: 's2', projectId: 'p2', status: 'ACTIVE', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
-        { id: 's1', projectId: 'p1', status: 'ACTIVE', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
+        {
+          id: 's2',
+          projectId: 'p2',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
+        {
+          id: 's1',
+          projectId: 'p1',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
       ],
     });
     component.runtimeSummary.set({
@@ -374,8 +469,30 @@ describe('Billing', () => {
       availableSharedSlots: 70,
       recommendedRuntimeMode: 'shared-shard',
       shards: [
-        { id: 's2', projectId: 'p2', siteId: 'd', region: 'us', status: 'ACTIVE', currentStores: 10, reservedStores: 0, maxCapacity: 35, availableStores: 25, occupancyRatio: 0.28 },
-        { id: 's1', projectId: 'p1', siteId: 'd', region: 'us', status: 'ACTIVE', currentStores: 20, reservedStores: 0, maxCapacity: 35, availableStores: 15, occupancyRatio: 0.57 },
+        {
+          id: 's2',
+          projectId: 'p2',
+          siteId: 'd',
+          region: 'us',
+          status: 'ACTIVE',
+          currentStores: 10,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 25,
+          occupancyRatio: 0.28,
+        },
+        {
+          id: 's1',
+          projectId: 'p1',
+          siteId: 'd',
+          region: 'us',
+          status: 'ACTIVE',
+          currentStores: 20,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 15,
+          occupancyRatio: 0.57,
+        },
       ],
     });
 
@@ -391,8 +508,26 @@ describe('Billing', () => {
       readyCount: 2,
       checkedAt: new Date().toISOString(),
       shards: [
-        { id: 'shard-b', projectId: 'pb', status: 'ACTIVE', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
-        { id: 'shard-a', projectId: 'pa', status: 'ACTIVE', billingAccountId: 'b1', redirectUri: '', ready: true, missing: [], checkedAt: '' },
+        {
+          id: 'shard-b',
+          projectId: 'pb',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
+        {
+          id: 'shard-a',
+          projectId: 'pa',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
       ],
     });
     component.runtimeSummary.set({
@@ -402,8 +537,30 @@ describe('Billing', () => {
       availableSharedSlots: 70,
       recommendedRuntimeMode: 'shared-shard',
       shards: [
-        { id: 'shard-b', projectId: 'pb', siteId: 'd', region: 'us', status: 'ACTIVE', currentStores: 5, reservedStores: 0, maxCapacity: 35, availableStores: 30, occupancyRatio: 0.14 },
-        { id: 'shard-a', projectId: 'pa', siteId: 'd', region: 'us', status: 'ACTIVE', currentStores: 5, reservedStores: 0, maxCapacity: 35, availableStores: 30, occupancyRatio: 0.14 },
+        {
+          id: 'shard-b',
+          projectId: 'pb',
+          siteId: 'd',
+          region: 'us',
+          status: 'ACTIVE',
+          currentStores: 5,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 30,
+          occupancyRatio: 0.14,
+        },
+        {
+          id: 'shard-a',
+          projectId: 'pa',
+          siteId: 'd',
+          region: 'us',
+          status: 'ACTIVE',
+          currentStores: 5,
+          reservedStores: 0,
+          maxCapacity: 35,
+          availableStores: 30,
+          occupancyRatio: 0.14,
+        },
       ],
     });
 
