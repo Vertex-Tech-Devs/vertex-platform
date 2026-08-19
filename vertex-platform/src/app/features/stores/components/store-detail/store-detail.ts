@@ -147,8 +147,14 @@ export class StoreDetail implements OnInit {
 
   readonly localRedeployError = signal('');
 
+  readonly isRedeployProgressDismissed = signal(false);
+
   // Individual Action Mini Progress Bar Signals
   readonly redeployActionState = computed<ActionProgressState>(() => {
+    if (this.isRedeployProgressDismissed()) {
+      return IDLE_ACTION_STATE;
+    }
+
     const s = this.store();
     if (!s) {
       return IDLE_ACTION_STATE;
@@ -183,11 +189,15 @@ export class StoreDetail implements OnInit {
       const redeployStartTime = new Date(this.formatDate(s.redeployStartedAt) ?? 0).getTime();
 
       if (lastDeployTime >= redeployStartTime) {
-        return {
-          status: 'success',
-          progress: 100,
-          message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
-        };
+        const timeSinceSuccessMs = Date.now() - lastDeployTime;
+        // Muestra la notificación de éxito solo durante 2 minutos (120.000 ms) tras completarse
+        if (timeSinceSuccessMs >= 0 && timeSinceSuccessMs < 120000) {
+          return {
+            status: 'success',
+            progress: 100,
+            message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
+          };
+        }
       }
     }
 
@@ -859,11 +869,16 @@ export class StoreDetail implements OnInit {
     return { pending: '○', running: '…', done: '✓', error: '✗' }[status] ?? '○';
   }
 
+  dismissRedeployProgress(): void {
+    this.isRedeployProgressDismissed.set(true);
+  }
+
   async redeploy(): Promise<void> {
     const id = this.store()?.id;
     if (!id) {
       return;
     }
+    this.isRedeployProgressDismissed.set(false);
     this.isRedeploying.set(true);
     this.localRedeployError.set('');
     try {
