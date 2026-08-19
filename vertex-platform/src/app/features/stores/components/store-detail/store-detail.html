@@ -404,25 +404,49 @@
               </div>
             }
 
-            <!-- Actions card -->
-            <div class="detail-card">
-              <h2 class="detail-card__title">Operaciones de Infraestructura</h2>
-              <div class="action-list">
-                <!-- Redeploy -->
-                <div class="action-item-wrapper">
-                  <button class="action-btn" [disabled]="isRedeploying()" (click)="redeploy()">
-                    @if (isRedeploying()) {
-                      <app-spinner size="sm" label="Desplegando…" />
-                    } @else {
-                      <i class="bi bi-arrow-repeat"></i> Re-desplegar tienda
-                    }
-                    <small>
-                      Re-despliega el código y la infraestructura. En DEV compila la rama
-                      <code>develop</code> (últimos cambios); en PROD compila la versión activa (v{{
-                        store()!.templateVersion || 'asignada'
-                      }}).
-                    </small>
-                  </button>
+            <!-- Operations Card -->
+            <div class="detail-card ops-card">
+              <div class="ops-card__header">
+                <div class="ops-card__icon">
+                  <i class="bi bi-cpu-fill"></i>
+                </div>
+                <div>
+                  <h2 class="detail-card__title mb-0">Operaciones de Infraestructura</h2>
+                  <p class="ops-card__subtitle">Gestión directa de despliegues, datos y ciclo de vida de la tienda</p>
+                </div>
+              </div>
+
+              <div class="ops-card__grid">
+                <!-- Redeploy Control Card -->
+                <div class="op-control-card" [class.op-control-card--active]="redeployActionState().status === 'running'">
+                  <div class="op-control-card__header">
+                    <div class="op-control-card__info">
+                      <div class="op-control-card__icon text-primary">
+                        <i class="bi bi-arrow-repeat"></i>
+                      </div>
+                      <div>
+                        <h4 class="op-control-card__title">Re-desplegar Tienda</h4>
+                        <span class="op-control-card__badge badge--primary">
+                          {{ store()!.targetChannel || 'stable' }}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      class="btn btn-primary btn-sm px-3 shadow-sm"
+                      [disabled]="isRedeploying() || redeployActionState().status === 'running'"
+                      (click)="redeploy()"
+                    >
+                      @if (isRedeploying() || redeployActionState().status === 'running') {
+                        <app-spinner size="sm" label="Ejecutando…" />
+                      } @else {
+                        <i class="bi bi-rocket-takeoff me-1"></i> Re-desplegar
+                      }
+                    </button>
+                  </div>
+
+                  <p class="op-control-card__desc">
+                    Compila e instala el código y la infraestructura. En <code>DEV</code> procesa la rama <code>develop</code>; en <code>PROD</code> compila la versión <code>v{{ store()!.templateVersion || '0.3.0' }}</code>.
+                  </p>
 
                   @if (redeployActionState().status !== 'idle') {
                     <div class="action-progress action-progress--{{ redeployActionState().status }}">
@@ -446,24 +470,35 @@
                   }
                 </div>
 
-                <!-- Seed Mock Data -->
+                <!-- Seed Control Card -->
                 @if (store()!.status === 'active') {
-                  <div class="action-item-wrapper">
-                    <button
-                      class="action-btn action-btn--info"
-                      [disabled]="isSeeding()"
-                      (click)="openSeedConfirm()"
-                    >
-                      @if (isSeeding()) {
-                        <app-spinner size="sm" label="Semillando datos…" />
-                      } @else {
-                        <i class="bi bi-database-fill-gear"></i> Semillar Datos de Prueba
-                      }
-                      <small
-                        >Carga un catálogo completo de productos, categorías e imágenes de
-                        demostración en el Firestore de la tienda</small
+                  <div class="op-control-card" [class.op-control-card--active]="seedActionState().status === 'running'">
+                    <div class="op-control-card__header">
+                      <div class="op-control-card__info">
+                        <div class="op-control-card__icon text-info">
+                          <i class="bi bi-database-fill-gear"></i>
+                        </div>
+                        <div>
+                          <h4 class="op-control-card__title">Semillar Datos de Prueba</h4>
+                          <span class="op-control-card__badge badge--info">Firestore Seed</span>
+                        </div>
+                      </div>
+                      <button
+                        class="btn btn-outline-info btn-sm px-3"
+                        [disabled]="isSeeding() || seedActionState().status === 'running'"
+                        (click)="openSeedConfirm()"
                       >
-                    </button>
+                        @if (isSeeding()) {
+                          <app-spinner size="sm" label="Semillando…" />
+                        } @else {
+                          <i class="bi bi-database-add me-1"></i> Semillar Catálogo
+                        }
+                      </button>
+                    </div>
+
+                    <p class="op-control-card__desc">
+                      Pobla automáticamente un catálogo completo de productos, categorías, imágenes y atributos de prueba en la base Firestore.
+                    </p>
 
                     @if (seedActionState().status !== 'idle') {
                       <div class="action-progress action-progress--{{ seedActionState().status }}">
@@ -488,35 +523,50 @@
                   </div>
                 }
 
-                <!-- Suspend / Activate -->
-                <div class="action-item-wrapper">
-                  @if (store()!.status === 'active') {
-                    <button
-                      class="action-btn action-btn--warning"
-                      [disabled]="isSuspending()"
-                      (click)="showSleepConfirm.set(true)"
-                    >
-                      <i class="bi bi-moon"></i> Dormir tienda (Suspender)
-                      <small
-                        >Suspende el proyecto temporalmente y lo excluye del ciclo de deploys
-                        globales</small
+                <!-- Sleep / Activate Control Card -->
+                <div class="op-control-card">
+                  <div class="op-control-card__header">
+                    <div class="op-control-card__info">
+                      <div class="op-control-card__icon text-warning">
+                        <i class="bi bi-moon-stars-fill"></i>
+                      </div>
+                      <div>
+                        <h4 class="op-control-card__title">
+                          {{ store()!.status === 'active' ? 'Dormir Tienda (Suspender)' : 'Reactivar Tienda' }}
+                        </h4>
+                        <span class="op-control-card__badge badge--warning">
+                          {{ store()!.status }}
+                        </span>
+                      </div>
+                    </div>
+
+                    @if (store()!.status === 'active') {
+                      <button
+                        class="btn btn-outline-warning btn-sm px-3"
+                        [disabled]="isSuspending()"
+                        (click)="showSleepConfirm.set(true)"
                       >
-                    </button>
-                  }
-                  @if (store()!.status === 'suspended') {
-                    <button
-                      class="action-btn action-btn--success"
-                      [disabled]="isActivating()"
-                      (click)="activate()"
-                    >
-                      @if (isActivating()) {
-                        <span class="spinner-sm"></span> Activando…
-                      } @else {
-                        <i class="bi bi-play-circle"></i> Reactivar tienda
-                      }
-                      <small>Restaura la tienda y reactiva el acceso al storefront del cliente</small>
-                    </button>
-                  }
+                        <i class="bi bi-pause-circle me-1"></i> Dormir Tienda
+                      </button>
+                    }
+                    @if (store()!.status === 'suspended') {
+                      <button
+                        class="btn btn-success btn-sm px-3"
+                        [disabled]="isActivating()"
+                        (click)="activate()"
+                      >
+                        @if (isActivating()) {
+                          <span class="spinner-sm me-1"></span> Activando…
+                        } @else {
+                          <i class="bi bi-play-circle me-1"></i> Reactivar Tienda
+                        }
+                      </button>
+                    }
+                  </div>
+
+                  <p class="op-control-card__desc">
+                    Pausa temporalmente el acceso público a la tienda y la excluye automáticamente de los ciclos de despliegue global.
+                  </p>
 
                   @if (suspendActionState().status !== 'idle') {
                     <div class="action-progress action-progress--{{ suspendActionState().status }}">
@@ -540,18 +590,31 @@
                   }
                 </div>
 
-                <!-- Danger Zone -->
+                <!-- Danger Zone Control Card -->
                 @if (auth.isSuperAdmin()) {
-                  <div class="danger-zone">
-                    <h3 class="danger-zone__title">Zona Peligrosa</h3>
-                    <button
-                      class="action-btn action-btn--danger"
-                      [disabled]="isDeleting()"
-                      (click)="showDeleteConfirm.set(true)"
-                    >
-                      <i class="bi bi-trash"></i> Eliminar tienda
-                      <small>Destrucción permanente de la tienda y su proyecto GCP completo</small>
-                    </button>
+                  <div class="op-control-card op-control-card--danger">
+                    <div class="op-control-card__header">
+                      <div class="op-control-card__info">
+                        <div class="op-control-card__icon text-danger">
+                          <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <div>
+                          <h4 class="op-control-card__title text-danger">Zona Peligrosa</h4>
+                          <span class="op-control-card__badge badge--error">Destructivo</span>
+                        </div>
+                      </div>
+                      <button
+                        class="btn btn-outline-danger btn-sm px-3"
+                        [disabled]="isDeleting()"
+                        (click)="showDeleteConfirm.set(true)"
+                      >
+                        <i class="bi bi-trash me-1"></i> Eliminar Tienda
+                      </button>
+                    </div>
+
+                    <p class="op-control-card__desc">
+                      Destrucción permanente e irreversible de la tienda, base de datos Firestore y recursos GCP asociados.
+                    </p>
                   </div>
                 }
               </div>
