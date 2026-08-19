@@ -115,8 +115,13 @@ jobs:
 
       - run: npm ci --legacy-peer-deps --no-audit --no-fund
 
-      - name: Build production
-        run: npm run build:prod --workspace=vertex-platform
+      - name: Build frontend
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npm run build:dev --workspace=vertex-platform
+          else
+            npm run build:prod --workspace=vertex-platform
+          fi
 
       - name: Check bundle size
         run: |
