@@ -268,3 +268,53 @@
     width: 100%;
   }
 }
+
+// ── Team Skeletons ─────────────────────────────────────────────────────────
+.admin-item--skeleton {
+  pointer-events: none;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+
+  &--avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &--name {
+    width: 130px;
+    height: 16px;
+  }
+
+  &--email {
+    width: 180px;
+    height: 12px;
+  }
+
+  &--btn {
+    width: 60px;
+    height: 28px;
+    border-radius: 6px;
+  }
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+

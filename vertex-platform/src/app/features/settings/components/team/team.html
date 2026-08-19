@@ -55,7 +55,18 @@
     </h2>
 
     @if (adminsService.isLoading()) {
-      <div class="loading">Cargando…</div>
+      <ul class="admin-list admin-list--skeleton" aria-busy="true" aria-label="Cargando administradores">
+        @for (_ of [1, 2, 3]; track $index) {
+          <li class="admin-item admin-item--skeleton">
+            <div class="skeleton skeleton--avatar"></div>
+            <div class="admin-item__info">
+              <div class="skeleton skeleton--name"></div>
+              <div class="skeleton skeleton--email mt-1"></div>
+            </div>
+            <div class="skeleton skeleton--btn ms-auto"></div>
+          </li>
+        }
+      </ul>
     } @else if (adminsService.error()) {
       <div class="error-msg">{{ adminsService.error() }}</div>
     } @else if (adminsService.admins().length === 0) {

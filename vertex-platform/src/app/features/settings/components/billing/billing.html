@@ -367,7 +367,25 @@
     </h2>
 
     @if (svc.isLoading()) {
-      <div class="loading">Cargando cuentas en tiempo real…</div>
+      <ul class="account-list account-list--skeleton" aria-busy="true" aria-label="Cargando cuentas">
+        @for (_ of [1, 2, 3]; track $index) {
+          <li class="account-item account-item--skeleton">
+            <div class="account-item__top">
+              <div class="account-item__header">
+                <div class="skeleton skeleton--name"></div>
+                <div class="skeleton skeleton--badge"></div>
+              </div>
+              <div class="account-item__actions">
+                <div class="skeleton skeleton--btn"></div>
+              </div>
+            </div>
+            <div class="account-item__body mt-3">
+              <div class="skeleton skeleton--meta mb-2"></div>
+              <div class="skeleton skeleton--bar"></div>
+            </div>
+          </li>
+        }
+      </ul>
     } @else if (svc.error()) {
       <div class="error-msg">{{ svc.error() }}</div>
     } @else if (svc.accounts().length === 0) {
