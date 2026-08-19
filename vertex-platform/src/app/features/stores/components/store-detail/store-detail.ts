@@ -73,7 +73,7 @@ export class StoreDetail implements OnInit {
   } | null>(null);
 
   // Tab management
-  readonly activeTab = signal<'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial'>(
+  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>(
     'orquestacion',
   );
 
@@ -440,7 +440,7 @@ export class StoreDetail implements OnInit {
 
   // Dynamic Tabs switching
   async setTab(
-    tab: 'orquestacion' | 'config' | 'equipo' | 'dominios' | 'historial',
+    tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial',
   ): Promise<void> {
     this.activeTab.set(tab);
     const s = this.store();
@@ -448,9 +448,7 @@ export class StoreDetail implements OnInit {
       return;
     }
 
-    if (tab === 'config') {
-      await this.loadConfig();
-    } else if (tab === 'equipo') {
+    if (tab === 'equipo') {
       await this.loadStaff();
     } else if (tab === 'dominios') {
       if (s.customDomain) {
