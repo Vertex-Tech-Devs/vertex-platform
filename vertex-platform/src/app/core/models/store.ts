@@ -49,6 +49,9 @@ export interface Store {
     pct?: number;
     updatedAt?: string;
   };
+  redeployStatus?: 'idle' | 'deploying' | 'failed';
+  redeployError?: string | null;
+  redeployStartedAt?: Date | string | null;
   pendingMigration?: boolean;
   autoUpdate?: boolean;
   billingAccountId?: string;

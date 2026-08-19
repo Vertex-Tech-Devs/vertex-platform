@@ -145,8 +145,55 @@ export class StoreDetail implements OnInit {
   readonly saveError = signal('');
   readonly dnsRecords = signal<DnsRecord[]>([]);
 
+  readonly localRedeployError = signal('');
+
   // Individual Action Mini Progress Bar Signals
-  readonly redeployActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
+  readonly redeployActionState = computed<ActionProgressState>(() => {
+    const s = this.store();
+    if (!s) {
+      return IDLE_ACTION_STATE;
+    }
+
+    if (this.localRedeployError()) {
+      return {
+        status: 'error',
+        progress: 100,
+        message: this.localRedeployError(),
+      };
+    }
+
+    if (s.redeployStatus === 'deploying' || this.isRedeploying()) {
+      return {
+        status: 'running',
+        progress: 60,
+        message: '🔨 Compilando e instalando infraestructura en GitHub Actions (en curso...)',
+      };
+    }
+
+    if (s.redeployStatus === 'failed') {
+      return {
+        status: 'error',
+        progress: 100,
+        message: s.redeployError || '✗ Falló el despliegue del storefront en GitHub Actions.',
+      };
+    }
+
+    if (s.redeployStatus === 'idle' && s.lastDeployedAt && s.redeployStartedAt) {
+      const lastDeployTime = new Date(this.formatDate(s.lastDeployedAt) ?? 0).getTime();
+      const redeployStartTime = new Date(this.formatDate(s.redeployStartedAt) ?? 0).getTime();
+
+      if (lastDeployTime >= redeployStartTime) {
+        return {
+          status: 'success',
+          progress: 100,
+          message: '✓ Re-despliegue completado con éxito. La nueva versión ya está disponible en Firebase Hosting.',
+        };
+      }
+    }
+
+    return IDLE_ACTION_STATE;
+  });
+
   readonly applyVersionActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
   readonly seedActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
   readonly suspendActionState = signal<ActionProgressState>(IDLE_ACTION_STATE);
@@ -818,31 +865,12 @@ export class StoreDetail implements OnInit {
       return;
     }
     this.isRedeploying.set(true);
-    this.redeployActionState.set({
-      status: 'running',
-      progress: 25,
-      message: 'Conectando con la API de GitHub Actions...',
-    });
+    this.localRedeployError.set('');
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      this.redeployActionState.set({
-        status: 'running',
-        progress: 65,
-        message: 'Despachando orden de compilación de infraestructura...',
-      });
       await this.storesService.redeployStore(id);
-      this.redeployActionState.set({
-        status: 'success',
-        progress: 100,
-        message: '🚀 Re-despliegue iniciado correctamente. GitHub Actions CI/CD en ejecución (~1 min).',
-      });
     } catch (err: unknown) {
       const msg = errorMessage(err);
-      this.redeployActionState.set({
-        status: 'error',
-        progress: 100,
-        message: '✗ Error al iniciar re-despliegue: ' + msg,
-      });
+      this.localRedeployError.set('No se pudo iniciar el re-despliegue: ' + msg);
     } finally {
       this.isRedeploying.set(false);
     }
