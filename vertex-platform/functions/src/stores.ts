@@ -734,7 +734,6 @@ export const redeployStore = onCall<{ storeId: string }>(
             project_id: projectId,
             site_id: runtimeSiteId,
             firebase_config: JSON.stringify(firebaseConfig),
-            store_name: store.name,
             platform_project_id: PLATFORM_PROJECT,
             deploy_token: deployTokenValue,
             environment: env,
