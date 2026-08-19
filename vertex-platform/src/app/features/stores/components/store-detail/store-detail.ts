@@ -19,10 +19,8 @@ import { AuthService } from '@core/services/auth';
 import type { DnsRecord } from '@core/services/stores';
 import type {
   ProvisioningStep,
-  StoreConfig,
   StaffMember,
   PendingInvitation,
-  Store,
   TemplateVersion,
 } from '@core/models/store';
 
@@ -224,46 +222,7 @@ export class StoreDetail implements OnInit {
     logoUrl: [''],
   });
 
-  // Dynamic Hot UPDATE Configuration fields
-  readonly isLoadingConfig = signal(false);
-  readonly isSavingConfig = signal(false);
-  readonly configError = signal('');
-  readonly configSuccess = signal('');
 
-  readonly configForm = this.fb.group({
-    storeName: ['', Validators.required],
-    strapline: [''],
-    logoUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
-    faviconUrl: ['', [Validators.pattern(this.optionalUrlRegex)]],
-    currency: ['ARS', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
-    currencySymbol: ['$', [Validators.required, Validators.maxLength(5)]],
-    country: ['Argentina', Validators.required],
-    contact: this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      phone: [''],
-      whatsapp: [''],
-      address: [''],
-      instagram: [''],
-      facebook: ['', [Validators.pattern(this.optionalUrlRegex)]],
-    }),
-    seo: this.fb.group({
-      metaTitle: [''],
-      metaDescription: [''],
-    }),
-    payments: this.fb.group({
-      mercadoPago: this.fb.group({
-        publicKey: [''],
-        accessToken: [''],
-        accessTokenSecret: ['mp-access-token'],
-        accessTokenMasked: [''],
-        accountEmail: [''],
-        accountUserId: [''],
-        webhookUrl: [''],
-        validationStatus: ['pending'],
-        validationMessage: [''],
-      }),
-    }),
-  });
 
   // Team RBAC fields
   readonly staff = signal<StaffMember[]>([]);
@@ -458,167 +417,7 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  // Configuration Loading and Saving
-  async loadConfig(): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isLoadingConfig.set(true);
-    this.configError.set('');
-    this.configSuccess.set('');
-    try {
-      const computedWebhookUrl = this.computeMercadoPagoWebhookUrl(s);
-      const config = await this.storesService.getStoreConfig(s.id);
-      if (config) {
-        this.configForm.patchValue({
-          storeName: config.storeName || s.name || '',
-          strapline: config.strapline || '',
-          logoUrl: config.logoUrl || s.logoUrl || '',
-          faviconUrl: config.faviconUrl || '',
-          currency: config.currency || 'ARS',
-          currencySymbol: config.currencySymbol || '$',
-          country: config.country || 'Argentina',
-          contact: {
-            email: config.contact?.email || s.ownerEmail || '',
-            phone: config.contact?.phone || '',
-            whatsapp: config.contact?.whatsapp || '',
-            address: config.contact?.address || '',
-            instagram: config.contact?.instagram || '',
-            facebook: config.contact?.facebook || '',
-          },
-          seo: {
-            metaTitle: config.seo?.metaTitle || '',
-            metaDescription: config.seo?.metaDescription || '',
-          },
-          payments: {
-            mercadoPago: {
-              publicKey: config.payments?.mercadoPago?.publicKey || '',
-              accessToken: '',
-              accessTokenSecret:
-                config.payments?.mercadoPago?.accessTokenSecret || 'mp-access-token',
-              accessTokenMasked: config.payments?.mercadoPago?.accessTokenMasked || '',
-              accountEmail: config.payments?.mercadoPago?.accountEmail || '',
-              accountUserId: config.payments?.mercadoPago?.accountUserId || '',
-              webhookUrl: computedWebhookUrl || config.payments?.mercadoPago?.webhookUrl || '',
-              validationStatus: config.payments?.mercadoPago?.validationStatus || 'pending',
-              validationMessage: config.payments?.mercadoPago?.validationMessage || '',
-            },
-          },
-        });
-      } else {
-        // Pre-fill with store defaults
-        this.configForm.patchValue({
-          storeName: s.name,
-          logoUrl: s.logoUrl ?? '',
-          contact: {
-            email: s.ownerEmail,
-            phone: '',
-            whatsapp: '',
-            address: '',
-            instagram: '',
-            facebook: '',
-          },
-          payments: {
-            mercadoPago: {
-              publicKey: '',
-              accessToken: '',
-              accessTokenSecret: 'mp-access-token',
-              accessTokenMasked: '',
-              accountEmail: '',
-              accountUserId: '',
-              webhookUrl: computedWebhookUrl,
-              validationStatus: 'pending',
-              validationMessage: '',
-            },
-          },
-        });
-      }
-    } catch (err) {
-      console.error('Error loading config:', err);
-      this.configError.set('No se pudo cargar la configuración de la tienda.');
-    } finally {
-      this.isLoadingConfig.set(false);
-    }
-  }
 
-  async saveConfig(): Promise<void> {
-    if (this.configForm.invalid) {
-      this.configForm.markAllAsTouched();
-      return;
-    }
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isSavingConfig.set(true);
-    this.configError.set('');
-    this.configSuccess.set('');
-    try {
-      const formValue = this.configForm.value as StoreConfig;
-      formValue.storeName = formValue.storeName?.trim();
-      formValue.strapline = formValue.strapline?.trim();
-      formValue.logoUrl = formValue.logoUrl?.trim();
-      formValue.faviconUrl = formValue.faviconUrl?.trim();
-      formValue.currency = (formValue.currency || '').trim().toUpperCase();
-      formValue.currencySymbol = (formValue.currencySymbol || '').trim();
-      formValue.country = (formValue.country || '').trim();
-      formValue.contact.email = formValue.contact.email?.trim().toLowerCase();
-      formValue.contact.facebook = formValue.contact.facebook?.trim();
-      formValue.seo.metaTitle = formValue.seo.metaTitle?.trim();
-      formValue.seo.metaDescription = formValue.seo.metaDescription?.trim();
-      if (formValue.payments?.mercadoPago) {
-        formValue.payments.mercadoPago.publicKey = formValue.payments.mercadoPago.publicKey?.trim();
-        formValue.payments.mercadoPago.accessToken =
-          formValue.payments.mercadoPago.accessToken?.trim();
-
-        const computedWebhookUrl = this.computeMercadoPagoWebhookUrl(s);
-        formValue.payments.mercadoPago.webhookUrl =
-          computedWebhookUrl || formValue.payments.mercadoPago.webhookUrl?.trim();
-
-        const hasStoredToken = !!formValue.payments.mercadoPago.accessTokenSecret?.trim();
-        const isRotatingToken = !!formValue.payments.mercadoPago.accessToken;
-        if ((hasStoredToken || isRotatingToken) && !formValue.payments.mercadoPago.publicKey) {
-          this.configError.set('Para activar Mercado Pago necesitás configurar una Public Key.');
-          return;
-        }
-      }
-
-      await this.storesService.updateStoreConfig(s.id, formValue);
-      this.configSuccess.set(
-        'Configuración actualizada con éxito. Los cambios se aplicarán en tiempo real.',
-      );
-
-      // Update central store doc if needed
-      const centralUpdates: Partial<Pick<Store, 'name' | 'logoUrl'>> = {};
-      if (formValue.storeName && formValue.storeName !== s.name) {
-        centralUpdates.name = formValue.storeName;
-      }
-      if (formValue.logoUrl !== undefined && formValue.logoUrl !== s.logoUrl) {
-        centralUpdates.logoUrl = formValue.logoUrl;
-      }
-
-      if (Object.keys(centralUpdates).length > 0) {
-        await this.storesService.updateStore(s.id, centralUpdates);
-      }
-    } catch (err) {
-      console.error('Error saving config:', err);
-      this.configError.set('No se pudo guardar la configuración. Intentá de nuevo.');
-    } finally {
-      this.isSavingConfig.set(false);
-    }
-  }
-
-  computeMercadoPagoWebhookUrl(store: Store | null): string {
-    if (!store) {
-      return '';
-    }
-    const projectId = store.runtimeProjectId || store.firebaseProjectId;
-    if (!projectId) {
-      return '';
-    }
-    return `https://us-central1-${projectId}.cloudfunctions.net/mercadoPagoWebhookHandler`;
-  }
 
   // Staff management
   async loadStaff(): Promise<void> {
