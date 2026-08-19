@@ -11,7 +11,7 @@ import { AuthService } from '@core/services/auth';
       <div class="card-wrapper">
         <div class="login-card">
           <div class="card-header">
-            <h1 class="card-title">Vertex Platform</h1>
+            <h1 class="card-title">ESTA ES UNA PRUEBA DE INSTANCIA DE PR</h1>
             <p class="card-sub">Panel de gestión de tiendas</p>
           </div>
 
