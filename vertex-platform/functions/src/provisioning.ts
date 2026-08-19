@@ -3323,8 +3323,21 @@ export const completeStoreDeployment = onCall<{
     logger.warn('[recordDeploymentResult] Non-fatal error pruning old deploy history:', err);
   }
 
+  if (!success) {
+    await storeRef.update({
+      redeployStatus: 'failed',
+      redeployError: 'El despliegue en GitHub Actions falló. Revisá los logs para más detalles.',
+      updatedAt: new Date(),
+    });
+  }
+
   if (storeData['status'] === 'active' && success) {
-    // If it's already active and successful, just return
+    await storeRef.update({
+      redeployStatus: 'idle',
+      redeployError: null,
+      lastDeployedAt: new Date(),
+      updatedAt: new Date(),
+    });
     return { success: true };
   }
 
@@ -3333,6 +3346,8 @@ export const completeStoreDeployment = onCall<{
       'provisioningSteps.triggerDeploy.status': 'done',
       'provisioningSteps.triggerDeploy.error': null,
       status: 'active',
+      redeployStatus: 'idle',
+      redeployError: null,
       lastDeployedAt: new Date(),
       templateVersion: version || CURRENT_TEMPLATE_VERSION,
       appVersion: `v${version || CURRENT_TEMPLATE_VERSION}`,

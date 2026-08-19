@@ -368,6 +368,8 @@ export const completeVersionUpdate = onCall<{
       versionUpdateStatus: 'idle',
       versionUpdateTarget: null,
       versionUpdateProgress: null,
+      redeployStatus: 'idle',
+      redeployError: null,
       pendingMigration: null,
       lastDeployedAt: new Date(),
       updatedAt: new Date(),
@@ -375,6 +377,8 @@ export const completeVersionUpdate = onCall<{
   } else {
     await storeRef.update({
       versionUpdateStatus: 'failed',
+      redeployStatus: 'failed',
+      redeployError: 'El despliegue de actualización de plantilla falló.',
       updatedAt: new Date(),
     });
   }

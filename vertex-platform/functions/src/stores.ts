@@ -751,7 +751,9 @@ export const redeployStore = onCall<{ storeId: string }>(
     }
 
     await db.collection('stores').doc(storeId).update({
-      lastDeployedAt: new Date(),
+      redeployStatus: 'deploying',
+      redeployError: null,
+      redeployStartedAt: new Date(),
       updatedAt: new Date(),
     });
 
