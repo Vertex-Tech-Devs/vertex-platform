@@ -738,6 +738,7 @@ export const redeployStore = onCall<{ storeId: string }>(
             platform_project_id: PLATFORM_PROJECT,
             deploy_token: deployTokenValue,
             environment: env,
+            version: store.templateVersion || '0.3.0',
             ref: ref,
           },
         }),
