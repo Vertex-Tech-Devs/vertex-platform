@@ -331,38 +331,27 @@
                         </select>
                       </div>
                       <div class="col-auto">
-                        @if (selectedVersion() === store()!.templateVersion) {
-                          <button
-                            class="action-btn action-btn--primary"
-                            [disabled]="
-                              isRedeploying() ||
-                              redeployActionState().status === 'running' ||
-                              store()!.versionUpdateStatus === 'updating'
-                            "
-                            (click)="redeploy()"
-                          >
-                            @if (isRedeploying() || redeployActionState().status === 'running') {
-                              <app-spinner size="sm" label="Ejecutando…" />
-                            } @else {
-                              <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
-                            }
-                          </button>
-                        } @else {
-                          <button
-                            class="action-btn action-btn--primary"
-                            [disabled]="
-                              isUpdatingVersion() ||
-                              store()!.versionUpdateStatus === 'updating'
-                            "
-                            (click)="applyVersionUpdate()"
-                          >
-                            @if (isUpdatingVersion() || store()!.versionUpdateStatus === 'updating') {
-                              <app-spinner size="sm" label="Iniciando deploy…" />
-                            } @else {
-                              <i class="bi bi-rocket-takeoff"></i> Desplegar v{{ selectedVersion() }}
-                            }
-                          </button>
-                        }
+                        <button
+                          class="action-btn action-btn--primary"
+                          [disabled]="
+                            isUpdatingVersion() ||
+                            isRedeploying() ||
+                            store()!.versionUpdateStatus === 'updating' ||
+                            redeployActionState().status === 'running'
+                          "
+                          (click)="triggerDeployment()"
+                        >
+                          @if (
+                            isUpdatingVersion() ||
+                            isRedeploying() ||
+                            store()!.versionUpdateStatus === 'updating' ||
+                            redeployActionState().status === 'running'
+                          ) {
+                            <app-spinner size="sm" label="Desplegando…" />
+                          } @else {
+                            <i class="bi bi-rocket-takeoff"></i> Desplegar v{{ selectedVersion() }}
+                          }
+                        </button>
                       </div>
                     </div>
 
@@ -1446,13 +1435,12 @@
                   font-size: 0.85rem;
                   color: var(--platform-text-secondary);
                   margin-bottom: 1.25rem;
-                  line-height: 1.4;
+                  line-height: 1.5;
                 "
               >
-                Registro de los últimos despliegues automáticos de esta tienda, ordenados por fecha
-                descendente.
+                Registro de compilaciones y publicaciones ejecutadas por GitHub Actions en Firebase Hosting. Cada entrada detalla la versión instalada, la rama de origen y el commit exacto desplegado (incluyendo actualizaciones automáticas de versión y re-despliegues manuales).
                 <button
-                  class="btn btn-secondary btn--sm"
+                  class="btn btn-secondary btn--sm ms-2"
                   style="float: right"
                   (click)="refreshDeployHistory()"
                   title="Recargar historial"
