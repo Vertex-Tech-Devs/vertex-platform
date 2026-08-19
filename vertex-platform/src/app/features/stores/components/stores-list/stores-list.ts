@@ -113,7 +113,10 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
         <div class="stores-grid" aria-busy="true">
           @for (s of [1, 2, 3, 4, 5, 6]; track s) {
             <div class="store-card store-card--skeleton">
-              <div class="skeleton skeleton--title"></div>
+              <div class="store-card__header">
+                <div class="skeleton skeleton--title"></div>
+                <div class="skeleton skeleton--badge"></div>
+              </div>
               <div class="skeleton skeleton--url"></div>
               <div class="skeleton skeleton--meta"></div>
             </div>

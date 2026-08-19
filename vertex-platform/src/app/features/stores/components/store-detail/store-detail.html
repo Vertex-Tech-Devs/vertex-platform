@@ -1275,8 +1275,94 @@
     </div>
   }
 } @else {
-  <div class="loading-state">
-    <span class="spinner"></span>
-    <p>Cargando información consolidada de la tienda...</p>
+  <!-- Full-Page Detail Skeleton Wireframe -->
+  <div class="detail-page detail-page--skeleton" aria-busy="true">
+    <div class="detail-page__back mb-3">
+      <div class="skeleton skeleton--back-link"></div>
+    </div>
+
+    <!-- Skeleton Header -->
+    <div class="detail-header detail-header--skeleton">
+      <div class="detail-header__color skeleton skeleton--avatar"></div>
+      <div class="detail-header__info">
+        <div class="skeleton skeleton--title"></div>
+        <div class="skeleton skeleton--badge"></div>
+        <div class="skeleton skeleton--link"></div>
+      </div>
+      <div class="detail-header__actions">
+        <div class="skeleton skeleton--btn"></div>
+        <div class="skeleton skeleton--btn"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Tabs -->
+    <div class="detail-tabs detail-tabs--skeleton">
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+      <div class="skeleton skeleton--tab"></div>
+    </div>
+
+    <!-- Skeleton Content Grid -->
+    <div class="detail-grid mt-4">
+      <!-- Skeleton Info Card -->
+      <div class="detail-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="skeleton-rows mt-3">
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--label"></div>
+            <div class="skeleton skeleton--value"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skeleton Template Card -->
+      <div class="detail-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="skeleton skeleton--text mb-3 mt-2"></div>
+        <div class="skeleton-row-actions mt-4">
+          <div class="skeleton skeleton--input"></div>
+          <div class="skeleton skeleton--btn"></div>
+        </div>
+      </div>
+
+      <!-- Skeleton Operations Card -->
+      <div class="detail-card ops-card detail-card--skeleton">
+        <div class="skeleton skeleton--card-title"></div>
+        <div class="ops-card__grid mt-3">
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+          <div class="op-card op-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--text mt-2"></div>
+            <div class="skeleton skeleton--btn mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 }
