@@ -50,6 +50,7 @@ jobs:
 
       - name: Delete Firebase Hosting Preview Channel
         if: steps.check.outputs.available == 'true'
+        continue-on-error: true
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
