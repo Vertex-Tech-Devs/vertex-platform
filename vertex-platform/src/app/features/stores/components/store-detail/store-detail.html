@@ -411,8 +411,8 @@
                   <i class="bi bi-cpu-fill"></i>
                 </div>
                 <div>
-                  <h2 class="detail-card__title mb-0">Operaciones de Infraestructura</h2>
-                  <p class="ops-card__subtitle">Gestión directa de despliegues, datos y ciclo de vida de la tienda</p>
+                  <h2 class="detail-card__title mb-0">Acciones & Mantenimiento</h2>
+                  <p class="ops-card__subtitle">Control de publicaciones, catálogo de prueba y estado de la tienda</p>
                 </div>
               </div>
 
@@ -424,15 +424,17 @@
                       <div class="op-control-card__icon text-primary">
                         <i class="bi bi-arrow-repeat"></i>
                       </div>
-                      <div>
-                        <h4 class="op-control-card__title">Re-desplegar Tienda</h4>
-                        <span class="op-control-card__badge badge--primary">
-                          {{ store()!.targetChannel || 'stable' }}
-                        </span>
+                      <div class="op-control-card__meta">
+                        <div class="op-control-card__title-row">
+                          <h4 class="op-control-card__title">Re-desplegar Tienda</h4>
+                          <span class="op-control-card__badge badge--primary">
+                            v{{ store()!.templateVersion || '0.3.0' }}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <button
-                      class="btn btn-primary btn-sm px-3 shadow-sm"
+                      class="btn btn-primary btn-sm px-3 shadow-sm op-control-card__btn"
                       [disabled]="isRedeploying() || redeployActionState().status === 'running'"
                       (click)="redeploy()"
                     >
@@ -445,7 +447,7 @@
                   </div>
 
                   <p class="op-control-card__desc">
-                    Compila e instala el código y la infraestructura. En <code>DEV</code> procesa la rama <code>develop</code>; en <code>PROD</code> compila la versión <code>v{{ store()!.templateVersion || '0.3.0' }}</code>.
+                    Actualizá y publicá al instante los cambios de código más recientes en el sitio web de la tienda.
                   </p>
 
                   @if (redeployActionState().status !== 'idle') {
@@ -478,26 +480,28 @@
                         <div class="op-control-card__icon text-info">
                           <i class="bi bi-database-fill-gear"></i>
                         </div>
-                        <div>
-                          <h4 class="op-control-card__title">Semillar Datos de Prueba</h4>
-                          <span class="op-control-card__badge badge--info">Firestore Seed</span>
+                        <div class="op-control-card__meta">
+                          <div class="op-control-card__title-row">
+                            <h4 class="op-control-card__title">Cargar Datos de Ejemplo</h4>
+                            <span class="op-control-card__badge badge--info">Catálogo Demo</span>
+                          </div>
                         </div>
                       </div>
                       <button
-                        class="btn btn-outline-info btn-sm px-3"
+                        class="btn btn-outline-info btn-sm px-3 op-control-card__btn"
                         [disabled]="isSeeding() || seedActionState().status === 'running'"
                         (click)="openSeedConfirm()"
                       >
                         @if (isSeeding()) {
-                          <app-spinner size="sm" label="Semillando…" />
+                          <app-spinner size="sm" label="Cargando…" />
                         } @else {
-                          <i class="bi bi-database-add me-1"></i> Semillar Catálogo
+                          <i class="bi bi-database-add me-1"></i> Cargar Catálogo
                         }
                       </button>
                     </div>
 
                     <p class="op-control-card__desc">
-                      Pobla automáticamente un catálogo completo de productos, categorías, imágenes y atributos de prueba en la base Firestore.
+                      Generá automáticamente un catálogo completo de productos, categorías e imágenes de muestra para probar la tienda.
                     </p>
 
                     @if (seedActionState().status !== 'idle') {
@@ -530,28 +534,30 @@
                       <div class="op-control-card__icon text-warning">
                         <i class="bi bi-moon-stars-fill"></i>
                       </div>
-                      <div>
-                        <h4 class="op-control-card__title">
-                          {{ store()!.status === 'active' ? 'Dormir Tienda (Suspender)' : 'Reactivar Tienda' }}
-                        </h4>
-                        <span class="op-control-card__badge badge--warning">
-                          {{ store()!.status }}
-                        </span>
+                      <div class="op-control-card__meta">
+                        <div class="op-control-card__title-row">
+                          <h4 class="op-control-card__title">
+                            {{ store()!.status === 'active' ? 'Pausar Tienda' : 'Reactivar Tienda' }}
+                          </h4>
+                          <span class="op-control-card__badge badge--warning">
+                            {{ store()!.status === 'active' ? 'Activa' : 'Pausada' }}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     @if (store()!.status === 'active') {
                       <button
-                        class="btn btn-outline-warning btn-sm px-3"
+                        class="btn btn-outline-warning btn-sm px-3 op-control-card__btn"
                         [disabled]="isSuspending()"
                         (click)="showSleepConfirm.set(true)"
                       >
-                        <i class="bi bi-pause-circle me-1"></i> Dormir Tienda
+                        <i class="bi bi-pause-circle me-1"></i> Pausar Tienda
                       </button>
                     }
                     @if (store()!.status === 'suspended') {
                       <button
-                        class="btn btn-success btn-sm px-3"
+                        class="btn btn-success btn-sm px-3 op-control-card__btn"
                         [disabled]="isActivating()"
                         (click)="activate()"
                       >
@@ -565,7 +571,7 @@
                   </div>
 
                   <p class="op-control-card__desc">
-                    Pausa temporalmente el acceso público a la tienda y la excluye automáticamente de los ciclos de despliegue global.
+                    Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e imágenes resguardados.
                   </p>
 
                   @if (suspendActionState().status !== 'idle') {
@@ -598,13 +604,15 @@
                         <div class="op-control-card__icon text-danger">
                           <i class="bi bi-exclamation-triangle-fill"></i>
                         </div>
-                        <div>
-                          <h4 class="op-control-card__title text-danger">Zona Peligrosa</h4>
-                          <span class="op-control-card__badge badge--error">Destructivo</span>
+                        <div class="op-control-card__meta">
+                          <div class="op-control-card__title-row">
+                            <h4 class="op-control-card__title text-danger">Zona Peligrosa</h4>
+                            <span class="op-control-card__badge badge--error">Irreversible</span>
+                          </div>
                         </div>
                       </div>
                       <button
-                        class="btn btn-outline-danger btn-sm px-3"
+                        class="btn btn-outline-danger btn-sm px-3 op-control-card__btn"
                         [disabled]="isDeleting()"
                         (click)="showDeleteConfirm.set(true)"
                       >
@@ -613,7 +621,7 @@
                     </div>
 
                     <p class="op-control-card__desc">
-                      Destrucción permanente e irreversible de la tienda, base de datos Firestore y recursos GCP asociados.
+                      Eliminación permanente e irreversible de la tienda, su catálogo y toda su infraestructura asociada.
                     </p>
                   </div>
                 }
