@@ -59,15 +59,15 @@ npm run qa:global                        # Lint + typecheck + firestore rules
 
 ---
 
-## 🔢 Versionado del Template de Tienda
+## 🔢 Versionado de la Plataforma
+
+Versión actual: `0.4.0` (Template: `0.4.0`, Platform: `0.4.0`)
 
 La constante `CURRENT_TEMPLATE_VERSION` en `provisioning.ts` define qué versión del storefront
 se usa al provisionar nuevas tiendas.
 
 **NO editar manualmente.** Se actualiza automáticamente vía PR generado por `sync-template-version.yml`
 cuando el storefront publica un nuevo release.
-
-Versión actual: `0.4.0`
 
 ### Flujo automático
 1. Storefront hace `npm run release:minor` → tag `v0.4.0`
