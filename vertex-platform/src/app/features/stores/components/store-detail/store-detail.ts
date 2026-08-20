@@ -290,6 +290,10 @@ export class StoreDetail implements OnInit {
 
   dismissDeployProgress(): void {
     this.isDeployProgressDismissed.set(true);
+    const s = this.store();
+    if (s && (s.versionUpdateStatus === 'updating' || s.redeployStatus === 'deploying')) {
+      void this.storesService.resetStoreDeployStatus(s.id);
+    }
   }
 
   openSeedConfirm(): void {
