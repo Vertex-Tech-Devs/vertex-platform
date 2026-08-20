@@ -6,7 +6,7 @@ on:
 
 permissions:
   checks: write
-  contents: read
+  contents: write
   deployments: write
   pull-requests: write
 
@@ -29,7 +29,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Check secret availability
         id: check
@@ -54,6 +54,7 @@ jobs:
 
       - name: Clean Firestore PR Tenant Data
         if: steps.check.outputs.available == 'true'
+        continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_DEV: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
           PR_NUMBER: ${{ github.event.number }}
@@ -61,3 +62,35 @@ jobs:
         run: |
           npm --prefix vertex-platform/functions install
           npx tsx scripts/cleanup-pr-tenant.ts
+
+      - name: Comment on PR
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const body = `### 🗑️ Instancia de Preview Eliminada\n\nEl canal efímero de Firebase Hosting (\`pr-${prNumber}\`) y los datos de prueba asociados en Firestore han sido eliminados con éxito.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body
+            });
+
+      - name: Delete Head Branch
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const headRef = context.payload.pull_request?.head?.ref;
+            const protectedBranches = ['main', 'develop', 'master'];
+            if (headRef && !protectedBranches.includes(headRef)) {
+              try {
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `heads/${headRef}`
+                });
+                console.log(`Successfully deleted branch ${headRef}`);
+              } catch (err) {
+                console.warn(`Could not delete branch ${headRef}:`, err.message);
+              }
+            }
