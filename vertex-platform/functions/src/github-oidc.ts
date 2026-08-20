@@ -67,7 +67,12 @@ export async function verifyGitHubOidcToken(
     };
     if (payload.iss !== GITHUB_OIDC_ISSUER) return false;
     if (payload.aud !== OIDC_AUDIENCE) return false;
-    if (expected.repository && payload.repository !== expected.repository) return false;
+    if (
+      expected.repository &&
+      payload.repository?.toLowerCase() !== expected.repository.toLowerCase()
+    ) {
+      return false;
+    }
     if (expected.ref) {
       // El workflow puede enviar 'main' mientras el claim del token es 'refs/heads/main'.
       const expectedRef = expected.ref.startsWith('refs/')
