@@ -118,7 +118,7 @@ jobs:
       - name: Build frontend
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            npm run build:dev --workspace=vertex-platform
+            npm run build:dev --workspace=vertex-platform -- --no-source-map
           else
             npm run build:prod --workspace=vertex-platform
           fi
