@@ -67,13 +67,42 @@ se usa al provisionar nuevas tiendas.
 **NO editar manualmente.** Se actualiza automáticamente vía PR generado por `sync-template-version.yml`
 cuando el storefront publica un nuevo release.
 
-Versión actual: `0.1.0`
+Versión actual: `0.3.0`
 
 ### Flujo automático
-1. Storefront hace `npm run release:minor` → tag `v0.2.0`
+1. Storefront hace `npm run release:minor` → tag `v0.4.0`
 2. Workflow `release.yml` del storefront dispara `repository_dispatch: storefront-release`
 3. Workflow `sync-template-version.yml` de la plataforma abre PR automático
 4. Admin de plataforma revisa y mergea el PR
+
+---
+
+## 📖 Regla de Oro: Mantenimiento Obligatorio de Documentación
+
+**Toda tarea, bugfix, cambio de infraestructura o evolución arquitectónica DEBE mantener la documentación sincronizada antes de darse por finalizada.**
+
+1. **Actualización Inmediata**: Al modificar flujos, reglas, modelos o CI/CD, actualizar de inmediato los documentos correspondientes (`agent.md`, `README.md`, `ARCHITECTURE.md`, y `.agents/AGENTS.md` en la raíz).
+2. **Cero Desincronización**: Las versiones en la documentación deben coincidir con `package.json` y `CURRENT_TEMPLATE_VERSION`.
+3. **Documentación como Criterio de Aceptación (DoD)**: Un PR o desarrollo NO se considera terminado si no incluye la actualización de su respectiva documentación técnica y operacional.
+
+---
+
+## 🚀 Ciclo de Vida de Canales de Preview Efímeros (PR Previews)
+
+- **Creación en PR**: Al abrir o actualizar un PR hacia `develop`, el workflow `ci.yml` despliega un canal efímero en Firebase Hosting (`vertex-platform-dev--pr-XXX.web.app`).
+- **CORS para Cloud Functions**: `ALLOWED_ORIGINS` en `helpers.ts` incluye expresiones regulares (`RegExp`) para admitir automáticamente las peticiones de cualquier canal de preview sin errores de CORS.
+- **Destrucción Automática y Feedback**: Al cerrar o mergear el PR, `preview-cleanup.yml`:
+  1. Elimina el canal en Firebase Hosting (pasa a dar 404).
+  2. Limpia los datos de prueba en Firestore.
+  3. Publica un comentario de confirmación en el PR: `🗑️ Instancia de Preview Eliminada`.
+  4. Elimina automáticamente la rama remota de la PR.
+
+---
+
+## 🧹 Política de Higiene del Repositorio (Clean Repo Policy)
+
+- **Archivos Prohibidos en Git**: Jamás commitear carpetas temporales de IDEs (`.antigravitycli/`, `.gemini/`, `.claude/`, `.cursor/`), logs (`firestore-debug.log`, `firebase-debug.log`, `*.log`), credenciales `.env`, ni datos locales de emuladores (`emulator-data/`).
+- **Verificación**: Siempre verificar con `git status` y `.gitignore` antes de hacer commit.
 
 ---
 

@@ -85,8 +85,14 @@ Thumbs.db
 
 # Agent/IDE configurations & logs
 .antigravitycli/
+.gemini/
+.claude/
+.cursor/
 firestore-debug.log
+ui-debug.log
+*.log
 packages/platform
 
 # Local emulator persistence
 emulator-data/
+firebase-local-data/
