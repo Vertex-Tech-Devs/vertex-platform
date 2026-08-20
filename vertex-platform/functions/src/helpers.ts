@@ -35,12 +35,19 @@ export const PLATFORM_PROJECT = (() => {
   return p === 'demo-vertex' ? 'vertex-platform-dev' : p;
 })();
 
-export const ALLOWED_ORIGINS = [
+export const ALLOWED_ORIGINS: (string | RegExp)[] = [
   'https://vertex-platform-app.web.app',
+  'https://vertex-platform-app.firebaseapp.com',
   'https://vertex-platform-dev.web.app',
+  'https://vertex-platform-dev.firebaseapp.com',
   'https://vertex-platform.web.app',
   'https://vertex-platform.firebaseapp.com',
   'http://localhost:4200',
+  'http://127.0.0.1:4200',
+  /^https:\/\/vertex-platform-dev--pr-[a-zA-Z0-9-]+\.web\.app$/,
+  /^https:\/\/vertex-platform-dev--pr-[a-zA-Z0-9-]+\.firebaseapp\.com$/,
+  /^https:\/\/vertex-platform-app--pr-[a-zA-Z0-9-]+\.web\.app$/,
+  /^https:\/\/vertex-platform-app--pr-[a-zA-Z0-9-]+\.firebaseapp\.com$/,
 ];
 
 let cachedGitHubPat: string | null = null;
