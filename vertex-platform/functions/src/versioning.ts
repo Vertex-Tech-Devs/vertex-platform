@@ -39,6 +39,7 @@ const SCHEMA_BY_VERSION: Record<string, number> = {
   '0.1.0': 1,
   '0.2.0': 1,
   '0.3.0': 1,
+  '0.4.0': 1,
 };
 
 export const listTemplateVersions = onCall(

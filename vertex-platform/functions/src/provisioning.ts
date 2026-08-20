@@ -31,7 +31,7 @@ import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
 
-const CURRENT_TEMPLATE_VERSION = '0.3.0';
+const CURRENT_TEMPLATE_VERSION = '0.4.0';
 
 export function normalizeStorageBucket(
   projectId: string,
