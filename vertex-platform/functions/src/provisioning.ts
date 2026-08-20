@@ -3292,25 +3292,22 @@ export const completeStoreDeployment = onCall<{
   const storeData = snap.data()!;
   const expectedRepo = 'Vertex-Tech-Devs/ecommerce-vertex';
 
-  // 1a. Verificación OIDC de GitHub Actions (automatizada, sin secrets manuales).
-  //     El workflow del storefront envía un id_token (audience 'vertex-platform').
+  let authenticated = false;
   if (idToken) {
-    const oidcValid = await verifyGitHubOidcToken(idToken, {
+    authenticated = await verifyGitHubOidcToken(idToken, {
       repository: expectedRepo,
       ref: ref ?? undefined,
     });
-    if (!oidcValid) {
-      throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
-    }
-  } else if (deployToken) {
-    // 1b. Fallback legacy: deploy token de Secret Manager.
+  }
+  if (!authenticated && deployToken) {
     const expected = await getDeployToken();
-    if (deployToken !== expected) {
-      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    if (deployToken === expected) {
+      authenticated = true;
     }
-  } else {
+  }
+  if (!authenticated) {
     throw new HttpsError(
-      'invalid-argument',
+      'permission-denied',
       'A valid deploy token or GitHub OIDC token is required.',
     );
   }

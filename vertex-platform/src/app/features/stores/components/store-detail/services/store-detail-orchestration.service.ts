@@ -65,6 +65,16 @@ export class StoreDetailOrchestrationService {
     const isGhaRunning =
       store.redeployStatus === 'deploying' || store.versionUpdateStatus === 'updating';
     if (this.isDeploying() || isGhaRunning) {
+      const updatedAtStr = store.versionUpdateProgress?.updatedAt || store.updatedAt;
+      const updatedAt = updatedAtStr ? new Date(formatDateUtil(updatedAtStr) ?? 0).getTime() : 0;
+      const isStale = updatedAt > 0 && Date.now() - updatedAt > 15 * 60 * 1000;
+      if (isStale && !this.isDeploying()) {
+        return {
+          status: 'error',
+          progress: 100,
+          message: '⚠️ El despliegue anterior excedió el tiempo límite. Podés volver a desplegar.',
+        };
+      }
       return {
         status: 'running',
         progress: store.versionUpdateProgress?.pct || (this.isDeploying() ? 30 : 65),

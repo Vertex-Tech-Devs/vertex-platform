@@ -123,10 +123,11 @@ export class StoreDetail implements OnInit {
   readonly copyFeedbackSuccess = this.staffService.copyFeedbackSuccess;
   readonly inviteForm = this.staffService.inviteForm;
 
+  readonly isStoreLoading = this.storesService.isLoading;
   readonly availableVersions = this.orchestrationService.versions;
   readonly isLoadingVersions = this.orchestrationService.isLoadingVersions;
   readonly isUpdatingAutoUpdate = signal(false);
-  readonly selectedVersion = signal('');
+  readonly selectedVersion = signal('0.5.0');
   readonly hasDomainOwnership = signal(false);
   readonly hasDnsAccess = signal(false);
   readonly wantsRootOrWwwReady = signal(false);
@@ -163,12 +164,13 @@ export class StoreDetail implements OnInit {
 
   async loadVersions(): Promise<void> {
     await this.orchestrationService.loadVersions();
-    const current = this.store()?.templateVersion;
-    if (current) {
-      this.selectedVersion.set(current);
-    } else if (this.availableVersions().length > 0) {
-      this.selectedVersion.set(this.availableVersions()[0].version);
-    }
+    const latest = this.orchestrationService.latestVersion();
+    const defaultVer =
+      latest?.version ||
+      this.availableVersions()[0]?.version ||
+      this.store()?.templateVersion ||
+      '0.5.0';
+    this.selectedVersion.set(defaultVer);
   }
 
   async triggerDeployment(): Promise<void> {
@@ -240,29 +242,25 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  async generateAccessLink(email: string): Promise<void> {
+  generateAccessLink(email: string): Promise<void> {
     const s = this.store();
-    if (s) {
-      await this.staffService.generateAccessLink(s.id, email);
-    }
+    return s ? this.staffService.generateAccessLink(s.id, email) : Promise.resolve();
   }
 
   copyToClipboard(text: string): Promise<void> {
     return this.staffService.copyToClipboard(text);
   }
 
-  async verifyDNS(silent = false): Promise<void> {
+  verifyDNS(silent = false): Promise<unknown> {
     const s = this.store();
-    if (s) {
-      await this.domainsService.verifyDNS(s.id, s.customDomain || this.domainInput(), silent);
-    }
+    return s
+      ? this.domainsService.verifyDNS(s.id, s.customDomain || this.domainInput(), silent)
+      : Promise.resolve();
   }
 
-  async connectDomain(): Promise<void> {
+  connectDomain(): Promise<unknown> {
     const s = this.store();
-    if (s) {
-      await this.domainsService.connectDomain(s.id, this.domainInput());
-    }
+    return s ? this.domainsService.connectDomain(s.id, this.domainInput()) : Promise.resolve();
   }
 
   openEdit(): void {
@@ -285,11 +283,9 @@ export class StoreDetail implements OnInit {
     this.sleepConfirmInput = '';
   }
 
-  async activate(): Promise<void> {
+  activate(): Promise<void> {
     const id = this.store()?.id;
-    if (id) {
-      await this.orchestrationService.activateStore(id);
-    }
+    return id ? this.orchestrationService.activateStore(id).then(() => {}) : Promise.resolve();
   }
 
   dismissDeployProgress(): void {

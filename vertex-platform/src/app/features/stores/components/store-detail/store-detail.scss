@@ -1678,6 +1678,8 @@
 
 /* ── Operaciones de Infraestructura modernas (Control Cards) ── */
 .ops-card {
+  grid-column: 1 / -1;
+
   &__header {
     display: flex;
     align-items: center;
@@ -1707,8 +1709,8 @@
   }
 
   &__grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.25rem;
   }
 }
@@ -2012,6 +2014,7 @@
   }
 }
 
+.tabs-container--skeleton,
 .detail-tabs--skeleton {
   display: flex;
   gap: 0.75rem;

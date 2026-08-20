@@ -193,7 +193,15 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     }
 
     if (storeData['versionUpdateStatus'] === 'updating') {
-      throw new HttpsError('failed-precondition', 'A version update is already in progress.');
+      const updatedAt = storeData['updatedAt']?.toDate
+        ? storeData['updatedAt'].toDate().getTime()
+        : storeData['updatedAt']
+          ? new Date(storeData['updatedAt']).getTime()
+          : 0;
+      const tenMinutes = 10 * 60 * 1000;
+      if (Date.now() - updatedAt < tenMinutes) {
+        throw new HttpsError('failed-precondition', 'A version update is already in progress.');
+      }
     }
 
     // ── Gate de compatibilidad por schemaVersion ─────────────────────────────
@@ -327,7 +335,7 @@ export const reportVersionUpdateProgress = onCall<{
 export const completeVersionUpdate = onCall<{
   storeId: string;
   success: boolean;
-  deployToken: string;
+  deployToken?: string;
   idToken?: string;
   version: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
@@ -337,22 +345,21 @@ export const completeVersionUpdate = onCall<{
     throw new HttpsError('invalid-argument', 'storeId is required.');
   }
 
-  // Verificación OIDC de GitHub Actions (automatizada) o fallback al deploy token legacy.
+  let authenticated = false;
   if (idToken) {
-    const oidcValid = await verifyGitHubOidcToken(idToken, {
+    authenticated = await verifyGitHubOidcToken(idToken, {
       repository: 'Vertex-Tech-Devs/ecommerce-vertex',
     });
-    if (!oidcValid) {
-      throw new HttpsError('permission-denied', 'Invalid GitHub OIDC token.');
-    }
-  } else if (deployToken) {
+  }
+  if (!authenticated && deployToken) {
     const expected = await getDeployToken();
-    if (deployToken !== expected) {
-      throw new HttpsError('permission-denied', 'Invalid deploy token.');
+    if (deployToken === expected) {
+      authenticated = true;
     }
-  } else {
+  }
+  if (!authenticated) {
     throw new HttpsError(
-      'invalid-argument',
+      'permission-denied',
       'A valid deploy token or GitHub OIDC token is required.',
     );
   }
