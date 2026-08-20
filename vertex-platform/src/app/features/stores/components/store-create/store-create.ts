@@ -34,7 +34,9 @@ export class StoreCreate implements OnInit {
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
     customDomain: ['', [Validators.pattern(DOMAIN_RE)]],
-    verticalId: [DEFAULT_STORE_VERTICAL as string, [Validators.required, Validators.maxLength(50)]],
+    businessVertical: [DEFAULT_STORE_VERTICAL, Validators.required],
+    provisioningMode: ['FULL_DEMO', Validators.required],
+    verticalId: [DEFAULT_STORE_VERTICAL],
     includeMockData: [true],
     dedicatedProject: [false],
   });
@@ -68,8 +70,18 @@ export class StoreCreate implements OnInit {
     this.isSubmitting.set(true);
     this.errorMessage.set('');
     try {
+      const val = this.form.value;
+      const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
+      const mode = val.provisioningMode || 'FULL_DEMO';
+      const payload = {
+        ...val,
+        verticalId: vertical,
+        businessVertical: vertical,
+        provisioningMode: mode,
+        includeMockData: mode === 'FULL_DEMO',
+      };
       const id = await this.storesService.createStore(
-        this.form.value as Parameters<typeof this.storesService.createStore>[0],
+        payload as Parameters<typeof this.storesService.createStore>[0],
       );
       void this.router.navigate(['/stores', id]);
     } catch (error) {

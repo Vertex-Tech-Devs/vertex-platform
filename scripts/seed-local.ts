@@ -388,11 +388,6 @@ async function seed() {
         content:
           'Si el talle no es el correcto o algo no te convenció, gestionamos el cambio o devolución en menos de 48 horas sin preguntas ni costos adicionales.',
       },
-      {
-        title: 'Producción responsable',
-        content:
-          'Embalajes 100% reciclables, tintas a base de agua y apoyo activo a marcas locales y talleres de producción justa.',
-      },
     ],
   });
   console.log('[Seed] Seeded aboutUs page content');
