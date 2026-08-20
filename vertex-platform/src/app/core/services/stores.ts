@@ -199,6 +199,17 @@ export class StoresService {
     await updateDoc(doc(this.db, 'stores', id), { status, updatedAt: serverTimestamp() });
   }
 
+  async resetStoreDeployStatus(id: string): Promise<void> {
+    await updateDoc(doc(this.db, 'stores', id), {
+      versionUpdateStatus: 'idle',
+      versionUpdateProgress: null,
+      versionUpdateTarget: null,
+      redeployStatus: 'idle',
+      redeployError: null,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
   /** Dormir tienda (suspender sin eliminar): pausa el sitio y la excluye de deploys. */
   async suspendStore(storeId: string): Promise<void> {
     const fn = httpsCallable<{ storeId: string }, { success: boolean }>(this.fns, 'suspendStore');

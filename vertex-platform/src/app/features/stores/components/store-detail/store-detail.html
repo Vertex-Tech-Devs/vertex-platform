@@ -212,7 +212,11 @@
                   <dt>Versión plantilla</dt>
                   <dd class="text-accent">
                     v{{ store()!.templateVersion }}
-                    @if (store()!.versionUpdateStatus === 'updating') {
+                    @if (
+                      (store()!.versionUpdateStatus === 'updating' ||
+                        store()!.redeployStatus === 'deploying') &&
+                      deployActionState().status === 'running'
+                    ) {
                       <span class="badge badge--warning ms-1">actualizando…</span>
                     }
                     @if (store()!.versionUpdateStatus === 'failed') {
@@ -296,12 +300,7 @@
                           class="form-select"
                           [value]="selectedVersion()"
                           (change)="selectedVersion.set($any($event.target).value)"
-                          [disabled]="
-                            isDeploying() ||
-                            store()!.versionUpdateStatus === 'updating' ||
-                            store()!.redeployStatus === 'deploying' ||
-                            deployActionState().status === 'running'
-                          "
+                          [disabled]="isDeploying() || deployActionState().status === 'running'"
                         >
                           @for (v of availableVersions(); track v.version) {
                             <option
@@ -331,18 +330,11 @@
                           [disabled]="
                             isDeploying() ||
                             store()!.status !== 'active' ||
-                            store()!.versionUpdateStatus === 'updating' ||
-                            store()!.redeployStatus === 'deploying' ||
                             deployActionState().status === 'running'
                           "
                           (click)="triggerDeployment()"
                         >
-                          @if (
-                            isDeploying() ||
-                            store()!.versionUpdateStatus === 'updating' ||
-                            store()!.redeployStatus === 'deploying' ||
-                            deployActionState().status === 'running'
-                          ) {
+                          @if (isDeploying() || deployActionState().status === 'running') {
                             <app-spinner size="sm" label="Desplegando…" />
                           } @else if (selectedVersion() === store()!.templateVersion) {
                             <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
