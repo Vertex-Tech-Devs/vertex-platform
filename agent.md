@@ -67,7 +67,7 @@ se usa al provisionar nuevas tiendas.
 **NO editar manualmente.** Se actualiza automáticamente vía PR generado por `sync-template-version.yml`
 cuando el storefront publica un nuevo release.
 
-Versión actual: `0.3.0`
+Versión actual: `0.4.0`
 
 ### Flujo automático
 1. Storefront hace `npm run release:minor` → tag `v0.4.0`
