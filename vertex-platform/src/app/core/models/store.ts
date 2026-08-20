@@ -57,7 +57,17 @@ export interface Store {
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;
   verticalId?: string;
+  businessVertical?: BusinessVertical;
+  provisioningMode?: ProvisioningMode;
 }
+
+export type ProvisioningMode = 'EMPTY' | 'CATALOG_ONLY' | 'FULL_DEMO';
+
+export type BusinessVertical =
+  | 'INDUMENTARIA_MODA'
+  | 'GASTRONOMIA_CAFE'
+  | 'TECNOLOGIA'
+  | 'HOGAR_DECO';
 
 export interface CreateStorePayload {
   name: string;
@@ -66,6 +76,8 @@ export interface CreateStorePayload {
   logoUrl?: string | null;
   customDomain?: string;
   verticalId?: string;
+  businessVertical?: BusinessVertical;
+  provisioningMode?: ProvisioningMode;
   includeMockData?: boolean;
   dedicatedProject?: boolean;
 }

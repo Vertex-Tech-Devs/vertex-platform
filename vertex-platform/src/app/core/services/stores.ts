@@ -23,56 +23,24 @@ import type {
   PendingInvitation,
   TemplateVersion,
 } from '../models/store';
-
-export interface DnsRecord {
-  host: string;
-  type: string;
-  value: string;
-  requiredAction: string;
-}
-
-export interface RuntimeShardCapacity {
-  id: string;
-  projectId: string;
-  siteId: string;
-  region: string;
-  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE' | 'WARMUP_READY' | 'WARMUP_PROVISIONING';
-  currentStores: number;
-  reservedStores: number;
-  maxCapacity: number;
-  availableStores: number;
-  occupancyRatio: number;
-}
-
-export interface RuntimeCapacitySummary {
-  environment: 'development' | 'production';
-  sharedShardCount: number;
-  activeSharedShardCount: number;
-  availableSharedSlots: number;
-  recommendedRuntimeMode: 'shared-shard' | 'dedicated-project';
-  shards: RuntimeShardCapacity[];
-}
-
-export type ShardReadinessReason = 'status' | 'billing' | 'redirect_uri';
-
-export interface ShardReadiness {
-  id: string;
-  projectId: string;
-  status: string;
-  billingAccountId: string;
-  redirectUri: string;
-  ready: boolean;
-  missing: ShardReadinessReason[];
-  checkedAt: string;
-}
-
-export interface ShardReadinessReport {
-  environment: 'development' | 'production';
-  total: number;
-  readyCount: number;
-  checkedAt: string;
-  shards: ShardReadiness[];
-}
+import type {
+  DnsRecord,
+  RawDnsRecord,
+  RuntimeShardCapacity,
+  RuntimeCapacitySummary,
+  ShardReadinessReason,
+  ShardReadiness,
+  ShardReadinessReport,
+} from '../models/shard-capacity';
+import { normalizeDomainStatus, mapDnsRecords } from '../models/shard-capacity';
+export type {
+  DnsRecord,
+  RuntimeShardCapacity,
+  RuntimeCapacitySummary,
+  ShardReadinessReason,
+  ShardReadiness,
+  ShardReadinessReport,
+};
 
 @Injectable({ providedIn: 'root' })
 export class StoresService {
@@ -347,40 +315,4 @@ export class StoresService {
     );
     await fn({ storeId, version });
   }
-}
-
-interface RawDnsRecord {
-  domainName?: string;
-  type?: string;
-  rdata?: string;
-  value?: string;
-  requiredAction?: string;
-}
-
-function normalizeDomainStatus(status: string | undefined): 'live' | 'pending' {
-  const normalized = (status || '').trim().toUpperCase();
-  return normalized === 'LIVE' || normalized === 'ACTIVE' ? 'live' : 'pending';
-}
-
-function mapDnsRecords(records: RawDnsRecord[] | undefined): DnsRecord[] {
-  return (records ?? []).map((record) => ({
-    host: record.domainName || '@',
-    type: record.type || inferDnsType(record.requiredAction),
-    value: record.rdata || record.value || '',
-    requiredAction: record.requiredAction || 'ADD',
-  }));
-}
-
-function inferDnsType(requiredAction?: string): string {
-  const action = (requiredAction || '').toUpperCase();
-  if (action.includes('TXT')) {
-    return 'TXT';
-  }
-  if (action.includes('AAAA')) {
-    return 'AAAA';
-  }
-  if (action.includes('CNAME')) {
-    return 'CNAME';
-  }
-  return 'A';
 }

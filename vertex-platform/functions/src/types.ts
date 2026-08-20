@@ -12,6 +12,14 @@ export interface AdminInfo {
   role?: 'superAdmin' | 'platformAdmin';
 }
 
+export type ProvisioningMode = 'EMPTY' | 'CATALOG_ONLY' | 'FULL_DEMO';
+
+export type BusinessVertical =
+  | 'INDUMENTARIA_MODA'
+  | 'GASTRONOMIA_CAFE'
+  | 'TECNOLOGIA'
+  | 'HOGAR_DECO';
+
 export interface CreateStorePayload {
   name: string;
   slug: string;
@@ -19,6 +27,8 @@ export interface CreateStorePayload {
   logoUrl?: string;
   customDomain?: string;
   verticalId?: string;
+  businessVertical?: BusinessVertical;
+  provisioningMode?: ProvisioningMode;
   includeMockData?: boolean;
   dedicatedProject?: boolean;
 }

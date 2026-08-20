@@ -9,6 +9,8 @@ import type {
   ProvisioningStep,
   StoreRuntimeMode,
   StoreShard,
+  BusinessVertical,
+  ProvisioningMode,
 } from './types';
 import {
   ALLOWED_ORIGINS,
@@ -31,7 +33,7 @@ import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
 
-const CURRENT_TEMPLATE_VERSION = '0.4.0';
+const CURRENT_TEMPLATE_VERSION = '0.5.0';
 
 export function normalizeStorageBucket(
   projectId: string,
@@ -856,9 +858,16 @@ export const provisionStore = onCall<CreateStorePayload>(
       logoUrl,
       customDomain,
       verticalId,
-      includeMockData = true,
+      businessVertical,
+      provisioningMode,
+      includeMockData,
       dedicatedProject,
     } = request.data;
+
+    const effectiveVertical = businessVertical || verticalId || 'INDUMENTARIA_MODA';
+    const effectiveMode =
+      provisioningMode || (includeMockData === false ? 'CATALOG_ONLY' : 'FULL_DEMO');
+    const hasMockData = effectiveMode === 'FULL_DEMO';
 
     if (!name?.trim() || !ownerEmail?.trim()) {
       throw new HttpsError('invalid-argument', 'name and ownerEmail are required.');
@@ -1118,7 +1127,9 @@ export const provisionStore = onCall<CreateStorePayload>(
         ownerEmail,
         logoUrl: logoUrl ?? null,
         customDomain: customDomain ?? null,
-        verticalId: verticalId ?? null,
+        verticalId: effectiveVertical,
+        businessVertical: effectiveVertical,
+        provisioningMode: effectiveMode,
         runtimeMode,
         tenantId,
         shardId,
@@ -1131,7 +1142,7 @@ export const provisionStore = onCall<CreateStorePayload>(
             : `https://${projectId}.web.app`,
         billingAccountId,
         isNewShard,
-        includeMockData: includeMockData !== false,
+        includeMockData: hasMockData,
         status: 'provisioning',
         // Política de versiones: las tiendas nuevas NACEN ESTABLES (autoUpdate = false).
         // Solo se actualizan automáticamente si el dueño lo habilita explícitamente
@@ -1196,6 +1207,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     firebaseProjectId: projectId,
     billingAccountId,
     verticalId,
+    businessVertical,
+    provisioningMode,
     includeMockData,
     runtimeMode,
     runtimeSiteId,
@@ -1211,6 +1224,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     firebaseProjectId: string;
     billingAccountId: string;
     verticalId?: string;
+    businessVertical?: BusinessVertical;
+    provisioningMode?: ProvisioningMode;
     includeMockData?: boolean;
     runtimeMode?: StoreRuntimeMode;
     runtimeSiteId?: string;
@@ -1219,6 +1234,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     id: string;
     shardId?: string;
   };
+
+  const effectiveVertical: BusinessVertical =
+    businessVertical || (verticalId as BusinessVertical) || 'INDUMENTARIA_MODA';
+  const effectiveMode: ProvisioningMode =
+    provisioningMode || (includeMockData === false ? 'CATALOG_ONLY' : 'FULL_DEMO');
+  const hasMockData = effectiveMode === 'FULL_DEMO';
 
   // Unique WebApp display name: combines the slug with the last 6 alphanumeric chars of the storeId
   // to avoid GCP 400 'Invalid name reserved by another project' (Firebase Management API 30-day quarantine).
@@ -2077,17 +2098,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       // para que el storefront público (clientes sin usuario) pueda leer el catálogo.
       await deployStorefrontRules(auth, projectId);
 
-      const effectiveVerticalId = verticalId || 'indumentaria';
-      const hasMockData = includeMockData !== false;
       await seedStoreData(
         auth,
         projectId,
         tenantId,
-        effectiveVerticalId,
+        effectiveVertical,
         name,
         hasMockData,
         true,
         tenantId, // storeId = tenantId (slug), el identificador que usa el storefront
+        effectiveMode,
       );
 
       await setStep('initFirestore', 'done');
@@ -2268,17 +2288,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             );
 
             await deployStorefrontRules(auth, projectId);
-            const effectiveVerticalId = verticalId || 'indumentaria';
-            const hasMockData = includeMockData !== false;
             await seedStoreData(
               auth,
               projectId,
               tenantId,
-              effectiveVerticalId,
+              effectiveVertical,
               name,
               hasMockData,
               true,
               tenantId,
+              effectiveMode,
             );
 
             await setStep('initFirestore', 'done');

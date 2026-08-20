@@ -1,6 +1,10 @@
 import type { OAuth2Client } from 'google-auth-library';
 import * as logger from 'firebase-functions/logger';
 import { apiFetch, retry } from './helpers';
+import {
+  BUSINESS_VERTICAL_SEEDS,
+  resolveVerticalSeedKey,
+} from './business-verticals.constants';
 
 /**
  * Convierte valores primitivos y objetos complejos de JavaScript a tipos de valor compatibles con la API REST de Firestore.
@@ -976,7 +980,7 @@ async function checkStoreSafety(
 }
 
 // Multi-dimension variant combinations generator
-function generateVariantCombinations(
+export function generateVariantCombinations(
   attributesList: Array<{ id: string; name: string; values: string[] }>,
   variantAttrIds: string[],
 ): Array<Record<string, string>> {
@@ -1043,20 +1047,21 @@ export async function seedStoreData(
   includeMockData = true,
   bypassSafety = false,
   storeId?: string,
+  provisioningMode = 'FULL_DEMO',
 ): Promise<void> {
   // Builds a flat Firestore path segment (multi-tenant isolation is enforced via the storeId field)
   const tp = (path: string) => path;
   const storePrefix = `${storeId ?? tenantId}-`;
   const sName = storeName ? storeName.trim() : 'Vertex';
-  let rawSeed = VERTICAL_SEEDS[verticalId];
-  let targetVertical = verticalId;
-  if (!rawSeed) {
-    logger.info(
-      `[SeedEngine] No seeds defined for vertical: ${verticalId}. Falling back gracefully to "retail" seed.`,
-    );
-    rawSeed = VERTICAL_SEEDS['retail'];
-    targetVertical = 'retail';
-  }
+  const targetVerticalKey = resolveVerticalSeedKey(verticalId);
+  const rawSeed =
+    BUSINESS_VERTICAL_SEEDS[targetVerticalKey] ||
+    VERTICAL_SEEDS[verticalId] ||
+    VERTICAL_SEEDS['indumentaria'] ||
+    VERTICAL_SEEDS['retail'];
+  const targetVertical = targetVerticalKey;
+  const isModeEmpty = provisioningMode === 'EMPTY';
+  const isModeCatalogOnly = provisioningMode === 'CATALOG_ONLY';
 
   // Helper to customize dynamic seed values
   function customizeSeed(obj: any, val: string): any {
@@ -1182,73 +1187,6 @@ export async function seedStoreData(
     6000,
   );
 
-  // 3. Seed Attributes
-  for (const attr of seed.attributes) {
-    const docData = {
-      storeId: storeId ?? tenantId,
-      name: attr.name,
-      values: attr.values,
-    };
-    await retry(
-      () =>
-        apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`attributes/${attr.id}`)}`,
-          {
-            method: 'PATCH',
-            body: toFirestoreFields(docData),
-            quotaProject: projectId,
-          },
-        ),
-      5,
-      6000,
-    );
-  }
-  logger.info(`[SeedEngine] Seeded ${seed.attributes.length} attributes.`);
-
-  // 4. Seed Categories
-  for (const cat of seed.categories) {
-    const categoryImages: Record<string, string> = {
-      remeras: '1521572163474-6864f9cf17ab',
-      pantalones: '1542272604-787c3835535d',
-      zapatillas: '1542291026-7eec264c27ff',
-      accesorios: '1511499767150-a48a237f0083',
-      camperas: '1551028719-00167b16eac5',
-      hamburguesas: '1568901346375-23c9450c58cd',
-      acompanamientos: '1573080496219-bb080dd4f877',
-      bebidas: '1513558161293-cdaf765ed2fd',
-      hogar: '1507473885765-e6ed057f782c',
-      tecnologia: '1595225476474-87563907a212',
-      papeleria: '1531346878377-a5be20888e57',
-    };
-    const photoId = categoryImages[cat.slug] || '1521572163474-6864f9cf17ab';
-    const docData = {
-      storeId: storeId ?? tenantId,
-      name: cat.name,
-      slug: cat.slug,
-      parentId: cat.parentId,
-      filterableAttributes: cat.filterableAttributes,
-      imageUrl: u(photoId, 400, 400),
-      createdAt: new Date(),
-    };
-    await retry(
-      () =>
-        apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`categories/${cat.id}`)}`,
-          {
-            method: 'PATCH',
-            body: toFirestoreFields(docData),
-            quotaProject: projectId,
-          },
-        ),
-      5,
-      6000,
-    );
-  }
-  logger.info(`[SeedEngine] Seeded ${seed.categories.length} categories.`);
-
-  // 5. Seed Products and their Variants
   const seededProducts: Array<{
     id: string;
     name: string;
@@ -1257,95 +1195,94 @@ export async function seedStoreData(
     variantAttributes: string[];
   }> = [];
 
-  // Products are always seeded as they are editable catalog data
-  const productsToSeed = seed.products;
-  for (const prod of productsToSeed) {
-    const discount = prod.discount ?? 0;
-    const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
+  // 3. Seed Attributes, Categories, and Products (Skipped in EMPTY mode)
+  if (!isModeEmpty) {
+    for (const attr of seed.attributes) {
+      const docData = {
+        storeId: storeId ?? tenantId,
+        name: attr.name,
+        values: attr.values,
+      };
+      await retry(
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`attributes/${attr.id}`)}`,
+            {
+              method: 'PATCH',
+              body: toFirestoreFields(docData),
+              quotaProject: projectId,
+            },
+          ),
+        5,
+        6000,
+      );
+    }
+    logger.info(`[SeedEngine] Seeded ${seed.attributes.length} attributes.`);
 
-    let totalStock = 0;
-    const inStockAttributes: Record<string, string[]> = {};
+    // 4. Seed Categories
+    for (const cat of seed.categories) {
+      const categoryImages: Record<string, string> = {
+        remeras: '1521572163474-6864f9cf17ab',
+        pantalones: '1542272604-787c3835535d',
+        zapatillas: '1542291026-7eec264c27ff',
+        accesorios: '1511499767150-a48a237f0083',
+        camperas: '1551028719-00167b16eac5',
+        hamburguesas: '1568901346375-23c9450c58cd',
+        acompanamientos: '1573080496219-bb080dd4f877',
+        bebidas: '1513558161293-cdaf765ed2fd',
+        hogar: '1507473885765-e6ed057f782c',
+        tecnologia: '1595225476474-87563907a212',
+        papeleria: '1531346878377-a5be20888e57',
+      };
+      const photoId = categoryImages[cat.slug] || '1521572163474-6864f9cf17ab';
+      const docData = {
+        storeId: storeId ?? tenantId,
+        name: cat.name,
+        slug: cat.slug,
+        parentId: cat.parentId,
+        filterableAttributes: cat.filterableAttributes,
+        imageUrl: u(photoId, 400, 400),
+        createdAt: new Date(),
+      };
+      await retry(
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`categories/${cat.id}`)}`,
+            {
+              method: 'PATCH',
+              body: toFirestoreFields(docData),
+              quotaProject: projectId,
+            },
+          ),
+        5,
+        6000,
+      );
+    }
+    logger.info(`[SeedEngine] Seeded ${seed.categories.length} categories.`);
 
-    // Initial write of the product
-    const initialProdData = {
-      storeId: storeId ?? tenantId,
-      name: prod.name,
-      description: prod.description,
-      categoryId: prod.categoryId,
-      price: prod.price,
-      discount,
-      finalPrice,
-      image: prod.image,
-      images: prod.images ?? [prod.image],
-      totalStock: 0,
-      variantAttributes: prod.variantAttributes,
-      inStockAttributes: {},
-      featured: true,
-      active: true,
-      createdAt: new Date(),
-    };
+    // 5. Seed Products and their Variants
+    const productsToSeed = seed.products;
+    for (const prod of productsToSeed) {
+      const discount = prod.discount ?? 0;
+      const finalPrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
 
-    await retry(
-      () =>
-        apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}`)}`,
-          {
-            method: 'PATCH',
-            body: toFirestoreFields(initialProdData),
-            quotaProject: projectId,
-          },
-        ),
-      5,
-      6000,
-    );
+      let totalStock = 0;
+      const inStockAttributes: Record<string, string[]> = {};
 
-    // If product has variants, generate them
-    if (prod.variantAttributes.length > 0) {
-      const combinations = generateVariantCombinations(seed.attributes, prod.variantAttributes);
-      let varIdx = 0;
-      for (const combo of combinations) {
-        const stock = Math.floor(Math.random() * 80) + 5;
-        totalStock += stock;
-
-        Object.entries(combo).forEach(([attrId, value]) => {
-          if (!inStockAttributes[attrId]) {
-            inStockAttributes[attrId] = [];
-          }
-          if (!inStockAttributes[attrId].includes(value)) {
-            inStockAttributes[attrId].push(value);
-          }
-        });
-
-        const variantDocId = `${storeId ?? tenantId}-var-${varIdx}`;
-        const variantData = {
-          storeId: storeId ?? tenantId,
-          productId: prod.id,
-          sku: `${prod.id.toUpperCase()}-${varIdx++}`,
-          attributes: combo,
-          stock,
-        };
-
-        await retry(
-          () =>
-            apiFetch(
-              auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}/variants/${variantDocId}`)}`,
-              {
-                method: 'PATCH',
-                body: toFirestoreFields(variantData),
-                quotaProject: projectId,
-              },
-            ),
-          5,
-          6000,
-        );
-      }
-
-      // Update the main product with variant aggregation (total stock, in-stock sizes/colors)
-      const updatedProdData = {
-        totalStock,
-        inStockAttributes,
+      const initialProdData = {
+        storeId: storeId ?? tenantId,
+        name: prod.name,
+        description: prod.description,
+        categoryId: prod.categoryId,
+        price: finalPrice,
+        image: prod.image,
+        images: prod.images ?? [],
+        variantAttributes: prod.variantAttributes ?? [],
+        totalStock: 0,
+        inStockAttributes: {},
+        createdAt: new Date(),
       };
 
       await retry(
@@ -1355,19 +1292,65 @@ export async function seedStoreData(
             `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`products/${prod.id}`)}`,
             {
               method: 'PATCH',
-              body: toFirestoreFields({
-                ...initialProdData,
-                ...updatedProdData,
-              }),
+              body: toFirestoreFields(initialProdData),
               quotaProject: projectId,
             },
           ),
         5,
         6000,
       );
-    } else {
-      // Products without variants get a standard stock
-      totalStock = 50;
+
+      // Seed product variants
+      const attrs = prod.variantAttributes ?? [];
+      const isIndum = targetVertical === 'INDUMENTARIA_MODA' || targetVertical === 'indumentaria';
+      const variantDefs = isIndum
+        ? attrs.includes('talle-calzado')
+          ? [
+              { attributes: { 'talle-calzado': '40', color: 'Negro' }, stock: 8 },
+              { attributes: { 'talle-calzado': '41', color: 'Negro' }, stock: 12 },
+              { attributes: { 'talle-calzado': '42', color: 'Blanco' }, stock: 6 },
+            ]
+          : attrs.includes('talle-pantalon')
+            ? [
+                { attributes: { 'talle-pantalon': '40', color: 'Negro' }, stock: 15 },
+                { attributes: { 'talle-pantalon': '42', color: 'Azul' }, stock: 10 },
+              ]
+            : attrs.includes('talle-ropa')
+              ? [
+                  { attributes: { 'talle-ropa': 'S', color: 'Negro' }, stock: 10 },
+                  { attributes: { 'talle-ropa': 'M', color: 'Negro' }, stock: 15 },
+                  { attributes: { 'talle-ropa': 'L', color: 'Blanco' }, stock: 8 },
+                ]
+              : [{ attributes: { color: 'Negro' }, stock: 20 }]
+        : [{ attributes: {}, stock: 25 }];
+
+      for (let vIdx = 0; vIdx < variantDefs.length; vIdx++) {
+        const vDef = variantDefs[vIdx];
+        const variantDocId = `${prod.id}-v${vIdx + 1}`;
+        const vPayload = {
+          productId: prod.id,
+          storeId: storeId ?? tenantId,
+          attributes: vDef.attributes,
+          stock: vDef.stock,
+          createdAt: new Date(),
+        };
+
+        await retry(
+          () =>
+            apiFetch(
+              auth,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${tp(`product_variants/${variantDocId}`)}`,
+              {
+                method: 'PATCH',
+                body: toFirestoreFields(vPayload),
+                quotaProject: projectId,
+              },
+            ),
+          5,
+          6000,
+        );
+      }
+
       await retry(
         () =>
           apiFetch(
@@ -1376,8 +1359,8 @@ export async function seedStoreData(
             {
               method: 'PATCH',
               body: toFirestoreFields({
-                ...initialProdData,
                 totalStock,
+                inStockAttributes,
               }),
               quotaProject: projectId,
             },
@@ -1385,19 +1368,19 @@ export async function seedStoreData(
         5,
         6000,
       );
+
+      seededProducts.push({
+        id: prod.id,
+        name: prod.name,
+        finalPrice,
+        image: prod.image,
+        variantAttributes: prod.variantAttributes,
+      });
     }
-
-    seededProducts.push({
-      id: prod.id,
-      name: prod.name,
-      finalPrice,
-      image: prod.image,
-      variantAttributes: prod.variantAttributes,
-    });
+    logger.info(`[SeedEngine] Seeded ${seededProducts.length} products and their variants.`);
   }
-  logger.info(`[SeedEngine] Seeded ${seededProducts.length} products and their variants.`);
 
-  if (includeMockData) {
+  if (!isModeEmpty && !isModeCatalogOnly && includeMockData) {
     // 6. Seed Clients (from CLIENT_DATA)
     const seededClients: Array<{ id: string; fullName: string; email: string; phone: string }> = [];
     let clientIdx = 0;
@@ -1742,11 +1725,6 @@ export async function seedStoreData(
         title: 'Cambios sin burocracia',
         content:
           'Si la selección no fue la correcta o algo no te convenció, gestionamos el cambio o devolución en menos de 48 horas sin preguntas ni costos adicionales.',
-      },
-      {
-        title: 'Producción responsable',
-        content:
-          'Embalajes 100% reciclables, tintas ecológicas y apoyo activo a marcas locales y talleres de producción justa.',
       },
     ],
   };
