@@ -2437,6 +2437,29 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         },
       );
 
+      // Provisionar también el secreto SMTP_PASSWORD directo para Cloud Functions direct dispatch
+      const directSecretId = 'SMTP_PASSWORD';
+      try {
+        await apiFetch(
+          auth,
+          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${directSecretId}`,
+          { method: 'POST', body: { replication: { automatic: {} } }, quotaProject: projectId },
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
+      }
+
+      await apiFetch(
+        auth,
+        `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${directSecretId}:addVersion`,
+        {
+          method: 'POST',
+          body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
+          quotaProject: projectId,
+        },
+      );
+
       const extOp = (await apiFetch(
         auth,
         `https://firebaseextensions.googleapis.com/v1beta/projects/${projectId}/instances`,
