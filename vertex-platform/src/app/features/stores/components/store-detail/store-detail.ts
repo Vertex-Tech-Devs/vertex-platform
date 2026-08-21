@@ -214,17 +214,11 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  async setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial'): Promise<void> {
+  setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial'): void {
     this.activeTab.set(tab);
     const s = this.store();
-    if (!s) {
-      return;
-    }
-    if (tab === 'equipo') {
-      await this.loadStaff();
-    } else if (tab === 'dominios' && s.customDomain) {
+    if (tab === 'dominios' && s?.customDomain && !this.domainInput()) {
       this.domainInput.set(s.customDomain);
-      await this.verifyDNS(true);
     }
   }
 

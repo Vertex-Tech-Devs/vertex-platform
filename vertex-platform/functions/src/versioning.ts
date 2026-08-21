@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getGitHubPat, ALLOWED_ORIGINS, PLATFORM_PROJECT, getDeployToken } from './helpers';
 import { resolvePlatformEnvironment } from './runtime';
@@ -40,7 +41,14 @@ const SCHEMA_BY_VERSION: Record<string, number> = {
   '0.2.0': 1,
   '0.3.0': 1,
   '0.4.0': 1,
+  '0.5.0': 1,
 };
+
+function getSchemaVersion(v?: string): number {
+  if (!v) return 1;
+  const clean = v.replace(/^v/, '');
+  return SCHEMA_BY_VERSION[clean] ?? 1;
+}
 
 export const listTemplateVersions = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -338,8 +346,12 @@ export const completeVersionUpdate = onCall<{
   deployToken?: string;
   idToken?: string;
   version: string;
+  commitSha?: string;
+  commitMessage?: string;
+  ref?: string;
 }>({ cors: ALLOWED_ORIGINS, invoker: 'public' }, async (request) => {
-  const { storeId, success, deployToken, idToken, version } = request.data;
+  const { storeId, success, deployToken, idToken, version, commitSha, commitMessage, ref } =
+    request.data;
 
   if (!storeId) {
     throw new HttpsError('invalid-argument', 'storeId is required.');
@@ -366,13 +378,36 @@ export const completeVersionUpdate = onCall<{
 
   const db = getFirestore();
   const storeRef = db.collection('stores').doc(storeId);
+  const snap = await storeRef.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'Store not found.');
+  }
+
+  const cleanVer = (version || '0.5.0').replace(/^v/, '');
+  const schemaVer = getSchemaVersion(cleanVer);
+
+  // Record deployment entry into store's deploys subcollection
+  try {
+    const deployLogRef = storeRef.collection('deploys').doc();
+    await deployLogRef.set({
+      timestamp: new Date(),
+      success,
+      commitSha: commitSha || '',
+      commitMessage: commitMessage || '',
+      ref: ref || '',
+      version: cleanVer,
+      error: success ? null : 'Storefront deployment failed. Check GitHub Action logs for details.',
+    });
+  } catch (logErr) {
+    logger.warn('[completeVersionUpdate] Error recording deploy log:', logErr);
+  }
 
   if (success) {
     await storeRef.update({
-      templateVersion: version,
-      appVersion: `v${version.replace(/^v/, '')}`,
+      templateVersion: `v${cleanVer}`,
+      appVersion: `v${cleanVer}`,
       targetChannel: 'stable',
-      schemaVersion: SCHEMA_BY_VERSION[version] ?? undefined,
+      schemaVersion: schemaVer,
       versionUpdateStatus: 'idle',
       versionUpdateTarget: null,
       versionUpdateProgress: null,
@@ -393,3 +428,4 @@ export const completeVersionUpdate = onCall<{
 
   return { success: true };
 });
+
