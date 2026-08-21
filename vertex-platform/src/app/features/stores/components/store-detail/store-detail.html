@@ -146,7 +146,7 @@
         >
           <i class="bi bi-cpu"></i>
           <span>Orquestación GCP</span>
-          <span class="tab-badge tab-badge--version">v{{ store()!.templateVersion || '0.5.0' }}</span>
+          <span class="tab-badge tab-badge--version">{{ formatVersion(store()!.templateVersion) }}</span>
         </button>
         <button
           type="button"
@@ -714,28 +714,33 @@
                       <div class="deployment-empty" style="padding: 2rem 0">
                         <i class="bi bi-people-mute"></i>
                         <p>
-                          No se encontraron miembros activos adicionales. Solo el dueño tiene
-                          acceso.
+                          No se encontraron miembros activos adicionales.
                         </p>
                       </div>
                     } @else {
                       @for (member of staff(); track member.uid) {
-                        <div class="staff-item">
-                          <div class="staff-item__avatar">
-                            {{ (member.displayName || member.email).charAt(0).toUpperCase() }}
+                        <div class="staff-item" [class.staff-item--owner]="member.isOwner || member.role === 'owner'">
+                          <div class="staff-item__avatar" [class.staff-item__avatar--owner]="member.isOwner || member.role === 'owner'">
+                            @if (member.isOwner || member.role === 'owner') {
+                              <i class="bi bi-star-fill"></i>
+                            } @else {
+                              {{ (member.displayName || member.email).charAt(0).toUpperCase() }}
+                            }
                           </div>
                           <div class="staff-item__info">
-                            <span class="staff-item__name">{{
-                              member.displayName || 'Operador Vertex'
-                            }}</span>
+                            <div class="staff-item__name-row">
+                              <span class="staff-item__name">{{
+                                member.displayName || (member.isOwner ? 'Dueño de la tienda' : 'Operador Vertex')
+                              }}</span>
+                              @if (member.isOwner || member.role === 'owner') {
+                                <span class="badge-owner">Dueño</span>
+                              }
+                            </div>
                             <span class="staff-item__email">{{ member.email }}</span>
                           </div>
-                          <div
-                            class="staff-item__role"
-                            style="display: flex; align-items: center; gap: 0.5rem"
-                          >
+                          <div class="staff-item__role">
                             <span class="badge-role badge-role--{{ member.role }}">{{
-                              member.role
+                              member.role === 'owner' ? 'Propietario' : member.role
                             }}</span>
                           </div>
                         </div>
@@ -837,19 +842,12 @@
                 @if (!store()!.customDomain) {
                   <!-- Non-connected state -->
                   <div class="dns-setup-flow">
-                    <p
-                      style="
-                        font-size: 0.9rem;
-                        color: var(--platform-text-secondary);
-                        margin-bottom: 1.5rem;
-                        line-height: 1.45;
-                      "
-                    >
+                    <p class="dns-setup-flow__desc">
                       Vertex Platform permite enrutar tus tiendas a dominios personalizados de forma
                       automática mediante la infraestructura de Firebase Hosting.
                     </p>
 
-                    <div class="form-group" style="max-width: 450px">
+                    <div class="form-group mb-4" style="max-width: 480px">
                       <label class="form-label">Dominio Custom a conectar</label>
                       <div class="input-addon">
                         <span class="input-addon__pre">https://</span>
@@ -861,59 +859,65 @@
                           type="text"
                         />
                       </div>
-                      <small class="form-hint" style="margin-top: 0.25rem">
+                      <small class="form-hint" style="margin-top: 0.35rem">
                         No incluyas "www" ni barras finales ("/").
                       </small>
                     </div>
 
-                    <div class="form-group" style="margin-top: 1rem; max-width: 620px">
-                      <label class="form-label">Checklist previo obligatorio</label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem">
-                        <input
-                          type="checkbox"
-                          [ngModel]="hasDomainOwnership()"
-                          (ngModelChange)="hasDomainOwnership.set(!!$event)"
-                        />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Tengo titularidad del dominio</strong>
-                          <p>Puedo operar sobre el dominio en el registrador actual.</p>
-                        </div>
-                      </label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem">
-                        <input
-                          type="checkbox"
-                          [ngModel]="hasDnsAccess()"
-                          (ngModelChange)="hasDnsAccess.set(!!$event)"
-                        />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Tengo acceso al panel DNS</strong>
-                          <p>Puedo crear registros tipo A, TXT o CNAME en el proveedor DNS.</p>
-                        </div>
-                      </label>
-                      <label class="checkbox-label" style="margin-top: 0.5rem">
-                        <input
-                          type="checkbox"
-                          [ngModel]="wantsRootOrWwwReady()"
-                          (ngModelChange)="wantsRootOrWwwReady.set(!!$event)"
-                        />
-                        <span class="checkbox-custom"></span>
-                        <div class="checkbox-text">
-                          <strong>Definí el dominio final</strong>
-                          <p>
-                            Ya validé si voy a usar dominio raíz (tienda.com) o subdominio
-                            (www.tienda.com).
-                          </p>
-                        </div>
-                      </label>
+                    <div class="dns-checklist-section">
+                      <label class="form-label mb-2">Checklist previo obligatorio</label>
+                      <div class="dns-checklist">
+                        <label class="dns-check-card" [class.is-checked]="hasDomainOwnership()">
+                          <input
+                            type="checkbox"
+                            [ngModel]="hasDomainOwnership()"
+                            (ngModelChange)="hasDomainOwnership.set(!!$event)"
+                          />
+                          <span class="dns-check-card__box">
+                            <i class="bi bi-check-lg"></i>
+                          </span>
+                          <div class="dns-check-card__text">
+                            <span class="dns-check-card__title">Tengo titularidad del dominio</span>
+                            <span class="dns-check-card__desc">Puedo operar sobre el dominio en el registrador actual.</span>
+                          </div>
+                        </label>
+
+                        <label class="dns-check-card" [class.is-checked]="hasDnsAccess()">
+                          <input
+                            type="checkbox"
+                            [ngModel]="hasDnsAccess()"
+                            (ngModelChange)="hasDnsAccess.set(!!$event)"
+                          />
+                          <span class="dns-check-card__box">
+                            <i class="bi bi-check-lg"></i>
+                          </span>
+                          <div class="dns-check-card__text">
+                            <span class="dns-check-card__title">Tengo acceso al panel DNS</span>
+                            <span class="dns-check-card__desc">Puedo crear registros tipo A, TXT o CNAME en el proveedor DNS.</span>
+                          </div>
+                        </label>
+
+                        <label class="dns-check-card" [class.is-checked]="wantsRootOrWwwReady()">
+                          <input
+                            type="checkbox"
+                            [ngModel]="wantsRootOrWwwReady()"
+                            (ngModelChange)="wantsRootOrWwwReady.set(!!$event)"
+                          />
+                          <span class="dns-check-card__box">
+                            <i class="bi bi-check-lg"></i>
+                          </span>
+                          <div class="dns-check-card__text">
+                            <span class="dns-check-card__title">Definí el dominio final</span>
+                            <span class="dns-check-card__desc">Ya validé si voy a usar dominio raíz (tienda.com) o subdominio (www.tienda.com).</span>
+                          </div>
+                        </label>
+                      </div>
                     </div>
 
                     <button
-                      class="btn btn-primary"
+                      class="btn btn-primary mt-4"
                       [disabled]="isConnectingDomain() || !canConnectDomain()"
                       (click)="connectDomain()"
-                      style="margin-top: 1.25rem"
                     >
                       @if (isConnectingDomain()) {
                         <span class="spinner-sm"></span> Vinculando proyecto Hosting…

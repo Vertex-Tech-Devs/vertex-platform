@@ -48,6 +48,7 @@
   }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="create-form" novalidate>
+    <!-- Section 1: Identidad -->
     <section class="form-section">
       <h2 class="form-section__title">Identidad</h2>
       <div class="form-grid">
@@ -99,82 +100,81 @@
       </div>
     </section>
 
+    <!-- Section 2: Rubro del Negocio (Visual Cards) -->
     <section class="form-section">
-      <h2 class="form-section__title">Rubro Comercial y Modalidad</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Rubro del Negocio *</label>
-          <select formControlName="businessVertical" class="form-control">
-            <option value="INDUMENTARIA_MODA">👗 Indumentaria & Moda (Ropa, talles, calzado)</option>
-            <option value="GASTRONOMIA_CAFE">☕ Gastronomía & Café (Comidas, café de especialidad)</option>
-            <option value="TECNOLOGIA">💻 Tecnología & Gadgets (Dispositivos, accesorios)</option>
-            <option value="HOGAR_DECO">🛋️ Hogar & Deco (Muebles, iluminación, deco)</option>
-          </select>
-          <small class="form-hint">Define las categorías, atributos y banners adaptados al rubro.</small>
-        </div>
+      <div class="section-header">
+        <h2 class="form-section__title">Rubro del Negocio *</h2>
+        <p class="section-subtitle">Define categorías, atributos y banners adaptados al rubro.</p>
+      </div>
 
-        <div class="form-group">
-          <label class="form-label">Modalidad de Aprovisionamiento *</label>
-          <select formControlName="provisioningMode" class="form-control">
-            <option value="FULL_DEMO">🚀 Demo Completo (Catálogo + 20 clientes y órdenes de prueba)</option>
-            <option value="CATALOG_ONLY">📦 Solo Catálogo (Categorías y productos base, sin órdenes)</option>
-            <option value="EMPTY">✨ Tienda Limpia (Sin productos ni órdenes, lista para configurar)</option>
-          </select>
-          <small class="form-hint">Elegí el volumen de datos iniciales para la tienda.</small>
-        </div>
+      <div class="option-cards-grid option-cards-grid--2col">
+        @for (v of verticals; track v.id) {
+          <div
+            class="option-card"
+            [class.is-selected]="form.get('businessVertical')?.value === v.id"
+            (click)="selectVertical(v.id)"
+          >
+            <div class="option-card__header">
+              <span class="option-card__icon">{{ v.icon }}</span>
+              <div class="option-card__radio">
+                <span class="radio-dot"></span>
+              </div>
+            </div>
+            <h3 class="option-card__title">{{ v.name }}</h3>
+            <p class="option-card__desc">{{ v.description }}</p>
+          </div>
+        }
       </div>
     </section>
 
+    <!-- Section 3: Modalidad de Aprovisionamiento (Visual Cards) -->
+    <section class="form-section">
+      <div class="section-header">
+        <h2 class="form-section__title">Modalidad de Aprovisionamiento *</h2>
+        <p class="section-subtitle">Elegí el volumen de datos iniciales para la tienda.</p>
+      </div>
+
+      <div class="option-cards-grid option-cards-grid--3col">
+        @for (m of provisioningModes; track m.id) {
+          <div
+            class="option-card"
+            [class.is-selected]="form.get('provisioningMode')?.value === m.id"
+            (click)="selectMode(m.id)"
+          >
+            <div class="option-card__header">
+              <span class="option-card__icon">{{ m.icon }}</span>
+              <div class="option-card__radio">
+                <span class="radio-dot"></span>
+              </div>
+            </div>
+            <h3 class="option-card__title">{{ m.name }}</h3>
+            <p class="option-card__desc">{{ m.description }}</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Section 4: Alojamiento e Infraestructura -->
     <section class="form-section">
       <h2 class="form-section__title">Alojamiento e Infraestructura</h2>
-      <p
-        class="form-hint"
-        style="
-          margin-bottom: 1rem;
-          margin-top: -0.5rem;
-          text-transform: none;
-          font-weight: normal;
-          letter-spacing: normal;
-        "
-      >
+      <p class="section-subtitle mb-3">
         De forma predeterminada, la tienda se alojará en un shard compartido (shared-shard) para
         optimizar costos de Google Cloud. Marcá la opción de abajo si necesitás un proyecto de
         Google Cloud totalmente aislado y dedicado para este cliente.
       </p>
-      <div
-        class="form-group"
-        style="
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          padding: 1rem;
-          border-radius: 8px;
-        "
-      >
+      <div class="dedicated-project-box">
         <input
           id="dedicatedProject"
           formControlName="dedicatedProject"
           type="checkbox"
-          style="width: 1.25rem; height: 1.25rem; cursor: pointer"
+          class="dedicated-checkbox"
         />
-        <label
-          for="dedicatedProject"
-          style="
-            color: var(--platform-text-primary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            user-select: none;
-            margin: 0;
-          "
-        >
+        <label for="dedicatedProject" class="dedicated-label">
           Crear proyecto de Google Cloud dedicado (Premium)
         </label>
       </div>
       @if (form.get('dedicatedProject')?.value) {
-        <div class="alert alert-error" style="margin-top: 0.75rem">
+        <div class="alert alert-error mt-3">
           <i class="bi bi-exclamation-triangle-fill"></i>
           Ojo: los proyectos dedicados necesitan crear un proyecto GCP nuevo y la
           <strong>cuota de proyectos de la organización está agotada</strong> hoy. Si la creación
@@ -184,29 +184,62 @@
       }
     </section>
 
+    <!-- Section 5: Marca & Logo (File Upload Dropzone) -->
     <section class="form-section">
-      <h2 class="form-section__title">Marca</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Logo URL</label>
-          <input
-            formControlName="logoUrl"
-            type="url"
-            class="form-control"
-            placeholder="https://..."
-          />
-        </div>
+      <div class="section-header">
+        <h2 class="form-section__title">Marca & Logo</h2>
+        <p class="section-subtitle">Subí el imagotipo o logotipo oficial de la tienda.</p>
+      </div>
 
-        <div class="form-group form-grid--full">
-          <label class="form-label">Dominio personalizado (opcional)</label>
-          <input
-            formControlName="customDomain"
-            type="text"
-            class="form-control"
-            placeholder="tienda.com"
-          />
-          <small class="form-hint">Se puede configurar después del provisionamiento.</small>
-        </div>
+      <div class="logo-upload-wrapper">
+        @if (logoPreview()) {
+          <div class="logo-preview-card">
+            <div class="logo-preview-card__img-box">
+              <img [src]="logoPreview()" alt="Logo preview" class="logo-preview-card__img" />
+            </div>
+            <div class="logo-preview-card__info">
+              <span class="logo-preview-card__name">{{ logoFileName() }}</span>
+              <span class="logo-preview-card__size">{{ logoFileSize() }}</span>
+              <span class="badge badge--success mt-1">Listo para crear</span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm ms-auto" (click)="removeLogo()">
+              <i class="bi bi-trash"></i> Eliminar
+            </button>
+          </div>
+        } @else {
+          <div
+            class="logo-dropzone"
+            [class.is-dragging]="isDraggingLogo()"
+            (dragover)="onLogoDragOver($event)"
+            (dragleave)="onLogoDragLeave($event)"
+            (drop)="onLogoDropped($event)"
+          >
+            <input
+              #logoInput
+              type="file"
+              accept="image/png, image/jpeg, image/webp, image/svg+xml"
+              class="logo-dropzone__input"
+              (change)="onLogoFileSelected($event)"
+            />
+            <div class="logo-dropzone__content" (click)="logoInput.click()">
+              <div class="logo-dropzone__icon">
+                <i class="bi bi-cloud-arrow-up"></i>
+              </div>
+              <p class="logo-dropzone__title">
+                <strong>Hacé clic para subir</strong> o arrastrá el logo acá
+              </p>
+              <p class="logo-dropzone__hint">PNG, JPG, WebP o SVG (máx. 2MB)</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="custom-domain-info-card mt-3">
+        <i class="bi bi-info-circle text-info"></i>
+        <span>
+          El dominio personalizado (.com, .com.ar) se vincula y verifica fácilmente desde la pestaña
+          <strong>Dominios (DNS)</strong> una vez creada la tienda.
+        </span>
       </div>
     </section>
 

@@ -2023,64 +2023,91 @@ export const getStoreStaff = onCall<{ storeId: string }>(
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
 
-    const store = storeSnap.data() as { firebaseProjectId?: string; runtimeProjectId?: string };
+    const store = storeSnap.data() as {
+      ownerEmail?: string;
+      clientEmail?: string;
+      name?: string;
+      slug?: string;
+      createdAt?: any;
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+    };
     const projectId = resolveRuntimeProjectId(store);
 
-    let users: Array<{
+    const users: Array<{
       uid: string;
       email: string;
       role: string;
       displayName?: string;
       joinedAt?: string;
+      isOwner?: boolean;
     }> = [];
-    if (process.env.FUNCTIONS_EMULATOR === 'true') {
-      try {
-        const usersSnap = await db.collection('users').get();
-        users = usersSnap.docs.map((d) => {
-          const data = d.data();
-          return {
-            uid: d.id,
-            email: data['email'] || '',
-            role: data['role'] || '',
-            displayName: data['displayName'] || '',
+
+    // 1. Incluir siempre al Dueño de la Tienda como miembro principal
+    const ownerEmail = (store.ownerEmail || store.clientEmail || '').trim();
+    if (ownerEmail) {
+      users.push({
+        uid: `owner-${store.slug || storeId}`,
+        email: ownerEmail,
+        role: 'owner',
+        displayName: store.name ? `${store.name} (Dueño)` : 'Dueño de la tienda',
+        joinedAt:
+          store.createdAt instanceof Date
+            ? store.createdAt.toISOString()
+            : store.createdAt?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+        isOwner: true,
+      });
+    }
+
+    // 2. Consultar subcolección stores/{storeId}/staff en Platform Firestore
+    try {
+      const staffSnap = await db.collection('stores').doc(storeId).collection('staff').get();
+      for (const doc of staffSnap.docs) {
+        const data = doc.data();
+        const email = (data['email'] || '').trim();
+        if (email && !users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+          users.push({
+            uid: doc.id,
+            email,
+            role: data['role'] || 'admin',
+            displayName: data['displayName'] || data['name'] || '',
             joinedAt:
-              data['joinedAt'] instanceof Date
-                ? data['joinedAt'].toISOString()
-                : data['joinedAt'] || '',
-          };
-        });
-      } catch (err) {
-        console.error('[getStoreStaff] Failed to load local users in emulator:', err);
-      }
-    } else {
-      try {
-        const auth = await getOwnerOAuthClient();
-        const usersRes = (await apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`,
-          { quotaProject: projectId },
-        )) as { documents?: Array<{ name: string; fields: Record<string, any> }> };
-
-        if (usersRes.documents) {
-          users = usersRes.documents.map((doc) => {
-            const parts = doc.name.split('/');
-            const uid = parts[parts.length - 1];
-            const fields = doc.fields;
-
-            return {
-              uid,
-              email: fields['email']?.stringValue || '',
-              role: fields['role']?.stringValue || '',
-              displayName: fields['displayName']?.stringValue || '',
-              joinedAt: fields['joinedAt']?.timestampValue || '',
-            };
+              data['createdAt'] instanceof Date
+                ? data['createdAt'].toISOString()
+                : data['createdAt']?.toDate?.()?.toISOString?.() || '',
           });
         }
+      }
+    } catch (err) {
+      console.warn(`[getStoreStaff] Failed to load local staff subcollection:`, err);
+    }
+
+    // 3. Consultar colección admin_roles en el shard Firestore
+    if (projectId) {
+      try {
+        const shardDb = getFirestoreForProject(projectId);
+        const adminRolesSnap = await shardDb
+          .collection('admin_roles')
+          .where('storeId', '==', storeId)
+          .get();
+        for (const doc of adminRolesSnap.docs) {
+          const data = doc.data();
+          const email = (data['email'] || '').trim();
+          if (email && !users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+            users.push({
+              uid: doc.id,
+              email,
+              role: data['role'] || 'admin',
+              displayName: data['displayName'] || '',
+              joinedAt:
+                data['assignedAt'] instanceof Date
+                  ? data['assignedAt'].toISOString()
+                  : data['assignedAt']?.toDate?.()?.toISOString?.() || '',
+            });
+          }
+        }
       } catch (err) {
-        console.warn(
-          `[getStoreStaff] Failed to load auth users for project ${projectId}. Likely missing GCP credentials or project does not exist physically.`,
-          err,
-        );
+        // Shard query fallback (silent)
       }
     }
 

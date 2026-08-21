@@ -156,6 +156,7 @@ export interface StaffMember {
   role: 'owner' | 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
   displayName?: string;
   joinedAt?: string;
+  isOwner?: boolean;
 }
 
 export interface PendingInvitation {
