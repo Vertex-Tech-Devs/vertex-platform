@@ -217,7 +217,7 @@ export const updateStoreVersion = onCall<{ storeId: string; version: string }>(
     // los datos → downgrade incompatible (BLOQUEADO).
     // version.schemaVersion > store.schemaVersion → la versión nueva cambia el
     // esquema → se permite pero se marca pendingMigration.
-    const targetSchema = SCHEMA_BY_VERSION[version] ?? 0;
+    const targetSchema = getSchemaVersion(version);
     const storeSchema = Number(storeData['schemaVersion'] ?? 0) || 0;
     if (targetSchema !== 0 && targetSchema < storeSchema) {
       throw new HttpsError(
