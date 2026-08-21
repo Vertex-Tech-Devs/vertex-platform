@@ -2244,14 +2244,24 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
   },
 );
 
-export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
+export const seedStore = onCall<{
+  storeId: string;
+  includeMockData?: boolean;
+  provisioningMode?: string;
+  verticalId?: string;
+}>(
   { cors: ALLOWED_ORIGINS, invoker: 'public', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can seed store data.');
     }
 
-    const { storeId, includeMockData = true } = request.data;
+    const {
+      storeId,
+      includeMockData = true,
+      provisioningMode = 'FULL_DEMO',
+      verticalId: reqVerticalId,
+    } = request.data;
     if (!storeId) {
       throw new HttpsError('invalid-argument', 'storeId is required.');
     }
@@ -2272,7 +2282,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
       store.firebaseProjectId && store.firebaseProjectId !== projectId
         ? store.firebaseProjectId
         : null;
-    const verticalId = store.verticalId || 'indumentaria';
+    const verticalId = reqVerticalId || store.verticalId || 'TECNOLOGIA_ELECTRONICA';
     const tenantId = store.slug;
 
     const auth = await getOwnerOAuthClient();
@@ -2288,6 +2298,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
         includeMockData !== false,
         true,
         storeId,
+        provisioningMode,
       );
       return { success: true };
     } catch (err: any) {
@@ -2309,6 +2320,7 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
             includeMockData !== false,
             true,
             storeId,
+            provisioningMode,
           );
           await db.collection('stores').doc(storeId).update({
             runtimeProjectId: fallbackProjectId,
@@ -2329,3 +2341,12 @@ export const seedStore = onCall<{ storeId: string; includeMockData?: boolean }>(
     }
   },
 );
+
+export const listBusinessVerticals = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async () => {
+    const { getAllBusinessVerticalsSummary } = require('./verticals/verticals.registry');
+    return { verticals: getAllBusinessVerticalsSummary() };
+  },
+);
+

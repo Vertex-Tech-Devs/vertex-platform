@@ -4,16 +4,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
+import {
+  PLATFORM_BUSINESS_VERTICALS,
+  type VerticalOption,
+} from '@core/constants/business-verticals.constants';
 
 // Must match backend: 3-20 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
 
-export interface VerticalOption {
-  id: string;
-  icon: string;
-  name: string;
-  description: string;
-}
+export type { VerticalOption };
 
 export interface ProvisioningModeOption {
   id: string;
@@ -44,39 +43,14 @@ export class StoreCreate implements OnInit {
   readonly logoFileSize = signal<string>('');
   readonly isDraggingLogo = signal<boolean>(false);
 
-  readonly verticals: VerticalOption[] = [
-    {
-      id: 'INDUMENTARIA_MODA',
-      icon: '👗',
-      name: 'Indumentaria & Moda',
-      description: 'Ropa, talles, calzado, indumentaria y accesorios con variantes.',
-    },
-    {
-      id: 'GASTRONOMIA_CAFE',
-      icon: '☕',
-      name: 'Gastronomía & Café',
-      description: 'Comidas, café de especialidad, bebidas y menú dinámico.',
-    },
-    {
-      id: 'TECNOLOGIA',
-      icon: '💻',
-      name: 'Tecnología & Gadgets',
-      description: 'Dispositivos, computación, accesorios y especificaciones técnicas.',
-    },
-    {
-      id: 'HOGAR_DECO',
-      icon: '🛋️',
-      name: 'Hogar & Deco',
-      description: 'Muebles, iluminación, decoración y ambientación para el hogar.',
-    },
-  ];
+  readonly verticals: VerticalOption[] = PLATFORM_BUSINESS_VERTICALS;
 
   readonly provisioningModes: ProvisioningModeOption[] = [
     {
       id: 'FULL_DEMO',
       icon: '🚀',
       name: 'Demo Completo',
-      description: 'Catálogo de muestra + 20 clientes y pedidos simulados.',
+      description: 'Catálogo de muestra + clientes y pedidos simulados.',
     },
     {
       id: 'CATALOG_ONLY',
