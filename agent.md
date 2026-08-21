@@ -140,6 +140,17 @@ const secretCache = new Map<string, string>();
 
 ---
 
+## 🏬 Motor de Rubros Comerciales (21 Presets) y Semillado Multimodal
+
+- **Catálogo Centralizado**: Ubicado en `functions/src/verticals/` con 21 presets modulares (`presets/*.ts`), tipados con `BusinessVerticalDefinition` y accesibles vía `getBusinessVerticalPreset(verticalId)` y `getAllBusinessVerticalsSummary()`.
+- **Modalidades de Aprovisionamiento (`provisioningMode`)**:
+  * `EMPTY`: Crea únicamente los singletons de configuración (`configuracion/store_{storeId}`, `footer_{storeId}`, `pages/home_{storeId}`, `aboutUs_{storeId}`). Deja catálogo, clientes y pedidos en 0 documentos.
+  * `CATALOG_ONLY`: Inyecta Categorías (`{storeId}-cat-{slug}`), Atributos (`{storeId}-attr-{code}`) y Productos de muestra con variantes y stock inicial. 0 clientes y 0 órdenes.
+  * `FULL_DEMO`: Inyecta el catálogo completo + clientes simulados + órdenes históricas correlacionadas.
+- **Frontend Picker**: `PLATFORM_BUSINESS_VERTICALS` expone las opciones interactivas en `src/app/core/constants/business-verticals.constants.ts` para el formulario `store-create`.
+
+---
+
 ## 🛡️ Acceso y Permisos
 
 | Componente | Acceso |

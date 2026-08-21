@@ -28,7 +28,10 @@ describe('StoreCreate', () => {
 
     await TestBed.configureTestingModule({
       imports: [StoreCreate],
-      providers: [provideRouter([]), { provide: StoresService, useValue: storesService }],
+      providers: [
+        provideRouter([{ path: 'stores/:id', component: StoreCreate }]),
+        { provide: StoresService, useValue: storesService },
+      ],
     }).compileComponents();
   });
 
@@ -73,19 +76,47 @@ describe('StoreCreate', () => {
     expect(component.form.get('slug')?.value).toBe('tienda-de-cafe-y-nandues');
   });
 
-  it('validates customDomain using robust regex pattern', () => {
+  it('updates form when selecting vertical and provisioning mode', () => {
     const fixture = TestBed.createComponent(StoreCreate);
     const component = fixture.componentInstance;
-    const customDomain = component.form.get('customDomain');
 
-    customDomain?.setValue('mi-tienda.com');
-    expect(customDomain?.valid).toBe(true);
+    component.selectVertical('GASTRONOMIA_CAFE');
+    expect(component.form.get('businessVertical')?.value).toBe('GASTRONOMIA_CAFE');
+    expect(component.form.get('verticalId')?.value).toBe('GASTRONOMIA_CAFE');
 
-    customDomain?.setValue('mi..tienda.com');
-    expect(customDomain?.valid).toBe(false);
+    component.selectMode('CATALOG_ONLY');
+    expect(component.form.get('provisioningMode')?.value).toBe('CATALOG_ONLY');
+    expect(component.form.get('includeMockData')?.value).toBe(false);
 
-    customDomain?.setValue('mi-tienda.com.');
-    expect(customDomain?.valid).toBe(false);
+    component.selectMode('FULL_DEMO');
+    expect(component.form.get('provisioningMode')?.value).toBe('FULL_DEMO');
+    expect(component.form.get('includeMockData')?.value).toBe(true);
+  });
+
+  it('submits correctly on valid form', async () => {
+    storesService.createStore.mockResolvedValue('store-456');
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+
+    component.form.patchValue({
+      name: 'Mi Tienda',
+      slug: 'mi-tienda',
+      ownerEmail: 'owner@mitienda.com',
+      businessVertical: 'INDUMENTARIA_MODA',
+      provisioningMode: 'FULL_DEMO',
+    });
+
+    await component.onSubmit();
+
+    expect(storesService.createStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Mi Tienda',
+        slug: 'mi-tienda',
+        ownerEmail: 'owner@mitienda.com',
+        businessVertical: 'INDUMENTARIA_MODA',
+        includeMockData: true,
+      }),
+    );
   });
 
   it('parses errors correctly on createStore failure', async () => {
@@ -107,6 +138,29 @@ describe('StoreCreate', () => {
     expect(component.isSubmitting()).toBe(false);
   });
 
+  it('handles specific error scenarios gracefully', async () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+
+    component.form.patchValue({
+      name: 'Test Store',
+      slug: 'test-store',
+      ownerEmail: 'owner@test.com',
+    });
+
+    storesService.createStore.mockRejectedValueOnce(new Error('permission-denied'));
+    await component.onSubmit();
+    expect(component.errorMessage()).toContain('permisos de administrador');
+
+    storesService.createStore.mockRejectedValueOnce(new Error('quota exceeded for projects'));
+    await component.onSubmit();
+    expect(component.errorMessage()).toContain('cuota de proyectos GCP');
+
+    storesService.createStore.mockRejectedValueOnce(new Error('Store already exists'));
+    await component.onSubmit();
+    expect(component.errorMessage()).toContain('Ya existe una tienda con ese slug');
+  });
+
   it('marks all touched on submit with invalid form', async () => {
     const fixture = TestBed.createComponent(StoreCreate);
     const component = fixture.componentInstance;
@@ -115,5 +169,58 @@ describe('StoreCreate', () => {
     await component.onSubmit();
 
     expect(component.form.touched).toBe(true);
+  });
+
+  it('handles logo drag events and file validations', () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+
+    const mockEvent = {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    } as unknown as DragEvent;
+
+    component.onLogoDragOver(mockEvent);
+    expect(component.isDraggingLogo()).toBe(true);
+
+    component.onLogoDragLeave(mockEvent);
+    expect(component.isDraggingLogo()).toBe(false);
+
+    // Non-image file rejection
+    const textFile = new File(['hello'], 'test.txt', { type: 'text/plain' });
+    const dropEventInvalid = {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      dataTransfer: { files: [textFile] },
+    } as unknown as DragEvent;
+
+    component.onLogoDropped(dropEventInvalid);
+    expect(component.errorMessage()).toContain('archivo de imagen válido');
+
+    // File over 2MB rejection
+    const largeFile = new File([new ArrayBuffer(3 * 1024 * 1024)], 'huge.png', { type: 'image/png' });
+    const dropEventLarge = {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      dataTransfer: { files: [largeFile] },
+    } as unknown as DragEvent;
+
+    component.onLogoDropped(dropEventLarge);
+    expect(component.errorMessage()).toContain('2MB');
+
+    // Valid file selection
+    const validFile = new File(['content'], 'logo.png', { type: 'image/png' });
+    const selectEvent = {
+      target: { files: [validFile] },
+    } as unknown as Event;
+
+    component.onLogoFileSelected(selectEvent);
+    expect(component.logoFileName()).toBe('logo.png');
+
+    // Remove logo
+    component.removeLogo();
+    expect(component.logoPreview()).toBeNull();
+    expect(component.logoFileName()).toBe('');
+    expect(component.form.get('logoUrl')?.value).toBe('');
   });
 });

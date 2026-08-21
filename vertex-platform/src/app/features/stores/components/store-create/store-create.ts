@@ -3,13 +3,23 @@ import type { OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
-
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
+import {
+  PLATFORM_BUSINESS_VERTICALS,
+  type VerticalOption,
+} from '@core/constants/business-verticals.constants';
 
 // Must match backend: 3-20 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
-const DOMAIN_RE =
-  /^$|^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
+
+export type { VerticalOption };
+
+export interface ProvisioningModeOption {
+  id: string;
+  icon: string;
+  name: string;
+  description: string;
+}
 
 @Component({
   selector: 'app-store-create',
@@ -28,12 +38,39 @@ export class StoreCreate implements OnInit {
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
   readonly runtimeSummaryError = signal('');
 
+  readonly logoPreview = signal<string | null>(null);
+  readonly logoFileName = signal<string>('');
+  readonly logoFileSize = signal<string>('');
+  readonly isDraggingLogo = signal<boolean>(false);
+
+  readonly verticals: VerticalOption[] = PLATFORM_BUSINESS_VERTICALS;
+
+  readonly provisioningModes: ProvisioningModeOption[] = [
+    {
+      id: 'FULL_DEMO',
+      icon: '🚀',
+      name: 'Demo Completo',
+      description: 'Catálogo de muestra + clientes y pedidos simulados.',
+    },
+    {
+      id: 'CATALOG_ONLY',
+      icon: '📦',
+      name: 'Solo Catálogo',
+      description: 'Categorías y productos iniciales listos para vender.',
+    },
+    {
+      id: 'EMPTY',
+      icon: '✨',
+      name: 'Tienda Limpia',
+      description: 'Estructura vacía lista para cargar productos desde cero.',
+    },
+  ];
+
   readonly form = this.fb.group({
     name: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
-    customDomain: ['', [Validators.pattern(DOMAIN_RE)]],
     businessVertical: [DEFAULT_STORE_VERTICAL, Validators.required],
     provisioningMode: ['FULL_DEMO', Validators.required],
     verticalId: [DEFAULT_STORE_VERTICAL],
@@ -51,6 +88,16 @@ export class StoreCreate implements OnInit {
     })();
   }
 
+  selectVertical(id: string): void {
+    this.form.get('businessVertical')?.setValue(id);
+    this.form.get('verticalId')?.setValue(id);
+  }
+
+  selectMode(id: string): void {
+    this.form.get('provisioningMode')?.setValue(id);
+    this.form.get('includeMockData')?.setValue(id === 'FULL_DEMO');
+  }
+
   autoSlug(): void {
     const name = this.form.get('name')?.value ?? '';
     const slug = name
@@ -60,6 +107,63 @@ export class StoreCreate implements OnInit {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     this.form.get('slug')?.setValue(slug);
+  }
+
+  onLogoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.processLogoFile(input.files[0]);
+    }
+  }
+
+  onLogoDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingLogo.set(true);
+  }
+
+  onLogoDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingLogo.set(false);
+  }
+
+  onLogoDropped(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingLogo.set(false);
+    if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
+      this.processLogoFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  private processLogoFile(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      this.errorMessage.set('Por favor seleccioná un archivo de imagen válido (PNG, JPG, SVG o WebP).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.errorMessage.set('El logo no debe superar los 2MB de tamaño.');
+      return;
+    }
+
+    this.logoFileName.set(file.name);
+    this.logoFileSize.set(`${(file.size / 1024).toFixed(1)} KB`);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      this.logoPreview.set(dataUrl);
+      this.form.get('logoUrl')?.setValue(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeLogo(): void {
+    this.logoPreview.set(null);
+    this.logoFileName.set('');
+    this.logoFileSize.set('');
+    this.form.get('logoUrl')?.setValue('');
   }
 
   async onSubmit(): Promise<void> {

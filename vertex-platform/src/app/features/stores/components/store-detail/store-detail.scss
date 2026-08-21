@@ -1752,12 +1752,22 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 680px) {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
 .op-control-card {
+  display: flex;
+  flex-direction: column;
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -1768,8 +1778,8 @@
   &:hover {
     border-color: rgba(255, 255, 255, 0.16);
     background: rgba(15, 23, 42, 0.7);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 
   &--active {
@@ -1787,25 +1797,11 @@
     }
   }
 
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-
-    @media (max-width: 640px) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.85rem;
-    }
-  }
-
-  &__info {
+  &__top {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    flex: 1;
-    min-width: 0;
+    margin-bottom: 0.85rem;
   }
 
   &__icon {
@@ -1819,20 +1815,15 @@
     align-items: center;
     justify-content: center;
     font-size: 1.15rem;
+    flex-shrink: 0;
   }
 
   &__meta {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.25rem;
     min-width: 0;
-  }
-
-  &__title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
+    flex: 1;
   }
 
   &__title {
@@ -1845,6 +1836,7 @@
   }
 
   &__badge {
+    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     font-size: 0.685rem;
@@ -1856,33 +1848,32 @@
     line-height: 1;
   }
 
-  &__btn {
-    white-space: nowrap;
-    flex-shrink: 0;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    @media (max-width: 640px) {
-      width: 100%;
-    }
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
   }
 
   &__desc {
-    margin: 0.75rem 0 0;
-    font-size: 0.85rem;
+    margin: 0;
+    font-size: 0.825rem;
     line-height: 1.5;
-    color: #94a3b8;
+    color: var(--platform-text-secondary, #94a3b8);
+  }
 
-    code {
-      background: rgba(0, 0, 0, 0.4);
-      color: #38bdf8;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.785rem;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+  &__footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 8px;
     }
   }
 }
@@ -2211,5 +2202,130 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* Staff Item Owner Styling */
+.staff-item--owner {
+  background: rgba(234, 179, 8, 0.04);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.staff-item__avatar--owner {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%) !important;
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.35);
+}
+
+.staff-item__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-owner {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 4px;
+}
+
+/* DNS Tab Modern Checklist & Setup Flow */
+.dns-setup-flow {
+  &__desc {
+    font-size: 0.9rem;
+    color: var(--platform-text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+}
+
+.dns-checklist-section {
+  max-width: 620px;
+}
+
+.dns-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dns-check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  &.is-checked {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.35);
+
+    .dns-check-card__box {
+      background: var(--platform-accent-gradient);
+      border-color: transparent;
+      color: #ffffff;
+    }
+  }
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: transparent;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    transition: all 0.2s ease;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--platform-text-primary);
+  }
+
+  &__desc {
+    font-size: 0.8rem;
+    color: var(--platform-text-secondary);
+    line-height: 1.35;
+  }
 }
 

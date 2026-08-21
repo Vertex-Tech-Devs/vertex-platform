@@ -239,6 +239,13 @@ export class StoreDetail implements OnInit {
     return s ? this.staffService.generateAccessLink(s.id, email) : Promise.resolve();
   }
 
+  formatVersion(v?: string): string {
+    if (!v) {
+      return 'v0.5.0';
+    }
+    return v.startsWith('v') ? v : `v${v}`;
+  }
+
   copyToClipboard(text: string): Promise<void> {
     return this.staffService.copyToClipboard(text);
   }
