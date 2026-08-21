@@ -4,7 +4,12 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { StoresService } from '@core/services/stores';
 import { errorMessage } from '@core/utils/error.util';
 import type { Store, TemplateVersion, ProvisioningStep } from '@core/models/store';
-import { STEP_ORDER, IDLE_STATE, type ActionProgressState, formatDateUtil } from './store-detail.util';
+import {
+  STEP_ORDER,
+  IDLE_STATE,
+  type ActionProgressState,
+  parseDateToMillis,
+} from './store-detail.util';
 
 @Injectable({ providedIn: 'root' })
 export class StoreDetailOrchestrationService {
@@ -71,11 +76,13 @@ export class StoreDetailOrchestrationService {
     const isGhaRunning =
       store.redeployStatus === 'deploying' || store.versionUpdateStatus === 'updating';
     if (this.isDeploying() || isGhaRunning) {
-      const updatedAtStr = store.versionUpdateProgress?.updatedAt || store.updatedAt;
-      const updatedAt = updatedAtStr ? new Date(formatDateUtil(updatedAtStr) ?? 0).getTime() : 0;
-      const isStale = updatedAt > 0 && Date.now() - updatedAt > 15 * 60 * 1000;
+      const updatedAtMillis = parseDateToMillis(
+        store.versionUpdateProgress?.updatedAt || store.updatedAt,
+      );
+      const isStale = updatedAtMillis > 0 && Date.now() - updatedAtMillis > 10 * 60 * 1000;
       if (isStale && !this.isDeploying()) {
         this.lastKnownProgress = 0;
+        void this.storesService.resetStoreDeployStatus(store.id);
         return {
           status: 'error',
           progress: 100,
@@ -91,9 +98,7 @@ export class StoreDetailOrchestrationService {
       };
     }
     if (this.hasUserInitiatedDeploy()) {
-      const lastDeploy = store.lastDeployedAt
-        ? new Date(formatDateUtil(store.lastDeployedAt) ?? 0).getTime()
-        : 0;
+      const lastDeploy = parseDateToMillis(store.lastDeployedAt);
       if (lastDeploy > this.deploySessionTimestamp()) {
         this.lastKnownProgress = 0;
         return { status: 'success', progress: 100, message: '✓ Despliegue completado con éxito.' };

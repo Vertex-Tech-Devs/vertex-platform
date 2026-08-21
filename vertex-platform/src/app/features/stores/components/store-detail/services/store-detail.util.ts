@@ -23,24 +23,61 @@ export interface DeploymentHistoryItem {
   commitMessage?: string;
 }
 
+export function parseDateToMillis(dateVal: unknown): number {
+  if (!dateVal) {
+    return 0;
+  }
+  if (typeof dateVal === 'number') {
+    return dateVal;
+  }
+  if (dateVal instanceof Date) {
+    return isNaN(dateVal.getTime()) ? 0 : dateVal.getTime();
+  }
+  if (typeof dateVal === 'string') {
+    const matchTs = dateVal.match(/Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)/);
+    if (matchTs) {
+      return parseInt(matchTs[1], 10) * 1000;
+    }
+    const matchDmy = dateVal.match(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/,
+    );
+    if (matchDmy) {
+      const day = parseInt(matchDmy[1], 10);
+      const month = parseInt(matchDmy[2], 10) - 1;
+      const year = parseInt(matchDmy[3], 10);
+      const hour = matchDmy[4] ? parseInt(matchDmy[4], 10) : 0;
+      const min = matchDmy[5] ? parseInt(matchDmy[5], 10) : 0;
+      const sec = matchDmy[6] ? parseInt(matchDmy[6], 10) : 0;
+      const d = new Date(year, month, day, hour, min, sec);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.getTime();
+    }
+  }
+  if (typeof dateVal === 'object') {
+    const val = dateVal as Record<string, unknown>;
+    if (typeof val['toDate'] === 'function') {
+      const d = (val['toDate'] as () => Date)();
+      return d && !isNaN(d.getTime()) ? d.getTime() : 0;
+    }
+    if (typeof val['seconds'] === 'number') {
+      return (val['seconds'] as number) * 1000;
+    }
+    if (typeof val['_seconds'] === 'number') {
+      return (val['_seconds'] as number) * 1000;
+    }
+  }
+  return 0;
+}
+
 export function formatDateUtil(dateVal: unknown): Date | string | null {
   if (!dateVal) {
     return null;
   }
-  if (typeof dateVal === 'string') {
-    const match = dateVal.match(/Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)/);
-    if (match) {
-      return new Date(parseInt(match[1], 10) * 1000);
-    }
-  }
-  const val = dateVal as Record<string, unknown>;
-  if (typeof val['toDate'] === 'function') {
-    return (val['toDate'] as () => Date)();
-  }
-  if (typeof val['seconds'] === 'number') {
-    return new Date((val['seconds'] as number) * 1000);
-  }
-  return dateVal as Date | string | null;
+  const millis = parseDateToMillis(dateVal);
+  return millis > 0 ? new Date(millis) : (dateVal as Date | string | null);
 }
 
 export function statusLabelUtil(status: string): string {
