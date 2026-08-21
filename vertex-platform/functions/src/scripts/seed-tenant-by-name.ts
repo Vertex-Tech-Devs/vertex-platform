@@ -5,9 +5,7 @@ import { generateDemoClients, generateDemoOrders } from '../verticals/demo-data.
 
 async function seedTechnologyStore(): Promise<void> {
   const targetProject =
-    process.env['GCP_PROJECT'] ||
-    process.env['FIREBASE_PROJECT_ID'] ||
-    'ecommerce-vertex-dev';
+    process.env['GCP_PROJECT'] || process.env['FIREBASE_PROJECT_ID'] || 'ecommerce-vertex-dev';
 
   console.log(`[SeedScript] Connecting to project "${targetProject}"...`);
 
@@ -48,7 +46,9 @@ async function seedTechnologyStore(): Promise<void> {
     console.warn(`[SeedScript] Note: Could not query stores collection on ${targetProject}:`, err);
   }
 
-  console.log(`[SeedScript] Seeding preset TECNOLOGIA_ELECTRONICA for store "${storeId}" ("${storeName}")...`);
+  console.log(
+    `[SeedScript] Seeding preset TECNOLOGIA_ELECTRONICA for store "${storeId}" ("${storeName}")...`,
+  );
 
   const preset = TECNOLOGIA_ELECTRONICA_PRESET;
 
@@ -60,7 +60,9 @@ async function seedTechnologyStore(): Promise<void> {
       const batch = db.batch();
       snap.docs.forEach((d) => batch.delete(d.ref));
       await batch.commit();
-      console.log(`[SeedScript] Cleared ${snap.size} old documents in "${colName}" for store "${storeId}".`);
+      console.log(
+        `[SeedScript] Cleared ${snap.size} old documents in "${colName}" for store "${storeId}".`,
+      );
     }
   }
 
@@ -107,9 +109,18 @@ async function seedTechnologyStore(): Promise<void> {
     centralDescription: `${storeName} nació con la misión de acercarte lo mejor en tecnología, periféricos e innovación digital con garantía oficial.`,
     cardsSectionTitle: '¿Por qué elegirnos?',
     featureCards: [
-      { title: 'Garantía Oficial', content: 'Todos nuestros productos cuentan con respaldo y soporte técnico.' },
-      { title: 'Envíos en 24-48 hs', content: 'Despachamos de forma prioritaria a todo el país con seguimiento online.' },
-      { title: 'Atención Especializada', content: 'Te asesoramos para armar tu setup ideal o elegir el equipo perfecto.' },
+      {
+        title: 'Garantía Oficial',
+        content: 'Todos nuestros productos cuentan con respaldo y soporte técnico.',
+      },
+      {
+        title: 'Envíos en 24-48 hs',
+        content: 'Despachamos de forma prioritaria a todo el país con seguimiento online.',
+      },
+      {
+        title: 'Atención Especializada',
+        content: 'Te asesoramos para armar tu setup ideal o elegir el equipo perfecto.',
+      },
     ],
   };
   await db.collection('pages').doc(`aboutUs_${storeId}`).set(aboutUsPayload, { merge: true });
@@ -130,7 +141,10 @@ async function seedTechnologyStore(): Promise<void> {
       instagram: 'https://instagram.com/tecnologia.shop',
       facebook: 'https://facebook.com/tecnologia.shop',
     },
-    seo: { metaTitle: `${storeName} | Tienda Oficial`, metaDescription: `Catálogo de tecnología, computación y gadgets.` },
+    seo: {
+      metaTitle: `${storeName} | Tienda Oficial`,
+      metaDescription: `Catálogo de tecnología, computación y gadgets.`,
+    },
     features: { reviewsEnabled: true, wishlistEnabled: true, blogEnabled: false },
     payments: {
       mercadoPagoPublicKey: '',
@@ -150,8 +164,14 @@ async function seedTechnologyStore(): Promise<void> {
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  await db.collection('configuracion').doc(`store_${storeId}`).set(storeConfigPayload, { merge: true });
-  await db.collection('configuracion').doc(`footer_${storeId}`).set(storeConfigPayload, { merge: true });
+  await db
+    .collection('configuracion')
+    .doc(`store_${storeId}`)
+    .set(storeConfigPayload, { merge: true });
+  await db
+    .collection('configuracion')
+    .doc(`footer_${storeId}`)
+    .set(storeConfigPayload, { merge: true });
 
   // 4. Seed Categories
   const catBatch = db.batch();
@@ -211,6 +231,11 @@ async function seedTechnologyStore(): Promise<void> {
       }
     }
 
+    const totalStock =
+      prod.hasVariants && prod.variants && prod.variants.length > 0
+        ? prod.variants.reduce((acc, v) => acc + (v.stock || 0), 0)
+        : prod.stock || 0;
+
     const prodData = {
       name: prod.name,
       description: prod.description,
@@ -219,7 +244,7 @@ async function seedTechnologyStore(): Promise<void> {
       categoryId: catId,
       image: prod.image,
       images: prod.images ?? [prod.image],
-      totalStock: prod.stock,
+      totalStock,
       hasVariants: prod.hasVariants,
       sku: `${prod.skuPrefix}-BASE`,
       storeId,
@@ -238,12 +263,17 @@ async function seedTechnologyStore(): Promise<void> {
           const attrId = attributeIdMap.get(code) ?? `${storeId}-attr-${code}`;
           mappedAttrs[attrId] = val;
         }
-        const varRef = db.collection('products').doc(prodId).collection('variants').doc(variant.sku);
+        const varRef = db
+          .collection('products')
+          .doc(prodId)
+          .collection('variants')
+          .doc(variant.sku);
         varBatch.set(varRef, {
           sku: variant.sku,
           price: variant.price,
           stock: variant.stock,
           attributes: mappedAttrs,
+          productId: prodId,
           storeId,
           createdAt: new Date(),
         });
