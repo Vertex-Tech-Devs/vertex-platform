@@ -122,7 +122,7 @@ async function seedTechnologyStore(): Promise<void> {
     strapline: '',
     logoUrl: '',
     faviconUrl: '',
-    colors: { primary: '#2563eb', accent: '#06b6d4', background: '#0f172a' },
+    colors: { primary: '#2563eb', accent: '#06b6d4', background: '#ffffff' },
     contact: {
       phone: '+54 11 4567-8900',
       email: 'contacto@tecnologia.com.ar',
