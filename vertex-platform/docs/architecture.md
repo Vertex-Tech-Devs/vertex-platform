@@ -64,6 +64,12 @@ Ver [provisioning.md](provisioning.md).
 | `seeds.ts`        | Sembrado determinista flat (`footer_{storeId}`, `hero_{storeId}`, ...)                       |
 | `index.ts`        | Re-export de todas las funciones                                                             |
 
+## Clean Naming Architecture & Tooling
+- **Estandarización de Archivos**: Componentes nombrados directamente sin sufijos `.component.*` (`login.ts`, `stores-list.ts`, `app-spinner.ts`, `platform-layout.ts`, etc.).
+- **Clases Limpias**: Clases directas (`Login`, `StoresList`, `StoreCreate`, `StoreDetail`, `Team`, `Billing`, `AppSpinner`, `App`, etc.).
+- **Build System**: `@angular/build:application` y `@angular/build:unit-test` con Vitest para pruebas Frontend y Backend.
+- **Zero Vulnerabilities**: Todo el árbol de dependencias audita con **0 vulnerabilidades** en `npm audit` mediante `overrides` seguros.
+
 ## Seguridad
 
 - Firestore: lectura pública solo para las 6 colecciones de catálogo; escrituras con `isStoreAdmin(storeId)`; plano de control con `isPlatformAdmin()`.
