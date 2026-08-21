@@ -20,11 +20,12 @@ import {
   type ActionProgressState,
   IDLE_STATE,
 } from './services/store-detail.util';
+import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store-modal';
 
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinnerComponent],
+  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinnerComponent, SeedStoreModal],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,7 +81,6 @@ export class StoreDetail implements OnInit {
   readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
-  readonly seedIncludeMock = signal(true);
   readonly logoPreviewError = signal(false);
 
   readonly localDeployError = this.orchestrationService.localDeployError;
@@ -296,17 +296,16 @@ export class StoreDetail implements OnInit {
   }
 
   openSeedConfirm(): void {
-    this.seedIncludeMock.set(true);
     this.showSeedConfirm.set(true);
   }
 
-  async seedStore(): Promise<void> {
+  async handleSeedConfirm(p: SeedPayload): Promise<void> {
     const id = this.store()?.id;
     if (!id) {
       return;
     }
     this.showSeedConfirm.set(false);
-    await this.orchestrationService.seedData(id, this.seedIncludeMock());
+    await this.orchestrationService.seedData(id, p.includeMockData, p.provisioningMode, p.verticalId);
   }
 
   retry(): Promise<void> {

@@ -465,9 +465,14 @@ describe('StoresService', () => {
     TestBed.configureTestingModule({ providers: [StoresService] });
     const service = TestBed.inject(StoresService);
 
-    await service.seedStore('store-abc', false);
+    await service.seedStore('store-abc', false, 'CATALOG_ONLY', 'TECNOLOGIA_ELECTRONICA');
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'seedStore');
-    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-abc', includeMockData: false });
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-abc',
+      includeMockData: false,
+      provisioningMode: 'CATALOG_ONLY',
+      verticalId: 'TECNOLOGIA_ELECTRONICA',
+    });
   });
 
   it('listTemplateVersions calls listTemplateVersions cloud function', async () => {

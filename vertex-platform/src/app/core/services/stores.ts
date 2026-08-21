@@ -302,12 +302,17 @@ export class StoresService {
     return result.data.config;
   }
 
-  async seedStore(storeId: string, includeMockData = true): Promise<void> {
-    const fn = httpsCallable<{ storeId: string; includeMockData: boolean }, { success: boolean }>(
-      this.fns,
-      'seedStore',
-    );
-    await fn({ storeId, includeMockData });
+  async seedStore(
+    storeId: string,
+    includeMockData = true,
+    provisioningMode = 'FULL_DEMO',
+    verticalId?: string,
+  ): Promise<void> {
+    const fn = httpsCallable<
+      { storeId: string; includeMockData: boolean; provisioningMode?: string; verticalId?: string },
+      { success: boolean }
+    >(this.fns, 'seedStore');
+    await fn({ storeId, includeMockData, provisioningMode, verticalId });
   }
 
   async listTemplateVersions(): Promise<TemplateVersion[]> {

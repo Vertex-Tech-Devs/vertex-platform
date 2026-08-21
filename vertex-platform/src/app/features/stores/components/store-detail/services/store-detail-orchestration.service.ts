@@ -181,11 +181,16 @@ export class StoreDetailOrchestrationService {
     }
   }
 
-  async seedData(storeId: string, includeMockData = true): Promise<boolean> {
+  async seedData(
+    storeId: string,
+    includeMockData = true,
+    provisioningMode = 'FULL_DEMO',
+    verticalId?: string,
+  ): Promise<boolean> {
     this.isSeeding.set(true);
     this.actionError.set('');
     try {
-      await this.storesService.seedStore(storeId, includeMockData);
+      await this.storesService.seedStore(storeId, includeMockData, provisioningMode, verticalId);
       this.actionSuccess.set('Datos precargados exitosamente.');
       return true;
     } catch (err) {

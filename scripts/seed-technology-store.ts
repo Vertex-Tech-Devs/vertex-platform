@@ -8,7 +8,7 @@ console.log(`[seed-technology-store] Executing seed via tsx on ${scriptPath}...`
 const child = spawn('npx', ['tsx', scriptPath], {
   stdio: 'inherit',
   env: { ...process.env },
-  shell: true,
+  shell: false,
 });
 
 child.on('exit', (code) => {

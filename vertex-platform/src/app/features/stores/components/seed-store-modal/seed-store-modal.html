@@ -1,0 +1,131 @@
+<div class="modal-backdrop fade show" (click)="onCancel()"></div>
+
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-content glass-modal">
+      <header class="modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-2">
+          <span class="modal-icon-badge">🌱</span>
+          <div>
+            <h5 class="modal-title fw-bold text-white mb-0">Sembrar Datos / Cambiar Rubro</h5>
+            <p class="text-muted small mb-0">
+              Tienda: <strong class="text-info">{{ storeName() || storeId() }}</strong>
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          aria-label="Cerrar"
+          [disabled]="isSeeding()"
+          (click)="onCancel()"
+        ></button>
+      </header>
+
+      <div class="modal-body custom-scrollbar py-3">
+        <!-- 1. Selector de Rubro Comercial -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label text-light fw-semibold small mb-0">
+              1. Seleccioná el Rubro Comercial (21 disponibles)
+            </label>
+            <div class="search-box">
+              <input
+                type="text"
+                class="form-control form-control-sm glass-input"
+                placeholder="Buscar rubro..."
+                [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)"
+              />
+            </div>
+          </div>
+
+          <div class="verticals-grid custom-scrollbar">
+            @for (v of filteredVerticals(); track v.id) {
+              <div
+                class="vertical-card"
+                [class.vertical-card--selected]="selectedVerticalId() === v.id"
+                (click)="selectVertical(v.id)"
+              >
+                <div class="vertical-card__icon">{{ v.icon }}</div>
+                <div class="vertical-card__info">
+                  <span class="vertical-card__name">{{ v.name }}</span>
+                  <span class="vertical-card__desc">{{ v.description }}</span>
+                </div>
+                @if (selectedVerticalId() === v.id) {
+                  <span class="vertical-card__badge">✓</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Selector de Modo de Aprovisionamiento -->
+        <div class="mb-4">
+          <label class="form-label text-light fw-semibold small mb-2">
+            2. Modo de Precarga de Datos
+          </label>
+          <div class="row g-2">
+            @for (m of modes; track m.id) {
+              <div class="col-md-4">
+                <div
+                  class="mode-card h-100"
+                  [class.mode-card--selected]="selectedMode() === m.id"
+                  (click)="selectMode(m.id)"
+                >
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="mode-card__icon">{{ m.icon }}</span>
+                    <strong class="mode-card__title">{{ m.name }}</strong>
+                  </div>
+                  <p class="mode-card__desc mb-0">{{ m.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 3. Confirmación de purga -->
+        <div class="p-3 rounded-3 alert-purge-box">
+          <div class="form-check form-switch d-flex align-items-center gap-3 ps-0 mb-0">
+            <input
+              class="form-check-input ms-0"
+              type="checkbox"
+              role="switch"
+              id="purgeConfirmSwitch"
+              [ngModel]="purgeConfirmed()"
+              (ngModelChange)="purgeConfirmed.set($event)"
+            />
+            <label class="form-check-label text-warning small cursor-pointer" for="purgeConfirmSwitch">
+              <strong>Purgar datos previos:</strong> Limpia categorías, atributos, productos y pedidos
+              anteriores de esta tienda antes de sembrar los nuevos datos del rubro.
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer border-0 pt-0">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          [disabled]="isSeeding()"
+          (click)="onCancel()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm px-4 fw-semibold"
+          [disabled]="isSeeding() || !purgeConfirmed()"
+          (click)="onConfirm()"
+        >
+          @if (isSeeding()) {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Sembrando en vivo...
+          } @else {
+            🌱 Ejecutar Sembrado
+          }
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>
