@@ -21,6 +21,7 @@
     "e2e": "npm run e2e --workspace=vertex-platform",
     "e2e:run": "npm run e2e:run --workspace=vertex-platform",
     "build": "npm run build --workspace=vertex-platform && npm --prefix vertex-platform/functions run build",
+    "seed:technology": "tsx scripts/seed-technology-store.ts",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -78,5 +79,8 @@
     "tsx": {
       "esbuild": "0.28.1"
     }
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
