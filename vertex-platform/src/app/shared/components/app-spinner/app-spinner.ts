@@ -102,7 +102,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     `,
   ],
 })
-export class AppSpinnerComponent {
+export class AppSpinner {
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly label = input<string>('');
 }

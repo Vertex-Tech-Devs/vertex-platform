@@ -5,7 +5,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
-import { AppSpinnerComponent } from '../../../../shared/components/app-spinner/app-spinner.component';
+import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
@@ -25,7 +25,7 @@ import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinnerComponent, SeedStoreModal],
+  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinner, SeedStoreModal],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
