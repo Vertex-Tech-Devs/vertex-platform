@@ -1,5 +1,7 @@
 # Compiled output
 dist/
+dist-scripts/
+**/dist-scripts/
 tmp/
 out-tsc/
 bazel-out/

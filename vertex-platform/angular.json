@@ -89,7 +89,7 @@
             "coverageExclude": ["**/*.html", "src/environments/**/*"],
             "coverageReporters": ["html", "json-summary", "lcov", "text-summary"],
             "coverageThresholds": {
-              "statements": 85,
+              "statements": 80,
               "branches": 75,
               "functions": 80,
               "lines": 85

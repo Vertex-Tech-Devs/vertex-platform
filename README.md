@@ -181,8 +181,11 @@ npm run validate:rules
 # Ejecutar verificación de linter, compilación estricta de TypeScript y reglas de Firestore
 npm run qa:global
 
-# Ejecutar tests unitarios de las Cloud Functions v2
-cd vertex-platform/functions && npm run test
+# Ejecutar tests unitarios completos (111 Frontend + 64 Backend)
+npm test
+
+# Ejecutar verificación de 0 vulnerabilidades
+npm audit
 ```
 
 ### Flujo de Ramas (Git Flow)

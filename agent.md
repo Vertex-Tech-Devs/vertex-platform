@@ -9,7 +9,7 @@ This file contains instructions for AI agents and developers working on the Plat
 ```
 platform/
 ├── vertex-platform/          # App Angular + Cloud Functions
-│   ├── src/app/              # Frontend Angular 20+ (Signals, Standalone)
+│   ├── src/app/              # Frontend Angular 22+ (Signals, Standalone, Clean Naming)
 │   └── functions/src/        # Cloud Functions v2 (TypeScript)
 │       ├── provisioning.ts   # Aprovisionamiento y ciclo de vida de tiendas
 │       ├── versioning.ts     # Gestión de versiones del template
@@ -30,19 +30,19 @@ platform/
 npm run start                            # Orquestador E2E con hot-reload
 bash docker/start.sh                     # Stack Docker completo
 
-# Tests
-cd vertex-platform/functions && npm run test           # Backend (Vitest) — 33 tests
-npm run test --workspace=vertex-platform -- --watch=false  # Frontend
+# Tests (175 tests totales)
+npm test                                 # 111 Frontend + 64 Backend (Vitest)
+npm run test:backend                     # Backend (Vitest) — 64 tests
+npm run test:frontend                    # Frontend (ng test) — 111 tests
 
 # Build
-cd vertex-platform/functions && npm run build          # Build backend
-npm run build:dev --workspace=vertex-platform           # Build frontend dev
-npm run build:prod --workspace=vertex-platform          # Build frontend prod
+npm run build                            # Build monorepo completo (Frontend + Functions)
 
-# QA
+# QA & Security
 npm run lint                             # Linting
 npm run typecheck                        # TypeScript strict
 npm run qa:global                        # Lint + typecheck + firestore rules
+npm audit                                # Verificación 0 vulnerabilidades
 ```
 
 ---
@@ -61,7 +61,7 @@ npm run qa:global                        # Lint + typecheck + firestore rules
 
 ## 🔢 Versionado de la Plataforma
 
-Versión actual: `0.4.0` (Template: `0.4.0`, Platform: `0.4.0`)
+Versión actual: `0.5.0` (Template: `0.5.0`, Platform: `0.5.0`)
 
 La constante `CURRENT_TEMPLATE_VERSION` en `provisioning.ts` define qué versión del storefront
 se usa al provisionar nuevas tiendas.
@@ -70,7 +70,7 @@ se usa al provisionar nuevas tiendas.
 cuando el storefront publica un nuevo release.
 
 ### Flujo automático
-1. Storefront hace `npm run release:minor` → tag `v0.4.0`
+1. Storefront hace `npm run release:minor` → tag `v0.5.0`
 2. Workflow `release.yml` del storefront dispara `repository_dispatch: storefront-release`
 3. Workflow `sync-template-version.yml` de la plataforma abre PR automático
 4. Admin de plataforma revisa y mergea el PR
