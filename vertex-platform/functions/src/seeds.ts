@@ -1300,29 +1300,29 @@ export async function seedStoreData(
         6000,
       );
 
-      // Seed product variants
+      // Seed product variants with diverse stock levels (including low-stock and out-of-stock edge cases)
       const attrs = prod.variantAttributes ?? [];
       const isIndum = targetVertical === 'INDUMENTARIA_MODA' || targetVertical === 'indumentaria';
       const variantDefs = isIndum
         ? attrs.includes('talle-calzado')
           ? [
-              { attributes: { 'talle-calzado': '40', color: 'Negro' }, stock: 8 },
-              { attributes: { 'talle-calzado': '41', color: 'Negro' }, stock: 12 },
-              { attributes: { 'talle-calzado': '42', color: 'Blanco' }, stock: 6 },
+              { attributes: { 'talle-calzado': '40', color: 'Negro' }, stock: 2 }, // Stock bajo (alerta crítica)
+              { attributes: { 'talle-calzado': '41', color: 'Negro' }, stock: 12 }, // Stock normal
+              { attributes: { 'talle-calzado': '42', color: 'Blanco' }, stock: 0 }, // Sin stock (agotado)
             ]
           : attrs.includes('talle-pantalon')
             ? [
-                { attributes: { 'talle-pantalon': '40', color: 'Negro' }, stock: 15 },
+                { attributes: { 'talle-pantalon': '40', color: 'Negro' }, stock: 1 }, // Última unidad disponible
                 { attributes: { 'talle-pantalon': '42', color: 'Azul' }, stock: 10 },
               ]
             : attrs.includes('talle-ropa')
               ? [
-                  { attributes: { 'talle-ropa': 'S', color: 'Negro' }, stock: 10 },
+                  { attributes: { 'talle-ropa': 'S', color: 'Negro' }, stock: 3 }, // Pocas unidades
                   { attributes: { 'talle-ropa': 'M', color: 'Negro' }, stock: 15 },
-                  { attributes: { 'talle-ropa': 'L', color: 'Blanco' }, stock: 8 },
+                  { attributes: { 'talle-ropa': 'L', color: 'Blanco' }, stock: 0 }, // Agotado
                 ]
-              : [{ attributes: { color: 'Negro' }, stock: 20 }]
-        : [{ attributes: {}, stock: 25 }];
+              : [{ attributes: { color: 'Negro' }, stock: 2 }]
+        : [{ attributes: {}, stock: 3 }];
 
       for (let vIdx = 0; vIdx < variantDefs.length; vIdx++) {
         const vDef = variantDefs[vIdx];
