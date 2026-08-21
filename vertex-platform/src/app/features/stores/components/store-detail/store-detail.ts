@@ -40,6 +40,7 @@ export class StoreDetail implements OnInit {
   private orchestrationService = inject(StoreDetailOrchestrationService);
 
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
+  readonly isLoadingHistory = signal(true);
   readonly oauthRedirect = this.orchestrationService.oauthRedirect;
   readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
 
@@ -58,10 +59,7 @@ export class StoreDetail implements OnInit {
       : s.defaultUrl;
   });
 
-  readonly orderedSteps = computed(() => {
-    const steps = this.store()?.provisioningSteps ?? {};
-    return STEP_ORDER.filter((id) => id in steps);
-  });
+  readonly orderedSteps = computed(() => STEP_ORDER.filter((id) => id in (this.store()?.provisioningSteps ?? {})));
 
   readonly provisioningSnapshot = computed(() =>
     this.orchestrationService.computeProvisioningSnapshot(this.store()),
@@ -150,16 +148,18 @@ export class StoreDetail implements OnInit {
       this.storesService
         .getStoreDeploymentHistory(id)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((h) => this.deployHistory.set(this.formatDeployHistory(h)));
+        .subscribe((h) => {
+          this.deployHistory.set(this.formatDeployHistory(h));
+          this.isLoadingHistory.set(false);
+        });
       void this.orchestrationService.checkOauthRedirect(this.store());
+      void this.staffService.loadStaff(id);
     }
   }
 
-  async copyOAuthUri(): Promise<void> {
+  copyOAuthUri(): Promise<void> {
     const uri = this.oauthRedirect()?.redirectUri;
-    if (uri) {
-      await this.staffService.copyToClipboard(uri);
-    }
+    return uri ? this.staffService.copyToClipboard(uri) : Promise.resolve();
   }
 
   async loadVersions(): Promise<void> {
@@ -235,11 +235,9 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  async sendInvitation(): Promise<void> {
+  sendInvitation(): Promise<void> {
     const s = this.store();
-    if (s) {
-      await this.staffService.sendInvitationFromForm(s.id);
-    }
+    return s ? this.staffService.sendInvitationFromForm(s.id).then(() => {}) : Promise.resolve();
   }
 
   generateAccessLink(email: string): Promise<void> {
@@ -310,11 +308,9 @@ export class StoreDetail implements OnInit {
     await this.orchestrationService.seedData(id, this.seedIncludeMock());
   }
 
-  async retry(): Promise<void> {
+  retry(): Promise<void> {
     const id = this.store()?.id;
-    if (id) {
-      await this.orchestrationService.retryStep(id);
-    }
+    return id ? this.orchestrationService.retryStep(id).then(() => {}) : Promise.resolve();
   }
 
   async deleteStore(): Promise<void> {
@@ -337,12 +333,16 @@ export class StoreDetail implements OnInit {
 
   refreshDeployHistory(): void {
     this.deployHistory.set([]);
+    this.isLoadingHistory.set(true);
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.storesService
         .getStoreDeploymentHistory(id)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((h) => this.deployHistory.set(this.formatDeployHistory(h)));
+        .subscribe((h) => {
+          this.deployHistory.set(this.formatDeployHistory(h));
+          this.isLoadingHistory.set(false);
+        });
     }
   }
 }

@@ -24,7 +24,12 @@ export class StoreDetailStaffService {
     role: ['admin', Validators.required],
   });
 
-  async loadStaff(storeId: string): Promise<void> {
+  private loadedStoreId: string | null = null;
+
+  async loadStaff(storeId: string, force = false): Promise<void> {
+    if (!force && this.loadedStoreId === storeId && this.staff().length > 0) {
+      return;
+    }
     this.isLoadingStaff.set(true);
     this.inviteError.set('');
     this.inviteSuccess.set('');
@@ -32,6 +37,7 @@ export class StoreDetailStaffService {
       const res = await this.storesService.getStoreStaff(storeId);
       this.staff.set(res.staff);
       this.invitations.set(res.invitations);
+      this.loadedStoreId = storeId;
     } catch (err) {
       console.error('Error loading staff:', err);
       this.inviteError.set('No se pudieron cargar los miembros del equipo.');

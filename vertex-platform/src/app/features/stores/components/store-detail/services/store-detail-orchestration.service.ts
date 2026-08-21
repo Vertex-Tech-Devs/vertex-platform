@@ -45,17 +45,23 @@ export class StoreDetailOrchestrationService {
     consoleUrl?: string;
   } | null>(null);
 
+  private lastKnownProgress = 0;
+
   computeDeployActionState(store: Store | null): ActionProgressState {
     if (this.isDeployProgressDismissed()) {
+      this.lastKnownProgress = 0;
       return IDLE_STATE;
     }
     if (!store) {
+      this.lastKnownProgress = 0;
       return IDLE_STATE;
     }
     if (this.localDeployError()) {
+      this.lastKnownProgress = 0;
       return { status: 'error', progress: 100, message: this.localDeployError() };
     }
     if (store.redeployStatus === 'failed' || store.versionUpdateStatus === 'failed') {
+      this.lastKnownProgress = 0;
       return {
         status: 'error',
         progress: 100,
@@ -69,15 +75,18 @@ export class StoreDetailOrchestrationService {
       const updatedAt = updatedAtStr ? new Date(formatDateUtil(updatedAtStr) ?? 0).getTime() : 0;
       const isStale = updatedAt > 0 && Date.now() - updatedAt > 15 * 60 * 1000;
       if (isStale && !this.isDeploying()) {
+        this.lastKnownProgress = 0;
         return {
           status: 'error',
           progress: 100,
           message: '⚠️ El despliegue anterior excedió el tiempo límite. Podés volver a desplegar.',
         };
       }
+      const rawPct = store.versionUpdateProgress?.pct || (this.isDeploying() ? 25 : 55);
+      this.lastKnownProgress = Math.max(this.lastKnownProgress, rawPct);
       return {
         status: 'running',
-        progress: store.versionUpdateProgress?.pct || (this.isDeploying() ? 30 : 65),
+        progress: this.lastKnownProgress,
         message: `🔨 ${store.versionUpdateProgress?.step || 'Compilando en GitHub Actions…'}`,
       };
     }
@@ -86,10 +95,13 @@ export class StoreDetailOrchestrationService {
         ? new Date(formatDateUtil(store.lastDeployedAt) ?? 0).getTime()
         : 0;
       if (lastDeploy > this.deploySessionTimestamp()) {
+        this.lastKnownProgress = 0;
         return { status: 'success', progress: 100, message: '✓ Despliegue completado con éxito.' };
       }
-      return { status: 'running', progress: 45, message: '🔨 Iniciando flujo en GitHub Actions…' };
+      this.lastKnownProgress = Math.max(this.lastKnownProgress, 25);
+      return { status: 'running', progress: this.lastKnownProgress, message: '🔨 Iniciando flujo en GitHub Actions…' };
     }
+    this.lastKnownProgress = 0;
     return IDLE_STATE;
   }
 
