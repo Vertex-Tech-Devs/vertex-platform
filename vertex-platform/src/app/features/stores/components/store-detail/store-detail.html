@@ -436,20 +436,47 @@
                     class="op-control-card"
                     [class.op-control-card--active]="seedActionState().status === 'running'"
                   >
-                    <div class="op-control-card__header">
-                      <div class="op-control-card__info">
-                        <div class="op-control-card__icon text-info">
-                          <i class="bi bi-database-fill-gear"></i>
-                        </div>
-                        <div class="op-control-card__meta">
-                          <div class="op-control-card__title-row">
-                            <h4 class="op-control-card__title">Cargar Datos de Ejemplo</h4>
-                            <span class="op-control-card__badge badge--info">Catálogo Demo</span>
+                    <div class="op-control-card__top">
+                      <div class="op-control-card__icon text-info">
+                        <i class="bi bi-database-fill-gear"></i>
+                      </div>
+                      <div class="op-control-card__meta">
+                        <h4 class="op-control-card__title">Cargar Datos de Ejemplo</h4>
+                        <span class="op-control-card__badge badge--info">Catálogo Demo</span>
+                      </div>
+                    </div>
+
+                    <div class="op-control-card__body">
+                      <p class="op-control-card__desc">
+                        Generá automáticamente un catálogo completo de productos, categorías e
+                        imágenes de muestra para probar la tienda.
+                      </p>
+
+                      @if (seedActionState().status !== 'idle') {
+                        <div class="action-progress action-progress--{{ seedActionState().status }}">
+                          <div class="action-progress__bar">
+                            <div
+                              class="action-progress__fill"
+                              [style.width.%]="seedActionState().progress"
+                            ></div>
+                          </div>
+                          <div class="action-progress__info">
+                            @if (seedActionState().status === 'running') {
+                              <span class="spinner-sm"></span>
+                            } @else if (seedActionState().status === 'success') {
+                              <i class="bi bi-check-circle-fill text-success"></i>
+                            } @else if (seedActionState().status === 'error') {
+                              <i class="bi bi-x-circle-fill text-danger"></i>
+                            }
+                            <span class="action-progress__text">{{ seedActionState().message }}</span>
                           </div>
                         </div>
-                      </div>
+                      }
+                    </div>
+
+                    <div class="op-control-card__footer">
                       <button
-                        class="btn btn-outline-info btn-sm px-3 op-control-card__btn"
+                        class="btn btn-outline-info op-control-card__btn"
                         [disabled]="isSeeding() || seedActionState().status === 'running'"
                         (click)="openSeedConfirm()"
                       >
@@ -460,59 +487,59 @@
                         }
                       </button>
                     </div>
-
-                    <p class="op-control-card__desc">
-                      Generá automáticamente un catálogo completo de productos, categorías e
-                      imágenes de muestra para probar la tienda.
-                    </p>
-
-                    @if (seedActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ seedActionState().status }}">
-                        <div class="action-progress__bar">
-                          <div
-                            class="action-progress__fill"
-                            [style.width.%]="seedActionState().progress"
-                          ></div>
-                        </div>
-                        <div class="action-progress__info">
-                          @if (seedActionState().status === 'running') {
-                            <span class="spinner-sm"></span>
-                          } @else if (seedActionState().status === 'success') {
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                          } @else if (seedActionState().status === 'error') {
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                          }
-                          <span class="action-progress__text">{{ seedActionState().message }}</span>
-                        </div>
-                      </div>
-                    }
                   </div>
                 }
 
                 <!-- Sleep / Activate Control Card -->
                 <div class="op-control-card">
-                  <div class="op-control-card__header">
-                    <div class="op-control-card__info">
-                      <div class="op-control-card__icon text-warning">
-                        <i class="bi bi-moon-stars-fill"></i>
-                      </div>
-                      <div class="op-control-card__meta">
-                        <div class="op-control-card__title-row">
-                          <h4 class="op-control-card__title">
-                            {{
-                              store()!.status === 'active' ? 'Pausar Tienda' : 'Reactivar Tienda'
-                            }}
-                          </h4>
-                          <span class="op-control-card__badge badge--warning">
-                            {{ store()!.status === 'active' ? 'Activa' : 'Pausada' }}
-                          </span>
+                  <div class="op-control-card__top">
+                    <div class="op-control-card__icon text-warning">
+                      <i class="bi bi-moon-stars-fill"></i>
+                    </div>
+                    <div class="op-control-card__meta">
+                      <h4 class="op-control-card__title">
+                        {{ store()!.status === 'active' ? 'Pausar Tienda' : 'Reactivar Tienda' }}
+                      </h4>
+                      <span class="op-control-card__badge badge--warning">
+                        {{ store()!.status === 'active' ? 'Activa' : 'Pausada' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="op-control-card__body">
+                    <p class="op-control-card__desc">
+                      Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e
+                      imágenes resguardados.
+                    </p>
+
+                    @if (suspendActionState().status !== 'idle') {
+                      <div class="action-progress action-progress--{{ suspendActionState().status }}">
+                        <div class="action-progress__bar">
+                          <div
+                            class="action-progress__fill"
+                            [style.width.%]="suspendActionState().progress"
+                          ></div>
+                        </div>
+                        <div class="action-progress__info">
+                          @if (suspendActionState().status === 'running') {
+                            <span class="spinner-sm"></span>
+                          } @else if (suspendActionState().status === 'success') {
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          } @else if (suspendActionState().status === 'error') {
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                          }
+                          <span class="action-progress__text">{{
+                            suspendActionState().message
+                          }}</span>
                         </div>
                       </div>
-                    </div>
+                    }
+                  </div>
 
+                  <div class="op-control-card__footer">
                     @if (store()!.status === 'active') {
                       <button
-                        class="btn btn-outline-warning btn-sm px-3 op-control-card__btn"
+                        class="btn btn-outline-warning op-control-card__btn"
                         [disabled]="isSuspending()"
                         (click)="showSleepConfirm.set(true)"
                       >
@@ -521,7 +548,7 @@
                     }
                     @if (store()!.status === 'suspended') {
                       <button
-                        class="btn btn-success btn-sm px-3 op-control-card__btn"
+                        class="btn btn-success op-control-card__btn"
                         [disabled]="isActivating()"
                         (click)="activate()"
                       >
@@ -533,64 +560,37 @@
                       </button>
                     }
                   </div>
-
-                  <p class="op-control-card__desc">
-                    Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e
-                    imágenes resguardados.
-                  </p>
-
-                  @if (suspendActionState().status !== 'idle') {
-                    <div class="action-progress action-progress--{{ suspendActionState().status }}">
-                      <div class="action-progress__bar">
-                        <div
-                          class="action-progress__fill"
-                          [style.width.%]="suspendActionState().progress"
-                        ></div>
-                      </div>
-                      <div class="action-progress__info">
-                        @if (suspendActionState().status === 'running') {
-                          <span class="spinner-sm"></span>
-                        } @else if (suspendActionState().status === 'success') {
-                          <i class="bi bi-check-circle-fill text-success"></i>
-                        } @else if (suspendActionState().status === 'error') {
-                          <i class="bi bi-x-circle-fill text-danger"></i>
-                        }
-                        <span class="action-progress__text">{{
-                          suspendActionState().message
-                        }}</span>
-                      </div>
-                    </div>
-                  }
                 </div>
 
                 <!-- Danger Zone Control Card -->
                 @if (auth.isSuperAdmin()) {
                   <div class="op-control-card op-control-card--danger">
-                    <div class="op-control-card__header">
-                      <div class="op-control-card__info">
-                        <div class="op-control-card__icon text-danger">
-                          <i class="bi bi-exclamation-triangle-fill"></i>
-                        </div>
-                        <div class="op-control-card__meta">
-                          <div class="op-control-card__title-row">
-                            <h4 class="op-control-card__title text-danger">Zona Peligrosa</h4>
-                            <span class="op-control-card__badge badge--error">Irreversible</span>
-                          </div>
-                        </div>
+                    <div class="op-control-card__top">
+                      <div class="op-control-card__icon text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
                       </div>
+                      <div class="op-control-card__meta">
+                        <h4 class="op-control-card__title text-danger">Zona Peligrosa</h4>
+                        <span class="op-control-card__badge badge--error">Irreversible</span>
+                      </div>
+                    </div>
+
+                    <div class="op-control-card__body">
+                      <p class="op-control-card__desc">
+                        Eliminación permanente e irreversible de la tienda, su catálogo y toda su
+                        infraestructura asociada.
+                      </p>
+                    </div>
+
+                    <div class="op-control-card__footer">
                       <button
-                        class="btn btn-outline-danger btn-sm px-3 op-control-card__btn"
+                        class="btn btn-outline-danger op-control-card__btn"
                         [disabled]="isDeleting()"
                         (click)="showDeleteConfirm.set(true)"
                       >
                         <i class="bi bi-trash me-1"></i> Eliminar Tienda
                       </button>
                     </div>
-
-                    <p class="op-control-card__desc">
-                      Eliminación permanente e irreversible de la tienda, su catálogo y toda su
-                      infraestructura asociada.
-                    </p>
                   </div>
                 }
               </div>
