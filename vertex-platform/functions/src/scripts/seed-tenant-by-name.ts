@@ -94,6 +94,7 @@ async function seedTechnologyStore(): Promise<void> {
     featuredCategories: featuredCats,
     updatedAt: new Date(),
   };
+  await db.collection('banners').doc(`home_${storeId}`).set(homePayload, { merge: true });
   await db.collection('pages').doc(`home_${storeId}`).set(homePayload, { merge: true });
 
   const aboutUsPayload = {
