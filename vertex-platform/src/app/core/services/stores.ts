@@ -52,7 +52,11 @@ export class StoresService {
   readonly stores = toSignal(
     toObservable(this.authService.user).pipe(
       switchMap((u) => {
-        if (!u) {
+        if (u === undefined) {
+          // Auth is still resolving. Keep isLoading true.
+          return of([]);
+        }
+        if (u === null) {
           this.isLoading.set(false);
           return of([]);
         }

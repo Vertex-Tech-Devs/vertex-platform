@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, computed, signal, DestroyRef, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  computed,
+  signal,
+  effect,
+  DestroyRef,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -40,13 +49,17 @@ export class StoreDetail implements OnInit {
   private domainsService = inject(StoreDetailDomainsService);
   private orchestrationService = inject(StoreDetailOrchestrationService);
 
+  readonly storeId = signal<string | null>(null);
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(true);
   readonly oauthRedirect = this.orchestrationService.oauthRedirect;
   readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
 
   readonly store = computed(() => {
-    const id = this.route.snapshot.paramMap.get('id');
+    const id = this.storeId();
+    if (!id) {
+      return null;
+    }
     return this.storesService.stores().find((s) => s.id === id) ?? null;
   });
 
@@ -121,7 +134,9 @@ export class StoreDetail implements OnInit {
   readonly copyFeedbackSuccess = this.staffService.copyFeedbackSuccess;
   readonly inviteForm = this.staffService.inviteForm;
 
-  readonly isStoreLoading = this.storesService.isLoading;
+  readonly isStoreLoading = computed(
+    () => (this.auth.isLoading() || this.storesService.isLoading()) && !this.store(),
+  );
   readonly availableVersions = this.orchestrationService.versions;
   readonly isLoadingVersions = this.orchestrationService.isLoadingVersions;
   readonly isUpdatingAutoUpdate = signal(false);
@@ -141,20 +156,31 @@ export class StoreDetail implements OnInit {
   readonly stepIcon = stepIconUtil;
   readonly formatDate = formatDateUtil;
 
+  constructor() {
+    effect(() => {
+      const s = this.store();
+      if (s) {
+        void this.orchestrationService.checkOauthRedirect(s);
+        const latest = this.orchestrationService.latestVersion();
+        if (!this.selectedVersion() || this.selectedVersion() === '0.5.0') {
+          this.selectedVersion.set(s.templateVersion || latest?.version || '0.5.0');
+        }
+      }
+    });
+  }
+
   ngOnInit(): void {
     void this.loadVersions();
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.storesService
-        .getStoreDeploymentHistory(id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((h) => {
-          this.deployHistory.set(this.formatDeployHistory(h));
-          this.isLoadingHistory.set(false);
-        });
-      void this.orchestrationService.checkOauthRedirect(this.store());
-      void this.staffService.loadStaff(id);
-    }
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const id = params.get('id');
+        this.storeId.set(id);
+        if (id) {
+          this.refreshDeployHistory(id);
+          void this.staffService.loadStaff(id);
+        }
+      });
   }
 
   copyOAuthUri(): Promise<void> {
@@ -331,18 +357,20 @@ export class StoreDetail implements OnInit {
     return formatDeployHistoryUtil(history, storeVer);
   }
 
-  refreshDeployHistory(): void {
+  refreshDeployHistory(explicitId?: string): void {
+    const id = explicitId || this.storeId() || this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      this.isLoadingHistory.set(false);
+      return;
+    }
     this.deployHistory.set([]);
     this.isLoadingHistory.set(true);
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.storesService
-        .getStoreDeploymentHistory(id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((h) => {
-          this.deployHistory.set(this.formatDeployHistory(h));
-          this.isLoadingHistory.set(false);
-        });
-    }
+    this.storesService
+      .getStoreDeploymentHistory(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((h) => {
+        this.deployHistory.set(this.formatDeployHistory(h));
+        this.isLoadingHistory.set(false);
+      });
   }
 }
