@@ -136,35 +136,59 @@
         </div>
       }
 
-      <!-- Premium Glass Tabs -->
+      <!-- Premium Glass Tabs with Live Metadata Badges -->
       <div class="tabs-container">
         <button
+          type="button"
           class="tab-button"
           [class.is-active]="activeTab() === 'orquestacion'"
           (click)="setTab('orquestacion')"
         >
-          <i class="bi bi-cpu"></i> Orquestación GCP
+          <i class="bi bi-cpu"></i>
+          <span>Orquestación GCP</span>
+          <span class="tab-badge tab-badge--version">v{{ store()!.templateVersion || '0.5.0' }}</span>
         </button>
         <button
+          type="button"
           class="tab-button"
           [class.is-active]="activeTab() === 'equipo'"
           (click)="setTab('equipo')"
         >
-          <i class="bi bi-people"></i> Equipo (RBAC)
+          <i class="bi bi-people"></i>
+          <span>Equipo (RBAC)</span>
+          @if (staff().length > 0 || invitations().length > 0) {
+            <span class="tab-badge tab-badge--count">{{ staff().length + invitations().length }}</span>
+          }
         </button>
         <button
+          type="button"
           class="tab-button"
           [class.is-active]="activeTab() === 'dominios'"
           (click)="setTab('dominios')"
         >
-          <i class="bi bi-globe"></i> Dominios (DNS)
+          <i class="bi bi-globe"></i>
+          <span>Dominios (DNS)</span>
+          @if (store()!.customDomain) {
+            <span
+              class="tab-badge"
+              [class.tab-badge--success]="domainStatus() === 'live'"
+              [class.tab-badge--warning]="domainStatus() !== 'live'"
+            >
+              {{ domainStatus() === 'live' ? 'SSL Listo' : 'DNS' }}
+            </span>
+          }
         </button>
         <button
+          type="button"
           class="tab-button"
           [class.is-active]="activeTab() === 'historial'"
           (click)="setTab('historial')"
         >
-          <i class="bi bi-clock-history"></i> Historial
+          <i class="bi bi-clock-history"></i>
+          <span>Historial</span>
+          @if (deployHistory().length > 0) {
+            <span class="tab-badge tab-badge--count">{{ deployHistory().length }}</span>
+          }
         </button>
       </div>
 
@@ -574,15 +598,46 @@
           </div>
         }
 
-        <!-- Tab 3: Equipo (RBAC) -->
+        <!-- Tab 2: Equipo (RBAC) -->
         @if (activeTab() === 'equipo') {
           <div class="staff-container">
-            @if (isLoadingStaff()) {
-              <div class="py-5 text-center">
-                <app-spinner
-                  size="md"
-                  label="Conectando al GCP Identity Platform del subproyecto para leer el equipo…"
-                />
+            @if (isLoadingStaff() && staff().length === 0 && invitations().length === 0) {
+              <div class="staff-grid staff-grid--skeleton" aria-busy="true">
+                <div class="detail-card detail-card--skeleton">
+                  <div class="skeleton skeleton--card-title"></div>
+                  <div class="skeleton skeleton--text mb-4 mt-2"></div>
+                  <div class="skeleton skeleton--input mb-3"></div>
+                  <div class="skeleton skeleton--input mb-4"></div>
+                  <div class="skeleton skeleton--btn"></div>
+                </div>
+                <div class="detail-card detail-card--skeleton">
+                  <div class="skeleton skeleton--card-title"></div>
+                  <div class="skeleton-staff-list mt-3">
+                    <div class="skeleton-staff-row">
+                      <div class="skeleton skeleton--avatar-sm"></div>
+                      <div class="skeleton-staff-lines">
+                        <div class="skeleton skeleton--label"></div>
+                        <div class="skeleton skeleton--value"></div>
+                      </div>
+                      <div class="skeleton skeleton--badge"></div>
+                    </div>
+                    <div class="skeleton-staff-row">
+                      <div class="skeleton skeleton--avatar-sm"></div>
+                      <div class="skeleton-staff-lines">
+                        <div class="skeleton skeleton--label"></div>
+                        <div class="skeleton skeleton--value"></div>
+                      </div>
+                      <div class="skeleton skeleton--badge"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-card detail-card--full detail-card--skeleton mt-3">
+                  <div class="skeleton skeleton--card-title"></div>
+                  <div class="skeleton-table-rows mt-3">
+                    <div class="skeleton skeleton--text mb-2"></div>
+                    <div class="skeleton skeleton--text mb-2"></div>
+                  </div>
+                </div>
               </div>
             } @else {
               @if (inviteError()) {
@@ -747,7 +802,7 @@
           </div>
         }
 
-        <!-- Tab 4: Dominios (DNS) -->
+        <!-- Tab 3: Dominios (DNS) -->
         @if (activeTab() === 'dominios') {
           <div class="dns-container">
             @if (dnsVerificationError()) {
@@ -757,10 +812,27 @@
               <div class="alert alert-success">{{ dnsVerificationSuccess() }}</div>
             }
 
-            <div class="dns-grid">
-              <!-- Connection info/setup card -->
-              <div class="detail-card">
-                <h2 class="detail-card__title"><i class="bi bi-globe"></i> Conexión de Dominio</h2>
+            @if (isVerifyingDNS() && dnsRecords().length === 0 && !store()!.customDomain) {
+              <div class="dns-grid dns-grid--skeleton" aria-busy="true">
+                <div class="detail-card detail-card--skeleton">
+                  <div class="skeleton skeleton--card-title"></div>
+                  <div class="skeleton skeleton--text mb-4 mt-2"></div>
+                  <div class="skeleton skeleton--input mb-3"></div>
+                  <div class="skeleton skeleton--btn"></div>
+                </div>
+                <div class="detail-card detail-card--skeleton">
+                  <div class="skeleton skeleton--card-title"></div>
+                  <div class="skeleton-dns-blocks mt-3">
+                    <div class="skeleton skeleton--text mb-3" style="height: 60px"></div>
+                    <div class="skeleton skeleton--text mb-3" style="height: 60px"></div>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="dns-grid">
+                <!-- Connection info/setup card -->
+                <div class="detail-card">
+                  <h2 class="detail-card__title"><i class="bi bi-globe"></i> Conexión de Dominio</h2>
 
                 @if (!store()!.customDomain) {
                   <!-- Non-connected state -->
@@ -962,16 +1034,30 @@
                 </div>
               }
             </div>
-          </div>
-        }
+          }
+        </div>
+      }
 
-        <!-- Tab 5: Historial de Despliegues -->
+        <!-- Tab 4: Historial de Despliegues -->
         @if (activeTab() === 'historial') {
           <div class="deploy-history-container">
-            <div class="detail-card">
-              <h2 class="detail-card__title">
-                <i class="bi bi-clock-history"></i> Historial de Despliegues
-              </h2>
+            @if (isLoadingHistory() && deployHistory().length === 0) {
+              <div class="detail-card detail-card--skeleton" aria-busy="true">
+                <div class="skeleton skeleton--card-title"></div>
+                <div class="skeleton skeleton--text mb-4 mt-2"></div>
+                <div class="skeleton-history-table mt-3">
+                  <div class="skeleton skeleton--text mb-3" style="height: 38px"></div>
+                  <div class="skeleton skeleton--text mb-2" style="height: 48px"></div>
+                  <div class="skeleton skeleton--text mb-2" style="height: 48px"></div>
+                  <div class="skeleton skeleton--text mb-2" style="height: 48px"></div>
+                  <div class="skeleton skeleton--text mb-2" style="height: 48px"></div>
+                </div>
+              </div>
+            } @else {
+              <div class="detail-card">
+                <h2 class="detail-card__title">
+                  <i class="bi bi-clock-history"></i> Historial de Despliegues
+                </h2>
               <p
                 style="
                   font-size: 0.85rem;
@@ -1057,11 +1143,12 @@
                 </div>
               }
             </div>
-          </div>
-        }
-      </div>
-    }
-  </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
 
   <!-- Edit modal -->
   @if (showEditModal()) {

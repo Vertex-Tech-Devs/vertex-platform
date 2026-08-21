@@ -39,8 +39,13 @@ export class StoreDetailDomainsService {
     }
   }
 
+  private verifiedDomain: string | null = null;
+
   async verifyDNS(storeId: string, domain: string, silent = false): Promise<void> {
     if (!domain) {
+      return;
+    }
+    if (silent && this.verifiedDomain === domain && this.dnsRecords().length > 0) {
       return;
     }
     if (!silent) {
@@ -51,6 +56,7 @@ export class StoreDetailDomainsService {
     try {
       const res = await this.storesService.verifyDomain(storeId, domain.trim());
       this.dnsRecords.set(res.dnsRecords);
+      this.verifiedDomain = domain;
       if (res.status === 'live') {
         this.domainStatus.set('live');
         if (!silent) {
