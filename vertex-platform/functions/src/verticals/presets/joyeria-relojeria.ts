@@ -29,6 +29,16 @@ export const JOYERIA_RELOJERIA_PRESET: BusinessVerticalDefinition = {
     { id: 'talle-anillo', name: 'Medida / Talle de Anillo', code: 'talle-anillo', type: 'button', values: ['N° 12', 'N° 14', 'N° 16', 'N° 18', 'N° 20'], required: false },
     { id: 'tipo-malla', name: 'Malla de Reloj', code: 'tipo-malla', type: 'select', values: ['Acero Inoxidable 316L', 'Cuero Genuino Italiano', 'Caucho Siliconado'], required: false },
   ],
+  colors: {
+    primary: '#b45309',
+    accent: '#1e293b',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Metales Nobles Certificados', content: 'Plata 925 de ley y oro 18 kilates con certificado de autenticidad.' },
+    { title: 'Grabados Personalizados', content: 'Grabamos tus alianzas y medallas sin costo adicional.' },
+    { title: 'Estuche de Lujo', content: 'Cada joya se entrega en estuche rígido con moño de raso listo para regalar.' },
+  ],
   sampleProducts: [
     {
       name: 'Anillo Solitario Compromiso Diamante Moissanita 1ct Plata 925',

@@ -32,6 +32,16 @@ export const HOGAR_MUEBLES_DECO_PRESET: BusinessVerticalDefinition = {
     { id: 'medida-cama', name: 'Medida', code: 'medida-cama', type: 'button', values: ['1 Plaza', '2 Plazas', 'Queen Size', 'King Size'], required: false },
     { id: 'acabado', name: 'Acabado', code: 'acabado', type: 'select', values: ['Negro Mate', 'Bronce Viejo', 'Dorado Cepillado'], required: false },
   ],
+  colors: {
+    primary: '#78716c',
+    accent: '#ca8a04',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Maderas Macizas Nobles', content: 'Fabricación artesanal en petiribí, paraíso y guatambú seleccionado.' },
+    { title: 'Personalización a Medida', content: 'Elegí tapizados, medidas y acabados según tu espacio.' },
+    { title: 'Flete Especializado', content: 'Logística de muebles con personal de subida e instalación.' },
+  ],
   sampleProducts: [
     {
       name: 'Sillón Nórdico Escandinavo 3 Cuerpos Pana Antimanchas',

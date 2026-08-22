@@ -28,6 +28,16 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
     { id: 'edad-recomendada', name: 'Edad Sugerida', code: 'edad-recomendada', type: 'select', values: ['0 a 12 meses', '1 a 3 años', '4 a 6 años', '7 a 12 años', '+12 años / Familiar'], required: false },
     { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Rojo', 'Azul', 'Rosa Pastel', 'Verde Menta', 'Madera Natural'], required: false },
   ],
+  colors: {
+    primary: '#06b6d4',
+    accent: '#f43f5e',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Juguetes Educativos y Seguros', content: 'Pinturas al agua atóxicas y maderas nobles pulidas con bordes suaves.' },
+    { title: 'Pedagogías Montessori & Waldorf', content: 'Estimulación sensorial, motricidad fina y creatividad sin pantallas.' },
+    { title: 'Garantía de Diversión', content: 'Juguetes duraderos pensados para pasar de generación en generación.' },
+  ],
   sampleProducts: [
     {
       name: 'Torre de Aprendizaje Montessori Madera Maciza Plegable',

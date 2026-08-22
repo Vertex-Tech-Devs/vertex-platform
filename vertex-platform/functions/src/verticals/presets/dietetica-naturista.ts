@@ -28,6 +28,16 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
   attributes: [
     { id: 'peso-gr', name: 'Peso', code: 'peso-gr', type: 'button', values: ['250 g', '500 g', '1 kg'], required: false },
   ],
+  colors: {
+    primary: '#65a30d',
+    accent: '#d97706',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Alimentos Puros y Sin Aditivos', content: 'Frutos secos frescos de cosecha reciente y harinas molidas a la piedra.' },
+    { title: 'Línea Sin TACC Certificada', content: 'Variedad de productos aptos para celíacos y dietas plant-based.' },
+    { title: 'A Granel y Fraccionado', content: 'Comprá la cantidad exacta que necesitás con packaging resellable hermético.' },
+  ],
   sampleProducts: [
     {
       name: 'Nueces Chandler Peladas Mariposa Extra Light 500g',

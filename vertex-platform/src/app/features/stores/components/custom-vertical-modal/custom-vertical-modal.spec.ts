@@ -126,4 +126,11 @@ describe('CustomVerticalModal', () => {
     expect(createdVertical).toBeDefined();
     expect(createdVertical!.id).toBe('TEST_VERTICAL');
   });
+
+  it('should close when escape key is pressed', () => {
+    let closed = false;
+    component.close.subscribe(() => (closed = true));
+    component.onEscapeKeyDown();
+    expect(closed).toBe(true);
+  });
 });

@@ -273,6 +273,16 @@ export function buildCustomVerticalDefinition(data: Record<string, unknown>): Bu
     categories,
     attributes,
     sampleProducts,
+    colors: {
+      primary: String((data['themeColors'] as Record<string, unknown>)?.['primary'] || (data['colors'] as Record<string, unknown>)?.['primary'] || '#6366f1'),
+      accent: String((data['themeColors'] as Record<string, unknown>)?.['accent'] || (data['colors'] as Record<string, unknown>)?.['accent'] || '#06b6d4'),
+      background: '#ffffff',
+    },
+    featureCards: [
+      { title: 'Calidad Garantizada', content: `Seleccionamos rigurosamente cada producto para nuestra tienda ${name}.` },
+      { title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
+      { title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
+    ],
   };
 }
 

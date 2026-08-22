@@ -28,6 +28,16 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
     { id: 'peso-bolsa', name: 'Peso', code: 'peso-bolsa', type: 'button', values: ['3 kg', '7.5 kg', '15 kg', '20 kg'], required: false },
     { id: 'talle-mascota', name: 'Talle', code: 'talle-mascota', type: 'button', values: ['S (Pequeño)', 'M (Mediano)', 'L (Grande)', 'XL (Gigante)'], required: false },
   ],
+  colors: {
+    primary: '#0284c7',
+    accent: '#f59e0b',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Nutrición Super Premium', content: 'Las mejores marcas de balanceados recomendadas por veterinarios.' },
+    { title: 'Snacks y Juguetes Seguros', content: 'Materiales no tóxicos y libres de químicos nocivos para mascotas.' },
+    { title: 'Despacho Rápido', content: 'No te quedes sin alimento: envíos ágiles a la puerta de tu casa.' },
+  ],
   sampleProducts: [
     {
       name: 'Alimento Perro Adulto Raza Mediana & Grande Super Premium 15kg',

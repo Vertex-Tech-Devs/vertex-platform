@@ -28,6 +28,16 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
     { id: 'hojas', name: 'Interior de Hojas', code: 'hojas', type: 'select', values: ['Rayadas', 'Punteadas (Bullet)', 'Cuadriculadas', 'Lisas'], required: false },
     { id: 'trazo', name: 'Grosor de Trazo', code: 'trazo', type: 'button', values: ['Fino 0.5mm', 'Medio 0.7mm', 'Grueso 1.0mm'], required: false },
   ],
+  colors: {
+    primary: '#4f46e5',
+    accent: '#f43f5e',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Papel de Alto Gramaje', content: 'Cuadernos y bitácoras resistentes a tintas al agua y plumas estilográficas.' },
+    { title: 'Marcas de Arte Internacionales', content: 'Insumos profesionales para ilustración, caligrafía y lettering.' },
+    { title: 'Packaging Cuidadoso', content: 'Tus libros y libretas llegan impecables sin esquinas dobladas ni marcas.' },
+  ],
   sampleProducts: [
     {
       name: 'Cuaderno Tapa Dura Bullet Journal 120g Punteado A5',

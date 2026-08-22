@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   inject,
   input,
   output,
@@ -73,6 +74,11 @@ export class CustomVerticalModal implements OnInit {
       event.preventDefault();
       this.addCategory();
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKeyDown(): void {
+    this.onCancel();
   }
 
   onCancel(): void {

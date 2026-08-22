@@ -31,6 +31,16 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
     { id: 'talle', name: 'Talle', code: 'talle', type: 'button', values: ['S', 'M', 'L', 'XL', 'XXL'], required: true },
     { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Negro', 'Azul', 'Rosa', 'Gris', 'Verde Oliva'], required: false },
   ],
+  colors: {
+    primary: '#0284c7',
+    accent: '#38bdf8',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Equipamiento Profesional', content: 'Materiales testeados para alta exigencia y uso comercial/hogareño.' },
+    { title: 'Envíos a Todo el País', content: 'Embalaje reforzado y despacho express a las principales ciudades.' },
+    { title: 'Garantía Estructural', content: 'Garantía directa de 1 año en toda la línea de musculación y pesas.' },
+  ],
   sampleProducts: [
     {
       name: 'Mancuerna Hexagonal Engomada Profesional',

@@ -29,6 +29,16 @@ export const VINOTECA_LICORERIA_PRESET: BusinessVerticalDefinition = {
     { id: 'valle', name: 'Región / Valle', code: 'valle', type: 'select', values: ['Valle de Uco (Mendoza)', 'Luján de Cuyo (Mendoza)', 'Valles Calchaquíes (Salta)', 'Patagonia'], required: false },
     { id: 'tipo-espumante', name: 'Tipo', code: 'tipo-espumante', type: 'select', values: ['Extra Brut', 'Brut Nature', 'Rosé', 'Dulce'], required: false },
   ],
+  colors: {
+    primary: '#831843',
+    accent: '#d97706',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Cava con Clima Controlado', content: 'Vinos y destilados conservados en condiciones óptimas de temperatura y humedad.' },
+    { title: 'Selección de Sommeliers', content: 'Etiquetas premiadas y pequeñas producciones de bodegas boutique exclusivas.' },
+    { title: 'Embalaje Antirroturas', content: 'Cajas inflables y divisorias diseñadas para proteger botellas de cristal.' },
+  ],
   sampleProducts: [
     {
       name: 'Malbec Gran Reserva Icono Valle de Uco 750ml',

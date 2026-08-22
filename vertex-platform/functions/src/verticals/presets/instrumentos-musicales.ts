@@ -29,6 +29,16 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
     { id: 'color-instrumento', name: 'Color / Acabado', code: 'color-instrumento', type: 'color', values: ['Sunburst Tabaco', 'Negro Brillante', 'Blanco Vintage', 'Madera Natural', 'Rojo'], required: false },
     { id: 'teclas', name: 'Cantidad de Teclas', code: 'teclas', type: 'button', values: ['49 Teclas', '61 Teclas', '88 Teclas Acción Martillo'], required: false },
   ],
+  colors: {
+    primary: '#475569',
+    accent: '#ea580c',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Calibración de Luthier', content: 'Cada instrumento de cuerda se entrega calibrado y listo para tocar.' },
+    { title: 'Audio y Grabación Pro', content: 'Equipamiento testeado para home studios y sonido en vivo.' },
+    { title: 'Asesoramiento por Músicos', content: 'Equipo especializado para recomendarte el mejor setup según tu nivel.' },
+  ],
   sampleProducts: [
     {
       name: 'Guitarra Eléctrica Stratocaster Aliso Diapasón Arce',
