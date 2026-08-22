@@ -19,7 +19,8 @@ export type BusinessVerticalId =
   | 'VIVEROS_JARDINERIA'
   | 'DIETETICA_NATURISTA'
   | 'BIJOUTERIE_ACCESORIOS'
-  | 'IMPRENTA_MERCHANDISING';
+  | 'IMPRENTA_MERCHANDISING'
+  | (string & {});
 
 export interface VerticalCategoryPreset {
   id: string;

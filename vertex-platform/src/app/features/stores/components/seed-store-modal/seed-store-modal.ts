@@ -1,17 +1,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   output,
   signal,
-  computed,
   type OnInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  PLATFORM_BUSINESS_VERTICALS,
-  type VerticalOption,
-} from '@core/constants/business-verticals.constants';
+import { StoresService } from '@core/services/stores';
+import type { VerticalOption } from '@core/constants/business-verticals.constants';
+import { RubroSelector } from '@shared/components/rubro-selector/rubro-selector';
+import { CustomVerticalModal } from '../custom-vertical-modal/custom-vertical-modal';
 
 export interface SeedPayload {
   verticalId: string;
@@ -29,12 +29,14 @@ export interface ProvisioningModeOption {
 @Component({
   selector: 'app-seed-store-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RubroSelector, CustomVerticalModal],
   templateUrl: './seed-store-modal.html',
   styleUrl: './seed-store-modal.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SeedStoreModal implements OnInit {
+  private storesService = inject(StoresService);
+
   readonly storeId = input.required<string>();
   readonly storeName = input<string>('');
   readonly currentVerticalId = input<string>('TECNOLOGIA_ELECTRONICA');
@@ -43,11 +45,11 @@ export class SeedStoreModal implements OnInit {
   readonly close = output<void>();
   readonly seedConfirmed = output<SeedPayload>();
 
-  readonly verticals: VerticalOption[] = PLATFORM_BUSINESS_VERTICALS;
+  readonly verticals = this.storesService.allVerticals;
   readonly selectedVerticalId = signal<string>('TECNOLOGIA_ELECTRONICA');
   readonly selectedMode = signal<'FULL_DEMO' | 'CATALOG_ONLY' | 'EMPTY'>('FULL_DEMO');
   readonly purgeConfirmed = signal<boolean>(true);
-  readonly searchTerm = signal<string>('');
+  readonly showCustomVerticalModal = signal<boolean>(false);
 
   readonly modes: ProvisioningModeOption[] = [
     {
@@ -70,19 +72,6 @@ export class SeedStoreModal implements OnInit {
     },
   ];
 
-  readonly filteredVerticals = computed(() => {
-    const term = this.searchTerm().trim().toLowerCase();
-    if (!term) {
-      return this.verticals;
-    }
-    return this.verticals.filter(
-      (v) =>
-        v.name.toLowerCase().includes(term) ||
-        v.description.toLowerCase().includes(term) ||
-        v.id.toLowerCase().includes(term),
-    );
-  });
-
   ngOnInit(): void {
     if (this.currentVerticalId()) {
       this.selectedVerticalId.set(this.currentVerticalId());
@@ -91,6 +80,13 @@ export class SeedStoreModal implements OnInit {
 
   selectVertical(id: string): void {
     this.selectedVerticalId.set(id);
+  }
+
+  onCustomVerticalCreated(v: VerticalOption): void {
+    if (v?.id) {
+      this.selectedVerticalId.set(v.id);
+    }
+    this.showCustomVerticalModal.set(false);
   }
 
   selectMode(mode: 'FULL_DEMO' | 'CATALOG_ONLY' | 'EMPTY'): void {

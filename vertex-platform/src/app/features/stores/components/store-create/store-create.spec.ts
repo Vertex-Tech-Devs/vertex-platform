@@ -6,6 +6,9 @@ import { StoreCreate } from './store-create';
 import type { RuntimeCapacitySummary } from '@core/services/stores';
 import { StoresService } from '@core/services/stores';
 
+import { signal } from '@angular/core';
+import { PLATFORM_BUSINESS_VERTICALS } from '@core/constants/business-verticals.constants';
+
 const runtimeSummary: RuntimeCapacitySummary = {
   environment: 'production',
   sharedShardCount: 1,
@@ -19,6 +22,8 @@ describe('StoreCreate', () => {
   const storesService = {
     createStore: vi.fn().mockResolvedValue('store-123'),
     getRuntimeCapacitySummary: vi.fn().mockResolvedValue(runtimeSummary),
+    allVerticals: signal(PLATFORM_BUSINESS_VERTICALS),
+    createCustomVertical: vi.fn().mockResolvedValue({ success: true, vertical: { id: 'TEST' } }),
   };
 
   beforeEach(async () => {

@@ -128,9 +128,125 @@ export function resolveVerticalKey(input?: string): BusinessVerticalId {
   return 'TECNOLOGIA_ELECTRONICA';
 }
 
+export function buildCustomVerticalDefinition(data: Record<string, unknown>): BusinessVerticalDefinition {
+  const id = String(data['id'] || data['slug'] || 'CUSTOM_VERTICAL');
+  const name = String(data['name'] || 'Rubro Personalizado');
+  const icon = String(data['icon'] || '🏷️');
+  const description = String(data['description'] || '');
+  const bannerTitle = String(data['bannerTitle'] || `¡Bienvenidos a ${name}!`);
+  const bannerSubtitle = String(
+    data['bannerSubtitle'] || 'Descubrí los mejores productos y promociones exclusivas.',
+  );
+
+  const rawCategories = Array.isArray(data['categories']) ? data['categories'] : [];
+  const categories = rawCategories.map((c, i) => {
+    if (typeof c === 'string') {
+      const slug = c
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      return {
+        id: slug || `cat-${i + 1}`,
+        name: c,
+        slug: slug || `cat-${i + 1}`,
+        order: i + 1,
+      };
+    }
+    return {
+      id: String(c.id || c.slug || `cat-${i + 1}`),
+      name: String(c.name || `Categoría ${i + 1}`),
+      slug: String(c.slug || `cat-${i + 1}`),
+      icon: c.icon ? String(c.icon) : undefined,
+      description: c.description ? String(c.description) : undefined,
+      order: typeof c.order === 'number' ? c.order : i + 1,
+    };
+  });
+
+  if (categories.length === 0) {
+    categories.push(
+      { id: 'destacados', name: 'Destacados', slug: 'destacados', order: 1 },
+      { id: 'ofertas', name: 'Ofertas', slug: 'ofertas', order: 2 },
+    );
+  }
+
+  const rawAttrs = Array.isArray(data['attributes']) ? data['attributes'] : [];
+  const attributes = rawAttrs.map((a, i) => ({
+    id: String(a.id || a.code || `attr-${i + 1}`),
+    name: String(a.name || `Atributo ${i + 1}`),
+    code: String(a.code || `attr_${i + 1}`),
+    type: (a.type as 'select' | 'color' | 'button' | 'text') || 'select',
+    values: Array.isArray(a.values) ? a.values.map(String) : ['Estándar'],
+    required: Boolean(a.required),
+  }));
+
+  const sampleProducts = Array.isArray(data['sampleProducts'])
+    ? data['sampleProducts']
+    : [
+        {
+          name: `Producto Destacado ${name}`,
+          categorySlug: categories[0]?.slug || 'destacados',
+          price: 15000,
+          stock: 20,
+          skuPrefix: 'PROD',
+          description: `Producto inicial de alta calidad para la tienda de ${name}.`,
+          image:
+            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+          hasVariants: false,
+        },
+      ];
+
+  return {
+    id: id as BusinessVerticalId,
+    name,
+    icon,
+    description,
+    bannerTitle,
+    bannerSubtitle,
+    heroImages:
+      Array.isArray(data['heroImages']) && data['heroImages'].length > 0
+        ? data['heroImages'].map(String)
+        : [
+            'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&auto=format&fit=crop&q=80',
+          ],
+    featuredCategories: categories.slice(0, 4).map((c) => ({
+      categoryId: c.id,
+      name: c.name,
+      slug: c.slug,
+      imageUrl:
+        'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&auto=format&fit=crop&q=80',
+    })),
+    categories,
+    attributes,
+    sampleProducts,
+  };
+}
+
 export function getBusinessVerticalPreset(id: string): BusinessVerticalDefinition {
   const resolvedId = resolveVerticalKey(id);
   return PRESETS_MAP[resolvedId] ?? TECNOLOGIA_ELECTRONICA_PRESET;
+}
+
+export async function getBusinessVerticalPresetAsync(
+  id: string,
+): Promise<BusinessVerticalDefinition> {
+  const normalized = (id || '').trim().toUpperCase().replace(/[-\s]/g, '_');
+  if (normalized in PRESETS_MAP) {
+    return PRESETS_MAP[normalized as BusinessVerticalId];
+  }
+
+  try {
+    const { getFirestore } = require('firebase-admin/firestore');
+    const db = getFirestore();
+    const docSnap = await db.collection('business_verticals').doc(id).get();
+    if (docSnap.exists) {
+      return buildCustomVerticalDefinition({ id: docSnap.id, ...docSnap.data() });
+    }
+  } catch (err) {
+    console.warn(`[getBusinessVerticalPresetAsync] No se pudo leer custom vertical ${id}:`, err);
+  }
+
+  return getBusinessVerticalPreset(id);
 }
 
 export function getAllBusinessVerticalsSummary(): BusinessVerticalSummary[] {
@@ -141,3 +257,4 @@ export function getAllBusinessVerticalsSummary(): BusinessVerticalSummary[] {
     description: preset.description,
   }));
 }
+

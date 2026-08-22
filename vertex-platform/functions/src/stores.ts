@@ -2346,7 +2346,95 @@ export const listBusinessVerticals = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async () => {
     const { getAllBusinessVerticalsSummary } = require('./verticals/verticals.registry');
-    return { verticals: getAllBusinessVerticalsSummary() };
+    const builtIn = getAllBusinessVerticalsSummary();
+    try {
+      const db = getFirestore();
+      const customSnap = await db.collection('business_verticals').get();
+      const custom = customSnap.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: data['name'] || docSnap.id,
+          icon: data['icon'] || '🏷️',
+          description: data['description'] || '',
+          isCustom: true,
+          categories: data['categories'] || [],
+          themeColors: data['themeColors'],
+        };
+      });
+      return { verticals: [...builtIn, ...custom] };
+    } catch {
+      return { verticals: builtIn };
+    }
+  },
+);
+
+export const createCustomVertical = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform admins can create custom business verticals.',
+      );
+    }
+    const data = (request.data || {}) as Record<string, unknown>;
+    const name = String(data['name'] || '').trim();
+    if (!name) {
+      throw new HttpsError('invalid-argument', 'El nombre del rubro es requerido.');
+    }
+
+    const rawSlug = String(data['slug'] || name)
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/(^_|_$)/g, '');
+
+    const id = rawSlug.toUpperCase() || `CUSTOM_${Date.now()}`;
+    const icon = String(data['icon'] || '🏷️').trim() || '🏷️';
+    const description = String(data['description'] || '').trim();
+    const categories = Array.isArray(data['categories']) ? data['categories'] : [];
+    const attributes = Array.isArray(data['attributes']) ? data['attributes'] : [];
+    const themeColors = data['themeColors'] || {
+      primary: '#6366f1',
+      accent: '#06b6d4',
+      background: '#0f172a',
+    };
+    const bannerTitle = String(data['bannerTitle'] || `¡Bienvenidos a ${name}!`).trim();
+    const bannerSubtitle = String(
+      data['bannerSubtitle'] || 'Descubrí nuestras colecciones y novedades exclusivas.',
+    ).trim();
+
+    const db = getFirestore();
+    const verticalDocRef = db.collection('business_verticals').doc(id);
+    const existing = await verticalDocRef.get();
+    if (existing.exists) {
+      throw new HttpsError(
+        'already-exists',
+        `Ya existe un rubro registrado con el identificador ${id}.`,
+      );
+    }
+
+    const customVerticalRecord = {
+      id,
+      name,
+      icon,
+      description,
+      isCustom: true,
+      categories,
+      attributes,
+      themeColors,
+      bannerTitle,
+      bannerSubtitle,
+      createdBy: request.auth.token['email'] || request.auth.uid,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await verticalDocRef.set(customVerticalRecord);
+    return { success: true, vertical: customVerticalRecord };
   },
 );
 

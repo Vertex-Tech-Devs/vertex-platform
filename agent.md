@@ -140,14 +140,21 @@ const secretCache = new Map<string, string>();
 
 ---
 
-## 🏬 Motor de Rubros Comerciales (21 Presets) y Semillado Multimodal
+## 🏬 Motor de Rubros Comerciales Dinámicos, Buscador y Paginador de Cards
 
-- **Catálogo Centralizado**: Ubicado en `functions/src/verticals/` con 21 presets modulares (`presets/*.ts`), tipados con `BusinessVerticalDefinition` y accesibles vía `getBusinessVerticalPreset(verticalId)` y `getAllBusinessVerticalsSummary()`.
+- **Catálogo Centralizado & Custom Verticals**:
+  * 21 presets nativos modulares ubicados en `functions/src/verticals/presets/*.ts`.
+  * **Sistema de Creación de Rubros Custom**: Permite registrar rubros personalizados en la colección Firestore `business_verticals/{id}` con nombre, icono, descripción, categorías base y paleta de colores sugerida vía la Cloud Function `createCustomVertical`.
+  * **Resolución Dinámica**: `getBusinessVerticalPresetAsync(verticalId)` resuelve presets nativos y consulta Firestore en tiempo real para rubros customizados, generando dinámicamente el catálogo y configuración iniciales.
+- **Componente Reutilizable `RubroSelector` (`@shared/components/rubro-selector/`)**:
+  * **Buscador en Tiempo Real**: Filtra instantáneamente por nombre, descripción, ID o categorías asociadas, con botón de limpieza (`✕`).
+  * **Paginador Moderno**: 6 cards por página (configurable con `pageSize`), botones de navegación Anterior/Siguiente, píldoras numéricas de página y contador resumen (`1-6 de 21`).
+  * **Estética Glassmorphism Premium**: Bordes degradados, halo de selección púrpura/cian, micro-animaciones en hover y accesibilidad completa por teclado (`Enter`/`Space`).
+  * **Modal `CustomVerticalModal`**: Flujo para diseñar y sembrar nuevos rubros personalizados en vivo.
 - **Modalidades de Aprovisionamiento (`provisioningMode`)**:
   * `EMPTY`: Crea únicamente los singletons de configuración (`configuracion/store_{storeId}`, `footer_{storeId}`, `pages/home_{storeId}`, `aboutUs_{storeId}`). Deja catálogo, clientes y pedidos en 0 documentos.
   * `CATALOG_ONLY`: Inyecta Categorías (`{storeId}-cat-{slug}`), Atributos (`{storeId}-attr-{code}`) y Productos de muestra con variantes y stock inicial. 0 clientes y 0 órdenes.
   * `FULL_DEMO`: Inyecta el catálogo completo + clientes simulados + órdenes históricas correlacionadas.
-- **Frontend Picker**: `PLATFORM_BUSINESS_VERTICALS` expone las opciones interactivas en `src/app/core/constants/business-verticals.constants.ts` para el formulario `store-create`.
 
 ---
 
