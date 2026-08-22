@@ -59,24 +59,44 @@ export async function seedStoreData(
   const featuredCats = isModeEmpty
     ? []
     : preset.featuredCategories.map((fc) => ({
-        ...fc,
         categoryId: categoryIdMap.get(fc.slug) ?? `${activeStoreId}-cat-${fc.slug}`,
+        name: fc.name,
+        slug: fc.slug,
+        imageUrl: fc.imageUrl,
       }));
 
   const homePayload = {
     storeId: activeStoreId,
+    title: preset.bannerTitle,
+    subtitle: preset.bannerSubtitle,
     bannerTitle: preset.bannerTitle,
     bannerSubtitle: preset.bannerSubtitle,
+    buttonText: 'Explorar Catálogo',
+    buttonLink: '/shop/catalog',
+    imageUrl: preset.heroImages[0] ?? '',
     heroImages: preset.heroImages.map((imageUrl, idx) => ({
       imageUrl,
       order: idx + 1,
-      linkType: 'none',
-      linkId: null,
+      linkType: 'category',
+      linkId: featuredCats[idx % (featuredCats.length || 1)]?.categoryId ?? null,
     })),
-    carouselSettings: { interval: 6000, showIndicators: true },
+    carouselSettings: { interval: 5000, showIndicators: true },
     featuredCategories: featuredCats,
     updatedAt: new Date(),
+    lastUpdated: new Date(),
   };
+
+  // Seed both banners/home and pages/home for total client compatibility
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/banners/home_${activeStoreId}`,
+        { method: 'PATCH', body: toFirestoreFields(homePayload), quotaProject: projectId },
+      ),
+    5,
+    3000,
+  );
 
   await retry(
     () =>
@@ -90,21 +110,30 @@ export async function seedStoreData(
   );
 
   const defaultFeatureCards = [
-    { title: 'Calidad Garantizada', content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.' },
-    { title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
-    { title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
+    { icon: 'patch-check', title: 'Calidad Garantizada', content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.' },
+    { icon: 'truck', title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
+    { icon: 'headset', title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
   ];
+
+  const aboutFeatureCards = (preset.featureCards && preset.featureCards.length > 0
+    ? preset.featureCards.map((card, idx) => ({
+        icon: (card as { icon?: string }).icon ?? (idx === 0 ? 'patch-check' : idx === 1 ? 'truck' : 'headset'),
+        title: card.title,
+        content: card.content,
+      }))
+    : defaultFeatureCards);
 
   const aboutUsPayload = {
     storeId: activeStoreId,
     bannerTitle: 'Quiénes Somos',
-    bannerSubtitle: `Conocé la historia y el equipo detrás de ${sName}.`,
+    bannerSubtitle: `Conocé la historia, el equipo y la visión detrás de ${sName}.`,
     bannerImageUrl: preset.heroImages[0] ?? '',
     centralTitle: 'Nuestra Historia',
     centralImageUrl: preset.heroImages[1] ?? preset.heroImages[0] ?? '',
-    centralDescription: `${sName} nació con la misión de acercarte lo mejor en ${preset.name.toLowerCase()} con atención personalizada y garantía de satisfacción.`,
+    centralDescription: `${sName} nació con la misión de acercarte lo mejor en ${preset.name.toLowerCase()} con atención personalizada, catálogo seleccionado y garantía de satisfacción.\n\nContamos con un equipo apasionado y logística integral para que tu experiencia de compra sea impecable de principio a fin.`,
     cardsSectionTitle: '¿Por qué elegirnos?',
-    featureCards: preset.featureCards && preset.featureCards.length > 0 ? preset.featureCards : defaultFeatureCards,
+    featureCards: aboutFeatureCards,
+    updatedAt: new Date(),
   };
 
   await retry(
@@ -122,12 +151,57 @@ export async function seedStoreData(
   const brandColors = preset.colors ?? { primary: '#6366f1', accent: '#06b6d4', background: '#ffffff' };
   const whatsAppText = encodeURIComponent(`¡Hola! Quisiera hacer una consulta en la tienda de ${sName}.`);
 
+  const deliveryMethodsConfig = {
+    enableStorePickup: true,
+    enableHomeDelivery: true,
+    homeDeliveryDescription: 'Envíos a todo el país coordinados por WhatsApp o despachados por correo prioritario.',
+    pickupLocations: [
+      {
+        id: `${activeStoreId}-loc-central`,
+        name: 'Sucursal Central / Showroom',
+        address: 'Av. Corrientes 1450',
+        city: 'CABA',
+        schedule: 'Lunes a Viernes de 10:00 a 19:00 hs / Sábados de 10:00 a 14:00 hs',
+        notes: 'Presentar DNI y número de pedido para retirar.',
+        enabled: true,
+        days: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+        timeFrom1: '10:00',
+        timeTo1: '19:00',
+        hasSplitSchedule: false,
+      },
+      {
+        id: `${activeStoreId}-loc-nordelta`,
+        name: 'Punto de Entrega Zona Norte',
+        address: 'Av. del Libertador 2200',
+        city: 'Vicente López',
+        schedule: 'Lunes a Sábados de 11:00 a 20:00 hs',
+        notes: 'Retiro previa confirmación de pedido preparado.',
+        enabled: true,
+        days: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+        timeFrom1: '11:00',
+        timeTo1: '20:00',
+        hasSplitSchedule: false,
+      },
+    ],
+  };
+
+  const footerPayload = {
+    storeId: activeStoreId,
+    contactPhone: '+54 11 4567-8900',
+    contactEmail: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    socialInstagramUrl: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
+    socialFacebookUrl: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
+    socialWhatsAppUrl: `https://wa.me/5491145678900?text=${whatsAppText}`,
+    copyrightText: `© ${new Date().getFullYear()} ${sName}. Todos los derechos reservados. Desarrollado con Vertex Commerce.`,
+    updatedAt: new Date(),
+  };
+
   const configPayload = {
     tenantId,
     storeId: activeStoreId,
     storeName: sName,
     tagline: preset.tagline ?? preset.bannerSubtitle,
-    strapline: '',
+    strapline: `Tienda Oficial de ${sName}`,
     logoUrl: '',
     faviconUrl: '',
     colors: brandColors,
@@ -138,24 +212,21 @@ export async function seedStoreData(
       instagram: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
       facebook: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
     },
-    seo: { metaTitle: sName, metaDescription: `Catálogo oficial de ${sName}.` },
+    // Root level contact fields for dual compatibility
+    contactPhone: '+54 11 4567-8900',
+    contactEmail: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    socialInstagramUrl: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
+    socialFacebookUrl: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
+    socialWhatsAppUrl: `https://wa.me/5491145678900?text=${whatsAppText}`,
+    copyrightText: `© ${new Date().getFullYear()} ${sName}. Todos los derechos reservados. Desarrollado con Vertex Commerce.`,
+    seo: { metaTitle: sName, metaDescription: `Catálogo oficial de ${sName}. ${preset.description}` },
     features: { reviewsEnabled: true, wishlistEnabled: true, blogEnabled: false },
-    deliveryMethods: {
-      enableStorePickup: true,
-      enableHomeDelivery: true,
-      homeDeliveryDescription: 'Coordinamos el envío y costo por WhatsApp o Andreani / Correo Argentino.',
-      pickupLocations: [
-        {
-          id: `${activeStoreId}-loc-1`,
-          name: 'Sucursal Central / Showroom',
-          address: 'Av. Corrientes 1450',
-          city: 'CABA',
-          schedule: 'Lunes a Viernes de 10:00 a 19:00 hs',
-          notes: 'Presentar DNI y número de pedido para retirar.',
-          enabled: true,
-        },
-      ],
-    },
+    deliveryMethods: deliveryMethodsConfig,
+    // Email management configurations
+    storeOwnerEmail: `admin@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    notificationEmail: `ventas@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    emailSenderName: sName,
+    emailSignature: `El equipo de ${sName} | Atención al Cliente`,
     payments: {
       mercadoPagoPublicKey: '',
       mercadoPago: {
@@ -180,7 +251,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/footer_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(configPayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(footerPayload), quotaProject: projectId },
       ),
     5,
     3000,
@@ -197,23 +268,62 @@ export async function seedStoreData(
     3000,
   );
 
+  const emailTemplatesPayload = {
+    storeId: activeStoreId,
+    storeOwnerEmail: `admin@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    storeWhatsappNumber: '+54 9 11 4567-8900',
+    adminNotification: {
+      subject: `¡Nueva compra recibida en ${sName}! Pedido #{{orderId}}`,
+      template: `<p>Hola equipo de <strong>${sName}</strong>,</p><p>Has recibido un nuevo pedido de <strong>{{clientName}}</strong> por un total de <strong>{{totalAmount}}</strong>.</p><p>ID de pedido: <code>{{orderId}}</code></p>`,
+      showManageButton: true,
+      showWhatsappButton: false,
+    },
+    customerConfirmation: {
+      subject: `¡Gracias por tu compra en ${sName}! Pedido #{{orderId}}`,
+      template: `<p>Hola <strong>{{clientName}}</strong>,</p><p>Hemos recibido tu pedido correctamente y ya estamos preparándolo.</p><p>Total abonado: <strong>{{totalAmount}}</strong>.</p><p>Te avisaremos en cuanto esté listo para despacho o retiro.</p>`,
+      showManageButton: false,
+      showWhatsappButton: true,
+    },
+    updatedAt: new Date(),
+  };
+
+  await retry(
+    () =>
+      apiFetch(
+        auth,
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${activeStoreId}`,
+        { method: 'PATCH', body: toFirestoreFields(emailTemplatesPayload), quotaProject: projectId },
+      ),
+    5,
+    3000,
+  );
+
   if (isModeEmpty) {
     logger.info(`[SeedEngine] Mode EMPTY complete for store "${activeStoreId}". 0 items seeded.`);
     return;
   }
 
   // 3. Seed Categories
-  for (const cat of preset.categories) {
+  for (let i = 0; i < preset.categories.length; i++) {
+    const cat = preset.categories[i];
     const fullCatId = categoryIdMap.get(cat.slug) ?? `${activeStoreId}-cat-${cat.slug}`;
     const mappedFilterable = (cat.filterableAttributes ?? []).map(
       (code) => attributeIdMap.get(code) ?? `${activeStoreId}-attr-${code}`,
     );
+    const featCat = preset.featuredCategories.find((fc) => fc.slug === cat.slug);
+    const categoryImageUrl =
+      (cat as { imageUrl?: string }).imageUrl ||
+      featCat?.imageUrl ||
+      preset.heroImages[i % preset.heroImages.length] ||
+      '';
+
     const catData = {
       name: cat.name,
       slug: cat.slug,
-      order: cat.order,
+      order: cat.order ?? i + 1,
       parentId: null,
       filterableAttributes: mappedFilterable,
+      imageUrl: categoryImageUrl,
       storeId: activeStoreId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -274,11 +384,19 @@ export async function seedStoreData(
       }
     }
 
+    const variantAttributes =
+      prod.variants && prod.variants.length > 0
+        ? Object.keys(prod.variants[0].attributes).map(
+            (code) => attributeIdMap.get(code) ?? `${activeStoreId}-attr-${code}`,
+          )
+        : [];
+
     const prodData = {
       name: prod.name,
       description: prod.description,
       price: prod.price,
       costPrice: prod.costPrice ?? Math.round(prod.price * 0.6),
+      compareAtPrice: Math.round(prod.price * 1.2),
       categoryId: catId,
       image: prod.image,
       images: prod.images ?? [prod.image],
@@ -287,6 +405,12 @@ export async function seedStoreData(
       sku: `${prod.skuPrefix}-BASE`,
       storeId: activeStoreId,
       inStockAttributes,
+      variantAttributes,
+      isFeatured: i < 6,
+      inStock: prod.stock > 0,
+      rating: 4.8,
+      reviewsCount: 12 + (i % 15),
+      tags: [preset.id, prod.categorySlug, 'nuevo', 'destacado'],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
