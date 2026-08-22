@@ -180,21 +180,75 @@ export function buildCustomVerticalDefinition(data: Record<string, unknown>): Bu
     required: Boolean(a.required),
   }));
 
-  const sampleProducts = Array.isArray(data['sampleProducts'])
-    ? data['sampleProducts']
-    : [
-        {
-          name: `Producto Destacado ${name}`,
-          categorySlug: categories[0]?.slug || 'destacados',
-          price: 15000,
-          stock: 20,
-          skuPrefix: 'PROD',
-          description: `Producto inicial de alta calidad para la tienda de ${name}.`,
-          image:
-            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
-          hasVariants: false,
-        },
-      ];
+  const curatedImages = [
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&auto=format&fit=crop&q=80',
+  ];
+
+  const productTitles = [
+    'Edición Especial Pro',
+    'Premium Collection',
+    'Classic Edition',
+    'Ultra Slim & Confort',
+    'Línea Profesional Gold',
+    'Modelo Signature',
+    'Edición Limitada Black',
+    'Selection Deluxe',
+    'Esencial Diario',
+    'Pack Dúo Confort',
+    'Innovación & Diseño',
+    'Alta Gama Silver',
+    'Master Pro Series',
+    'Estilo Contemporáneo',
+    'Calidad Certificada',
+    'Línea Urbana Confort',
+    'Versión Titanium',
+    'Colección Temporada',
+    'Edición de Autor',
+    'Gama Superior Advance',
+  ];
+
+  let sampleProducts: Array<{
+    name: string;
+    categorySlug: string;
+    price: number;
+    stock: number;
+    skuPrefix: string;
+    description: string;
+    image: string;
+    hasVariants: boolean;
+    variants?: Array<{ sku: string; price: number; stock: number; attributes: Record<string, string> }>;
+  }>;
+
+  if (Array.isArray(data['sampleProducts']) && data['sampleProducts'].length >= 20) {
+    sampleProducts = data['sampleProducts'] as typeof sampleProducts;
+  } else {
+    sampleProducts = [];
+    for (let i = 0; i < 20; i++) {
+      const cat = categories[i % categories.length] ?? categories[0]!;
+      const title = productTitles[i] ?? `Producto ${i + 1}`;
+      const price = 15000 + (i + 1) * 7500;
+      const image = curatedImages[i % curatedImages.length]!;
+      const skuPrefix = `CUST-${(i + 1).toString().padStart(2, '0')}`;
+
+      sampleProducts.push({
+        name: `${name} ${cat.name} ${title}`,
+        categorySlug: cat.slug,
+        price,
+        stock: 20 + ((i * 5) % 40),
+        skuPrefix,
+        description: `Producto seleccionado de alta calidad para la categoría ${cat.name} de la tienda ${name}. Garantía y respaldo oficial.`,
+        image,
+        hasVariants: false,
+      });
+    }
+  }
 
   return {
     id: id as BusinessVerticalId,
