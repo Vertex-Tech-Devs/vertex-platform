@@ -28,6 +28,16 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
     { id: 'viscosidad', name: 'Viscosidad de Aceite', code: 'viscosidad', type: 'button', values: ['5W-30 Sintético', '5W-40 Sintético', '10W-40 Semisintético', '15W-40 Mineral'], required: false },
     { id: 'amperaje', name: 'Capacidad de Batería', code: 'amperaje', type: 'button', values: ['12V 55Ah', '12V 65Ah', '12V 75Ah', '12V 90Ah'], required: false },
   ],
+  colors: {
+    primary: '#dc2626',
+    accent: '#1e293b',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Repuestos 100% Compatibles', content: 'Filtros, lubricantes y piezas con especificación y norma OEM de fábrica.' },
+    { title: 'Detailing de Alto Brillo', content: 'Ceras sintéticas y productos testeados para proteger la pintura de tu auto.' },
+    { title: 'Baterías con Instalación', content: 'Chequeo del alternador y garantía escrita por hasta 18 meses.' },
+  ],
   sampleProducts: [
     {
       name: 'Aceite de Motor 100% Sintético 5W-30 Bidón 4 Litros',

@@ -28,6 +28,16 @@ export const FARMACIA_SALUD_PRESET: BusinessVerticalDefinition = {
     { id: 'formato', name: 'Presentación', code: 'formato', type: 'select', values: ['30 Cápsulas', '60 Cápsulas', '90 Comprimidos', 'Polvo 300g'], required: false },
     { id: 'talle-ortopedia', name: 'Talle', code: 'talle-ortopedia', type: 'button', values: ['S', 'M', 'L', 'Universal Regulable'], required: false },
   ],
+  colors: {
+    primary: '#059669',
+    accent: '#0284c7',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Farmacia Certificada', content: 'Productos aprobados por ANMAT con riguroso control de trazabilidad.' },
+    { title: 'Envíos Seguros y Climatizados', content: 'Transporte adecuado para la correcta conservación de suplementos y dermocosmética.' },
+    { title: 'Atención Farmacéutica', content: 'Asesoramiento profesional para el cuidado de tu salud y bienestar familiar.' },
+  ],
   sampleProducts: [
     {
       name: 'Vitamina C 1000mg + Zinc + Vitamina D3 (60 Comprimidos)',

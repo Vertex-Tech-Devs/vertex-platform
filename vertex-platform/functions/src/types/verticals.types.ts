@@ -88,6 +88,17 @@ export interface BusinessVerticalDefinition {
   categories: VerticalCategoryPreset[];
   attributes: VerticalAttributePreset[];
   sampleProducts: VerticalProductPreset[];
+  colors?: {
+    primary: string;
+    accent: string;
+    background: string;
+  };
+  featureCards?: Array<{
+    title: string;
+    content: string;
+  }>;
+  tagline?: string;
+  whatsappMessage?: string;
 }
 
 export interface BusinessVerticalSummary {

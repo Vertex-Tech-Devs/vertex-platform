@@ -27,6 +27,16 @@ export const SUPERMERCADO_ALMACEN_PRESET: BusinessVerticalDefinition = {
   attributes: [
     { id: 'volumen-bebida', name: 'Volumen', code: 'volumen-bebida', type: 'button', values: ['500 ml', '1.5 L', '2.25 L'], required: false },
   ],
+  colors: {
+    primary: '#16a34a',
+    accent: '#ea580c',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Frescura Garantizada', content: 'Control de calidad estricto en productos frescos y envasados de origen.' },
+    { title: 'Precios Claros y Promociones', content: 'Ahorrá con ofertas semanales y combos familiares de alta conveniencia.' },
+    { title: 'Entrega Programada', content: 'Recibí tu compra en la franja horaria que mejor se adapte a tu día.' },
+  ],
   sampleProducts: [
     {
       name: 'Aceite de Oliva Extra Virgen Primera Prensada 500ml',

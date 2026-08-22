@@ -28,6 +28,16 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
     { id: 'bano-color', name: 'Acabado', code: 'bano-color', type: 'select', values: ['Dorado Brillante', 'Plateado Níquel Free', 'Oro Rosa', 'Resina / Acrílico'], required: false },
     { id: 'color-accesorio', name: 'Color', code: 'color-accesorio', type: 'color', values: ['Negro', 'Suela / Caramelo', 'Bordeaux', 'Beige Crema', 'Verde'], required: false },
   ],
+  colors: {
+    primary: '#db2777',
+    accent: '#f59e0b',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Diseños de Tendencia', content: 'Accesorios inspirados en el streetstyle y pasarelas a precios accesibles.' },
+    { title: 'Materiales Hipoalergénicos', content: 'Baños libres de níquel que cuidan tu piel y prolongan el brillo.' },
+    { title: 'Packaging de Regalo', content: 'Bolsitas de lienzo y tarjetas especiales incluidas en todas tus compras.' },
+  ],
   sampleProducts: [
     {
       name: 'Aros Argollas Chunky Tubulares Gruesas Doradas',

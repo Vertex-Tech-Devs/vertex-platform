@@ -30,6 +30,16 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
     { id: 'tamano', name: 'Tamaño', code: 'tamano', type: 'button', values: ['Individual', 'Mediana', 'Grande'], required: false },
     { id: 'leche', name: 'Tipo de Leche', code: 'leche', type: 'select', values: ['Entera', 'Deslactosada', 'Almendras', 'Avena'], required: false },
   ],
+  colors: {
+    primary: '#ea580c',
+    accent: '#f59e0b',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Elaboración en el Día', content: 'Ingredientes frescos seleccionados y panes artesanales horneados a diario.' },
+    { title: 'Delivery Térmico y Rápido', content: 'Empaquetado especial para que tu pedido llegue caliente y crujiente.' },
+    { title: 'Atención Personalizada', content: 'Hacé tu pedido online y coordiná detalles de entrega al instante por WhatsApp.' },
+  ],
   sampleProducts: [
     {
       name: 'Burger Doble Smash Bacon & Cheddar Fundido',

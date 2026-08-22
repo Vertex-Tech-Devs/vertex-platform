@@ -29,6 +29,16 @@ export const FERRETERIA_CONSTRUCCION_PRESET: BusinessVerticalDefinition = {
     { id: 'potencia-voltaje', name: 'Voltaje / Alimentación', code: 'potencia-voltaje', type: 'select', values: ['220V Eléctrico', 'Batería 18V / 20V Li-Ion', 'Batería 12V Li-Ion'], required: false },
     { id: 'volumen-litros', name: 'Presentación', code: 'volumen-litros', type: 'button', values: ['1 Litro', '4 Litros', '10 Litros', '20 Litros'], required: false },
   ],
+  colors: {
+    primary: '#d97706',
+    accent: '#2563eb',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Herramientas de Alto Rendimiento', content: 'Maquinaria con servicio técnico oficial y repuestos garantizados.' },
+    { title: 'Asesoramiento Técnico en Obra', content: 'Te orientamos en el cálculo de materiales y fijaciones adecuadas.' },
+    { title: 'Envíos a Domicilio y Obras', content: 'Logística ágil para que tu proyecto o reforma nunca se detenga.' },
+  ],
   sampleProducts: [
     {
       name: 'Taladro Percutor Inalámbrico 20V Brushless con 2 Baterías y Maletín',

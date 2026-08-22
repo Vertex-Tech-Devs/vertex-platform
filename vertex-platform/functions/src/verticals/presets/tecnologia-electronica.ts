@@ -31,6 +31,16 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
     { id: 'conectividad', name: 'Conectividad', code: 'conectividad', type: 'select', values: ['Bluetooth 5.3', 'Inalámbrico 2.4GHz', 'USB-C'], required: false },
     { id: 'switch', name: 'Tipo de Switch', code: 'switch', type: 'select', values: ['Red Lineal', 'Brown Táctil', 'Blue Clicky'], required: false },
   ],
+  colors: {
+    primary: '#6366f1',
+    accent: '#3b82f6',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Garantía Oficial', content: '12 meses de garantía oficial y soporte técnico especializado.' },
+    { title: 'Despacho en 24 Horas', content: 'Envío prioritario con seguro total de mercadería.' },
+    { title: 'Asesoramiento IT', content: 'Especialistas listos para asesorarte en compatibilidad y armado.' },
+  ],
   sampleProducts: [
     {
       name: 'Smartphone Pro Ultra 5G (256GB / 512GB)',

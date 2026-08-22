@@ -28,6 +28,16 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
     { id: 'cantidad-pack', name: 'Cantidad / Tirada', code: 'cantidad-pack', type: 'select', values: ['Pack x100 unidades', 'Pack x500 unidades', 'Pack x1000 unidades'], required: false },
     { id: 'talle-imprenta', name: 'Talle', code: 'talle-imprenta', type: 'button', values: ['S', 'M', 'L', 'XL', 'XXL'], required: false },
   ],
+  colors: {
+    primary: '#7c3aed',
+    accent: '#06b6d4',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Impresión de Alta Definición', content: 'Colores vivos, registro milimétrico y control densitométrico estricto.' },
+    { title: 'Prueba de Impresión Previa', content: 'Revisión digital y muestra física para verificar tipografías y sangrías.' },
+    { title: 'Descuentos por Volumen', content: 'Precios escalonados super convenientes para compras y tiradas mayoristas.' },
+  ],
   sampleProducts: [
     {
       name: 'Tarjetas Personales Premium Laminado Mate 350g (Pack x500)',

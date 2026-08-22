@@ -29,6 +29,16 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
     { id: 'luz-requerida', name: 'Requerimiento de Luz', code: 'luz-requerida', type: 'select', values: ['Luz Indirecta Brillante', 'Poca Luz / Sombra', 'Sol Directo Pleno'], required: false },
     { id: 'material-maceta', name: 'Material de Maceta', code: 'material-maceta', type: 'select', values: ['Cerámica Esmaltada', 'Cemento Artesanal', 'Plástico Rotomoldeado Ligero', 'Barro Natural Cocido'], required: false },
   ],
+  colors: {
+    primary: '#15803d',
+    accent: '#84cc16',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Plantas Sanas y Aclimatadas', content: 'Cultivo cuidado con sustratos orgánicos y control biológico de plagas.' },
+    { title: 'Embalaje con Protección Hídrica', content: 'Enviamos tus ejemplares con protección hídrica y fijación de cepellón.' },
+    { title: 'Guía de Cuidados Personalizada', content: 'Cada planta incluye una ficha con sus requerimientos específicos de riego y luz.' },
+  ],
   sampleProducts: [
     {
       name: 'Monstera Deliciosa Costilla de Adán en Maceta de 20cm',

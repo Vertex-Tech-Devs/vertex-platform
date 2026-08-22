@@ -29,6 +29,16 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
     { id: 'material-armazon', name: 'Material', code: 'material-armazon', type: 'select', values: ['Acetato Italiano Fresado', 'Titanio Ultraliviano', 'Metal / Acero Inoxidable', 'TR90 Flexible'], required: false },
     { id: 'color-lente', name: 'Color de Cristal', code: 'color-lente', type: 'color', values: ['Negro Polarizado', 'G15 Verde Clásico', 'Marrón Degradé', 'Azul Espejado', 'Rosa'], required: false },
   ],
+  colors: {
+    primary: '#0891b2',
+    accent: '#475569',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Protección UV400 Certificada', content: 'Cristales polarizados que filtran el 100% de la radiación nociva.' },
+    { title: 'Filtro Blue Light para Pantallas', content: 'Protegé tu vista de la luz azul emitida por monitores y celulares.' },
+    { title: 'Garantía y Ajuste Óptico', content: 'Calibración y cambio de tornillos/plaquetas de por vida en nuestras ópticas.' },
+  ],
   sampleProducts: [
     {
       name: 'Anteojos de Sol Aviador Clásicos Marco Dorado Cristal Verde G15',

@@ -30,6 +30,16 @@ export const BELLEZA_COSMETICA_PRESET: BusinessVerticalDefinition = {
     { id: 'tipo-cabello', name: 'Tipo de Cabello', code: 'tipo-cabello', type: 'select', values: ['Todo Tipo', 'Seco / Dañado', 'Graso / Con Caspa', 'Rizado / Con Frizz'], required: false },
     { id: 'volumen', name: 'Contenido', code: 'volumen', type: 'button', values: ['30 ml', '50 ml', '100 ml', '250 ml'], required: false },
   ],
+  colors: {
+    primary: '#ec4899',
+    accent: '#c084fc',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Cruelty Free & Dermatológico', content: 'Productos certificados, testeados y respetuosos con tu piel y el ambiente.' },
+    { title: 'Muestras de Regalo', content: 'Incluimos mini-tallas y muestras en cada uno de tus pedidos.' },
+    { title: 'Rutinas Personalizadas', content: 'Consultá a nuestras expertas en skincare para encontrar tu rutina ideal.' },
+  ],
   sampleProducts: [
     {
       name: 'Serum Facial Ácido Hialurónico Puro 2% + B5 30ml',

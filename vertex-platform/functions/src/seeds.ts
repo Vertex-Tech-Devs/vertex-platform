@@ -89,6 +89,12 @@ export async function seedStoreData(
     3000,
   );
 
+  const defaultFeatureCards = [
+    { title: 'Calidad Garantizada', content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.' },
+    { title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
+    { title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
+  ];
+
   const aboutUsPayload = {
     storeId: activeStoreId,
     bannerTitle: 'Quiénes Somos',
@@ -98,11 +104,7 @@ export async function seedStoreData(
     centralImageUrl: preset.heroImages[1] ?? preset.heroImages[0] ?? '',
     centralDescription: `${sName} nació con la misión de acercarte lo mejor en ${preset.name.toLowerCase()} con atención personalizada y garantía de satisfacción.`,
     cardsSectionTitle: '¿Por qué elegirnos?',
-    featureCards: [
-      { title: 'Calidad Garantizada', content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.' },
-      { title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
-      { title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
-    ],
+    featureCards: preset.featureCards && preset.featureCards.length > 0 ? preset.featureCards : defaultFeatureCards,
   };
 
   await retry(
@@ -117,24 +119,43 @@ export async function seedStoreData(
   );
 
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const brandColors = preset.colors ?? { primary: '#6366f1', accent: '#06b6d4', background: '#ffffff' };
+  const whatsAppText = encodeURIComponent(`¡Hola! Quisiera hacer una consulta en la tienda de ${sName}.`);
+
   const configPayload = {
     tenantId,
     storeId: activeStoreId,
     storeName: sName,
-    tagline: preset.bannerSubtitle,
+    tagline: preset.tagline ?? preset.bannerSubtitle,
     strapline: '',
     logoUrl: '',
     faviconUrl: '',
-    colors: { primary: '#ea580c', accent: '#ef4444', background: '#ffffff' },
+    colors: brandColors,
     contact: {
       phone: '+54 11 4567-8900',
       email: `hola@${normalizedSlug || 'mi-tienda'}.com.ar`,
-      whatsApp: 'https://wa.me/5491145678900',
+      whatsApp: `https://wa.me/5491145678900?text=${whatsAppText}`,
       instagram: `https://instagram.com/${normalizedSlug || 'mi-tienda'}`,
       facebook: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
     },
     seo: { metaTitle: sName, metaDescription: `Catálogo oficial de ${sName}.` },
-    features: { reviewsEnabled: false, wishlistEnabled: false, blogEnabled: false },
+    features: { reviewsEnabled: true, wishlistEnabled: true, blogEnabled: false },
+    deliveryMethods: {
+      enableStorePickup: true,
+      enableHomeDelivery: true,
+      homeDeliveryDescription: 'Coordinamos el envío y costo por WhatsApp o Andreani / Correo Argentino.',
+      pickupLocations: [
+        {
+          id: `${activeStoreId}-loc-1`,
+          name: 'Sucursal Central / Showroom',
+          address: 'Av. Corrientes 1450',
+          city: 'CABA',
+          schedule: 'Lunes a Viernes de 10:00 a 19:00 hs',
+          notes: 'Presentar DNI y número de pedido para retirar.',
+          enabled: true,
+        },
+      ],
+    },
     payments: {
       mercadoPagoPublicKey: '',
       mercadoPago: {
@@ -235,7 +256,7 @@ export async function seedStoreData(
   }
 
   // 5. Seed Products & Variants
-  const seededProducts: Array<{ id: string; name: string; price: number }> = [];
+  const seededProducts: Array<{ id: string; name: string; price: number; image?: string }> = [];
 
   for (let i = 0; i < preset.sampleProducts.length; i++) {
     const prod = preset.sampleProducts[i];
@@ -309,7 +330,7 @@ export async function seedStoreData(
       }
     }
 
-    seededProducts.push({ id: prodId, name: prod.name, price: prod.price });
+    seededProducts.push({ id: prodId, name: prod.name, price: prod.price, image: prod.image });
   }
 
   // 6. Seed Demo Clients & Orders if FULL_DEMO

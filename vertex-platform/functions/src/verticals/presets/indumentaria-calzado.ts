@@ -31,6 +31,16 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
     { id: 'talle-calzado', name: 'Talle (Calzado)', code: 'talle-calzado', type: 'button', values: ['39', '40', '41', '42', '43', '44'], required: true },
     { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Negro', 'Blanco', 'Azul Marino', 'Beige', 'Gris Melange', 'Verde Militar'], required: true },
   ],
+  colors: {
+    primary: '#18181b',
+    accent: '#f43f5e',
+    background: '#ffffff',
+  },
+  featureCards: [
+    { title: 'Primer Cambio Gratis', content: 'Cambiá talle o modelo sin costo en todo el país.' },
+    { title: 'Confección Premium', content: 'Telas seleccionadas, algodón peinado 24/1 y costuras reforzadas.' },
+    { title: 'Cuotas Sin Interés', content: 'Aprovechá todas las promociones bancarias y Mercado Pago.' },
+  ],
   sampleProducts: [
     {
       name: 'Remera Oversize Heavy Cotton 24/1',
