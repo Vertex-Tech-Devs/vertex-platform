@@ -3,6 +3,7 @@ import {
   getAllBusinessVerticalsSummary,
   resolveVerticalKey,
   buildCustomVerticalDefinition,
+  getBusinessVerticalPreset,
 } from './verticals.registry';
 
 describe('Verticals Registry', () => {
@@ -23,7 +24,7 @@ describe('Verticals Registry', () => {
     expect(summaries.some((s) => s.id === 'IMPRENTA_MERCHANDISING')).toBe(true);
   });
 
-  it('should build custom vertical definitions correctly', () => {
+  it('should build custom vertical definitions with at least 20 sample products', () => {
     const customDef = buildCustomVerticalDefinition({
       id: 'CERVECERIA_ARTESANAL',
       name: 'Cervecería Artesanal',
@@ -38,6 +39,26 @@ describe('Verticals Registry', () => {
     expect(customDef.categories.length).toBe(3);
     expect(customDef.categories[0].name).toBe('IPAs');
     expect(customDef.attributes.length).toBe(1);
-    expect(customDef.sampleProducts.length).toBeGreaterThan(0);
+    expect(customDef.sampleProducts.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('should guarantee all 21 presets have at least 20 sample products with matching categories', () => {
+    const summaries = getAllBusinessVerticalsSummary();
+    for (const summary of summaries) {
+      const preset = getBusinessVerticalPreset(summary.id);
+      expect(preset, `Preset ${summary.id} should exist`).toBeDefined();
+      expect(
+        preset.sampleProducts.length,
+        `Preset ${summary.id} must have >= 20 products, got ${preset.sampleProducts.length}`
+      ).toBeGreaterThanOrEqual(20);
+
+      const catSlugs = new Set(preset.categories.map((c) => c.slug));
+      for (const prod of preset.sampleProducts) {
+        expect(
+          catSlugs.has(prod.categorySlug),
+          `Product "${prod.name}" in preset ${summary.id} has categorySlug "${prod.categorySlug}" which is not in [${Array.from(catSlugs).join(', ')}]`
+        ).toBe(true);
+      }
+    }
   });
 });
