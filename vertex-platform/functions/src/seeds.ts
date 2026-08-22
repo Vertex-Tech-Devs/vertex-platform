@@ -1,7 +1,7 @@
 import type { OAuth2Client } from 'google-auth-library';
 import * as logger from 'firebase-functions/logger';
 import { apiFetch, retry } from './helpers';
-import { getBusinessVerticalPreset } from './verticals/verticals.registry';
+import { getBusinessVerticalPresetAsync } from './verticals/verticals.registry';
 import {
   toFirestoreFields,
   checkStoreSafety,
@@ -25,7 +25,7 @@ export async function seedStoreData(
 ): Promise<void> {
   const activeStoreId = storeId ?? tenantId;
   const sName = storeName ? storeName.trim() : 'Vertex';
-  const preset = getBusinessVerticalPreset(verticalId);
+  const preset = await getBusinessVerticalPresetAsync(verticalId);
   const isModeEmpty = provisioningMode === 'EMPTY';
   const isModeCatalogOnly = provisioningMode === 'CATALOG_ONLY';
   const isModeFullDemo = !isModeEmpty && !isModeCatalogOnly && includeMockData;

@@ -1,13 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SeedStoreModal } from './seed-store-modal';
+import { StoresService } from '@core/services/stores';
+import { signal } from '@angular/core';
+import { PLATFORM_BUSINESS_VERTICALS } from '@core/constants/business-verticals.constants';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('SeedStoreModal', () => {
   let component: SeedStoreModal;
   let fixture: ComponentFixture<SeedStoreModal>;
 
+  const mockStoresService = {
+    allVerticals: signal(PLATFORM_BUSINESS_VERTICALS),
+    createCustomVertical: vi.fn().mockResolvedValue({
+      success: true,
+      vertical: { id: 'TEST', name: 'Test', icon: '🏷️', description: 'Desc' },
+    }),
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SeedStoreModal],
+      providers: [{ provide: StoresService, useValue: mockStoresService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SeedStoreModal);
@@ -31,13 +44,6 @@ describe('SeedStoreModal', () => {
 
     component.selectMode('CATALOG_ONLY');
     expect(component.selectedMode()).toBe('CATALOG_ONLY');
-  });
-
-  it('should filter verticals according to searchTerm', () => {
-    component.searchTerm.set('electro');
-    const filtered = component.filteredVerticals();
-    expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.some((v) => v.id === 'TECNOLOGIA_ELECTRONICA')).toBe(true);
   });
 
   it('should emit seedConfirmed onConfirm when purge is confirmed', () => {
@@ -65,5 +71,17 @@ describe('SeedStoreModal', () => {
 
     component.onCancel();
     expect(closed).toBe(true);
+  });
+
+  it('should handle onCustomVerticalCreated', () => {
+    component.onCustomVerticalCreated({
+      id: 'CERVECERIA',
+      name: 'Cervecería',
+      icon: '🍺',
+      description: 'Cervezas artesanales',
+    });
+
+    expect(component.selectedVerticalId()).toBe('CERVECERIA');
+    expect(component.showCustomVerticalModal()).toBe(false);
   });
 });

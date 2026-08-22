@@ -100,31 +100,18 @@
       </div>
     </section>
 
-    <!-- Section 2: Rubro del Negocio (Visual Cards) -->
+    <!-- Section 2: Rubro del Negocio (Visual Cards con Buscador y Paginador) -->
     <section class="form-section">
       <div class="section-header">
         <h2 class="form-section__title">Rubro del Negocio *</h2>
-        <p class="section-subtitle">Define categorías, atributos y banners adaptados al rubro.</p>
+        <p class="section-subtitle">Define categorías, atributos y banners adaptados al rubro comercial.</p>
       </div>
 
-      <div class="option-cards-grid option-cards-grid--2col">
-        @for (v of verticals; track v.id) {
-          <div
-            class="option-card"
-            [class.is-selected]="form.get('businessVertical')?.value === v.id"
-            (click)="selectVertical(v.id)"
-          >
-            <div class="option-card__header">
-              <span class="option-card__icon">{{ v.icon }}</span>
-              <div class="option-card__radio">
-                <span class="radio-dot"></span>
-              </div>
-            </div>
-            <h3 class="option-card__title">{{ v.name }}</h3>
-            <p class="option-card__desc">{{ v.description }}</p>
-          </div>
-        }
-      </div>
+      <app-rubro-selector
+        [selectedVerticalId]="form.get('businessVertical')?.value || 'TECNOLOGIA_ELECTRONICA'"
+        (selectedVerticalChange)="selectVertical($event)"
+        (createRequested)="showCustomVerticalModal.set(true)"
+      ></app-rubro-selector>
     </section>
 
     <!-- Section 3: Modalidad de Aprovisionamiento (Visual Cards) -->
@@ -258,4 +245,11 @@
       </button>
     </div>
   </form>
+
+  @if (showCustomVerticalModal()) {
+    <app-custom-vertical-modal
+      (close)="showCustomVerticalModal.set(false)"
+      (created)="onCustomVerticalCreated($event)"
+    ></app-custom-vertical-modal>
+  }
 </div>

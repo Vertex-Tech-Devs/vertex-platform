@@ -1,0 +1,197 @@
+<div class="modal-backdrop fade show" (click)="onCancel()"></div>
+
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-content glass-modal">
+      <header class="modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-2">
+          <span class="modal-icon-badge">✨</span>
+          <div>
+            <h5 class="modal-title fw-bold text-white mb-0">Crear Nuevo Rubro Comercial</h5>
+            <p class="text-muted small mb-0">
+              Personalizá un rubro nuevo con icono, categorías y estética predeterminada.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          aria-label="Cerrar"
+          [disabled]="isSubmitting()"
+          (click)="onCancel()"
+        ></button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="modal-body custom-scrollbar py-3">
+          @if (errorMessage()) {
+            <div class="alert alert-error mb-3">{{ errorMessage() }}</div>
+          }
+
+          <!-- 1. Identidad -->
+          <div class="form-section-compact mb-3">
+            <h6 class="form-section-compact__title">1. Identidad del Rubro</h6>
+
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label small text-secondary">Nombre del Rubro *</label>
+                <input
+                  type="text"
+                  class="form-control glass-input"
+                  formControlName="name"
+                  placeholder="ej. Cervecería Artesanal, Óptica Vintage..."
+                  [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+                />
+                @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                  <div class="invalid-feedback">El nombre debe tener al menos 3 caracteres.</div>
+                }
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small text-secondary">Icono / Emoji *</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input
+                    type="text"
+                    class="form-control glass-input text-center fs-5"
+                    formControlName="icon"
+                    style="max-width: 60px;"
+                    maxlength="4"
+                  />
+                  <span class="text-muted small">Seleccioná o escribí:</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Emojis rápidos -->
+            <div class="emoji-picker-row mt-2">
+              @for (em of quickEmojis; track em) {
+                <button
+                  type="button"
+                  class="emoji-btn"
+                  [class.is-active]="form.get('icon')?.value === em"
+                  (click)="selectEmoji(em)"
+                >
+                  {{ em }}
+                </button>
+              }
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small text-secondary">Descripción del Negocio *</label>
+              <textarea
+                class="form-control glass-input"
+                rows="2"
+                formControlName="description"
+                placeholder="Breve resumen de los productos y público objetivo de este rubro..."
+                [class.is-invalid]="form.get('description')?.invalid && form.get('description')?.touched"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <div class="invalid-feedback">La descripción debe tener al menos 10 caracteres.</div>
+              }
+            </div>
+          </div>
+
+          <!-- 2. Categorías Iniciales -->
+          <div class="form-section-compact mb-3">
+            <h6 class="form-section-compact__title">2. Categorías Iniciales</h6>
+            <p class="text-muted small mb-2">Se crearán automáticamente al sembrar o crear una tienda en este rubro.</p>
+
+            <div class="input-group mb-2">
+              <input
+                type="text"
+                class="form-control glass-input"
+                formControlName="categoryInput"
+                placeholder="Nueva categoría (ej. IPAs, Rubias, Accesorios)..."
+                (keydown)="onKeyDownCategory($event)"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-info"
+                (click)="addCategory()"
+              >
+                + Agregar
+              </button>
+            </div>
+
+            <div class="tags-container">
+              @for (cat of categoriesList(); track cat; let i = $index) {
+                <span class="category-chip">
+                  <span>{{ cat }}</span>
+                  <button
+                    type="button"
+                    class="category-chip__remove"
+                    (click)="removeCategory(i)"
+                    aria-label="Eliminar categoría"
+                  >
+                    ✕
+                  </button>
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- 3. Colores de Marca Sugeridos -->
+          <div class="form-section-compact">
+            <h6 class="form-section-compact__title">3. Paleta de Colores Sugerida</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-secondary">Color Primario</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input
+                    type="color"
+                    class="form-control form-control-color glass-color-picker"
+                    formControlName="primaryColor"
+                  />
+                  <input
+                    type="text"
+                    class="form-control form-control-sm glass-input"
+                    formControlName="primaryColor"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small text-secondary">Color de Acento</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input
+                    type="color"
+                    class="form-control form-control-color glass-color-picker"
+                    formControlName="accentColor"
+                  />
+                  <input
+                    type="text"
+                    class="form-control form-control-sm glass-input"
+                    formControlName="accentColor"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-footer border-0 pt-0">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            [disabled]="isSubmitting()"
+            (click)="onCancel()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary-gradient btn-sm"
+            [disabled]="isSubmitting() || form.invalid"
+          >
+            @if (isSubmitting()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              Guardando...
+            } @else {
+              <span>Guardar y Seleccionar Rubro</span>
+            }
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</div>

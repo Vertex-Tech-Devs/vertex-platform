@@ -4,10 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
-import {
-  PLATFORM_BUSINESS_VERTICALS,
-  type VerticalOption,
-} from '@core/constants/business-verticals.constants';
+import type { VerticalOption } from '@core/constants/business-verticals.constants';
+
+import { RubroSelector } from '@shared/components/rubro-selector/rubro-selector';
+import { CustomVerticalModal } from '../custom-vertical-modal/custom-vertical-modal';
 
 // Must match backend: 3-20 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
@@ -24,7 +24,7 @@ export interface ProvisioningModeOption {
 @Component({
   selector: 'app-store-create',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, RubroSelector, CustomVerticalModal],
   templateUrl: './store-create.html',
   styleUrl: './store-create.scss',
 })
@@ -37,13 +37,14 @@ export class StoreCreate implements OnInit {
   readonly errorMessage = signal('');
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
   readonly runtimeSummaryError = signal('');
+  readonly showCustomVerticalModal = signal<boolean>(false);
 
   readonly logoPreview = signal<string | null>(null);
   readonly logoFileName = signal<string>('');
   readonly logoFileSize = signal<string>('');
   readonly isDraggingLogo = signal<boolean>(false);
 
-  readonly verticals: VerticalOption[] = PLATFORM_BUSINESS_VERTICALS;
+  readonly verticals = this.storesService.allVerticals;
 
   readonly provisioningModes: ProvisioningModeOption[] = [
     {
@@ -91,6 +92,13 @@ export class StoreCreate implements OnInit {
   selectVertical(id: string): void {
     this.form.get('businessVertical')?.setValue(id);
     this.form.get('verticalId')?.setValue(id);
+  }
+
+  onCustomVerticalCreated(vertical: VerticalOption): void {
+    if (vertical?.id) {
+      this.selectVertical(vertical.id);
+    }
+    this.showCustomVerticalModal.set(false);
   }
 
   selectMode(id: string): void {
