@@ -19,7 +19,8 @@ export type BusinessVerticalId =
   | 'VIVEROS_JARDINERIA'
   | 'DIETETICA_NATURISTA'
   | 'BIJOUTERIE_ACCESORIOS'
-  | 'IMPRENTA_MERCHANDISING';
+  | 'IMPRENTA_MERCHANDISING'
+  | (string & {});
 
 export interface VerticalCategoryPreset {
   id: string;
@@ -87,6 +88,17 @@ export interface BusinessVerticalDefinition {
   categories: VerticalCategoryPreset[];
   attributes: VerticalAttributePreset[];
   sampleProducts: VerticalProductPreset[];
+  colors?: {
+    primary: string;
+    accent: string;
+    background: string;
+  };
+  featureCards?: Array<{
+    title: string;
+    content: string;
+  }>;
+  tagline?: string;
+  whatsappMessage?: string;
 }
 
 export interface BusinessVerticalSummary {

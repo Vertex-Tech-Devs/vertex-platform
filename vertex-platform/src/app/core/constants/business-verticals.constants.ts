@@ -3,6 +3,34 @@ export interface VerticalOption {
   icon: string;
   name: string;
   description: string;
+  isCustom?: boolean;
+  categories?: string[];
+  themeColors?: {
+    primary?: string;
+    accent?: string;
+    background?: string;
+  };
+}
+
+export interface CreateCustomVerticalPayload {
+  name: string;
+  slug?: string;
+  icon: string;
+  description: string;
+  categories?: string[];
+  attributes?: Array<{
+    name: string;
+    code: string;
+    type: 'select' | 'color' | 'button' | 'text';
+    values: string[];
+  }>;
+  themeColors?: {
+    primary: string;
+    accent: string;
+    background: string;
+  };
+  bannerTitle?: string;
+  bannerSubtitle?: string;
 }
 
 export const PLATFORM_BUSINESS_VERTICALS: VerticalOption[] = [

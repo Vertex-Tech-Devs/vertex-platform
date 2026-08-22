@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import {
   getFirestore,
   collection,
@@ -33,6 +33,12 @@ import type {
   ShardReadinessReport,
 } from '../models/shard-capacity';
 import { normalizeDomainStatus, mapDnsRecords } from '../models/shard-capacity';
+import {
+  PLATFORM_BUSINESS_VERTICALS,
+  type VerticalOption,
+  type CreateCustomVerticalPayload,
+} from '../constants/business-verticals.constants';
+
 export type {
   DnsRecord,
   RuntimeShardCapacity,
@@ -47,6 +53,7 @@ export class StoresService {
   private db = getFirestore();
   private fns = getFunctions();
   private storesRef = collection(this.db, 'stores');
+  private customVerticalsRef = collection(this.db, 'business_verticals');
   private authService = inject(AuthService);
 
   readonly stores = toSignal(
@@ -88,6 +95,47 @@ export class StoresService {
     ),
     { initialValue: [] },
   );
+
+  readonly customVerticals = toSignal(
+    toObservable(this.authService.user).pipe(
+      switchMap((u) => {
+        if (!u) {
+          return of([]);
+        }
+        return new Observable<VerticalOption[]>((subscriber) => {
+          const unsub = onSnapshot(
+            this.customVerticalsRef,
+            (snap) => {
+              const list: VerticalOption[] = snap.docs.map((d) => {
+                const data = d.data();
+                return {
+                  id: d.id,
+                  icon: data['icon'] || '🏷️',
+                  name: data['name'] || d.id,
+                  description: data['description'] || '',
+                  isCustom: true,
+                  categories: data['categories'] || [],
+                  themeColors: data['themeColors'],
+                };
+              });
+              subscriber.next(list);
+            },
+            (err) => {
+              console.warn('[StoresService] Error loading custom verticals:', err);
+              subscriber.next([]);
+            },
+          );
+          return unsub;
+        });
+      }),
+    ),
+    { initialValue: [] },
+  );
+
+  readonly allVerticals = computed<VerticalOption[]>(() => {
+    const custom = this.customVerticals() || [];
+    return [...PLATFORM_BUSINESS_VERTICALS, ...custom];
+  });
 
   /** True hasta que llega el primer snapshot de tiendas (para skeletons/loadings). */
   readonly isLoading = signal(true);
@@ -334,5 +382,16 @@ export class StoresService {
       'updateStoreVersion',
     );
     await fn({ storeId, version });
+  }
+
+  async createCustomVertical(
+    payload: CreateCustomVerticalPayload,
+  ): Promise<{ success: boolean; vertical: VerticalOption }> {
+    const fn = httpsCallable<
+      CreateCustomVerticalPayload,
+      { success: boolean; vertical: VerticalOption }
+    >(this.fns, 'createCustomVertical');
+    const result = await fn(payload);
+    return result.data;
   }
 }
