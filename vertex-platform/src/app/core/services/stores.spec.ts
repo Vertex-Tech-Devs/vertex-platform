@@ -60,13 +60,13 @@ describe('StoresService', () => {
     expect(service.stores()).toEqual([]);
   });
 
-  it('registers onSnapshot listeners on construction (stores + pool alert)', async () => {
+  it('registers onSnapshot listeners on construction (stores + custom verticals + pool alert)', async () => {
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
     TestBed.inject(StoresService);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    // 1 listener para la colección stores + 1 para la alerta de pool de shards.
-    expect(mockOnSnapshot).toHaveBeenCalledTimes(2);
+    // 1 listener para stores + 1 para custom verticals + 1 para alerta de pool de shards
+    expect(mockOnSnapshot).toHaveBeenCalledTimes(3);
   });
 
   it('returns unsubscribe function from onSnapshot (no leak)', async () => {
@@ -595,5 +595,34 @@ describe('StoresService', () => {
       threshold: 2,
       command: 'npx tsx scripts/provision-shards.ts --target 10',
     });
+  });
+
+  it('createCustomVertical calls the createCustomVertical callable', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        vertical: { id: 'TEST_VERTICAL', name: 'Test Vertical', icon: '🏷️' },
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.createCustomVertical({
+      name: 'Custom Rubro',
+      icon: '✨',
+      description: 'Descripción custom',
+      categories: ['Cat 1', 'Cat 2'],
+    });
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'createCustomVertical');
+    expect(mockFn).toHaveBeenCalledWith({
+      name: 'Custom Rubro',
+      icon: '✨',
+      description: 'Descripción custom',
+      categories: ['Cat 1', 'Cat 2'],
+    });
+    expect(result.success).toBe(true);
   });
 });

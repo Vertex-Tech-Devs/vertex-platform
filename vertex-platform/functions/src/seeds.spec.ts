@@ -26,10 +26,12 @@ describe('Seed Engine', () => {
     );
 
     const calls = mockApiFetch.mock.calls.map((c) => c[1]);
+    expect(calls.some((url: string) => url.includes('banners/home_store-123'))).toBe(true);
     expect(calls.some((url: string) => url.includes('pages/home_store-123'))).toBe(true);
     expect(calls.some((url: string) => url.includes('pages/aboutUs_store-123'))).toBe(true);
     expect(calls.some((url: string) => url.includes('configuracion/store_store-123'))).toBe(true);
     expect(calls.some((url: string) => url.includes('configuracion/footer_store-123'))).toBe(true);
+    expect(calls.some((url: string) => url.includes('settings/emailTemplates_store-123'))).toBe(true);
     // Categories and products should NOT be seeded in EMPTY mode
     expect(calls.some((url: string) => url.includes('categories/store-123-cat-'))).toBe(false);
     expect(calls.some((url: string) => url.includes('products/store-123-prod-'))).toBe(false);

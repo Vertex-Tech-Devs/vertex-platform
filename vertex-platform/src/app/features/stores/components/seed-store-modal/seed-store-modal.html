@@ -23,41 +23,18 @@
       </header>
 
       <div class="modal-body custom-scrollbar py-3">
-        <!-- 1. Selector de Rubro Comercial -->
+        <!-- 1. Selector de Rubro Comercial con Buscador y Paginador -->
         <div class="mb-4">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label text-light fw-semibold small mb-0">
-              1. Seleccioná el Rubro Comercial (21 disponibles)
-            </label>
-            <div class="search-box">
-              <input
-                type="text"
-                class="form-control form-control-sm glass-input"
-                placeholder="Buscar rubro..."
-                [ngModel]="searchTerm()"
-                (ngModelChange)="searchTerm.set($event)"
-              />
-            </div>
-          </div>
-
-          <div class="verticals-grid custom-scrollbar">
-            @for (v of filteredVerticals(); track v.id) {
-              <div
-                class="vertical-card"
-                [class.vertical-card--selected]="selectedVerticalId() === v.id"
-                (click)="selectVertical(v.id)"
-              >
-                <div class="vertical-card__icon">{{ v.icon }}</div>
-                <div class="vertical-card__info">
-                  <span class="vertical-card__name">{{ v.name }}</span>
-                  <span class="vertical-card__desc">{{ v.description }}</span>
-                </div>
-                @if (selectedVerticalId() === v.id) {
-                  <span class="vertical-card__badge">✓</span>
-                }
-              </div>
-            }
-          </div>
+          <label class="form-label text-light fw-semibold small mb-2">
+            1. Seleccioná el Rubro Comercial
+          </label>
+          <app-rubro-selector
+            [selectedVerticalId]="selectedVerticalId()"
+            [pageSize]="6"
+            [compact]="true"
+            (selectedVerticalChange)="selectVertical($event)"
+            (createRequested)="showCustomVerticalModal.set(true)"
+          ></app-rubro-selector>
         </div>
 
         <!-- 2. Selector de Modo de Aprovisionamiento -->
@@ -128,4 +105,11 @@
       </footer>
     </div>
   </div>
+
+  @if (showCustomVerticalModal()) {
+    <app-custom-vertical-modal
+      (close)="showCustomVerticalModal.set(false)"
+      (created)="onCustomVerticalCreated($event)"
+    ></app-custom-vertical-modal>
+  }
 </div>

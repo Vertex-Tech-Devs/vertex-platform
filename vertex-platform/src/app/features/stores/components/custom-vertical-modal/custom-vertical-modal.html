@@ -1,0 +1,225 @@
+<div class="custom-vertical-modal-overlay" (click)="onCancel()">
+  <div class="custom-vertical-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="custom-vertical-title">
+    <header class="custom-vertical-modal-card__header">
+      <div class="header-left">
+        <div class="header-icon-badge">
+          <span class="icon-emoji">{{ form.get('icon')?.value || '✨' }}</span>
+        </div>
+        <div>
+          <h3 id="custom-vertical-title" class="header-title">Crear Nuevo Rubro Comercial</h3>
+          <p class="header-subtitle">
+            Personalizá un rubro exclusivo con categorías, catálogo y paleta de colores a medida.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn-close-modal"
+        aria-label="Cerrar modal"
+        [disabled]="isSubmitting()"
+        (click)="onCancel()"
+      >
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="modal-form">
+      <div class="custom-vertical-modal-card__body custom-scrollbar">
+        @if (errorMessage()) {
+          <div class="modal-alert modal-alert--error" role="alert">
+            <span class="alert-icon">⚠️</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- 1. Identidad del Rubro -->
+        <section class="form-card-section">
+          <div class="section-header">
+            <span class="section-step">1</span>
+            <h4 class="section-title">Identidad del Rubro</h4>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="field-label" for="vertical-name-input">Nombre del Rubro <span class="required-mark">*</span></label>
+              <input
+                id="vertical-name-input"
+                type="text"
+                class="glass-input"
+                formControlName="name"
+                placeholder="ej. Cervecería Artesanal, Óptica Vintage, Lencería..."
+                [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+                autocomplete="off"
+              />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <span class="field-error">El nombre debe tener al menos 3 caracteres.</span>
+              }
+            </div>
+
+            <div class="form-group">
+              <label class="field-label" for="vertical-icon-input">Icono / Emoji <span class="required-mark">*</span></label>
+              <div class="icon-selector-inline">
+                <input
+                  id="vertical-icon-input"
+                  type="text"
+                  class="glass-input text-center fs-5"
+                  formControlName="icon"
+                  style="max-width: 70px;"
+                  maxlength="4"
+                />
+                <span class="helper-text">Elegí o escribí tu emoji:</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emojis rápidos -->
+          <div class="emoji-picker-container">
+            @for (em of quickEmojis; track em) {
+              <button
+                type="button"
+                class="emoji-btn"
+                [class.is-active]="form.get('icon')?.value === em"
+                (click)="selectEmoji(em)"
+                [attr.aria-label]="'Seleccionar emoji ' + em"
+              >
+                {{ em }}
+              </button>
+            }
+          </div>
+
+          <div class="form-group mt-3">
+            <label class="field-label" for="vertical-desc-input">Descripción del Negocio <span class="required-mark">*</span></label>
+            <textarea
+              id="vertical-desc-input"
+              class="glass-input"
+              rows="2"
+              formControlName="description"
+              placeholder="Breve resumen de los productos, propuesta de valor y público objetivo de este rubro..."
+              [class.is-invalid]="form.get('description')?.invalid && form.get('description')?.touched"
+            ></textarea>
+            @if (form.get('description')?.invalid && form.get('description')?.touched) {
+              <span class="field-error">La descripción debe tener al menos 10 caracteres.</span>
+            }
+          </div>
+        </section>
+
+        <!-- 2. Categorías Iniciales -->
+        <section class="form-card-section">
+          <div class="section-header">
+            <span class="section-step">2</span>
+            <div>
+              <h4 class="section-title">Categorías del Catálogo</h4>
+              <p class="section-hint">Se crearán automáticamente al sembrar o crear tiendas en este rubro.</p>
+            </div>
+          </div>
+
+          <div class="category-add-row">
+            <input
+              type="text"
+              class="glass-input"
+              formControlName="categoryInput"
+              placeholder="Nueva categoría (ej. IPAs, Accesorios, etc.)..."
+              (keydown)="onKeyDownCategory($event)"
+            />
+            <button
+              type="button"
+              class="btn-add-tag"
+              [disabled]="!form.get('categoryInput')?.value?.trim()"
+              (click)="addCategory()"
+            >
+              + Agregar
+            </button>
+          </div>
+
+          <div class="tags-cloud">
+            @for (cat of categoriesList(); track cat; let idx = $index) {
+              <div class="category-tag-chip">
+                <span class="tag-label">{{ cat }}</span>
+                @if (categoriesList().length > 1) {
+                  <button
+                    type="button"
+                    class="tag-remove-btn"
+                    [attr.aria-label]="'Eliminar ' + cat"
+                    (click)="removeCategory(idx)"
+                  >
+                    &times;
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- 3. Identidad Visual & Paleta de Color -->
+        <section class="form-card-section">
+          <div class="section-header">
+            <span class="section-step">3</span>
+            <div>
+              <h4 class="section-title">Paleta de Color de Marca</h4>
+              <p class="section-hint">Colores temáticos que personalizarán el diseño del Storefront.</p>
+            </div>
+          </div>
+
+          <div class="colors-preview-layout">
+            <div class="color-picker-item">
+              <label class="field-label" for="primary-color-input">Color Primario</label>
+              <div class="color-input-wrapper">
+                <input
+                  id="primary-color-input"
+                  type="color"
+                  class="glass-color-input"
+                  formControlName="primaryColor"
+                />
+                <span class="color-hex-badge">{{ form.get('primaryColor')?.value }}</span>
+              </div>
+            </div>
+
+            <div class="color-picker-item">
+              <label class="field-label" for="accent-color-input">Color Secundario / Acento</label>
+              <div class="color-input-wrapper">
+                <input
+                  id="accent-color-input"
+                  type="color"
+                  class="glass-color-input"
+                  formControlName="accentColor"
+                />
+                <span class="color-hex-badge">{{ form.get('accentColor')?.value }}</span>
+              </div>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="preview-mini-card" [style.--brand-primary]="form.get('primaryColor')?.value" [style.--brand-accent]="form.get('accentColor')?.value">
+              <span class="preview-icon">{{ form.get('icon')?.value || '🏷️' }}</span>
+              <div class="preview-info">
+                <span class="preview-title">{{ form.get('name')?.value || 'Nombre del Rubro' }}</span>
+                <span class="preview-badge" [style.background]="form.get('primaryColor')?.value">Vista Previa</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="custom-vertical-modal-card__footer">
+        <button
+          type="button"
+          class="btn-modal-secondary"
+          [disabled]="isSubmitting()"
+          (click)="onCancel()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-modal-primary"
+          [disabled]="isSubmitting() || form.invalid"
+        >
+          @if (isSubmitting()) {
+            <span class="btn-spinner"></span> Guardando Rubro...
+          } @else {
+            <span>✨ Crear Rubro & Continuar</span>
+          }
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>

@@ -30,10 +30,10 @@ platform/
 npm run start                            # Orquestador E2E con hot-reload
 bash docker/start.sh                     # Stack Docker completo
 
-# Tests (175 tests totales)
-npm test                                 # 111 Frontend + 64 Backend (Vitest)
-npm run test:backend                     # Backend (Vitest) — 64 tests
-npm run test:frontend                    # Frontend (ng test) — 111 tests
+# Tests (198 tests totales)
+npm test                                 # 133 Frontend + 65 Backend (Vitest)
+npm run test:backend                     # Backend (Vitest) — 65 tests
+npm run test:frontend                    # Frontend (ng test) — 133 tests
 
 # Build
 npm run build                            # Build monorepo completo (Frontend + Functions)
@@ -140,14 +140,20 @@ const secretCache = new Map<string, string>();
 
 ---
 
-## 🏬 Motor de Rubros Comerciales (21 Presets) y Semillado Multimodal
+## 🏬 Motor de Rubros Comerciales Dinámicos, Buscador y Paginador de Cards
 
-- **Catálogo Centralizado**: Ubicado en `functions/src/verticals/` con 21 presets modulares (`presets/*.ts`), tipados con `BusinessVerticalDefinition` y accesibles vía `getBusinessVerticalPreset(verticalId)` y `getAllBusinessVerticalsSummary()`.
+- **Catálogo Centralizado & Custom Verticals**:
+  * 21 presets nativos modulares ubicados en `functions/src/verticals/presets/*.ts`, cada uno con más de 20 productos detallados, variantes realistas, paleta de colores y USPs únicas.
+  * **Sistema de Creación de Rubros Custom (`CustomVerticalModal`)**: Modal flotante centrado con Glassmorphism (`position: fixed; inset: 0; z-index: 10000`), preview en vivo de marca, selector rápido de emojis y listado de chips interactivos. Permite registrar nuevos rubros en `business_verticals/{id}` vía `createCustomVertical`.
+  * **Resolución Dinámica**: `getBusinessVerticalPresetAsync(verticalId)` resuelve presets nativos y consulta Firestore en tiempo real para rubros customizados, generando dinámicamente el catálogo y configuración iniciales.
+- **Componente Reutilizable `RubroSelector` (`@shared/components/rubro-selector/`)**:
+  * **Buscador en Tiempo Real**: Filtra instantáneamente por nombre, descripción, ID o categorías asociadas, con botón de limpieza (`✕`).
+  * **Paginador Moderno**: 6 cards por página (configurable con `pageSize`), botones de navegación Anterior/Siguiente, píldoras numéricas de página y contador resumen (`1-6 de 21`).
+  * **Estética Glassmorphism Premium**: Bordes degradados, halo de selección púrpura/cian, micro-animaciones en hover y accesibilidad completa por teclado (`Enter`/`Space`/`Escape`).
 - **Modalidades de Aprovisionamiento (`provisioningMode`)**:
   * `EMPTY`: Crea únicamente los singletons de configuración (`configuracion/store_{storeId}`, `footer_{storeId}`, `pages/home_{storeId}`, `aboutUs_{storeId}`). Deja catálogo, clientes y pedidos en 0 documentos.
-  * `CATALOG_ONLY`: Inyecta Categorías (`{storeId}-cat-{slug}`), Atributos (`{storeId}-attr-{code}`) y Productos de muestra con variantes y stock inicial. 0 clientes y 0 órdenes.
-  * `FULL_DEMO`: Inyecta el catálogo completo + clientes simulados + órdenes históricas correlacionadas.
-- **Frontend Picker**: `PLATFORM_BUSINESS_VERTICALS` expone las opciones interactivas en `src/app/core/constants/business-verticals.constants.ts` para el formulario `store-create`.
+  * `CATALOG_ONLY`: Inyecta 20+ productos con categorías (`{storeId}-cat-{slug}`), atributos (`{storeId}-attr-{code}`), variantes y stock real. 0 clientes y 0 órdenes.
+  * `FULL_DEMO`: Inyecta catálogo completo (20+ productos) + 8 clientes simulados con historial + 8-10 órdenes históricas correlacionadas con diversos estados (`delivered`, `shipped`, `processing`, `pending`, `ready_for_pickup`), métodos de pago (Mercado Pago, transferencia), opciones de envío y retiro en showroom, paleta de colores corporativa y USPs personalizadas.
 
 ---
 

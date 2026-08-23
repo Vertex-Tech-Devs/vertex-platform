@@ -1,0 +1,175 @@
+<div class="rubro-selector" [class.rubro-selector--compact]="compact()">
+  <!-- Top Bar: Buscador y Acciones -->
+  <div class="rubro-selector__toolbar">
+    <div class="rubro-selector__search-wrapper">
+      <span class="rubro-selector__search-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+      <input
+        type="text"
+        class="rubro-selector__search-input"
+        placeholder="Buscar rubro comercial por nombre o palabra clave..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        [ngModelOptions]="{standalone: true}"
+      />
+      @if (searchTerm()) {
+        <button
+          type="button"
+          class="rubro-selector__clear-btn"
+          aria-label="Limpiar búsqueda"
+          (click)="clearSearch()"
+        >
+          ✕
+        </button>
+      }
+    </div>
+
+    <div class="rubro-selector__meta">
+      <span class="rubro-selector__badge-count">
+        {{ filteredVerticals().length }} {{ filteredVerticals().length === 1 ? 'rubro' : 'rubros' }}
+      </span>
+
+      @if (allowCreate()) {
+        <button
+          type="button"
+          class="rubro-selector__create-btn"
+          (click)="requestCreate()"
+          title="Crear un nuevo rubro comercial personalizado"
+        >
+          <span class="rubro-selector__create-icon">+</span>
+          <span>Crear Rubro</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Cards Grid -->
+  @if (paginatedVerticals().length > 0) {
+    <div class="rubro-cards-grid">
+      @for (v of paginatedVerticals(); track v.id) {
+        <div
+          class="rubro-card"
+          [class.is-selected]="selectedVerticalId() === v.id"
+          [class.rubro-card--custom]="v.isCustom"
+          (click)="selectVertical(v.id)"
+          tabindex="0"
+          role="button"
+          (keydown.enter)="selectVertical(v.id)"
+          (keydown.space)="$event.preventDefault(); selectVertical(v.id)"
+          [attr.aria-pressed]="selectedVerticalId() === v.id"
+        >
+          <div class="rubro-card__header">
+            <div class="rubro-card__icon-box">
+              <span class="rubro-card__icon">{{ v.icon || '🏷️' }}</span>
+            </div>
+
+            <div class="rubro-card__header-right">
+              @if (v.isCustom) {
+                <span class="rubro-card__tag-custom">Personalizado</span>
+              }
+              <div class="rubro-card__radio">
+                <span class="radio-dot"></span>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="rubro-card__title">{{ v.name }}</h3>
+          <p class="rubro-card__desc">{{ v.description }}</p>
+
+          @if (v.categories && v.categories.length > 0) {
+            <div class="rubro-card__categories">
+              @for (cat of v.categories.slice(0, 3); track cat) {
+                <span class="rubro-card__cat-pill">{{ cat }}</span>
+              }
+              @if (v.categories.length > 3) {
+                <span class="rubro-card__cat-pill rubro-card__cat-pill--more">+{{ v.categories.length - 3 }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Empty State -->
+    <div class="rubro-selector__empty">
+      <div class="rubro-selector__empty-icon">🔍</div>
+      <h4 class="rubro-selector__empty-title">No se encontraron rubros</h4>
+      <p class="rubro-selector__empty-desc">
+        No hay coincidencias para "<strong>{{ searchTerm() }}</strong>".
+      </p>
+      <div class="rubro-selector__empty-actions">
+        <button
+          type="button"
+          class="btn-secondary-glass"
+          (click)="clearSearch()"
+        >
+          Limpiar búsqueda
+        </button>
+        @if (allowCreate()) {
+          <button
+            type="button"
+            class="btn-primary-glass"
+            (click)="requestCreate()"
+          >
+            Crear rubro "{{ searchTerm() }}"
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Bottom Bar: Paginador Moderno -->
+  @if (filteredVerticals().length > pageSize()) {
+    <div class="rubro-selector__pagination">
+      <span class="rubro-selector__pagination-summary">
+        Mostrando {{ paginationSummary() }}
+      </span>
+
+      <div class="rubro-selector__pagination-controls">
+        <button
+          type="button"
+          class="pagination-btn pagination-btn--prev"
+          [disabled]="currentPage() === 1"
+          (click)="prevPage()"
+          aria-label="Página anterior"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>Anterior</span>
+        </button>
+
+        <div class="pagination-pages">
+          @for (p of pagesList(); track p) {
+            <button
+              type="button"
+              class="pagination-page-btn"
+              [class.is-active]="currentPage() === p"
+              (click)="setPage(p)"
+              [attr.aria-current]="currentPage() === p ? 'page' : null"
+            >
+              {{ p }}
+            </button>
+          }
+        </div>
+
+        <button
+          type="button"
+          class="pagination-btn pagination-btn--next"
+          [disabled]="currentPage() === totalPages()"
+          (click)="nextPage()"
+          aria-label="Página siguiente"
+        >
+          <span>Siguiente</span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>
