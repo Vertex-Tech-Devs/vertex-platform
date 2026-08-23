@@ -41,20 +41,30 @@ service cloud.firestore {
          targetTenant != '' &&
          exists(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)) &&
          (get(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)).data.role == 'owner' ||
-          get(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)).data.role == 'admin'))
+          get(/databases/$(database)/documents/admin_roles/$(targetTenant + '_' + request.auth.token.email)).data.role == 'admin')) ||
+        (request.auth.token.get('email', '') != '' &&
+         exists(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)) &&
+         (get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'owner' ||
+          get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'admin'))
       );
     }
 
     // ── Writes de catálogo aislados por tienda (previene cross-tenant overwrite) ──
     function canCreateForStore() {
-      return isStoreAdmin(request.resource.data.storeId);
+      return isStoreAdmin(request.resource.data.get('storeId', ''));
     }
     function canUpdateStoreDoc() {
-      return isStoreAdmin(request.resource.data.storeId)
-        && request.resource.data.storeId == resource.data.storeId;
+      return isStoreAdmin(request.resource.data.get('storeId', ''))
+        && (
+          !('storeId' in resource.data) ||
+          resource.data.storeId == null ||
+          resource.data.storeId == '' ||
+          request.resource.data.get('storeId', '') == resource.data.storeId ||
+          isStoreAdmin(resource.data.get('storeId', ''))
+        );
     }
     function canDeleteStoreDoc() {
-      return isStoreAdmin(resource.data.storeId);
+      return isStoreAdmin(resource.data.get('storeId', ''));
     }
 
     // ── Public catalog collections (flat root-level, storeId-tagged) ────────────
@@ -141,7 +151,7 @@ service cloud.firestore {
       allow list: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (resource != null && isStoreAdmin(resource.data.get('storeId', ''))) ||
         (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
       );
       allow update: if canUpdateStoreDoc();
@@ -152,12 +162,12 @@ service cloud.firestore {
       allow get: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId))
+        (resource != null && isStoreAdmin(resource.data.get('storeId', '')))
       );
       allow list: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (resource != null && isStoreAdmin(resource.data.get('storeId', ''))) ||
         (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
       );
       allow write: if false;
@@ -170,23 +180,24 @@ service cloud.firestore {
         && request.resource.data.storeId == request.auth.token.get('tenantId', '')
         && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
       allow update, delete: if isAuthenticated()
-        && (resource.data.userId == request.auth.uid || isStoreAdmin(resource.data.storeId));
+        && (resource.data.userId == request.auth.uid || isStoreAdmin(resource.data.get('storeId', '')));
     }
 
     match /settings/{docId} {
       allow get: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId))
+        (resource != null && isStoreAdmin(resource.data.get('storeId', ''))) ||
+        isStoreAdmin('')
       );
       allow list: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (resource != null && isStoreAdmin(resource.data.get('storeId', ''))) ||
         (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
       );
-      allow create: if canCreateForStore();
-      allow update: if canUpdateStoreDoc();
+      allow create: if isStoreAdmin(request.resource.data.get('storeId', ''));
+      allow update: if isStoreAdmin(request.resource.data.get('storeId', '')) || (resource != null && isStoreAdmin(resource.data.get('storeId', '')));
       allow delete: if canDeleteStoreDoc();
     }
 
@@ -194,7 +205,7 @@ service cloud.firestore {
       allow list: if isAuthenticated() && (
         isSuperAdmin() ||
         isStoreAdmin(request.auth.token.get('tenantId', '')) ||
-        (resource != null && isStoreAdmin(resource.data.storeId)) ||
+        (resource != null && isStoreAdmin(resource.data.get('storeId', ''))) ||
         (request.query.get('storeId', '') != '' && isStoreAdmin(request.query.get('storeId', '')))
       );
       allow create: if canCreateForStore();
