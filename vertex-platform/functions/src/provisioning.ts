@@ -2329,6 +2329,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               method: 'PATCH',
               body: {
                 fields: {
+                  storeId: { stringValue: tenantId },
                   storeOwnerEmail: { stringValue: ownerEmail },
                   storeWhatsappNumber: { stringValue: '' },
                   storeName: { stringValue: name },
