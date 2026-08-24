@@ -16,6 +16,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
+
 import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
@@ -62,7 +63,7 @@ export class StoreDetail implements OnInit {
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(true);
   readonly oauthRedirect = this.orchestrationService.oauthRedirect;
-  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial'>('orquestacion');
+  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'>('orquestacion');
 
   readonly store = computed(() => {
     const id = this.storeId();
@@ -161,6 +162,19 @@ export class StoreDetail implements OnInit {
       this.wantsRootOrWwwReady(),
   );
 
+  // ── Mercado Pago ──────────────────────────────────────────────────────────
+  readonly mpPublicKey = signal('');
+  readonly mpAccessToken = signal('');
+  readonly mpSandbox = signal(false);
+  readonly showMpToken = signal(false);
+  readonly isSavingPayment = signal(false);
+  readonly isLoadingPayment = signal(false);
+  readonly paymentSaveError = signal('');
+  readonly paymentSaveSuccess = signal('');
+  readonly mpValidationStatus = signal<'pending' | 'valid' | 'invalid' | ''>('');
+  readonly mpAccountEmail = signal('');
+  readonly mpTokenMasked = signal('');
+
   readonly statusLabel = statusLabelUtil;
   readonly stepIcon = stepIconUtil;
   readonly formatDate = formatDateUtil;
@@ -249,11 +263,14 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial'): void {
+  setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'): void {
     this.activeTab.set(tab);
     const s = this.store();
     if (tab === 'dominios' && s?.customDomain && !this.domainInput()) {
       this.domainInput.set(s.customDomain);
+    }
+    if (tab === 'pagos' && s) {
+      void this.loadPaymentConfig(s.id);
     }
   }
 
@@ -295,6 +312,68 @@ export class StoreDetail implements OnInit {
   connectDomain(): Promise<unknown> {
     const s = this.store();
     return s ? this.domainsService.connectDomain(s.id, this.domainInput()) : Promise.resolve();
+  }
+
+  async loadPaymentConfig(storeId: string): Promise<void> {
+    this.isLoadingPayment.set(true);
+    this.paymentSaveError.set('');
+    this.paymentSaveSuccess.set('');
+    try {
+      const config = await this.storesService.getStoreConfig(storeId);
+      const mp = config?.payments?.mercadoPago;
+      if (mp) {
+        this.mpPublicKey.set(mp.publicKey || '');
+        // accessToken no se lee del servidor (nunca se devuelve en texto plano)
+        this.mpSandbox.set(
+          typeof mp.sandbox === 'boolean'
+            ? mp.sandbox
+            : (mp.accessTokenSecret || '').includes('TEST-') || (mp.publicKey || '').startsWith('TEST-'),
+        );
+        this.mpValidationStatus.set(mp.validationStatus || '');
+        this.mpAccountEmail.set(mp.accountEmail || '');
+        this.mpTokenMasked.set(mp.accessTokenMasked || '');
+      }
+    } catch (err) {
+      console.warn('No se pudo cargar la configuración de pagos:', err);
+    } finally {
+      this.isLoadingPayment.set(false);
+    }
+  }
+
+  async savePaymentConfig(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isSavingPayment.set(true);
+    this.paymentSaveError.set('');
+    this.paymentSaveSuccess.set('');
+    try {
+      const mpConfig: { publicKey: string; sandbox: boolean; accessToken?: string; webhookUrl?: string } = {
+        publicKey: this.mpPublicKey().trim(),
+        sandbox: this.mpSandbox(),
+      };
+      const token = this.mpAccessToken().trim();
+      if (token) {
+        mpConfig['accessToken'] = token;
+      }
+      await this.storesService.updateStoreConfig(s.id, {
+        payments: { mercadoPago: mpConfig },
+      });
+      this.mpAccessToken.set(''); // Limpiar token del estado tras guardar
+      this.paymentSaveSuccess.set('Credenciales guardadas y validadas correctamente.');
+      // Recargar para mostrar el estado actualizado (masked token, email, etc.)
+      await this.loadPaymentConfig(s.id);
+    } catch (err) {
+      this.paymentSaveError.set(errorMessage(err, 'No se pudieron guardar las credenciales de pago.'));
+    } finally {
+      this.isSavingPayment.set(false);
+    }
+  }
+
+  copyWebhookUrl(storeId: string): Promise<void> {
+    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?storeId=${storeId}`;
+    return this.staffService.copyToClipboard(url);
   }
 
   openEdit(): void {

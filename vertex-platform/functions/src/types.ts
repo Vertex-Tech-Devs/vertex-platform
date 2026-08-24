@@ -109,6 +109,7 @@ export interface StoreMercadoPagoConfig {
   accountEmail?: string;
   accountUserId?: string;
   webhookUrl: string;
+  sandbox?: boolean;
   validationStatus?: 'pending' | 'valid' | 'invalid';
   validationMessage?: string;
   validatedAt?: string;

@@ -2329,3 +2329,209 @@
   }
 }
 
+// ─── Payments Tab ───────────────────────────────────────────────────────────
+
+.payments-container {
+  padding: 0;
+}
+
+.payments-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mp-form {
+  margin-top: 1.25rem;
+}
+
+// Password input with eye toggle
+.input-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-control {
+    padding-right: 2.75rem;
+  }
+}
+
+.input-password-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--platform-text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--platform-text-primary);
+  }
+}
+
+// Readonly input with copy button
+.input-copy-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  .form-control--readonly {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--platform-text-secondary);
+    cursor: default;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+
+  .btn-sm {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+}
+
+// Sandbox toggle switch
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  &__slider {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    transition: background 0.2s ease;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s ease;
+    }
+  }
+
+  &.is-on .toggle-switch__slider {
+    background: var(--platform-accent, #6c63ff);
+
+    &::after {
+      transform: translateX(20px);
+    }
+  }
+}
+
+// Validation badge
+.mp-validation-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+
+  code {
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+
+  &--valid {
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+  }
+
+  &--invalid {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #f87171;
+  }
+}
+
+// Info steps list (how-to card)
+.mp-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.mp-info-step {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+
+  &__num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--platform-accent-gradient, linear-gradient(135deg, #6c63ff, #9d50f5));
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--platform-text-secondary);
+    line-height: 1.45;
+  }
+
+  code {
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    color: var(--platform-text-primary);
+  }
+}
+
+// Tab badge additional colors (error state)
+.tab-badge--error {
+  background: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+}

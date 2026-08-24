@@ -1401,12 +1401,21 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       runtimeProjectId?: string;
       runtimeSiteId?: string;
       ownerEmail?: string;
+      provisioningOwnerId?: string;
     };
 
     const authEmail = request.auth?.token.email as string | undefined;
     if (!isOwnerOrSuperAdmin(authEmail, store.ownerEmail)) {
       throw new HttpsError('permission-denied', 'You do not have permission to manage this store.');
     }
+
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = resolveRuntimeSiteId(store);
+    if (!projectId) {
+      throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
+    }
+
+    const auth = await getOwnerOAuthClient(store.provisioningOwnerId);
 
     if (process.env.FUNCTIONS_EMULATOR === 'true') {
       await db.collection('stores').doc(storeId).update({
@@ -1415,22 +1424,10 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       });
       const dnsRecords = [
         { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-        {
-          domainName: `www.${domain}`,
-          type: 'CNAME',
-          rdata: `${storeId}.web.app`,
-          requiredAction: 'ADD',
-        },
+        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${siteId}.web.app`, requiredAction: 'ADD' },
       ];
       return { success: true, dnsRecords };
     }
-
-    const projectId = resolveRuntimeProjectId(store);
-    if (!projectId) {
-      throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
-    }
-    const siteId = resolveRuntimeSiteId(store);
-    const auth = await getOwnerOAuthClient();
 
     const tokenRes = await auth.getAccessToken();
     const res = await fetch(
@@ -1446,30 +1443,58 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     );
 
     if (!res.ok) {
-      const text = await res.text();
-      console.error('connectDomain Firebase Hosting error:', res.status, text);
-      throw new HttpsError('internal', 'Failed to connect domain. Please try again.');
+      const errorBody = await res.text();
+      console.error(`[connectDomain] Firebase Hosting error: ${res.status}`, {
+        projectId,
+        siteId,
+        domain,
+        errorBody,
+      });
+
+      if (res.status === 403) throw new HttpsError('permission-denied', 'Insufficient permissions.');
+      if (res.status === 404) throw new HttpsError('not-found', 'Site or project not found.');
+      if (res.status === 409) throw new HttpsError('already-exists', 'Domain already connected.');
+      throw new HttpsError('internal', 'Failed to connect domain.');
     }
 
-    const result = (await res.json()) as {
-      requiredDnsUpdates?: {
-        discovered?: Array<{
-          domainName?: string;
-          type?: string;
-          rdata?: string;
-          requiredAction?: string;
-        }>;
-      };
-    };
+    const result = (await res.json()) as { requiredDnsUpdates?: { discovered?: any[] } };
+
+    // Sincronizar el dominio en authorizedDomains de Firebase Auth del shard
+    // para que Google OAuth funcione desde el dominio custom.
+    try {
+      const authTokenRes = await auth.getAccessToken();
+      const identityUrl = `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`;
+      const cfgRes = await fetch(identityUrl, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${authTokenRes.token}` },
+      });
+      if (cfgRes.ok) {
+        const cfgData = (await cfgRes.json()) as { authorizedDomains?: string[] };
+        const existing = cfgData.authorizedDomains ?? [];
+        const toAdd = [domain, `www.${domain}`];
+        const updated = [...new Set([...existing, ...toAdd])];
+        if (updated.length !== existing.length) {
+          await fetch(`${identityUrl}?updateMask=authorizedDomains`, {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${authTokenRes.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ authorizedDomains: updated }),
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`[connectDomain] Could not update authorizedDomains for ${projectId}:`, e);
+    }
 
     await db.collection('stores').doc(storeId).update({
       customDomain: domain,
       updatedAt: new Date(),
     });
 
-    const discovered = result.requiredDnsUpdates?.discovered;
-    const dnsRecordsList = Array.isArray(discovered) ? discovered : [];
-    const dnsRecords = dnsRecordsList.map((record) => ({
+    const discovered = result.requiredDnsUpdates?.discovered || [];
+    const dnsRecords = discovered.map((record: any) => ({
       domainName: record?.domainName || '@',
       type: record?.type || 'A',
       rdata: record?.rdata || '',
