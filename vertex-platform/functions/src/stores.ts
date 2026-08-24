@@ -2221,6 +2221,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       runtimeProjectId?: string;
       runtimeSiteId?: string;
       ownerEmail?: string;
+      provisioningOwnerId?: string;
     };
 
     const authEmail = request.auth?.token.email as string | undefined;
@@ -2246,7 +2247,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       throw new HttpsError('failed-precondition', 'Store has no associated Firebase project.');
     }
     const siteId = resolveRuntimeSiteId(store);
-    const auth = await getOwnerOAuthClient();
+    const auth = await getOwnerOAuthClient(store.provisioningOwnerId);
 
     const tokenRes = await auth.getAccessToken();
     const res = await fetch(
@@ -2268,6 +2269,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
 
     const result = (await res.json()) as {
       status?: string;
+      provisioning?: { expectedIps?: string[] };
       requiredDnsUpdates?: {
         discovered?: Array<{
           domainName?: string;
@@ -2280,12 +2282,33 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
 
     const rawStatus = result.status || 'PENDING';
     const normalizedStatus = rawStatus === 'ACTIVE' || rawStatus === 'LIVE' ? 'live' : 'pending';
-    const dnsRecords = (result.requiredDnsUpdates?.discovered ?? []).map((record) => ({
-      domainName: record.domainName || '@',
-      type: record.type || 'A',
-      rdata: record.rdata || '',
-      requiredAction: record.requiredAction || 'ADD',
-    }));
+    // La API NO incluye requiredDnsUpdates en el GET; los registros estándar salen de
+    // provisioning.expectedIps (A) + CNAME www → {site}.web.app.
+    const discovered = result.requiredDnsUpdates?.discovered ?? [];
+    const expectedIps = result.provisioning?.expectedIps ?? ['199.36.158.100'];
+    const isSubdomain = domain.split('.').length > 2;
+    const dnsRecords =
+      discovered.length > 0
+        ? discovered.map((record) => ({
+            domainName: record.domainName || '@',
+            type: record.type || 'A',
+            rdata: record.rdata || '',
+            requiredAction: record.requiredAction || 'ADD',
+          }))
+        : [
+            {
+              domainName: isSubdomain ? domain.split('.')[0] : '@',
+              type: 'A',
+              rdata: expectedIps[0] || '199.36.158.100',
+              requiredAction: 'ADD',
+            },
+            {
+              domainName: 'www',
+              type: 'CNAME',
+              rdata: `${siteId}.web.app`,
+              requiredAction: 'ADD',
+            },
+          ];
 
     await logAuditAction(
       request.auth?.uid || 'unknown',

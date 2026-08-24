@@ -63,7 +63,14 @@ export class StoreDetailDomainsService {
     }
     try {
       const res = await this.storesService.verifyDomain(storeId, domain.trim());
-      this.dnsRecords.set(res.dnsRecords);
+      // Anti-hang: si el backend no devolvió records, mostrar los estándar de Firebase.
+      const records = res.dnsRecords.length
+        ? res.dnsRecords
+        : [
+            { host: '@', type: 'A', value: '199.36.158.100', requiredAction: 'ADD' },
+            { host: 'www', type: 'CNAME', value: `${storeId}.web.app`, requiredAction: 'ADD' },
+          ];
+      this.dnsRecords.set(records);
       this.verifiedDomain = domain;
       if (res.status === 'live') {
         this.domainStatus.set('live');
