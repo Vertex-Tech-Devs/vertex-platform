@@ -2108,6 +2108,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         true,
         tenantId, // storeId = tenantId (slug), el identificador que usa el storefront
         effectiveMode,
+        ownerEmail,
       );
 
       await setStep('initFirestore', 'done');
@@ -2298,6 +2299,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               true,
               tenantId,
               effectiveMode,
+              ownerEmail,
             );
 
             await setStep('initFirestore', 'done');

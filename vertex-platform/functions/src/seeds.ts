@@ -22,6 +22,7 @@ export async function seedStoreData(
   bypassSafety = false,
   storeId?: string,
   provisioningMode = 'FULL_DEMO',
+  ownerEmail?: string,
 ): Promise<void> {
   const activeStoreId = storeId ?? tenantId;
   const sName = storeName ? storeName.trim() : 'Vertex';
@@ -148,6 +149,8 @@ export async function seedStoreData(
   );
 
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Email real del dueño (owner) si está disponible; fallback demo para tests/back-compat.
+  const effectiveOwnerEmail = ownerEmail?.trim() || `admin@${normalizedSlug || 'mi-tienda'}.com.ar`;
   const brandColors = preset.colors ?? { primary: '#6366f1', accent: '#06b6d4', background: '#ffffff' };
   const whatsAppText = encodeURIComponent(`¡Hola! Quisiera hacer una consulta en la tienda de ${sName}.`);
 
@@ -223,8 +226,8 @@ export async function seedStoreData(
     features: { reviewsEnabled: true, wishlistEnabled: true, blogEnabled: false },
     deliveryMethods: deliveryMethodsConfig,
     // Email management configurations
-    storeOwnerEmail: `admin@${normalizedSlug || 'mi-tienda'}.com.ar`,
-    notificationEmail: `ventas@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    storeOwnerEmail: effectiveOwnerEmail,
+    notificationEmail: effectiveOwnerEmail,
     emailSenderName: sName,
     emailSignature: `El equipo de ${sName} | Atención al Cliente`,
     payments: {
@@ -270,7 +273,7 @@ export async function seedStoreData(
 
   const emailTemplatesPayload = {
     storeId: activeStoreId,
-    storeOwnerEmail: `admin@${normalizedSlug || 'mi-tienda'}.com.ar`,
+    storeOwnerEmail: effectiveOwnerEmail,
     storeWhatsappNumber: '+54 9 11 4567-8900',
     adminNotification: {
       subject: `¡Nueva compra recibida en ${sName}! Pedido #{{orderId}}`,
