@@ -452,6 +452,25 @@ export async function seedStoreData(
           3000,
         );
       }
+    } else {
+      const baseVariantData = {
+        sku: `${prod.skuPrefix}-BASE`,
+        price: prod.price,
+        stock: prod.stock,
+        attributes: {},
+        storeId: activeStoreId,
+        createdAt: new Date(),
+      };
+      await retry(
+        () =>
+          apiFetch(
+            auth,
+            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prodId}/variants/default`,
+            { method: 'PATCH', body: toFirestoreFields(baseVariantData), quotaProject: projectId },
+          ),
+        5,
+        3000,
+      );
     }
 
     seededProducts.push({ id: prodId, name: prod.name, price: prod.price, image: prod.image });
