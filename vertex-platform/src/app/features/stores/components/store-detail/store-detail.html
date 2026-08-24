@@ -1178,6 +1178,180 @@
           }
         </div>
       }
+        @if (activeTab() === 'pagos') {
+          <div class="payments-container">
+            @if (paymentSaveError()) {
+              <div class="alert alert-error">{{ paymentSaveError() }}</div>
+            }
+            @if (paymentSaveSuccess()) {
+              <div class="alert alert-success">{{ paymentSaveSuccess() }}</div>
+            }
+
+            @if (isLoadingPayment()) {
+              <div class="detail-card detail-card--skeleton" aria-busy="true">
+                <div class="skeleton skeleton--card-title"></div>
+                <div class="skeleton skeleton--text mb-4 mt-2"></div>
+                <div class="skeleton skeleton--input mb-3"></div>
+                <div class="skeleton skeleton--input mb-3"></div>
+                <div class="skeleton skeleton--btn"></div>
+              </div>
+            } @else {
+              <div class="payments-grid">
+
+                <!-- Mercado Pago Card -->
+                <div class="detail-card">
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-credit-card"></i> Mercado Pago
+                  </h2>
+                  <p class="form-hint mb-4">
+                    Configurá las credenciales de Mercado Pago para que los clientes de esta tienda puedan pagar con tarjeta, transferencia y más.
+                  </p>
+
+                  @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
+                    <div class="mp-validation-badge mp-validation-badge--valid">
+                      <i class="bi bi-patch-check-fill"></i>
+                      Cuenta validada: <strong>{{ mpAccountEmail() }}</strong>
+                      @if (mpTokenMasked()) {
+                        &nbsp;·&nbsp; Token: <code>{{ mpTokenMasked() }}</code>
+                      }
+                    </div>
+                  }
+
+                  <div class="mp-form">
+                    <!-- Public Key -->
+                    <div class="form-group mb-3">
+                      <label class="form-label" for="mp-public-key">Public Key</label>
+                      <input
+                        id="mp-public-key"
+                        class="form-control"
+                        type="text"
+                        [ngModel]="mpPublicKey()"
+                        (ngModelChange)="mpPublicKey.set($event)"
+                        placeholder="TEST-... o APP_USR-..."
+                        autocomplete="off"
+                      />
+                      <small class="form-hint">Clave pública para inicializar el Brick de MP en el frontend de la tienda.</small>
+                    </div>
+
+                    <!-- Access Token (protegido) -->
+                    <div class="form-group mb-3">
+                      <label class="form-label" for="mp-access-token">Access Token</label>
+                      <div class="input-password-wrapper">
+                        <input
+                          id="mp-access-token"
+                          class="form-control"
+                          [type]="showMpToken() ? 'text' : 'password'"
+                          [ngModel]="mpAccessToken()"
+                          (ngModelChange)="mpAccessToken.set($event)"
+                          [placeholder]="mpTokenMasked() ? 'Dejar vacío para mantener el token actual' : 'TEST-... o APP_USR-...'"
+                          autocomplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          class="input-password-toggle"
+                          (click)="showMpToken.set(!showMpToken())"
+                          [title]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
+                        >
+                          <i [class]="showMpToken() ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                        </button>
+                      </div>
+                      <small class="form-hint">Token privado. Se guarda encriptado en Secret Manager — nunca en texto plano.</small>
+                    </div>
+
+                    <!-- Sandbox Toggle -->
+                    <div class="form-group mb-4">
+                      <div class="toggle-row">
+                        <div class="toggle-row__info">
+                          <span class="form-label">Modo Sandbox (Pruebas)</span>
+                          <span class="form-hint">Activar para operar en entorno de pruebas de Mercado Pago.</span>
+                        </div>
+                        <label class="toggle-switch" [class.is-on]="mpSandbox()">
+                          <input
+                            type="checkbox"
+                            [ngModel]="mpSandbox()"
+                            (ngModelChange)="mpSandbox.set(!!$event)"
+                          />
+                          <span class="toggle-switch__slider"></span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Webhook URL (readonly) -->
+                    <div class="form-group mb-4">
+                      <label class="form-label">Webhook URL (solo lectura)</label>
+                      <div class="input-copy-wrapper">
+                        <input
+                          class="form-control form-control--readonly"
+                          type="text"
+                          [value]="'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?storeId=' + store()!.id"
+                          readonly
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm"
+                          (click)="copyWebhookUrl(store()!.id)"
+                          title="Copiar URL al portapapeles"
+                        >
+                          <i class="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+                      <small class="form-hint">Configurá esta URL en el panel de webhooks de tu cuenta de Mercado Pago.</small>
+                    </div>
+
+                    <!-- Save Button -->
+                    <button
+                      class="btn btn-primary"
+                      [disabled]="isSavingPayment()"
+                      (click)="savePaymentConfig()"
+                    >
+                      @if (isSavingPayment()) {
+                        <span class="spinner-sm"></span> Guardando y validando…
+                      } @else {
+                        <i class="bi bi-floppy"></i> Guardar Credenciales de Pago
+                      }
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Info Card: Cómo usar -->
+                <div class="detail-card">
+                  <h2 class="detail-card__title"><i class="bi bi-info-circle"></i> ¿Cómo funciona?</h2>
+                  <div class="mp-info-list">
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">1</span>
+                      <div>
+                        <strong>Obtené tus credenciales</strong>
+                        <p>En el panel de Mercado Pago, accedé a <em>Mis integraciones → Tu aplicación → Credenciales</em>.</p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">2</span>
+                      <div>
+                        <strong>Modo Sandbox para pruebas</strong>
+                        <p>Usá las credenciales de prueba (<code>TEST-...</code>) para validar el flujo antes de ir a producción.</p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">3</span>
+                      <div>
+                        <strong>Configurá el Webhook</strong>
+                        <p>Copiá la URL del webhook y registrala en tu cuenta de MP en <em>Tus integraciones → Webhooks</em>.</p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">4</span>
+                      <div>
+                        <strong>Producción</strong>
+                        <p>Una vez validado, reemplazá las credenciales por las de producción (<code>APP_USR-...</code>) y desactivá el sandbox.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            }
+          </div>
+        }
     </div>
   }
 </div>
@@ -1426,180 +1600,6 @@
         </div>
 
         <!-- Tab 5: Pagos e Integraciones (Mercado Pago) -->
-        @if (activeTab() === 'pagos') {
-          <div class="payments-container">
-            @if (paymentSaveError()) {
-              <div class="alert alert-error">{{ paymentSaveError() }}</div>
-            }
-            @if (paymentSaveSuccess()) {
-              <div class="alert alert-success">{{ paymentSaveSuccess() }}</div>
-            }
-
-            @if (isLoadingPayment()) {
-              <div class="detail-card detail-card--skeleton" aria-busy="true">
-                <div class="skeleton skeleton--card-title"></div>
-                <div class="skeleton skeleton--text mb-4 mt-2"></div>
-                <div class="skeleton skeleton--input mb-3"></div>
-                <div class="skeleton skeleton--input mb-3"></div>
-                <div class="skeleton skeleton--btn"></div>
-              </div>
-            } @else {
-              <div class="payments-grid">
-
-                <!-- Mercado Pago Card -->
-                <div class="detail-card">
-                  <h2 class="detail-card__title">
-                    <i class="bi bi-credit-card"></i> Mercado Pago
-                  </h2>
-                  <p class="form-hint mb-4">
-                    Configurá las credenciales de Mercado Pago para que los clientes de esta tienda puedan pagar con tarjeta, transferencia y más.
-                  </p>
-
-                  @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
-                    <div class="mp-validation-badge mp-validation-badge--valid">
-                      <i class="bi bi-patch-check-fill"></i>
-                      Cuenta validada: <strong>{{ mpAccountEmail() }}</strong>
-                      @if (mpTokenMasked()) {
-                        &nbsp;·&nbsp; Token: <code>{{ mpTokenMasked() }}</code>
-                      }
-                    </div>
-                  }
-
-                  <div class="mp-form">
-                    <!-- Public Key -->
-                    <div class="form-group mb-3">
-                      <label class="form-label" for="mp-public-key">Public Key</label>
-                      <input
-                        id="mp-public-key"
-                        class="form-control"
-                        type="text"
-                        [ngModel]="mpPublicKey()"
-                        (ngModelChange)="mpPublicKey.set($event)"
-                        placeholder="TEST-... o APP_USR-..."
-                        autocomplete="off"
-                      />
-                      <small class="form-hint">Clave pública para inicializar el Brick de MP en el frontend de la tienda.</small>
-                    </div>
-
-                    <!-- Access Token (protegido) -->
-                    <div class="form-group mb-3">
-                      <label class="form-label" for="mp-access-token">Access Token</label>
-                      <div class="input-password-wrapper">
-                        <input
-                          id="mp-access-token"
-                          class="form-control"
-                          [type]="showMpToken() ? 'text' : 'password'"
-                          [ngModel]="mpAccessToken()"
-                          (ngModelChange)="mpAccessToken.set($event)"
-                          [placeholder]="mpTokenMasked() ? 'Dejar vacío para mantener el token actual' : 'TEST-... o APP_USR-...'"
-                          autocomplete="new-password"
-                        />
-                        <button
-                          type="button"
-                          class="input-password-toggle"
-                          (click)="showMpToken.set(!showMpToken())"
-                          [title]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
-                        >
-                          <i [class]="showMpToken() ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-                        </button>
-                      </div>
-                      <small class="form-hint">Token privado. Se guarda encriptado en Secret Manager — nunca en texto plano.</small>
-                    </div>
-
-                    <!-- Sandbox Toggle -->
-                    <div class="form-group mb-4">
-                      <div class="toggle-row">
-                        <div class="toggle-row__info">
-                          <span class="form-label">Modo Sandbox (Pruebas)</span>
-                          <span class="form-hint">Activar para operar en entorno de pruebas de Mercado Pago.</span>
-                        </div>
-                        <label class="toggle-switch" [class.is-on]="mpSandbox()">
-                          <input
-                            type="checkbox"
-                            [ngModel]="mpSandbox()"
-                            (ngModelChange)="mpSandbox.set(!!$event)"
-                          />
-                          <span class="toggle-switch__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <!-- Webhook URL (readonly) -->
-                    <div class="form-group mb-4">
-                      <label class="form-label">Webhook URL (solo lectura)</label>
-                      <div class="input-copy-wrapper">
-                        <input
-                          class="form-control form-control--readonly"
-                          type="text"
-                          [value]="'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?storeId=' + store()!.id"
-                          readonly
-                        />
-                        <button
-                          type="button"
-                          class="btn btn-secondary btn-sm"
-                          (click)="copyWebhookUrl(store()!.id)"
-                          title="Copiar URL al portapapeles"
-                        >
-                          <i class="bi bi-clipboard"></i>
-                        </button>
-                      </div>
-                      <small class="form-hint">Configurá esta URL en el panel de webhooks de tu cuenta de Mercado Pago.</small>
-                    </div>
-
-                    <!-- Save Button -->
-                    <button
-                      class="btn btn-primary"
-                      [disabled]="isSavingPayment()"
-                      (click)="savePaymentConfig()"
-                    >
-                      @if (isSavingPayment()) {
-                        <span class="spinner-sm"></span> Guardando y validando…
-                      } @else {
-                        <i class="bi bi-floppy"></i> Guardar Credenciales de Pago
-                      }
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Info Card: Cómo usar -->
-                <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-info-circle"></i> ¿Cómo funciona?</h2>
-                  <div class="mp-info-list">
-                    <div class="mp-info-step">
-                      <span class="mp-info-step__num">1</span>
-                      <div>
-                        <strong>Obtené tus credenciales</strong>
-                        <p>En el panel de Mercado Pago, accedé a <em>Mis integraciones → Tu aplicación → Credenciales</em>.</p>
-                      </div>
-                    </div>
-                    <div class="mp-info-step">
-                      <span class="mp-info-step__num">2</span>
-                      <div>
-                        <strong>Modo Sandbox para pruebas</strong>
-                        <p>Usá las credenciales de prueba (<code>TEST-...</code>) para validar el flujo antes de ir a producción.</p>
-                      </div>
-                    </div>
-                    <div class="mp-info-step">
-                      <span class="mp-info-step__num">3</span>
-                      <div>
-                        <strong>Configurá el Webhook</strong>
-                        <p>Copiá la URL del webhook y registrala en tu cuenta de MP en <em>Tus integraciones → Webhooks</em>.</p>
-                      </div>
-                    </div>
-                    <div class="mp-info-step">
-                      <span class="mp-info-step__num">4</span>
-                      <div>
-                        <strong>Producción</strong>
-                        <p>Una vez validado, reemplazá las credenciales por las de producción (<code>APP_USR-...</code>) y desactivá el sandbox.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            }
-          </div>
-        }
       </div>
     </div>
   </div>
