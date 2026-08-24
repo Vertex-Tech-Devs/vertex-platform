@@ -15,6 +15,7 @@ import { DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
+import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
 import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
@@ -34,7 +35,15 @@ import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, ReactiveFormsModule, AppSpinner, SeedStoreModal],
+  imports: [
+    RouterLink,
+    DatePipe,
+    FormsModule,
+    ReactiveFormsModule,
+    AppSpinner,
+    SeedStoreModal,
+    FormatLabelPipe,
+  ],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

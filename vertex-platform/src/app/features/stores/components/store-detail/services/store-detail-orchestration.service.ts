@@ -30,6 +30,8 @@ export class StoreDetailOrchestrationService {
   readonly versions = signal<TemplateVersion[]>([]);
   readonly latestVersion = signal<TemplateVersion | null>(null);
   readonly isLoadingVersions = signal(false);
+  /** Cache de sesión: evita recargar releases en cada visita al detalle. */
+  private cachedVersions: TemplateVersion[] | null = null;
   readonly isUpdatingVersion = signal(false);
 
   readonly localDeployError = signal('');
@@ -136,10 +138,20 @@ export class StoreDetailOrchestrationService {
     };
   }
 
-  async loadVersions(): Promise<void> {
+  async loadVersions(force = false): Promise<void> {
+    if (!force && this.cachedVersions !== null) {
+      this.versions.set(this.cachedVersions);
+      this.latestVersion.set(
+        this.cachedVersions.find((v: TemplateVersion) => v.isLatest) ??
+          this.cachedVersions[0] ??
+          null,
+      );
+      return;
+    }
     this.isLoadingVersions.set(true);
     try {
       const list = await this.storesService.listTemplateVersions();
+      this.cachedVersions = list;
       this.versions.set(list);
       this.latestVersion.set(list.find((v: TemplateVersion) => v.isLatest) ?? list[0] ?? null);
     } catch {

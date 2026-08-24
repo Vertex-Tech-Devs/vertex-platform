@@ -230,7 +230,7 @@
                 }
                 @if (store()!.verticalId) {
                   <dt>Rubro / Vertical</dt>
-                  <dd class="capitalize text-accent">{{ store()!.verticalId }}</dd>
+                  <dd class="text-accent">{{ store()!.verticalId | formatLabel }}</dd>
                 }
                 @if (store()!.templateVersion) {
                   <dt>Versión plantilla</dt>
@@ -254,7 +254,7 @@
                 }
                 @if (store()!.targetChannel) {
                   <dt>Canal</dt>
-                  <dd class="capitalize">{{ store()!.targetChannel }}</dd>
+                  <dd class="text-accent">{{ store()!.targetChannel | formatLabel }}</dd>
                 }
                 @if (store()!.schemaVersion) {
                   <dt>Versión esquema</dt>
@@ -312,20 +312,29 @@
                   }
                 </div>
 
-                @if (isLoadingVersions()) {
-                  <p class="text-muted">Cargando versiones disponibles…</p>
-                } @else if (availableVersions().length === 0) {
-                  <p class="text-muted">No se encontraron releases publicados.</p>
-                } @else {
-                  <div class="version-selector">
-                    <div class="row g-2 align-items-center">
-                      <div class="col">
-                        <select
-                          class="form-select"
-                          [value]="selectedVersion()"
-                          (change)="selectedVersion.set($any($event.target).value)"
-                          [disabled]="isDeploying() || deployActionState().status === 'running'"
-                        >
+                <div class="version-selector">
+                  <div class="row g-2 align-items-center">
+                    <div class="col">
+                      <select
+                        class="form-select"
+                        [value]="selectedVersion()"
+                        (change)="selectedVersion.set($any($event.target).value)"
+                        [disabled]="
+                          isDeploying() ||
+                          isLoadingVersions() ||
+                          availableVersions().length === 0 ||
+                          deployActionState().status === 'running'
+                        "
+                      >
+                        @if (availableVersions().length === 0) {
+                          <option [value]="selectedVersion()">
+                            @if (isLoadingVersions()) {
+                              Cargando versiones…
+                            } @else {
+                              No se encontraron releases publicados
+                            }
+                          </option>
+                        } @else {
                           @for (v of availableVersions(); track v.version) {
                             <option
                               [value]="v.version"
@@ -346,8 +355,9 @@
                               }
                             </option>
                           }
-                        </select>
-                      </div>
+                        }
+                      </select>
+                    </div>
                       <div class="col-auto">
                         <button
                           class="action-btn action-btn--primary"
@@ -411,9 +421,8 @@
                       </div>
                     }
                   </div>
-                }
-              </div>
-            }
+                </div>
+              }
 
             <!-- Operations Card -->
             <div class="detail-card ops-card">
