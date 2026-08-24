@@ -126,7 +126,8 @@ export interface StoreMercadoPagoConfig {
   accessTokenMasked?: string;
   accountEmail?: string;
   accountUserId?: string;
-  webhookUrl: string;
+  webhookUrl?: string;
+  sandbox?: boolean;
   validationStatus?: 'pending' | 'valid' | 'invalid';
   validationMessage?: string;
   validatedAt?: string;
