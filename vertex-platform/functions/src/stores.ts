@@ -1463,7 +1463,40 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       throw new HttpsError('internal', 'Failed to connect domain.');
     }
 
-    const result = (await res.json()) as { requiredDnsUpdates?: { discovered?: any[] } };
+    // La API de Hosting NO incluye requiredDnsUpdates en la respuesta del create;
+    // se obtienen vía GET del recurso (provisioning.expectedIps) o el estándar de Firebase.
+    let dnsRecords: { domainName: string; type: string; rdata: string; requiredAction: string }[] =
+      [];
+    try {
+      const getRes = await fetch(
+        `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${domain}`,
+        { headers: { Authorization: `Bearer ${tokenRes.token}` } },
+      );
+      let ips = ['199.36.158.100'];
+      if (getRes.ok) {
+        const dom = (await getRes.json()) as { provisioning?: { expectedIps?: string[] } };
+        if (dom.provisioning?.expectedIps?.length) {
+          ips = dom.provisioning.expectedIps;
+        }
+      }
+      const isSubdomain = domain.split('.').length > 2;
+      dnsRecords = [
+        {
+          domainName: isSubdomain ? domain.split('.')[0] : '@',
+          type: 'A',
+          rdata: ips[0] || '199.36.158.100',
+          requiredAction: 'ADD',
+        },
+        {
+          domainName: 'www',
+          type: 'CNAME',
+          rdata: `${siteId}.web.app`,
+          requiredAction: 'ADD',
+        },
+      ];
+    } catch (dnsErr) {
+      console.warn(`[connectDomain] Could not fetch DNS records for ${domain}:`, dnsErr);
+    }
 
     // Sincronizar el dominio en authorizedDomains de Firebase Auth del shard
     // para que Google OAuth funcione desde el dominio custom.
@@ -1498,14 +1531,6 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       customDomain: domain,
       updatedAt: new Date(),
     });
-
-    const discovered = result.requiredDnsUpdates?.discovered || [];
-    const dnsRecords = discovered.map((record: any) => ({
-      domainName: record?.domainName || '@',
-      type: record?.type || 'A',
-      rdata: record?.rdata || '',
-      requiredAction: record?.requiredAction || 'ADD',
-    }));
 
     await logAuditAction(
       request.auth?.uid || 'unknown',

@@ -1030,32 +1030,37 @@
                         Hosting...
                       </div>
                     } @else {
-                      @for (
-                        record of dnsRecords();
-                        track record.host + '-' + record.type + '-' + record.value
-                      ) {
-                        <div class="dns-record-block">
-                          <div class="dns-record-block__type">
-                            <span class="badge-role badge-role--admin">{{
-                              record.requiredAction
-                            }}</span>
-                          </div>
-                          <div class="dns-record-block__data">
-                            <span class="dns-record-label">Tipo</span>
-                            <code>{{ record.type }}</code>
-
-                            <span class="dns-record-label">Host / Nombre</span>
-                            <code>{{ record.host }}</code>
-
-                            <span class="dns-record-label" style="margin-top: 0.5rem"
-                              >Valor / IP</span
-                            >
-                            <div class="dns-value-copy">
-                              <code>{{ record.value }}</code>
-                            </div>
-                          </div>
-                        </div>
-                      }
+                      <div class="dns-table-responsive">
+                        <table class="table dns-records-table mb-0">
+                          <thead>
+                            <tr>
+                              <th scope="col">Tipo</th>
+                              <th scope="col">Host / Nombre</th>
+                              <th scope="col">Valor</th>
+                              <th scope="col" class="text-end">Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (
+                              record of dnsRecords();
+                              track record.host + '-' + record.type + '-' + record.value
+                            ) {
+                              <tr>
+                                <td><code>{{ record.type }}</code></td>
+                                <td><code>{{ record.host }}</code></td>
+                                <td>
+                                  <code class="dns-value-copy__code">{{ record.value }}</code>
+                                </td>
+                                <td class="text-end">
+                                  <span class="badge-role badge-role--admin">{{
+                                    record.requiredAction
+                                  }}</span>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
                     }
                   </div>
                 </div>

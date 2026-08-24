@@ -1287,6 +1287,44 @@
   padding: 1rem 0;
 }
 
+.dns-table-responsive {
+  overflow-x: auto;
+}
+
+.dns-records-table {
+  border: 1px solid var(--platform-card-border);
+  border-radius: 10px;
+  overflow: hidden;
+
+  th {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--platform-text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.75rem 1rem;
+    border-color: var(--platform-card-border);
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-color: var(--platform-card-border);
+    vertical-align: middle;
+  }
+
+  code {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--platform-card-border);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+.dns-value-copy__code {
+  word-break: break-all;
+}
+
 .dns-record-block {
   display: flex;
   background: rgba(0, 0, 0, 0.2);
