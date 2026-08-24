@@ -1438,7 +1438,7 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
           Authorization: `Bearer ${tokenRes.token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ domainName: domain }),
+        body: JSON.stringify({ domainName: domain, site: siteId }),
       },
     );
 
@@ -1451,6 +1451,12 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
         errorBody,
       });
 
+      if (res.status === 400) {
+        throw new HttpsError(
+          'invalid-argument',
+          'El dominio no es válido o no coincide con el sitio del shard.',
+        );
+      }
       if (res.status === 403) throw new HttpsError('permission-denied', 'Insufficient permissions.');
       if (res.status === 404) throw new HttpsError('not-found', 'Site or project not found.');
       if (res.status === 409) throw new HttpsError('already-exists', 'Domain already connected.');
