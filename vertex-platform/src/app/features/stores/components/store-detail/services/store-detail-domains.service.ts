@@ -24,7 +24,15 @@ export class StoreDetailDomainsService {
     this.dnsVerificationSuccess.set('');
     try {
       const res = await this.storesService.connectDomain(storeId, domain.trim());
-      this.dnsRecords.set(res.dnsRecords);
+      // Fallback anti-hang: si el backend no devolvió records (API de Hosting no los
+      // incluye en el create), mostrar los registros estándar de Firebase Hosting.
+      const records = res.dnsRecords.length
+        ? res.dnsRecords
+        : [
+            { host: '@', type: 'A', value: '199.36.158.100', requiredAction: 'ADD' },
+            { host: 'www', type: 'CNAME', value: `${storeId}.web.app`, requiredAction: 'ADD' },
+          ];
+      this.dnsRecords.set(records);
       this.domainStatus.set('pending');
       this.dnsVerificationSuccess.set(
         'Dominio configurado. Agregá los registros DNS en tu proveedor de dominio para activarlo.',
