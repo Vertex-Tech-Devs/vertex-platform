@@ -2269,7 +2269,11 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
 
     const result = (await res.json()) as {
       status?: string;
-      provisioning?: { expectedIps?: string[] };
+      provisioning?: {
+        expectedIps?: string[];
+        dnsStatus?: string;
+        certStatus?: string;
+      };
       requiredDnsUpdates?: {
         discovered?: Array<{
           domainName?: string;
@@ -2280,8 +2284,18 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       };
     };
 
-    const rawStatus = result.status || 'PENDING';
-    const normalizedStatus = rawStatus === 'ACTIVE' || rawStatus === 'LIVE' ? 'live' : 'pending';
+    // El estado real de "live" lo dan los campos de provisioning:
+    //  - dnsStatus: DNS_READY / DNS_ACTIVE → registros apuntando bien
+    //  - certStatus: CERT_ACTIVE → certificado SSL emitido
+    // (el campo status de la API siempre es DOMAIN_ACTIVE una vez creado el mapping).
+    const provisioning = result.provisioning ?? {};
+    const dnsReady =
+      provisioning.dnsStatus === 'DNS_READY' ||
+      provisioning.dnsStatus === 'DNS_ACTIVE' ||
+      provisioning.dnsStatus === 'ACTIVE';
+    const certReady =
+      provisioning.certStatus === 'CERT_ACTIVE' || provisioning.certStatus === 'ACTIVE';
+    const normalizedStatus = dnsReady && certReady ? 'live' : 'pending';
     // La API NO incluye requiredDnsUpdates en el GET; los registros estándar salen de
     // provisioning.expectedIps (A) + CNAME www → {site}.web.app.
     const discovered = result.requiredDnsUpdates?.discovered ?? [];
@@ -2319,7 +2333,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
       { domain, status: normalizedStatus },
     );
 
-    return { success: true, status: normalizedStatus, rawStatus, dnsRecords };
+    return { success: true, status: normalizedStatus, dnsRecords };
   },
 );
 

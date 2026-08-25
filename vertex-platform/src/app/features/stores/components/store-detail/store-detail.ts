@@ -390,7 +390,7 @@ export class StoreDetail implements OnInit {
   }
 
   copyWebhookUrl(storeId: string): Promise<void> {
-    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?storeId=${storeId}`;
+    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
   }
 
