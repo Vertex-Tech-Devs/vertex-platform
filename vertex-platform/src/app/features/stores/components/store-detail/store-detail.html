@@ -834,7 +834,14 @@
         @if (activeTab() === 'dominios') {
           <div class="dns-container">
             @if (dnsVerificationError()) {
-              <div class="alert alert-error">{{ dnsVerificationError() }}</div>
+              <div
+                class="alert"
+                [class.alert-error]="!store()!.customDomain"
+                [class.alert-info]="store()!.customDomain"
+                role="status"
+              >
+                {{ dnsVerificationError() }}
+              </div>
             }
             @if (dnsVerificationSuccess()) {
               <div class="alert alert-success">{{ dnsVerificationSuccess() }}</div>
