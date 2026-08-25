@@ -1965,51 +1965,48 @@ export const inviteStaff = onCall<InviteStaffPayload>(
           console.info(
             `[inviteStaff] Staff invitation email successfully written to emulator storefront tenant mail collection.`,
           );
-        } else if (projectId === PLATFORM_PROJECT) {
-          await sendDirectEmail(
-            normalizedEmail,
-            emailSubject,
-            emailHtml,
-            `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
-          );
-          console.info(
-            `[inviteStaff] Staff invitation email successfully sent directly to ${normalizedEmail} using SMTP.`,
-          );
         } else {
-          const mailDocFields = {
-            to: {
-              arrayValue: {
-                values: [{ stringValue: normalizedEmail }],
-              },
-            },
-            message: {
-              mapValue: {
-                fields: {
-                  subject: { stringValue: emailSubject },
-                  html: { stringValue: emailHtml },
-                  text: {
-                    stringValue: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+          // Enviar el mail de invitación DIRECTAMENTE desde el platform (SMTP en Secret
+          // Manager) — funciona para TODAS las tiendas, incluidas las de shards.
+          try {
+            await sendDirectEmail(
+              normalizedEmail,
+              emailSubject,
+              emailHtml,
+              `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+            );
+            console.info(
+              `[inviteStaff] Staff invitation email successfully sent directly to ${normalizedEmail} using SMTP.`,
+            );
+          } catch (directErr) {
+            console.warn(
+              `[inviteStaff] Direct SMTP send failed, queueing in store ${projectId}'s mail collection:`,
+              directErr,
+            );
+            const mailDocFields = {
+              to: { arrayValue: { values: [{ stringValue: normalizedEmail }] } },
+              message: {
+                mapValue: {
+                  fields: {
+                    subject: { stringValue: emailSubject },
+                    html: { stringValue: emailHtml },
+                    text: {
+                      stringValue: `Tenés acceso de administrador para la tienda ${storeName}. Ingresá con Google OAuth: ${loginUrl}`,
+                    },
                   },
                 },
               },
-            },
-            createdAt: {
-              timestampValue: new Date().toISOString(),
-            },
-          };
-
-          await apiFetch(
-            auth,
-            `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
-            {
-              method: 'POST',
-              body: { fields: mailDocFields },
-              quotaProject: projectId,
-            },
-          );
-          console.info(
-            `[inviteStaff] Staff invitation email successfully queued in store ${projectId}'s mail collection.`,
-          );
+              createdAt: { timestampValue: new Date().toISOString() },
+            };
+            await apiFetch(
+              auth,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
+              { method: 'POST', body: { fields: mailDocFields }, quotaProject: projectId },
+            );
+            console.info(
+              `[inviteStaff] Staff invitation email successfully queued in store ${projectId}'s mail collection.`,
+            );
+          }
         }
       } catch (mailErr) {
         console.warn(
