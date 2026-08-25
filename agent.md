@@ -155,6 +155,10 @@ const secretCache = new Map<string, string>();
   * `CATALOG_ONLY`: Inyecta 20+ productos con categorías (`{storeId}-cat-{slug}`), atributos (`{storeId}-attr-{code}`), variantes y stock real. 0 clientes y 0 órdenes.
   * `FULL_DEMO`: Inyecta catálogo completo (20+ productos) + 8 clientes simulados con historial + 8-10 órdenes históricas correlacionadas con diversos estados (`delivered`, `shipped`, `processing`, `pending`, `ready_for_pickup`), métodos de pago (Mercado Pago, transferencia), opciones de envío y retiro en showroom, paleta de colores corporativa y USPs personalizadas.
 
+### 👥 Gestión de Equipo e Invitaciones Multi-Tenant
+- **Recarga Reactiva**: `StoreDetailStaffService.sendInvitation` y la selección de la pestaña `equipo` en `StoreDetail` recargan las listas de staff e invitaciones con `force: true`.
+- **Sincronización Automática de Aceptación**: `getStoreStaff` consulta `admin_roles` del shard por `tenantId` y claves compuestas, actualizando el estado de invitaciones pendientes a `accepted` cuando el invitado ya ha ingresado o existe en el shard.
+
 ---
 
 ## 🛡️ Acceso y Permisos

@@ -1107,6 +1107,12 @@
     color: #fb923c;
     border: 1px solid rgba(251, 146, 60, 0.25);
   }
+
+  &--accepted {
+    background: rgba(74, 222, 128, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.25);
+  }
 }
 
 // ==========================================================================
@@ -2500,164 +2506,48 @@
 // Validation badge
 .mp-validation-badge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  margin-bottom: 1rem;
+  gap: 0.6rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  margin: 1.25rem 0 1.5rem;
+  line-height: 1.4;
+
+  i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
 
   code {
-    font-size: 0.78rem;
-    background: rgba(255, 255, 255, 0.07);
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  &__sep {
+    opacity: 0.5;
+  }
+
+  &__token {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
   &--valid {
-    background: rgba(74, 222, 128, 0.1);
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    color: #4ade80;
+    background: hsla(142, 70%, 45%, 0.12);
+    border: 1px solid hsla(142, 70%, 45%, 0.35);
+    color: var(--platform-status-active-text, #4ade80);
   }
 
   &--invalid {
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.3);
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.35);
     color: #f87171;
-  }
-}
-
-// Info steps list (how-to card)
-.mp-info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 0.5rem;
-}
-
-.mp-info-step {
-  display: flex;
-  gap: 0.85rem;
-  align-items: flex-start;
-
-  &__num {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--platform-accent-gradient, linear-gradient(135deg, #6c63ff, #9d50f5));
-    color: #fff;
-    font-size: 0.8rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  p {
-    margin: 0.2rem 0 0;
-    font-size: 0.8rem;
-    color: var(--platform-text-secondary);
-    line-height: 1.45;
-  }
-
-  code {
-    font-size: 0.78rem;
-    background: rgba(255, 255, 255, 0.07);
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    color: var(--platform-text-primary);
-  }
-}
-
-// Tab badge additional colors (error state)
-.tab-badge--error {
-  background: rgba(248, 113, 113, 0.25);
-  color: #f87171;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   Tabs polish — Pagos + consistencia en las 5 pestañas (CSS only)
-   ══════════════════════════════════════════════════════════════════════ */
-
-.tab-content {
-  padding-top: 0.5rem;
-}
-
-/* ── Pestaña Pagos ─────────────────────────────────────────────────── */
-.payments-grid {
-  align-items: start;
-}
-
-.mp-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  margin-top: 1.5rem;
-
-  .form-group {
-    margin: 0;
-  }
-
-  .form-label {
-    margin-bottom: 0.15rem;
-  }
-
-  .form-hint {
-    font-size: 0.78rem;
-    line-height: 1.5;
-    color: var(--platform-text-muted);
-    margin-top: 0.35rem;
-  }
-}
-
-.form-control {
-  height: auto;
-  min-height: 42px;
-}
-
-.input-password-wrapper .form-control,
-.input-copy-wrapper .form-control {
-  width: 100%;
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--platform-card-border);
-  border-radius: 12px;
-
-  &__info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
-  }
-
-  .form-label {
-    margin: 0;
-    font-size: 0.85rem;
-    text-transform: none;
-    letter-spacing: normal;
-  }
-}
-
-.mp-validation-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-
-  &--valid {
-    background: hsla(142, 70%, 45%, 0.1);
-    border: 1px solid hsla(142, 70%, 45%, 0.3);
-    color: var(--platform-status-active-text);
   }
 }
 

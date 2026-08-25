@@ -61,7 +61,7 @@ export class StoreDetailStaffService {
           `El correo ${email} quedó preautorizado con rol ${role}, pero el email automático falló. Compartí manualmente el acceso por Google OAuth.`,
         );
       }
-      await this.loadStaff(storeId);
+      await this.loadStaff(storeId, true);
       return true;
     } catch (err) {
       console.error('Error inviting staff:', err);
