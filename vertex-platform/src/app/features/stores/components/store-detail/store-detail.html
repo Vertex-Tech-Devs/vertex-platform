@@ -792,6 +792,7 @@
                               <th>Rol Asignado</th>
                               <th>Fecha Invitación</th>
                               <th>Estado Token</th>
+                              <th class="text-end">Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -816,6 +817,21 @@
                                   >
                                     {{ invite.status === 'pending' ? 'Pendiente' : invite.status }}
                                   </span>
+                                </td>
+                                <td class="text-end">
+                                  <button
+                                    type="button"
+                                    class="btn-action-small"
+                                    [disabled]="resendingInviteId() === invite.id"
+                                    (click)="resendInvite(invite)"
+                                    title="Reenviar invitación"
+                                  >
+                                    @if (resendingInviteId() === invite.id) {
+                                      <span class="spinner-sm"></span> Reenviando…
+                                    } @else {
+                                      <i class="bi bi-arrow-repeat"></i> Reenviar
+                                    }
+                                  </button>
                                 </td>
                               </tr>
                             }
