@@ -2117,6 +2117,7 @@ export const getStoreStaff = onCall<{ storeId: string }>(
       createdAt?: any;
       firebaseProjectId?: string;
       runtimeProjectId?: string;
+      provisioningOwnerId?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
 
@@ -2214,6 +2215,46 @@ export const getStoreStaff = onCall<{ storeId: string }>(
           createdAt: data['createdAt']?.toDate().toISOString(),
         };
       });
+
+      // Marcar como "aceptadas" las invitaciones pendientes cuyo usuario YA existe en
+      // el Firebase Auth del shard (es decir, ya ingresó con Google OAuth a la tienda).
+      const pending = invitations.filter((i: any) => i.status === 'pending');
+      if (pending.length > 0 && projectId) {
+        try {
+          const ownerAuth = await getOwnerOAuthClient(store.provisioningOwnerId);
+          const ownerToken = (await ownerAuth.getAccessToken()).token;
+          for (const inv of pending) {
+            const lookup = await fetch(
+              `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${ownerToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: [inv.email] }),
+              },
+            );
+            if (lookup.ok) {
+              const body = (await lookup.json()) as { users?: unknown[] };
+              if (body.users && body.users.length > 0) {
+                inv.status = 'accepted';
+                await db
+                  .collection('stores')
+                  .doc(storeId)
+                  .collection('invitations')
+                  .doc(inv.id)
+                  .update({ status: 'accepted', acceptedAt: new Date() });
+              }
+            }
+          }
+        } catch (lookupErr) {
+          console.warn(
+            `[getStoreStaff] No se pudo verificar aceptación de invitaciones en ${projectId}:`,
+            lookupErr,
+          );
+        }
+      }
     } catch (err) {
       console.error(`[getStoreStaff] Failed to load local invitations from Firestore:`, err);
     }
