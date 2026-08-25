@@ -266,8 +266,26 @@ export class StoreDetail implements OnInit {
   setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'): void {
     this.activeTab.set(tab);
     const s = this.store();
-    if (tab === 'dominios' && s?.customDomain && !this.domainInput()) {
-      this.domainInput.set(s.customDomain);
+    if (tab === 'dominios' && s?.customDomain) {
+      if (!this.domainInput()) {
+        this.domainInput.set(s.customDomain);
+      }
+      // Anti-hang: mostrar los registros estándar de Firebase Hosting de inmediato
+      // (A → 199.36.158.100 + CNAME www → {site}.web.app) para que el spinner de
+      // "Recuperando registros..." nunca quede en bucle.
+      if (this.domainsService.dnsRecords().length === 0) {
+        this.domainsService.dnsRecords.set([
+          { host: '@', type: 'A', value: '199.36.158.100', requiredAction: 'ADD' },
+          {
+            host: 'www',
+            type: 'CNAME',
+            value: `${s.runtimeSiteId || s.id}.web.app`,
+            requiredAction: 'ADD',
+          },
+        ]);
+      }
+      // Refresco de estado en background (silencioso, no pisa los records mostrados).
+      void this.domainsService.verifyDNS(s.id, s.customDomain, true);
     }
     if (tab === 'pagos' && s) {
       void this.loadPaymentConfig(s.id);
