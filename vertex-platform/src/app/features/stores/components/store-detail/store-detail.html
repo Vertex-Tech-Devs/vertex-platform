@@ -145,7 +145,7 @@
           (click)="setTab('orquestacion')"
         >
           <i class="bi bi-cpu"></i>
-          <span>Orquestación GCP</span>
+          <span>Orquestación</span>
           <span class="tab-badge tab-badge--version">{{ formatVersion(store()!.templateVersion) }}</span>
         </button>
         <button
@@ -155,7 +155,7 @@
           (click)="setTab('equipo')"
         >
           <i class="bi bi-people"></i>
-          <span>Equipo (RBAC)</span>
+          <span>Equipo</span>
           @if (staff().length > 0 || invitations().length > 0) {
             <span class="tab-badge tab-badge--count">{{ staff().length + invitations().length }}</span>
           }
@@ -167,7 +167,7 @@
           (click)="setTab('dominios')"
         >
           <i class="bi bi-globe"></i>
-          <span>Dominios (DNS)</span>
+          <span>Dominios</span>
           @if (store()!.customDomain) {
             <span
               class="tab-badge"
