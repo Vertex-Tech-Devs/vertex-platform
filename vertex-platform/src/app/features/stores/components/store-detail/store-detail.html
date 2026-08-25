@@ -815,7 +815,13 @@
                                       invite.status
                                     }}"
                                   >
-                                    {{ invite.status === 'pending' ? 'Pendiente' : invite.status }}
+                                    {{
+                                      invite.status === 'pending'
+                                        ? 'Pendiente'
+                                        : invite.status === 'accepted'
+                                          ? 'Aceptada'
+                                          : invite.status
+                                    }}
                                   </span>
                                 </td>
                                 <td class="text-end">
@@ -1233,9 +1239,10 @@
                   @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
                     <div class="mp-validation-badge mp-validation-badge--valid">
                       <i class="bi bi-patch-check-fill"></i>
-                      Cuenta validada: <strong>{{ mpAccountEmail() }}</strong>
+                      <span>Cuenta validada: <strong>{{ mpAccountEmail() }}</strong></span>
                       @if (mpTokenMasked()) {
-                        &nbsp;·&nbsp; Token: <code>{{ mpTokenMasked() }}</code>
+                        <span class="mp-validation-badge__sep">·</span>
+                        <span class="mp-validation-badge__token">Token: <code>{{ mpTokenMasked() }}</code></span>
                       }
                     </div>
                   }
