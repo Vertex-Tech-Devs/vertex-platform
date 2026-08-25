@@ -273,3 +273,92 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Global polish v2 — focus, hover, scrollbars, tables, selection
+   (aplica a TODAS las vistas; solo CSS, sin tocar estructura)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Focus visible moderno y consistente (accesibilidad) */
+:focus-visible {
+  outline: 2px solid var(--platform-accent-blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Selección de texto con acento */
+::selection {
+  background: hsla(244, 75%, 64%, 0.35);
+  color: var(--platform-text-primary);
+}
+
+/* Scrollbars delgadas y consistentes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsla(244, 75%, 64%, 0.35) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsla(244, 75%, 64%, 0.35);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: hsla(244, 75%, 64%, 0.55);
+}
+
+/* Hover sutil en tarjetas glass y detalle (lift + borde acento) */
+.glass-card:hover,
+.detail-card:hover {
+  border-color: var(--platform-card-border-hover);
+  box-shadow: var(--platform-shadow-card), 0 0 0 1px hsla(244, 75%, 64%, 0.08);
+}
+
+/* Tablas: filas con hover sutil y encabezados consistentes */
+table.table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--platform-text-muted);
+  font-weight: 600;
+  border-color: var(--platform-card-border);
+}
+
+table.table tbody tr {
+  transition: background-color var(--transition-base);
+}
+table.table tbody tr:hover {
+  background: hsla(244, 75%, 64%, 0.04);
+}
+
+/* Inputs y selects: consistencia y foco */
+input.form-control,
+select.form-select,
+textarea.form-control {
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    background-color var(--transition-base);
+}
+input.form-control:focus,
+select.form-select:focus,
+textarea.form-control:focus {
+  border-color: hsla(244, 75%, 64%, 0.55) !important;
+  box-shadow: 0 0 0 3px hsla(244, 75%, 64%, 0.15) !important;
+}
+
+/* Badges y chips: transición y legibilidad */
+.badge {
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
+}
+.badge:hover {
+  transform: translateY(-1px);
+}
