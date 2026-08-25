@@ -21,6 +21,7 @@ import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
 import { StoreDetailOrchestrationService } from './services/store-detail-orchestration.service';
+import type { PendingInvitation } from '@core/models/store';
 import {
   formatDateUtil,
   statusLabelUtil,
@@ -139,6 +140,7 @@ export class StoreDetail implements OnInit {
   readonly isInvitingStaff = this.staffService.isInvitingStaff;
   readonly inviteError = this.staffService.inviteError;
   readonly inviteSuccess = this.staffService.inviteSuccess;
+  readonly resendingInviteId = signal<string | null>(null);
   readonly generatedResetLink = this.staffService.generatedResetLink;
   readonly isGeneratingLink = this.staffService.isGeneratingLink;
   readonly copyFeedbackSuccess = this.staffService.copyFeedbackSuccess;
@@ -302,6 +304,24 @@ export class StoreDetail implements OnInit {
   sendInvitation(): Promise<void> {
     const s = this.store();
     return s ? this.staffService.sendInvitationFromForm(s.id).then(() => {}) : Promise.resolve();
+  }
+
+  async resendInvite(invite: PendingInvitation): Promise<void> {
+    const s = this.store();
+    if (!s || !invite?.email) {
+      return;
+    }
+    this.resendingInviteId.set(invite.id);
+    try {
+      const ok = await this.staffService.sendInvitation(s.id, invite.email, invite.role);
+      if (ok) {
+        this.staffService.inviteSuccess.set(
+          `Invitación reenviada a ${invite.email} — la fila se actualizó con la nueva fecha.`,
+        );
+      }
+    } finally {
+      this.resendingInviteId.set(null);
+    }
   }
 
   generateAccessLink(email: string): Promise<void> {
