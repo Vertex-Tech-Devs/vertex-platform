@@ -1852,15 +1852,48 @@ export const inviteStaff = onCall<InviteStaffPayload>(
       : `https://${projectId}.web.app/admin/login`;
 
     const token = crypto.randomUUID();
-    const invitationId = crypto.randomUUID();
-    await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).set({
-      id: invitationId,
-      email: normalizedEmail,
-      role: normalizedRole,
-      token,
-      status: 'pending',
-      createdAt: new Date(),
-    });
+    // UPSERT: si ya existe una invitación pendiente para este email, se actualiza
+    // (nuevo token + fecha refrescada) en vez de duplicar la fila — "reenviar" ≠ "duplicar".
+    const existingSnap = await db
+      .collection('stores')
+      .doc(storeId)
+      .collection('invitations')
+      .where('email', '==', normalizedEmail)
+      .where('status', '==', 'pending')
+      .limit(1)
+      .get();
+
+    let invitationId: string;
+    const now = new Date();
+    if (!existingSnap.empty) {
+      invitationId = existingSnap.docs[0].id;
+      await db
+        .collection('stores')
+        .doc(storeId)
+        .collection('invitations')
+        .doc(invitationId)
+        .update({
+          role: normalizedRole,
+          token,
+          status: 'pending',
+          createdAt: now,
+          updatedAt: now,
+        });
+      console.info(
+        `[inviteStaff] Invitación existente reenviada (${normalizedEmail}) — sin duplicar.`,
+      );
+    } else {
+      invitationId = crypto.randomUUID();
+      await db.collection('stores').doc(storeId).collection('invitations').doc(invitationId).set({
+        id: invitationId,
+        email: normalizedEmail,
+        role: normalizedRole,
+        token,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
     let auth: any;
     if (process.env.FUNCTIONS_EMULATOR === 'true') {
