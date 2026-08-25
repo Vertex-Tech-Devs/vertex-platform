@@ -81,7 +81,7 @@ export class StoreDetailDomainsService {
         this.domainStatus.set('pending');
         if (!silent) {
           this.dnsVerificationError.set(
-            'La verificación del dominio está pendiente. Completá la configuración DNS.',
+            'El dominio está conectado y esperando la propagación DNS. La emisión del certificado SSL puede tardar entre 2 y 24 horas.',
           );
         }
       }
