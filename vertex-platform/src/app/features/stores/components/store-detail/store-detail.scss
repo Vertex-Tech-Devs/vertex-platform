@@ -2574,3 +2574,170 @@
   background: rgba(248, 113, 113, 0.25);
   color: #f87171;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tabs polish — Pagos + consistencia en las 5 pestañas (CSS only)
+   ══════════════════════════════════════════════════════════════════════ */
+
+.tab-content {
+  padding-top: 0.5rem;
+}
+
+/* ── Pestaña Pagos ─────────────────────────────────────────────────── */
+.payments-grid {
+  align-items: start;
+}
+
+.mp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 1.5rem;
+
+  .form-group {
+    margin: 0;
+  }
+
+  .form-label {
+    margin-bottom: 0.15rem;
+  }
+
+  .form-hint {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--platform-text-muted);
+    margin-top: 0.35rem;
+  }
+}
+
+.form-control {
+  height: auto;
+  min-height: 42px;
+}
+
+.input-password-wrapper .form-control,
+.input-copy-wrapper .form-control {
+  width: 100%;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 12px;
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .form-label {
+    margin: 0;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+}
+
+.mp-validation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+
+  &--valid {
+    background: hsla(142, 70%, 45%, 0.1);
+    border: 1px solid hsla(142, 70%, 45%, 0.3);
+    color: var(--platform-status-active-text);
+  }
+}
+
+.mp-info-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.mp-info-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 12px;
+
+  &__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--platform-accent-gradient);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Pestaña Orquestación ──────────────────────────────────────────── */
+.detail-dl {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 2fr;
+  gap: 0.45rem 1rem;
+  margin: 0;
+
+  dt {
+    color: var(--platform-text-muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.45rem 0;
+  }
+
+  dd {
+    margin: 0;
+    padding: 0.45rem 0;
+    color: var(--platform-text-primary);
+    font-size: 0.9rem;
+    border-bottom: 1px solid hsla(0, 0%, 100%, 0.04);
+    word-break: break-word;
+  }
+}
+
+/* ── Pestaña Equipo ────────────────────────────────────────────────── */
+.staff-item {
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ── Pestaña Dominios ──────────────────────────────────────────────── */
+.dns-setup-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dns-connected-info {
+  padding: 1rem 1.25rem;
+}
+
+/* ── Pestaña Historial ─────────────────────────────────────────────── */
+.deploy-history-table td {
+  vertical-align: middle;
+}
+
+/* Cards internas de todas las pestañas: misma jerarquía */
+.detail-card {
+  overflow: hidden;
+}
