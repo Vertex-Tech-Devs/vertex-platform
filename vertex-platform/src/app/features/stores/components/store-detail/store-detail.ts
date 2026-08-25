@@ -289,15 +289,18 @@ export class StoreDetail implements OnInit {
       // Refresco de estado en background (silencioso, no pisa los records mostrados).
       void this.domainsService.verifyDNS(s.id, s.customDomain, true);
     }
+    if (tab === 'equipo' && s) {
+      void this.staffService.loadStaff(s.id, true);
+    }
     if (tab === 'pagos' && s) {
       void this.loadPaymentConfig(s.id);
     }
   }
 
-  async loadStaff(): Promise<void> {
+  async loadStaff(force = true): Promise<void> {
     const s = this.store();
     if (s) {
-      await this.staffService.loadStaff(s.id);
+      await this.staffService.loadStaff(s.id, force);
     }
   }
 

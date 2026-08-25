@@ -2120,6 +2120,7 @@ export const getStoreStaff = onCall<{ storeId: string }>(
       provisioningOwnerId?: string;
     };
     const projectId = resolveRuntimeProjectId(store);
+    const tenantId = store.slug || storeId;
 
     const users: Array<{
       uid: string;
@@ -2173,28 +2174,44 @@ export const getStoreStaff = onCall<{ storeId: string }>(
     if (projectId) {
       try {
         const shardDb = getFirestoreForProject(projectId);
-        const adminRolesSnap = await shardDb
-          .collection('admin_roles')
-          .where('storeId', '==', storeId)
-          .get();
+        const adminRolesSnap = await shardDb.collection('admin_roles').get();
         for (const doc of adminRolesSnap.docs) {
           const data = doc.data();
-          const email = (data['email'] || '').trim();
-          if (email && !users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-            users.push({
-              uid: doc.id,
-              email,
-              role: data['role'] || 'admin',
-              displayName: data['displayName'] || '',
-              joinedAt:
-                data['assignedAt'] instanceof Date
-                  ? data['assignedAt'].toISOString()
-                  : data['assignedAt']?.toDate?.()?.toISOString?.() || '',
-            });
+          const docTenant = data['tenantId'] || data['storeId'] || '';
+          const matchesTenant =
+            docTenant === tenantId ||
+            docTenant === storeId ||
+            doc.id.startsWith(`${tenantId}_`) ||
+            doc.id.startsWith(`${storeId}_`);
+
+          if (matchesTenant) {
+            let email = (data['email'] || '').trim();
+            if (!email && doc.id.includes('_')) {
+              const rawEmailPart = doc.id.substring(doc.id.indexOf('_') + 1);
+              try {
+                email = decodeURIComponent(rawEmailPart);
+              } catch {
+                email = rawEmailPart;
+              }
+            }
+            if (email && !users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+              users.push({
+                uid: doc.id,
+                email,
+                role: data['role'] || 'admin',
+                displayName: data['displayName'] || '',
+                joinedAt:
+                  data['assignedAt'] instanceof Date
+                    ? data['assignedAt'].toISOString()
+                    : data['assignedAt']?.toDate?.()?.toISOString?.() ||
+                      data['updatedAt']?.toDate?.()?.toISOString?.() ||
+                      '',
+              });
+            }
           }
         }
       } catch (err) {
-        // Shard query fallback (silent)
+        console.warn(`[getStoreStaff] Failed to load shard admin_roles:`, err);
       }
     }
 
@@ -2212,18 +2229,34 @@ export const getStoreStaff = onCall<{ storeId: string }>(
           email: data['email'],
           role: data['role'],
           status: data['status'],
-          createdAt: data['createdAt']?.toDate().toISOString(),
+          createdAt: data['createdAt']?.toDate?.()?.toISOString?.() || '',
         };
       });
 
-      // Marcar como "aceptadas" las invitaciones pendientes cuyo usuario YA existe en
-      // el Firebase Auth del shard (es decir, ya ingresó con Google OAuth a la tienda).
+      // Marcar como "aceptadas" las invitaciones pendientes cuyo usuario ya existe en
+      // la lista de staff o en Firebase Auth del shard.
       const pending = invitations.filter((i: any) => i.status === 'pending');
-      if (pending.length > 0 && projectId) {
-        try {
-          const ownerAuth = await getOwnerOAuthClient(store.provisioningOwnerId);
-          const ownerToken = (await ownerAuth.getAccessToken()).token;
-          for (const inv of pending) {
+      for (const inv of pending) {
+        const invEmailLower = (inv.email || '').trim().toLowerCase();
+        // Si el usuario ya figura en users/staff (e.g. logueado o registrado en admin_roles con actividad)
+        const staffFound = users.find((u) => (u.email || '').trim().toLowerCase() === invEmailLower);
+        if (staffFound) {
+          inv.status = 'accepted';
+          await db
+            .collection('stores')
+            .doc(storeId)
+            .collection('invitations')
+            .doc(inv.id)
+            .update({ status: 'accepted', acceptedAt: new Date() })
+            .catch(() => {});
+          continue;
+        }
+
+        // Si no, intentar verificar en IdentityToolkit del shard
+        if (projectId) {
+          try {
+            const ownerAuth = await getOwnerOAuthClient(store.provisioningOwnerId);
+            const ownerToken = (await ownerAuth.getAccessToken()).token;
             const lookup = await fetch(
               `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
               {
@@ -2247,12 +2280,12 @@ export const getStoreStaff = onCall<{ storeId: string }>(
                   .update({ status: 'accepted', acceptedAt: new Date() });
               }
             }
+          } catch (lookupErr) {
+            console.warn(
+              `[getStoreStaff] No se pudo verificar aceptación de invitaciones en ${projectId}:`,
+              lookupErr,
+            );
           }
-        } catch (lookupErr) {
-          console.warn(
-            `[getStoreStaff] No se pudo verificar aceptación de invitaciones en ${projectId}:`,
-            lookupErr,
-          );
         }
       }
     } catch (err) {
