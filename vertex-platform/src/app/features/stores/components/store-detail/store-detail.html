@@ -1283,7 +1283,7 @@
                         <input
                           class="form-control form-control--readonly"
                           type="text"
-                          [value]="'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?storeId=' + store()!.id"
+                          [value]="'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=' + (store()!.slug || store()!.id)"
                           readonly
                         />
                         <button
