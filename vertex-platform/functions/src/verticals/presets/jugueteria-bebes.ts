@@ -6,27 +6,96 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
   icon: 'bi-balloon',
   description: 'Juegos de mesa, juguetes didácticos Montessori, muñecos, rodados y puericultura.',
   bannerTitle: 'Mundo de Juego, Imaginación y Ternura',
-  bannerSubtitle: 'Juguetes seguros certificados, estimulación temprana y accesorios para la primera infancia.',
+  bannerSubtitle:
+    'Juguetes seguros certificados, estimulación temprana y accesorios para la primera infancia.',
   heroImages: [
     'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'didacticos', name: 'Juguetes Didácticos', slug: 'didacticos', imageUrl: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'juegos-mesa', name: 'Juegos de Mesa', slug: 'juegos-mesa', imageUrl: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'primera-infancia', name: 'Bebés & Puericultura', slug: 'primera-infancia', imageUrl: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'rodados', name: 'Pata Pata & Rodados', slug: 'rodados', imageUrl: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'didacticos',
+      name: 'Juguetes Didácticos',
+      slug: 'didacticos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'juegos-mesa',
+      name: 'Juegos de Mesa',
+      slug: 'juegos-mesa',
+      imageUrl:
+        'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'primera-infancia',
+      name: 'Bebés & Puericultura',
+      slug: 'primera-infancia',
+      imageUrl:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'rodados',
+      name: 'Pata Pata & Rodados',
+      slug: 'rodados',
+      imageUrl:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'didacticos', name: 'Didácticos & Montessori', slug: 'didacticos', order: 1, filterableAttributes: ['edad-recomendada'] },
-    { id: 'juegos-mesa', name: 'Juegos de Mesa & Estrategia', slug: 'juegos-mesa', order: 2, filterableAttributes: ['edad-recomendada'] },
-    { id: 'primera-infancia', name: 'Primera Infancia & Mordillos', slug: 'primera-infancia', order: 3, filterableAttributes: [] },
-    { id: 'construccion-bloques', name: 'Bloques & Construcción', slug: 'construccion-bloques', order: 4, filterableAttributes: [] },
-    { id: 'rodados', name: 'Rodados, Monopatines & Aire Libre', slug: 'rodados', order: 5, filterableAttributes: ['color'] },
+    {
+      id: 'didacticos',
+      name: 'Didácticos & Montessori',
+      slug: 'didacticos',
+      order: 1,
+      filterableAttributes: ['edad-recomendada'],
+    },
+    {
+      id: 'juegos-mesa',
+      name: 'Juegos de Mesa & Estrategia',
+      slug: 'juegos-mesa',
+      order: 2,
+      filterableAttributes: ['edad-recomendada'],
+    },
+    {
+      id: 'primera-infancia',
+      name: 'Primera Infancia & Mordillos',
+      slug: 'primera-infancia',
+      order: 3,
+      filterableAttributes: [],
+    },
+    {
+      id: 'construccion-bloques',
+      name: 'Bloques & Construcción',
+      slug: 'construccion-bloques',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'rodados',
+      name: 'Rodados, Monopatines & Aire Libre',
+      slug: 'rodados',
+      order: 5,
+      filterableAttributes: ['color'],
+    },
   ],
   attributes: [
-    { id: 'edad-recomendada', name: 'Edad Sugerida', code: 'edad-recomendada', type: 'select', values: ['0 a 12 meses', '1 a 3 años', '4 a 6 años', '7 a 12 años', '+12 años / Familiar'], required: false },
-    { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Rojo', 'Azul', 'Rosa Pastel', 'Verde Menta', 'Madera Natural'], required: false },
+    {
+      id: 'edad-recomendada',
+      name: 'Edad Sugerida',
+      code: 'edad-recomendada',
+      type: 'select',
+      values: ['0 a 12 meses', '1 a 3 años', '4 a 6 años', '7 a 12 años', '+12 años / Familiar'],
+      required: false,
+    },
+    {
+      id: 'color',
+      name: 'Color',
+      code: 'color',
+      type: 'color',
+      values: ['Rojo', 'Azul', 'Rosa Pastel', 'Verde Menta', 'Madera Natural'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#06b6d4',
@@ -34,9 +103,18 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Juguetes Educativos y Seguros', content: 'Pinturas al agua atóxicas y maderas nobles pulidas con bordes suaves.' },
-    { title: 'Pedagogías Montessori & Waldorf', content: 'Estimulación sensorial, motricidad fina y creatividad sin pantallas.' },
-    { title: 'Garantía de Diversión', content: 'Juguetes duraderos pensados para pasar de generación en generación.' },
+    {
+      title: 'Juguetes Educativos y Seguros',
+      content: 'Pinturas al agua atóxicas y maderas nobles pulidas con bordes suaves.',
+    },
+    {
+      title: 'Pedagogías Montessori & Waldorf',
+      content: 'Estimulación sensorial, motricidad fina y creatividad sin pantallas.',
+    },
+    {
+      title: 'Garantía de Diversión',
+      content: 'Juguetes duraderos pensados para pasar de generación en generación.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +123,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 98000,
       stock: 15,
       skuPrefix: 'JUG-TR-MNT',
-      description: 'Estructura segura con barra de protección para que los niños participen en la cocina y mesa con autonomía.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estructura segura con barra de protección para que los niños participen en la cocina y mesa con autonomía.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +135,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 25,
       skuPrefix: 'JUG-ARC-WLD',
-      description: 'Piezas de madera de tilo teñidas con pinturas no tóxicas a base de agua que estimulan el juego libre.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Piezas de madera de tilo teñidas con pinturas no tóxicas a base de agua que estimulan el juego libre.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -65,8 +147,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 20,
       skuPrefix: 'JUG-BSY-BRD',
-      description: 'Tablero con engranajes, cierres, pasadores, interruptor y cascabeles para motricidad fina.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tablero con engranajes, cierres, pasadores, interruptor y cascabeles para motricidad fina.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,8 +159,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 48000,
       stock: 30,
       skuPrefix: 'JUG-MAG-64',
-      description: 'Formas geométricas imantadas traslúcidas que permiten construir castillos, autos y figuras en 3D.',
-      image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Formas geométricas imantadas traslúcidas que permiten construir castillos, autos y figuras en 3D.',
+      image:
+        'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -85,8 +171,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 35,
       skuPrefix: 'JUG-BLK-100',
-      description: 'Cilindros, prismas, arcos y cubos de madera pulida sin astillas en balde con tapa clasificadora de formas.',
-      image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cilindros, prismas, arcos y cubos de madera pulida sin astillas en balde con tapa clasificadora de formas.',
+      image:
+        'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -95,8 +183,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 39000,
       stock: 25,
       skuPrefix: 'JUG-BRD-EST',
-      description: 'Clásico juego de táctica militar con mapa mundial, tarjetas de misiones y fichas plásticas de ejércitos.',
-      image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
+      description:
+        'Clásico juego de táctica militar con mapa mundial, tarjetas de misiones y fichas plásticas de ejércitos.',
+      image:
+        'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -105,8 +195,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 45,
       skuPrefix: 'JUG-CRD-ROL',
-      description: 'Juego dinámico y divertido de 4 a 10 jugadores ideal para reuniones familiares y previas.',
-      image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
+      description:
+        'Juego dinámico y divertido de 4 a 10 jugadores ideal para reuniones familiares y previas.',
+      image:
+        'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -115,8 +207,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 29000,
       stock: 30,
       skuPrefix: 'JUG-TRV-FAM',
-      description: 'Más de 2000 preguntas actualizadas de arte, ciencia, historia, entretenimiento y deportes.',
-      image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
+      description:
+        'Más de 2000 preguntas actualizadas de arte, ciencia, historia, entretenimiento y deportes.',
+      image:
+        'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -125,8 +219,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 20,
       skuPrefix: 'JUG-GIM-BEB',
-      description: 'Alfombra acolchada suave con arco de juguetes colgantes sonajeros y teclado interactivo.',
-      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Alfombra acolchada suave con arco de juguetes colgantes sonajeros y teclado interactivo.',
+      image:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -135,8 +231,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 60,
       skuPrefix: 'JUG-MRD-SIL',
-      description: 'Texturas suaves que alivian la inflamación de encías en la etapa de dentición temprana.',
-      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Texturas suaves que alivian la inflamación de encías en la etapa de dentición temprana.',
+      image:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -145,7 +243,8 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 19500,
       stock: 40,
       skuPrefix: 'JUG-PLU-OSO',
-      description: 'Muñeco suave tejido a mano hipoalergénico con cascabel de sonido suave interior.',
+      description:
+        'Muñeco suave tejido a mano hipoalergénico con cascabel de sonido suave interior.',
       image: 'https://images.unsplash.com/photo-1556012018-50c5c0da73bf?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -155,8 +254,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 54000,
       stock: 25,
       skuPrefix: 'JUG-MNP-LED',
-      description: 'Sistema de dirección por inclinación gravimétrica, manillar regulable en 4 alturas y freno trasero.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sistema de dirección por inclinación gravimétrica, manillar regulable en 4 alturas y freno trasero.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'JUG-MNP-BLU', price: 54000, stock: 12, attributes: { color: 'Azul' } },
@@ -169,8 +270,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 38000,
       stock: 30,
       skuPrefix: 'JUG-AND-PAT',
-      description: 'Vehículo infantil de plástico reforzado con respaldo antivuelco y compartimento debajo del asiento.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Vehículo infantil de plástico reforzado con respaldo antivuelco y compartimento debajo del asiento.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'JUG-AND-RED', price: 38000, stock: 15, attributes: { color: 'Rojo' } },
@@ -183,8 +286,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 78000,
       stock: 18,
       skuPrefix: 'JUG-BIK-BAL',
-      description: 'Cuadro de aleación de magnesio ultraliviano con neumáticos macizos antipinchazos y asiento regulable.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cuadro de aleación de magnesio ultraliviano con neumáticos macizos antipinchazos y asiento regulable.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -193,8 +298,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 55,
       skuPrefix: 'JUG-MAS-6P',
-      description: 'Masa suave aromática que no mancha con cortantes de plástico, rodillo y jeringa extrusora.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Masa suave aromática que no mancha con cortantes de plástico, rodillo y jeringa extrusora.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -203,8 +310,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 45,
       skuPrefix: 'JUG-PZL-MAD',
-      description: 'Puzzles con perillas de agarre ergonómicas para que los más chicos encajen figuras de la granja.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Puzzles con perillas de agarre ergonómicas para que los más chicos encajen figuras de la granja.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -213,8 +322,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 19800,
       stock: 40,
       skuPrefix: 'JUG-PIZ-MAG',
-      description: 'Pantalla de dibujo de 4 colores con lápiz magnético sujeto y botón deslizante de borrado instantáneo.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pantalla de dibujo de 4 colores con lápiz magnético sujeto y botón deslizante de borrado instantáneo.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -223,8 +334,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 50,
       skuPrefix: 'JUG-VAS-360',
-      description: 'Borde que se sella automáticamente cuando el bebé deja de beber, evitando salpicaduras y caídas.',
-      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Borde que se sella automáticamente cuando el bebé deja de beber, evitando salpicaduras y caídas.',
+      image:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -233,8 +346,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 35,
       skuPrefix: 'JUG-LUZ-NOC',
-      description: 'Lámpara suave con forma de conejito con cambio de color táctil y temporizador de apagado.',
-      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Lámpara suave con forma de conejito con cambio de color táctil y temporizador de apagado.',
+      image:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -243,8 +358,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 40,
       skuPrefix: 'JUG-CAM-PLA',
-      description: 'Plástico flexible de alta durabilidad resistente a rayos solares y caídas en arena o agua.',
-      image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
+      description:
+        'Plástico flexible de alta durabilidad resistente a rayos solares y caídas en arena o agua.',
+      image:
+        'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -253,8 +370,10 @@ export const JUGUETERIA_BEBES_PRESET: BusinessVerticalDefinition = {
       price: 11000,
       stock: 60,
       skuPrefix: 'JUG-PEL-SNS',
-      description: 'Balón blando de tela lavable con diferentes tejidos para estimulación táctil y auditiva.',
-      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Balón blando de tela lavable con diferentes tejidos para estimulación táctil y auditiva.',
+      image:
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

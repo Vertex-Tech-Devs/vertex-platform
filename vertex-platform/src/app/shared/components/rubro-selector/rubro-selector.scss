@@ -153,10 +153,11 @@
   border-radius: 14px;
   cursor: pointer;
   backdrop-filter: blur(10px);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 
   &:hover {
@@ -177,11 +178,13 @@
   }
 
   &.is-selected {
-    background: radial-gradient(circle at top right, hsla(199, 89%, 48%, 0.1), transparent 70%),
-                linear-gradient(135deg, hsla(244, 75%, 64%, 0.12), hsla(225, 25%, 12%, 0.8));
+    background:
+      radial-gradient(circle at top right, hsla(199, 89%, 48%, 0.1), transparent 70%),
+      linear-gradient(135deg, hsla(244, 75%, 64%, 0.12), hsla(225, 25%, 12%, 0.8));
     border-color: var(--platform-accent-purple);
-    box-shadow: 0 0 0 1px var(--platform-accent-purple),
-                0 8px 24px -4px hsla(244, 75%, 64%, 0.28);
+    box-shadow:
+      0 0 0 1px var(--platform-accent-purple),
+      0 8px 24px -4px hsla(244, 75%, 64%, 0.28);
 
     .rubro-card__icon-box {
       background: hsla(244, 75%, 64%, 0.22);

@@ -4,29 +4,98 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
   id: 'DIETETICA_NATURISTA',
   name: 'Dietética & Tienda Naturista',
   icon: 'bi-egg-fried',
-  description: 'Frutos secos, harinas integrales, semillas, té en hebras, productos sin gluten y veganos.',
+  description:
+    'Frutos secos, harinas integrales, semillas, té en hebras, productos sin gluten y veganos.',
   bannerTitle: 'Alimentación Consciente, Sana & Natural',
-  bannerSubtitle: 'Frutos secos seleccionados, alimentos sin TACC, superalimentos orgánicos y suplementación natural.',
+  bannerSubtitle:
+    'Frutos secos seleccionados, alimentos sin TACC, superalimentos orgánicos y suplementación natural.',
   heroImages: [
     'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'frutos-secos', name: 'Frutos Secos', slug: 'frutos-secos', imageUrl: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'sin-tacc', name: 'Sin TACC & Celíacos', slug: 'sin-tacc', imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'superalimentos', name: 'Superalimentos', slug: 'superalimentos', imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'infusiones', name: 'Té & Infusiones', slug: 'infusiones', imageUrl: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'frutos-secos',
+      name: 'Frutos Secos',
+      slug: 'frutos-secos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'sin-tacc',
+      name: 'Sin TACC & Celíacos',
+      slug: 'sin-tacc',
+      imageUrl:
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'superalimentos',
+      name: 'Superalimentos',
+      slug: 'superalimentos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'infusiones',
+      name: 'Té & Infusiones',
+      slug: 'infusiones',
+      imageUrl:
+        'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'frutos-secos', name: 'Frutos Secos, Semillas & Frutas Deshidratadas', slug: 'frutos-secos', order: 1, filterableAttributes: ['peso-gr'] },
-    { id: 'harinas-cereales', name: 'Harinas Integrales, Avenas & Legumbres', slug: 'harinas-cereales', order: 2, filterableAttributes: ['peso-gr'] },
-    { id: 'sin-tacc', name: 'Productos Sin TACC Certificados', slug: 'sin-tacc', order: 3, filterableAttributes: [] },
-    { id: 'superalimentos', name: 'Superfoods, Maca, Espirulina & Proteínas Veganas', slug: 'superalimentos', order: 4, filterableAttributes: [] },
-    { id: 'infusiones', name: 'Té en Hebras, Hierbas Medicinales & Miel', slug: 'infusiones', order: 5, filterableAttributes: [] },
-    { id: 'aceites-untables', name: 'Mantecas de Frutos Secos & Aceites Prensados', slug: 'aceites-untables', order: 6, filterableAttributes: [] },
+    {
+      id: 'frutos-secos',
+      name: 'Frutos Secos, Semillas & Frutas Deshidratadas',
+      slug: 'frutos-secos',
+      order: 1,
+      filterableAttributes: ['peso-gr'],
+    },
+    {
+      id: 'harinas-cereales',
+      name: 'Harinas Integrales, Avenas & Legumbres',
+      slug: 'harinas-cereales',
+      order: 2,
+      filterableAttributes: ['peso-gr'],
+    },
+    {
+      id: 'sin-tacc',
+      name: 'Productos Sin TACC Certificados',
+      slug: 'sin-tacc',
+      order: 3,
+      filterableAttributes: [],
+    },
+    {
+      id: 'superalimentos',
+      name: 'Superfoods, Maca, Espirulina & Proteínas Veganas',
+      slug: 'superalimentos',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'infusiones',
+      name: 'Té en Hebras, Hierbas Medicinales & Miel',
+      slug: 'infusiones',
+      order: 5,
+      filterableAttributes: [],
+    },
+    {
+      id: 'aceites-untables',
+      name: 'Mantecas de Frutos Secos & Aceites Prensados',
+      slug: 'aceites-untables',
+      order: 6,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'peso-gr', name: 'Peso', code: 'peso-gr', type: 'button', values: ['250 g', '500 g', '1 kg'], required: false },
+    {
+      id: 'peso-gr',
+      name: 'Peso',
+      code: 'peso-gr',
+      type: 'button',
+      values: ['250 g', '500 g', '1 kg'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#65a30d',
@@ -34,9 +103,18 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Alimentos Puros y Sin Aditivos', content: 'Frutos secos frescos de cosecha reciente y harinas molidas a la piedra.' },
-    { title: 'Línea Sin TACC Certificada', content: 'Variedad de productos aptos para celíacos y dietas plant-based.' },
-    { title: 'A Granel y Fraccionado', content: 'Comprá la cantidad exacta que necesitás con packaging resellable hermético.' },
+    {
+      title: 'Alimentos Puros y Sin Aditivos',
+      content: 'Frutos secos frescos de cosecha reciente y harinas molidas a la piedra.',
+    },
+    {
+      title: 'Línea Sin TACC Certificada',
+      content: 'Variedad de productos aptos para celíacos y dietas plant-based.',
+    },
+    {
+      title: 'A Granel y Fraccionado',
+      content: 'Comprá la cantidad exacta que necesitás con packaging resellable hermético.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +123,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 50,
       skuPrefix: 'DIE-NUC-500',
-      description: 'Cosecha fresca del Valle de Uco, mitades enteras seleccionadas ricas en omega 3 y antioxidantes.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cosecha fresca del Valle de Uco, mitades enteras seleccionadas ricas en omega 3 y antioxidantes.',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +135,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 14800,
       stock: 45,
       skuPrefix: 'DIE-ALM-500',
-      description: 'Almendras dulces crudas sin tostar de piel suave y alto contenido de magnesio y vitamina E.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      description:
+        'Almendras dulces crudas sin tostar de piel suave y alto contenido de magnesio y vitamina E.',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -66,7 +148,8 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       stock: 35,
       skuPrefix: 'DIE-CAJ-500',
       description: 'Castañas enteras w320 de sabor suave y mantecoso tostadas en su punto justo.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,8 +158,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 6500,
       stock: 60,
       skuPrefix: 'DIE-SEM-500',
-      description: 'Mezcla balanceada de semillas limpias ideales para agregar a panes, ensaladas y yogures.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mezcla balanceada de semillas limpias ideales para agregar a panes, ensaladas y yogures.',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -85,8 +170,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 4900,
       stock: 80,
       skuPrefix: 'DIE-AVN-1KG',
-      description: 'Hojuelas de avena 100% integral sin aditivos para porridge, granolas y repostería saludable.',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
+      description:
+        'Hojuelas de avena 100% integral sin aditivos para porridge, granolas y repostería saludable.',
+      image:
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -95,8 +182,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 40,
       skuPrefix: 'DIE-HAR-ALM',
-      description: '100% harina de almendras peladas molidas a la piedra, apta para dietas Keto, Low Carb y Sin TACC.',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
+      description:
+        '100% harina de almendras peladas molidas a la piedra, apta para dietas Keto, Low Carb y Sin TACC.',
+      image:
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -105,8 +194,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 7800,
       stock: 55,
       skuPrefix: 'DIE-QUN-500',
-      description: 'Grano andino libre de saponina listo para cocinar con alto contenido de proteína vegetal completa.',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
+      description:
+        'Grano andino libre de saponina listo para cocinar con alto contenido de proteína vegetal completa.',
+      image:
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -115,8 +206,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 5900,
       stock: 70,
       skuPrefix: 'DIE-PRM-ST',
-      description: 'Mezcla certificada libre de gluten con fécula de mandioca, almidón de maíz y harina de arroz.',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mezcla certificada libre de gluten con fécula de mandioca, almidón de maíz y harina de arroz.',
+      image:
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -125,7 +218,8 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 4800,
       stock: 65,
       skuPrefix: 'DIE-FUS-ST',
-      description: 'Fideos libres de gluten que mantienen su estructura al dente sin desarmarse al hervir.',
+      description:
+        'Fideos libres de gluten que mantienen su estructura al dente sin desarmarse al hervir.',
       image: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -135,8 +229,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 4200,
       stock: 60,
       skuPrefix: 'DIE-GLT-ST',
-      description: 'Cookies crujientes elaboradas en planta exclusiva libre de gluten con cacao puro.',
-      image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cookies crujientes elaboradas en planta exclusiva libre de gluten con cacao puro.',
+      image:
+        'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -145,8 +241,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 35,
       skuPrefix: 'DIE-ESP-150',
-      description: 'Microalga unicelular rica en clorofila, hierro biodisponible y 65% de proteínas vegetales.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
+      description:
+        'Microalga unicelular rica en clorofila, hierro biodisponible y 65% de proteínas vegetales.',
+      image:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -155,8 +253,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 19800,
       stock: 30,
       skuPrefix: 'DIE-MAC-200',
-      description: 'Adaptógeno natural de alta absorción que incrementa la energía, resistencia y balance hormonal.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
+      description:
+        'Adaptógeno natural de alta absorción que incrementa la energía, resistencia y balance hormonal.',
+      image:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -165,8 +265,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 30,
       skuPrefix: 'DIE-PRO-VEG',
-      description: '24g de proteína por porción sabor vainilla natural sin azúcar, sin soja y libre de lácteos.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
+      description:
+        '24g de proteína por porción sabor vainilla natural sin azúcar, sin soja y libre de lácteos.',
+      image:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -175,8 +277,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 6900,
       stock: 75,
       skuPrefix: 'DIE-CHI-500',
-      description: 'Excelente fuente de fibra soluble y ácidos grasos omega 3 para pudines, batidos y panificados.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      description:
+        'Excelente fuente de fibra soluble y ácidos grasos omega 3 para pudines, batidos y panificados.',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -185,8 +289,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 35,
       skuPrefix: 'DIE-MAT-50G',
-      description: 'Hojas de té verde de sombra molidas finamente a la piedra con alto poder antioxidante EGCG.',
-      image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Hojas de té verde de sombra molidas finamente a la piedra con alto poder antioxidante EGCG.',
+      image:
+        'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -195,8 +301,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 9500,
       stock: 50,
       skuPrefix: 'DIE-TE-FRT',
-      description: 'Mezcla aromática de flores de hibisco, arándanos deshidratados, frutillas y pétalos de rosas.',
-      image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mezcla aromática de flores de hibisco, arándanos deshidratados, frutillas y pétalos de rosas.',
+      image:
+        'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -205,8 +313,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 9800,
       stock: 60,
       skuPrefix: 'DIE-MEL-1KG',
-      description: 'Miel cruda sin calentar ni pasteurizar cosechada artesanalmente preservando enzimas y polen natural.',
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=800&fit=crop&q=80',
+      description:
+        'Miel cruda sin calentar ni pasteurizar cosechada artesanalmente preservando enzimas y polen natural.',
+      image:
+        'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -215,8 +325,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 6200,
       stock: 80,
       skuPrefix: 'DIE-PAS-MAN',
-      description: 'Un solo ingrediente: maní argentino tostado molido hasta lograr textura cremosa sedosa.',
-      image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
+      description:
+        'Un solo ingrediente: maní argentino tostado molido hasta lograr textura cremosa sedosa.',
+      image:
+        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -225,8 +337,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 45,
       skuPrefix: 'DIE-OIL-COC',
-      description: 'Aroma fresco natural a coco con ácidos grasos MCT para cocción saludable, café y cuidado corporal.',
-      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&h=800&fit=crop&q=80',
+      description:
+        'Aroma fresco natural a coco con ácidos grasos MCT para cocción saludable, café y cuidado corporal.',
+      image:
+        'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -235,8 +349,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 8900,
       stock: 55,
       skuPrefix: 'DIE-CAC-250',
-      description: 'Sabor profundo a chocolate sin azúcar agregada para desayunos saludables y repostería fitness.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sabor profundo a chocolate sin azúcar agregada para desayunos saludables y repostería fitness.',
+      image:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -245,8 +361,10 @@ export const DIETETICA_NATURISTA_PRESET: BusinessVerticalDefinition = {
       price: 11000,
       stock: 50,
       skuPrefix: 'DIE-LEV-B12',
-      description: 'Condimento sabor queso sin lácteos enriquecido con vitamina B12 para dietas veganas y vegetarianas.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
+      description:
+        'Condimento sabor queso sin lácteos enriquecido con vitamina B12 para dietas veganas y vegetarianas.',
+      image:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

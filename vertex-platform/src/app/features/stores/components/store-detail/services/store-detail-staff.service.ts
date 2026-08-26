@@ -65,7 +65,9 @@ export class StoreDetailStaffService {
       return true;
     } catch (err) {
       console.error('Error inviting staff:', err);
-      this.inviteError.set(errorMessage(err) || 'No se pudo enviar la invitación. Intentá de nuevo.');
+      this.inviteError.set(
+        errorMessage(err) || 'No se pudo enviar la invitación. Intentá de nuevo.',
+      );
       return false;
     } finally {
       this.isInvitingStaff.set(false);

@@ -33,7 +33,7 @@
   background: hsla(225, 25%, 11%, 0.96);
   border: 1px solid hsla(244, 75%, 64%, 0.25);
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 25px 60px rgba(0, 0, 0, 0.75),
     0 0 40px hsla(244, 75%, 64%, 0.15),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.12);
@@ -527,8 +527,12 @@
 }
 
 @keyframes modalBackdropFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalZoomIn {
@@ -543,5 +547,7 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

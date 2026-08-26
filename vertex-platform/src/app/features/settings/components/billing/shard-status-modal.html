@@ -27,8 +27,8 @@
           <div>
             <strong>Todo configurado.</strong>
             <p>
-              Redirect URI registrado, billing vinculado y estado utilizable. Puede recibir
-              tiendas nuevas sin configuración.
+              Redirect URI registrado, billing vinculado y estado utilizable. Puede recibir tiendas
+              nuevas sin configuración.
             </p>
           </div>
         </div>
@@ -48,9 +48,9 @@
               @if (reason === 'redirect_uri') {
                 <p class="issue__desc">
                   El redirect URI de este shard <strong>no está registrado</strong> en el client
-                  OAuth del master. El login con Google de la primera tienda que caiga en este
-                  shard fallará con <code>redirect_uri_mismatch</code>. Es el único paso manual
-                  (Google no expone API), una vez por shard.
+                  OAuth del master. El login con Google de la primera tienda que caiga en este shard
+                  fallará con <code>redirect_uri_mismatch</code>. Es el único paso manual (Google no
+                  expone API), una vez por shard.
                 </p>
                 <ol class="issue__steps">
                   <li>
@@ -61,7 +61,8 @@
                     (proyecto {{ masterProject() }}).
                   </li>
                   <li>
-                    Client OAuth: <code>{{ MASTER_CLIENT_ID }}</code>.
+                    Client OAuth: <code>{{ MASTER_CLIENT_ID }}</code
+                    >.
                   </li>
                   <li>
                     <strong>Authorized redirect URIs</strong> → “Agregar URI” → pegá:
@@ -75,8 +76,8 @@
                   <li>Guardar.</li>
                   <li>
                     Verificá con
-                    <code>npx tsx scripts/audit-shards.ts --env {{ envShort() }}</code> y
-                    presioná “Verificar” en el panel.
+                    <code>npx tsx scripts/audit-shards.ts --env {{ envShort() }}</code> y presioná
+                    “Verificar” en el panel.
                   </li>
                 </ol>
               }
@@ -84,9 +85,9 @@
               @if (reason === 'billing') {
                 <p class="issue__desc">
                   Este shard <strong>no tiene billing vinculado</strong>
-                  {{ shard.billingAccountId ? '' : ' (sin billingAccountId)' }}. Sin billing
-                  queda en el plan Spark: el deploy de las Cloud Functions del storefront
-                  (checkout, Mercado Pago) fallará.
+                  {{ shard.billingAccountId ? '' : ' (sin billingAccountId)' }}. Sin billing queda
+                  en el plan Spark: el deploy de las Cloud Functions del storefront (checkout,
+                  Mercado Pago) fallará.
                 </p>
                 <ol class="issue__steps">
                   <li>
@@ -104,33 +105,42 @@
                   </li>
                   <li>
                     Vinculá el proyecto:
-                    <code>gcloud billing projects link {{ shard.projectId }} --billing-account TU_ACCOUNT_ID</code>
+                    <code
+                      >gcloud billing projects link {{ shard.projectId }} --billing-account
+                      TU_ACCOUNT_ID</code
+                    >
                     (o en la consola: Billing → proyecto → Vincular).
                   </li>
                   <li>
                     Actualizá la atribución en la plataforma:
-                    <code>npx tsx scripts/complete-shards.ts --env {{ envShort() }} --backfill-billing</code>
+                    <code
+                      >npx tsx scripts/complete-shards.ts --env
+                      {{ envShort() }} --backfill-billing</code
+                    >
                   </li>
                 </ol>
               }
 
               @if (reason === 'status') {
                 <p class="issue__desc">
-                  El shard está en estado <strong>{{ shard.status }}</strong> (no es
-                  WARMUP_READY ni ACTIVE).
+                  El shard está en estado <strong>{{ shard.status }}</strong> (no es WARMUP_READY ni
+                  ACTIVE).
                 </p>
                 <ul class="issue__steps issue__steps--ul">
                   @if (shard.status === 'WARMUP_PROVISIONING') {
                     <li>
-                      Está en provisioning: el scheduler lo completa en el próximo ciclo (cada
-                      6h) o con
-                      <code>npx tsx scripts/provision-shards.ts --target 10 --env {{ envShort() }}</code>.
+                      Está en provisioning: el scheduler lo completa en el próximo ciclo (cada 6h) o
+                      con
+                      <code
+                        >npx tsx scripts/provision-shards.ts --target 10 --env
+                        {{ envShort() }}</code
+                      >.
                     </li>
                   } @else if (shard.status === 'FULL') {
                     <li>
                       Está sin cupo (FULL). Si es un warmup fallido (0 tiendas), el scheduler lo
-                      purga automáticamente a las 24h. Si tiene tiendas, vuelve a ACTIVE al
-                      liberar cupo (deleteStore / activateStore).
+                      purga automáticamente a las 24h. Si tiene tiendas, vuelve a ACTIVE al liberar
+                      cupo (deleteStore / activateStore).
                     </li>
                   } @else {
                     <li>Revisá su estado en la consola de GCP o el scheduler del platform.</li>

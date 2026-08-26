@@ -12,24 +12,113 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
     'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'smartphones', name: 'Smartphones', slug: 'smartphones', imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'notebooks', name: 'Notebooks', slug: 'notebooks', imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'audio', name: 'Audio Hi-Fi', slug: 'audio', imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'gaming', name: 'Gaming & Periféricos', slug: 'gaming', imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'smartphones',
+      name: 'Smartphones',
+      slug: 'smartphones',
+      imageUrl:
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'notebooks',
+      name: 'Notebooks',
+      slug: 'notebooks',
+      imageUrl:
+        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'audio',
+      name: 'Audio Hi-Fi',
+      slug: 'audio',
+      imageUrl:
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'gaming',
+      name: 'Gaming & Periféricos',
+      slug: 'gaming',
+      imageUrl:
+        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'smartphones', name: 'Smartphones & Wearables', slug: 'smartphones', order: 1, filterableAttributes: ['almacenamiento', 'color'] },
-    { id: 'notebooks', name: 'Notebooks & Computación', slug: 'notebooks', order: 2, filterableAttributes: ['ram', 'almacenamiento', 'color'] },
-    { id: 'audio', name: 'Audio & Auriculares', slug: 'audio', order: 3, filterableAttributes: ['color', 'conectividad'] },
-    { id: 'gaming', name: 'Gaming & Periféricos', slug: 'gaming', order: 4, filterableAttributes: ['switch', 'color'] },
-    { id: 'smart-home', name: 'Smart Home & Accesorios', slug: 'smart-home', order: 5, filterableAttributes: ['color', 'conectividad'] },
+    {
+      id: 'smartphones',
+      name: 'Smartphones & Wearables',
+      slug: 'smartphones',
+      order: 1,
+      filterableAttributes: ['almacenamiento', 'color'],
+    },
+    {
+      id: 'notebooks',
+      name: 'Notebooks & Computación',
+      slug: 'notebooks',
+      order: 2,
+      filterableAttributes: ['ram', 'almacenamiento', 'color'],
+    },
+    {
+      id: 'audio',
+      name: 'Audio & Auriculares',
+      slug: 'audio',
+      order: 3,
+      filterableAttributes: ['color', 'conectividad'],
+    },
+    {
+      id: 'gaming',
+      name: 'Gaming & Periféricos',
+      slug: 'gaming',
+      order: 4,
+      filterableAttributes: ['switch', 'color'],
+    },
+    {
+      id: 'smart-home',
+      name: 'Smart Home & Accesorios',
+      slug: 'smart-home',
+      order: 5,
+      filterableAttributes: ['color', 'conectividad'],
+    },
   ],
   attributes: [
-    { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Negro Matte', 'Plata Titanio', 'Azul Marino', 'Blanco Glaciar'], required: true },
-    { id: 'almacenamiento', name: 'Almacenamiento', code: 'almacenamiento', type: 'button', values: ['128 GB', '256 GB', '512 GB', '1 TB'], required: true },
-    { id: 'ram', name: 'Memoria RAM', code: 'ram', type: 'button', values: ['8 GB', '16 GB', '32 GB'], required: true },
-    { id: 'conectividad', name: 'Conectividad', code: 'conectividad', type: 'select', values: ['Bluetooth 5.3', 'Inalámbrico 2.4GHz', 'USB-C'], required: false },
-    { id: 'switch', name: 'Tipo de Switch', code: 'switch', type: 'select', values: ['Red Lineal', 'Brown Táctil', 'Blue Clicky'], required: false },
+    {
+      id: 'color',
+      name: 'Color',
+      code: 'color',
+      type: 'color',
+      values: ['Negro Matte', 'Plata Titanio', 'Azul Marino', 'Blanco Glaciar'],
+      required: true,
+    },
+    {
+      id: 'almacenamiento',
+      name: 'Almacenamiento',
+      code: 'almacenamiento',
+      type: 'button',
+      values: ['128 GB', '256 GB', '512 GB', '1 TB'],
+      required: true,
+    },
+    {
+      id: 'ram',
+      name: 'Memoria RAM',
+      code: 'ram',
+      type: 'button',
+      values: ['8 GB', '16 GB', '32 GB'],
+      required: true,
+    },
+    {
+      id: 'conectividad',
+      name: 'Conectividad',
+      code: 'conectividad',
+      type: 'select',
+      values: ['Bluetooth 5.3', 'Inalámbrico 2.4GHz', 'USB-C'],
+      required: false,
+    },
+    {
+      id: 'switch',
+      name: 'Tipo de Switch',
+      code: 'switch',
+      type: 'select',
+      values: ['Red Lineal', 'Brown Táctil', 'Blue Clicky'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#6366f1',
@@ -37,9 +126,15 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Garantía Oficial', content: '12 meses de garantía oficial y soporte técnico especializado.' },
+    {
+      title: 'Garantía Oficial',
+      content: '12 meses de garantía oficial y soporte técnico especializado.',
+    },
     { title: 'Despacho en 24 Horas', content: 'Envío prioritario con seguro total de mercadería.' },
-    { title: 'Asesoramiento IT', content: 'Especialistas listos para asesorarte en compatibilidad y armado.' },
+    {
+      title: 'Asesoramiento IT',
+      content: 'Especialistas listos para asesorarte en compatibilidad y armado.',
+    },
   ],
   sampleProducts: [
     {
@@ -48,12 +143,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 1250000,
       stock: 35,
       skuPrefix: 'SP-ULTRA',
-      description: 'Pantalla AMOLED 6.7" 120Hz, cámara triple de 200MP, procesador Octa-Core y batería de 5000mAh.',
-      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pantalla AMOLED 6.7" 120Hz, cámara triple de 200MP, procesador Octa-Core y batería de 5000mAh.',
+      image:
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'SP-ULTRA-256-BLK', price: 1250000, stock: 20, attributes: { almacenamiento: '256 GB', color: 'Negro Matte' } },
-        { sku: 'SP-ULTRA-512-SLV', price: 1450000, stock: 15, attributes: { almacenamiento: '512 GB', color: 'Plata Titanio' } },
+        {
+          sku: 'SP-ULTRA-256-BLK',
+          price: 1250000,
+          stock: 20,
+          attributes: { almacenamiento: '256 GB', color: 'Negro Matte' },
+        },
+        {
+          sku: 'SP-ULTRA-512-SLV',
+          price: 1450000,
+          stock: 15,
+          attributes: { almacenamiento: '512 GB', color: 'Plata Titanio' },
+        },
       ],
     },
     {
@@ -62,12 +169,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 680000,
       stock: 25,
       skuPrefix: 'SP-NOVA',
-      description: 'Diseño ultrafino de 7.2mm con pantalla OLED de 6.5 pulgadas y carga rápida de 67W.',
-      image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&h=800&fit=crop&q=80',
+      description:
+        'Diseño ultrafino de 7.2mm con pantalla OLED de 6.5 pulgadas y carga rápida de 67W.',
+      image:
+        'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'SP-NOVA-128-BLU', price: 680000, stock: 15, attributes: { almacenamiento: '128 GB', color: 'Azul Marino' } },
-        { sku: 'SP-NOVA-128-BLK', price: 680000, stock: 10, attributes: { almacenamiento: '128 GB', color: 'Negro Matte' } },
+        {
+          sku: 'SP-NOVA-128-BLU',
+          price: 680000,
+          stock: 15,
+          attributes: { almacenamiento: '128 GB', color: 'Azul Marino' },
+        },
+        {
+          sku: 'SP-NOVA-128-BLK',
+          price: 680000,
+          stock: 10,
+          attributes: { almacenamiento: '128 GB', color: 'Negro Matte' },
+        },
       ],
     },
     {
@@ -76,8 +195,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 240000,
       stock: 30,
       skuPrefix: 'SW-PRO',
-      description: 'Reloj inteligente con monitor de SpO2, ECG, GPS dual integrado y resistencia al agua 5 ATM.',
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=800&fit=crop&q=80',
+      description:
+        'Reloj inteligente con monitor de SpO2, ECG, GPS dual integrado y resistencia al agua 5 ATM.',
+      image:
+        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'SW-PRO-BLK', price: 240000, stock: 15, attributes: { color: 'Negro Matte' } },
@@ -90,12 +211,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 2450000,
       stock: 18,
       skuPrefix: 'NB-DEV16',
-      description: 'Arquitectura ultra eficiente de 12 núcleos, pantalla Liquid Retina XDR y hasta 22h de autonomía.',
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Arquitectura ultra eficiente de 12 núcleos, pantalla Liquid Retina XDR y hasta 22h de autonomía.',
+      image:
+        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'NB-DEV16-16-512', price: 2450000, stock: 10, attributes: { ram: '16 GB', almacenamiento: '512 GB', color: 'Plata Titanio' } },
-        { sku: 'NB-DEV16-32-1TB', price: 2950000, stock: 8, attributes: { ram: '32 GB', almacenamiento: '1 TB', color: 'Negro Matte' } },
+        {
+          sku: 'NB-DEV16-16-512',
+          price: 2450000,
+          stock: 10,
+          attributes: { ram: '16 GB', almacenamiento: '512 GB', color: 'Plata Titanio' },
+        },
+        {
+          sku: 'NB-DEV16-32-1TB',
+          price: 2950000,
+          stock: 8,
+          attributes: { ram: '32 GB', almacenamiento: '1 TB', color: 'Negro Matte' },
+        },
       ],
     },
     {
@@ -104,11 +237,18 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 1350000,
       stock: 20,
       skuPrefix: 'NB-SLIM14',
-      description: 'Chasis de aluminio aeroespacial ultraligero de 1.1kg con teclado retroiluminado.',
-      image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=800&fit=crop&q=80',
+      description:
+        'Chasis de aluminio aeroespacial ultraligero de 1.1kg con teclado retroiluminado.',
+      image:
+        'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'NB-SLIM14-16-512', price: 1350000, stock: 20, attributes: { ram: '16 GB', almacenamiento: '512 GB', color: 'Plata Titanio' } },
+        {
+          sku: 'NB-SLIM14-16-512',
+          price: 1350000,
+          stock: 20,
+          attributes: { ram: '16 GB', almacenamiento: '512 GB', color: 'Plata Titanio' },
+        },
       ],
     },
     {
@@ -117,8 +257,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 460000,
       stock: 15,
       skuPrefix: 'MON-27C',
-      description: 'Panel Fast IPS con 1ms de respuesta, curvatura 1500R y compatibilidad FreeSync Premium.',
-      image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=800&fit=crop&q=80',
+      description:
+        'Panel Fast IPS con 1ms de respuesta, curvatura 1500R y compatibilidad FreeSync Premium.',
+      image:
+        'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -127,12 +269,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 185000,
       stock: 40,
       skuPrefix: 'AUD-ANC',
-      description: 'Cancelación activa de ruido híbrida, drivers de 40mm y hasta 40 horas de autonomía continua.',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cancelación activa de ruido híbrida, drivers de 40mm y hasta 40 horas de autonomía continua.',
+      image:
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'AUD-ANC-BLK', price: 185000, stock: 25, attributes: { color: 'Negro Matte', conectividad: 'Bluetooth 5.3' } },
-        { sku: 'AUD-ANC-WHT', price: 185000, stock: 15, attributes: { color: 'Blanco Glaciar', conectividad: 'Bluetooth 5.3' } },
+        {
+          sku: 'AUD-ANC-BLK',
+          price: 185000,
+          stock: 25,
+          attributes: { color: 'Negro Matte', conectividad: 'Bluetooth 5.3' },
+        },
+        {
+          sku: 'AUD-ANC-WHT',
+          price: 185000,
+          stock: 15,
+          attributes: { color: 'Blanco Glaciar', conectividad: 'Bluetooth 5.3' },
+        },
       ],
     },
     {
@@ -141,12 +295,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 95000,
       stock: 45,
       skuPrefix: 'AUD-TWS',
-      description: 'Estuche de carga inalámbrica Qi, 3 micrófonos por cápsula para llamadas cristalinas y resistencia IPX5.',
-      image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estuche de carga inalámbrica Qi, 3 micrófonos por cápsula para llamadas cristalinas y resistencia IPX5.',
+      image:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'AUD-TWS-BLK', price: 95000, stock: 25, attributes: { color: 'Negro Matte', conectividad: 'Bluetooth 5.3' } },
-        { sku: 'AUD-TWS-WHT', price: 95000, stock: 20, attributes: { color: 'Blanco Glaciar', conectividad: 'Bluetooth 5.3' } },
+        {
+          sku: 'AUD-TWS-BLK',
+          price: 95000,
+          stock: 25,
+          attributes: { color: 'Negro Matte', conectividad: 'Bluetooth 5.3' },
+        },
+        {
+          sku: 'AUD-TWS-WHT',
+          price: 95000,
+          stock: 20,
+          attributes: { color: 'Blanco Glaciar', conectividad: 'Bluetooth 5.3' },
+        },
       ],
     },
     {
@@ -155,7 +321,8 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 78000,
       stock: 35,
       skuPrefix: 'SPK-PORT',
-      description: 'Sonido envolvente 360° con radiadores pasivos de graves y 18 horas de música ininterrumpida.',
+      description:
+        'Sonido envolvente 360° con radiadores pasivos de graves y 18 horas de música ininterrumpida.',
       image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -169,7 +336,8 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 390000,
       stock: 12,
       skuPrefix: 'SND-BAR',
-      description: 'Subwoofer inalámbrico potente de 250W con HDMI eARC y compatibilidad AirPlay 2.',
+      description:
+        'Subwoofer inalámbrico potente de 250W con HDMI eARC y compatibilidad AirPlay 2.',
       image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -179,12 +347,24 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 145000,
       stock: 30,
       skuPrefix: 'KB-MECH',
-      description: 'Formato 75% inalámbrico tri-modo con keycaps PBT doble inyección y perilla de volumen de aluminio.',
-      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Formato 75% inalámbrico tri-modo con keycaps PBT doble inyección y perilla de volumen de aluminio.',
+      image:
+        'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'KB-MECH-RED', price: 145000, stock: 15, attributes: { switch: 'Red Lineal', color: 'Negro Matte' } },
-        { sku: 'KB-MECH-BRN', price: 145000, stock: 15, attributes: { switch: 'Brown Táctil', color: 'Blanco Glaciar' } },
+        {
+          sku: 'KB-MECH-RED',
+          price: 145000,
+          stock: 15,
+          attributes: { switch: 'Red Lineal', color: 'Negro Matte' },
+        },
+        {
+          sku: 'KB-MECH-BRN',
+          price: 145000,
+          stock: 15,
+          attributes: { switch: 'Brown Táctil', color: 'Blanco Glaciar' },
+        },
       ],
     },
     {
@@ -193,8 +373,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 89000,
       stock: 40,
       skuPrefix: 'MOU-GAM',
-      description: 'Sensor óptico de 26.000 DPI, switches ópticos de 100M de clics y polling rate de 4000Hz.',
-      image: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sensor óptico de 26.000 DPI, switches ópticos de 100M de clics y polling rate de 4000Hz.',
+      image:
+        'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'MOU-GAM-BLK', price: 89000, stock: 20, attributes: { color: 'Negro Matte' } },
@@ -207,7 +389,8 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 50,
       skuPrefix: 'PAD-XL',
-      description: 'Superficie de tejido Cordura resistente a derrames con base de caucho antideslizante y bordes cosidos.',
+      description:
+        'Superficie de tejido Cordura resistente a derrames con base de caucho antideslizante y bordes cosidos.',
       image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -217,8 +400,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 115000,
       stock: 25,
       skuPrefix: 'CAM-4K',
-      description: 'Sensor Sony Starvis con encuadre automático por IA y tapa física de privacidad integrada.',
-      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sensor Sony Starvis con encuadre automático por IA y tapa física de privacidad integrada.',
+      image:
+        'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -227,8 +412,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 52000,
       stock: 45,
       skuPrefix: 'HUB-8IN1',
-      description: 'Salida HDMI 4K@60Hz, Gigabit Ethernet, lector SD/MicroSD y Power Delivery de 100W.',
-      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Salida HDMI 4K@60Hz, Gigabit Ethernet, lector SD/MicroSD y Power Delivery de 100W.',
+      image:
+        'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -237,8 +424,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 60,
       skuPrefix: 'CHG-GAN65',
-      description: 'Tecnología GaN III ultra compacta con 2 puertos USB-C y 1 USB-A con protección térmica inteligente.',
-      image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tecnología GaN III ultra compacta con 2 puertos USB-C y 1 USB-A con protección térmica inteligente.',
+      image:
+        'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'CHG-GAN65-BLK', price: 42000, stock: 30, attributes: { color: 'Negro Matte' } },
@@ -251,8 +440,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 58000,
       stock: 30,
       skuPrefix: 'LGT-SCRN',
-      description: 'Iluminación asimétrica antideslumbrante para escritorio con sensor táctil de brillo y temperatura.',
-      image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Iluminación asimétrica antideslumbrante para escritorio con sensor táctil de brillo y temperatura.',
+      image:
+        'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -261,7 +452,8 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 19500,
       stock: 55,
       skuPrefix: 'SMT-PLUG',
-      description: 'Control remoto desde smartphone, temporizadores automáticos y compatibilidad con Alexa y Google Home.',
+      description:
+        'Control remoto desde smartphone, temporizadores automáticos y compatibilidad con Alexa y Google Home.',
       image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -271,8 +463,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 25,
       skuPrefix: 'ARM-MON',
-      description: 'Brazo mecánico para pantallas de 17" a 34" hasta 9kg con gestión interna de cables.',
-      image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=800&fit=crop&q=80',
+      description:
+        'Brazo mecánico para pantallas de 17" a 34" hasta 9kg con gestión interna de cables.',
+      image:
+        'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -281,8 +475,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 40,
       skuPrefix: 'PWR-20K',
-      description: 'Batería portátil con display digital de porcentaje y carga simultánea de hasta 3 dispositivos.',
-      image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Batería portátil con display digital de porcentaje y carga simultánea de hasta 3 dispositivos.',
+      image:
+        'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'PWR-20K-BLK', price: 36000, stock: 20, attributes: { color: 'Negro Matte' } },
@@ -295,8 +491,10 @@ export const TECNOLOGIA_ELECTRONICA_PRESET: BusinessVerticalDefinition = {
       price: 105000,
       stock: 20,
       skuPrefix: 'MIC-STRM',
-      description: 'Grabación a 24-bit/192kHz con filtro antipop integrado, botón de mute táctil y montura antivibración.',
-      image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
+      description:
+        'Grabación a 24-bit/192kHz con filtro antipop integrado, botón de mute táctil y montura antivibración.',
+      image:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

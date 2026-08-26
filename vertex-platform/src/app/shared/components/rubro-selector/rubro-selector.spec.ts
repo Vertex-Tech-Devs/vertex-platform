@@ -34,8 +34,20 @@ describe('RubroSelector', () => {
 
   it('should use customList input when provided', () => {
     const custom = [
-      { id: 'CUSTOM_1', name: 'Custom One', icon: '⭐', description: 'Desc One', categories: ['Cat1'] },
-      { id: 'CUSTOM_2', name: 'Custom Two', icon: '🚀', description: 'Desc Two', categories: ['Cat2'] },
+      {
+        id: 'CUSTOM_1',
+        name: 'Custom One',
+        icon: '⭐',
+        description: 'Desc One',
+        categories: ['Cat1'],
+      },
+      {
+        id: 'CUSTOM_2',
+        name: 'Custom Two',
+        icon: '🚀',
+        description: 'Desc Two',
+        categories: ['Cat2'],
+      },
     ];
     fixture.componentRef.setInput('verticals', custom);
     fixture.detectChanges();
@@ -61,7 +73,13 @@ describe('RubroSelector', () => {
 
     // Search by category
     const withCategories = [
-      { id: 'TEST_CAT', name: 'Almacén', icon: '🥫', description: 'Almacén de barrio', categories: ['Aceites', 'Fideos'] },
+      {
+        id: 'TEST_CAT',
+        name: 'Almacén',
+        icon: '🥫',
+        description: 'Almacén de barrio',
+        categories: ['Aceites', 'Fideos'],
+      },
     ];
     fixture.componentRef.setInput('verticals', withCategories);
     fixture.detectChanges();

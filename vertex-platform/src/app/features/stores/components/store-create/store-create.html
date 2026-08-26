@@ -104,7 +104,9 @@
     <section class="form-section">
       <div class="section-header">
         <h2 class="form-section__title">Rubro del Negocio *</h2>
-        <p class="section-subtitle">Define categorías, atributos y banners adaptados al rubro comercial.</p>
+        <p class="section-subtitle">
+          Define categorías, atributos y banners adaptados al rubro comercial.
+        </p>
       </div>
 
       <app-rubro-selector
@@ -189,7 +191,11 @@
               <span class="logo-preview-card__size">{{ logoFileSize() }}</span>
               <span class="badge badge--success mt-1">Listo para crear</span>
             </div>
-            <button type="button" class="btn btn-outline-danger btn-sm ms-auto" (click)="removeLogo()">
+            <button
+              type="button"
+              class="btn btn-outline-danger btn-sm ms-auto"
+              (click)="removeLogo()"
+            >
               <i class="bi bi-trash"></i> Eliminar
             </button>
           </div>

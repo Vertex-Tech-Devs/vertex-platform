@@ -6,27 +6,96 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
   icon: 'bi-heart-pulse',
   description: 'Alimento premium, juguetes, camas, paseadores, higiene y accesorios para mascotas.',
   bannerTitle: 'El Mejor Cuidado y Amor para tu Mascota',
-  bannerSubtitle: 'Nutrición de alta gama, accesorios confortables y productos de salud veterinaria.',
+  bannerSubtitle:
+    'Nutrición de alta gama, accesorios confortables y productos de salud veterinaria.',
   heroImages: [
     'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'perros-alimento', name: 'Alimento para Perros', slug: 'perros-alimento', imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'gatos-alimento', name: 'Alimento para Gatos', slug: 'gatos-alimento', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'accesorios-paseo', name: 'Paseo & Correas', slug: 'accesorios-paseo', imageUrl: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'camas-confort', name: 'Camas & Rascadores', slug: 'camas-confort', imageUrl: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'perros-alimento',
+      name: 'Alimento para Perros',
+      slug: 'perros-alimento',
+      imageUrl:
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'gatos-alimento',
+      name: 'Alimento para Gatos',
+      slug: 'gatos-alimento',
+      imageUrl:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'accesorios-paseo',
+      name: 'Paseo & Correas',
+      slug: 'accesorios-paseo',
+      imageUrl:
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'camas-confort',
+      name: 'Camas & Rascadores',
+      slug: 'camas-confort',
+      imageUrl:
+        'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'perros-alimento', name: 'Perros - Alimento & Snacks', slug: 'perros-alimento', order: 1, filterableAttributes: ['peso-bolsa'] },
-    { id: 'gatos-alimento', name: 'Gatos - Alimento & Golosinas', slug: 'gatos-alimento', order: 2, filterableAttributes: ['peso-bolsa'] },
-    { id: 'accesorios-paseo', name: 'Arneses, Collares & Paseo', slug: 'accesorios-paseo', order: 3, filterableAttributes: ['talle-mascota'] },
-    { id: 'camas-confort', name: 'Camas, Cuevas & Rascadores', slug: 'camas-confort', order: 4, filterableAttributes: ['talle-mascota'] },
-    { id: 'higiene-salud', name: 'Higiene, Antiparasitarios & Salud', slug: 'higiene-salud', order: 5, filterableAttributes: [] },
+    {
+      id: 'perros-alimento',
+      name: 'Perros - Alimento & Snacks',
+      slug: 'perros-alimento',
+      order: 1,
+      filterableAttributes: ['peso-bolsa'],
+    },
+    {
+      id: 'gatos-alimento',
+      name: 'Gatos - Alimento & Golosinas',
+      slug: 'gatos-alimento',
+      order: 2,
+      filterableAttributes: ['peso-bolsa'],
+    },
+    {
+      id: 'accesorios-paseo',
+      name: 'Arneses, Collares & Paseo',
+      slug: 'accesorios-paseo',
+      order: 3,
+      filterableAttributes: ['talle-mascota'],
+    },
+    {
+      id: 'camas-confort',
+      name: 'Camas, Cuevas & Rascadores',
+      slug: 'camas-confort',
+      order: 4,
+      filterableAttributes: ['talle-mascota'],
+    },
+    {
+      id: 'higiene-salud',
+      name: 'Higiene, Antiparasitarios & Salud',
+      slug: 'higiene-salud',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'peso-bolsa', name: 'Peso', code: 'peso-bolsa', type: 'button', values: ['3 kg', '7.5 kg', '15 kg', '20 kg'], required: false },
-    { id: 'talle-mascota', name: 'Talle', code: 'talle-mascota', type: 'button', values: ['S (Pequeño)', 'M (Mediano)', 'L (Grande)', 'XL (Gigante)'], required: false },
+    {
+      id: 'peso-bolsa',
+      name: 'Peso',
+      code: 'peso-bolsa',
+      type: 'button',
+      values: ['3 kg', '7.5 kg', '15 kg', '20 kg'],
+      required: false,
+    },
+    {
+      id: 'talle-mascota',
+      name: 'Talle',
+      code: 'talle-mascota',
+      type: 'button',
+      values: ['S (Pequeño)', 'M (Mediano)', 'L (Grande)', 'XL (Gigante)'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#0284c7',
@@ -34,9 +103,18 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Nutrición Super Premium', content: 'Las mejores marcas de balanceados recomendadas por veterinarios.' },
-    { title: 'Snacks y Juguetes Seguros', content: 'Materiales no tóxicos y libres de químicos nocivos para mascotas.' },
-    { title: 'Despacho Rápido', content: 'No te quedes sin alimento: envíos ágiles a la puerta de tu casa.' },
+    {
+      title: 'Nutrición Super Premium',
+      content: 'Las mejores marcas de balanceados recomendadas por veterinarios.',
+    },
+    {
+      title: 'Snacks y Juguetes Seguros',
+      content: 'Materiales no tóxicos y libres de químicos nocivos para mascotas.',
+    },
+    {
+      title: 'Despacho Rápido',
+      content: 'No te quedes sin alimento: envíos ágiles a la puerta de tu casa.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +123,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 62000,
       stock: 40,
       skuPrefix: 'PET-DOG-AD',
-      description: 'Proteínas de pollo de alto valor biológico, prebióticos y glucosamina para salud articular.',
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Proteínas de pollo de alto valor biológico, prebióticos y glucosamina para salud articular.',
+      image:
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +135,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 35,
       skuPrefix: 'PET-DOG-PUP',
-      description: 'Enriquecido con DHA para desarrollo cognitivo, calcio y fósforo balanceados para crecimiento óseo óptimo.',
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Enriquecido con DHA para desarrollo cognitivo, calcio y fósforo balanceados para crecimiento óseo óptimo.',
+      image:
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -65,8 +147,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 64000,
       stock: 25,
       skuPrefix: 'PET-DOG-SNR',
-      description: 'Bajo en calorías con L-carnitina, antioxidantes y condroitina para perros mayores.',
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Bajo en calorías con L-carnitina, antioxidantes y condroitina para perros mayores.',
+      image:
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,7 +159,8 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 9500,
       stock: 60,
       skuPrefix: 'PET-SNK-DNT',
-      description: 'Barritas masticables con textura estriada que reducen el sarro y combaten el mal aliento.',
+      description:
+        'Barritas masticables con textura estriada que reducen el sarro y combaten el mal aliento.',
       image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -85,8 +170,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 45000,
       stock: 40,
       skuPrefix: 'PET-CAT-STR',
-      description: 'Control de pH urinario, fibras naturales anti-bolas de pelo y contenido calórico moderado.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Control de pH urinario, fibras naturales anti-bolas de pelo y contenido calórico moderado.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -95,8 +182,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 30,
       skuPrefix: 'PET-CAT-KIT',
-      description: 'Croquetas pequeñas de fácil masticación ricas en omega 3 y taurina esencial para gatitos.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Croquetas pequeñas de fácil masticación ricas en omega 3 y taurina esencial para gatitos.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -105,8 +194,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 4900,
       stock: 90,
       skuPrefix: 'PET-CAT-TRT',
-      description: 'Puré húmedo irresistible con alto contenido de agua y vitaminas para premiar e hidratar.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Puré húmedo irresistible con alto contenido de agua y vitaminas para premiar e hidratar.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -115,12 +206,24 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 45,
       skuPrefix: 'PET-ARN',
-      description: 'Diseño ergonómico con enganche frontal en el pecho, reflectivo 3M y manija de control rápido.',
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Diseño ergonómico con enganche frontal en el pecho, reflectivo 3M y manija de control rápido.',
+      image:
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'PET-ARN-M', price: 28000, stock: 25, attributes: { 'talle-mascota': 'M (Mediano)' } },
-        { sku: 'PET-ARN-L', price: 32000, stock: 20, attributes: { 'talle-mascota': 'L (Grande)' } },
+        {
+          sku: 'PET-ARN-M',
+          price: 28000,
+          stock: 25,
+          attributes: { 'talle-mascota': 'M (Mediano)' },
+        },
+        {
+          sku: 'PET-ARN-L',
+          price: 32000,
+          stock: 20,
+          attributes: { 'talle-mascota': 'L (Grande)' },
+        },
       ],
     },
     {
@@ -129,8 +232,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 35,
       skuPrefix: 'PET-COR-RET',
-      description: 'Cinta de nylon resistente de 5 metros para perros de hasta 30kg con botón de bloqueo ergonómico.',
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cinta de nylon resistente de 5 metros para perros de hasta 30kg con botón de bloqueo ergonómico.',
+      image:
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -140,7 +245,8 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       stock: 30,
       skuPrefix: 'PET-COL',
       description: 'Costuras dobles con hebilla metálica de acero niquelado inoxidable.',
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -149,12 +255,24 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 30,
       skuPrefix: 'PET-BED-RLX',
-      description: 'Relleno de vellón siliconado hipoalergénico con base impermeable antideslizante lavable.',
-      image: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Relleno de vellón siliconado hipoalergénico con base impermeable antideslizante lavable.',
+      image:
+        'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'PET-BED-M', price: 36000, stock: 15, attributes: { 'talle-mascota': 'M (Mediano)' } },
-        { sku: 'PET-BED-L', price: 46000, stock: 15, attributes: { 'talle-mascota': 'L (Grande)' } },
+        {
+          sku: 'PET-BED-M',
+          price: 36000,
+          stock: 15,
+          attributes: { 'talle-mascota': 'M (Mediano)' },
+        },
+        {
+          sku: 'PET-BED-L',
+          price: 46000,
+          stock: 15,
+          attributes: { 'talle-mascota': 'L (Grande)' },
+        },
       ],
     },
     {
@@ -163,8 +281,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 52000,
       stock: 20,
       skuPrefix: 'PET-BED-ORT',
-      description: 'Alivia la presión articular de perros grandes y ancianos con funda impermeable desmontable.',
-      image: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Alivia la presión articular de perros grandes y ancianos con funda impermeable desmontable.',
+      image:
+        'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -173,8 +293,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 15,
       skuPrefix: 'PET-SCR-TWR',
-      description: 'Postes forrados en sisal natural de 6mm con plataformas acolchadas y juguetes colgantes.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Postes forrados en sisal natural de 6mm con plataformas acolchadas y juguetes colgantes.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -183,8 +305,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 70,
       skuPrefix: 'PET-SND',
-      description: 'Bentonita natural que forma grumos compactos instantáneos y neutraliza olores con aroma a lavanda.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Bentonita natural que forma grumos compactos instantáneos y neutraliza olores con aroma a lavanda.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -193,7 +317,8 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 50,
       skuPrefix: 'PET-SHP',
-      description: 'pH neutro especial para piel sensible de perros y gatos, libre de parabenos y colorantes.',
+      description:
+        'pH neutro especial para piel sensible de perros y gatos, libre de parabenos y colorantes.',
       image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -203,12 +328,24 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 80,
       skuPrefix: 'PET-PIP',
-      description: 'Protección integral por 30 días contra pulgas, garrapatas y mosquitos transmisores de leishmaniasis.',
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Protección integral por 30 días contra pulgas, garrapatas y mosquitos transmisores de leishmaniasis.',
+      image:
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'PET-PIP-M', price: 14000, stock: 40, attributes: { 'talle-mascota': 'M (Mediano)' } },
-        { sku: 'PET-PIP-L', price: 16500, stock: 40, attributes: { 'talle-mascota': 'L (Grande)' } },
+        {
+          sku: 'PET-PIP-M',
+          price: 14000,
+          stock: 40,
+          attributes: { 'talle-mascota': 'M (Mediano)' },
+        },
+        {
+          sku: 'PET-PIP-L',
+          price: 16500,
+          stock: 40,
+          attributes: { 'talle-mascota': 'L (Grande)' },
+        },
       ],
     },
     {
@@ -227,7 +364,8 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 11000,
       stock: 55,
       skuPrefix: 'PET-TOY-KNG',
-      description: 'Juguete rellenable con alimento o pasta para estimulación mental y alivio de ansiedad.',
+      description:
+        'Juguete rellenable con alimento o pasta para estimulación mental y alivio de ansiedad.',
       image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -247,8 +385,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 20,
       skuPrefix: 'PET-TRN',
-      description: 'Estructura rígida plegable con malla transpirable de ventilación 360° y correa al hombro.',
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estructura rígida plegable con malla transpirable de ventilación 360° y correa al hombro.',
+      image:
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -257,8 +397,10 @@ export const PET_SHOP_VETERINARIA_PRESET: BusinessVerticalDefinition = {
       price: 34000,
       stock: 25,
       skuPrefix: 'PET-FNT',
-      description: 'Bomba ultrasilenciosa con filtración cuádruple de agua para incentivar la hidratación felina y canina.',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
+      description:
+        'Bomba ultrasilenciosa con filtración cuádruple de agua para incentivar la hidratación felina y canina.',
+      image:
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

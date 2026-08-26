@@ -55,7 +55,11 @@
     </h2>
 
     @if (adminsService.isLoading()) {
-      <ul class="admin-list admin-list--skeleton" aria-busy="true" aria-label="Cargando administradores">
+      <ul
+        class="admin-list admin-list--skeleton"
+        aria-busy="true"
+        aria-label="Cargando administradores"
+      >
         @for (_ of [1, 2, 3]; track $index) {
           <li class="admin-item admin-item--skeleton">
             <div class="skeleton skeleton--avatar"></div>

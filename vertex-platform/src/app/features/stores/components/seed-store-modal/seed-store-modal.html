@@ -72,9 +72,12 @@
               [ngModel]="purgeConfirmed()"
               (ngModelChange)="purgeConfirmed.set($event)"
             />
-            <label class="form-check-label text-warning small cursor-pointer" for="purgeConfirmSwitch">
-              <strong>Purgar datos previos:</strong> Limpia categorías, atributos, productos y pedidos
-              anteriores de esta tienda antes de sembrar los nuevos datos del rubro.
+            <label
+              class="form-check-label text-warning small cursor-pointer"
+              for="purgeConfirmSwitch"
+            >
+              <strong>Purgar datos previos:</strong> Limpia categorías, atributos, productos y
+              pedidos anteriores de esta tienda antes de sembrar los nuevos datos del rubro.
             </label>
           </div>
         </div>
@@ -96,7 +99,11 @@
           (click)="onConfirm()"
         >
           @if (isSeeding()) {
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"
+            ></span>
             Sembrando en vivo...
           } @else {
             🌱 Ejecutar Sembrado

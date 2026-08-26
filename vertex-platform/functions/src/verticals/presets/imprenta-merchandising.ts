@@ -4,29 +4,99 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
   id: 'IMPRENTA_MERCHANDISING',
   name: 'Imprenta & Merchandising',
   icon: 'bi-printer',
-  description: 'Impresión digital, folletos, cartelería, tazas personalizadas, remeras corporativas y packaging.',
+  description:
+    'Impresión digital, folletos, cartelería, tazas personalizadas, remeras corporativas y packaging.',
   bannerTitle: 'Soluciones Gráficas, Merchandising & Packaging',
-  bannerSubtitle: 'Impresión offset y digital de alta definición, regalos corporativos y cartelería comercial.',
+  bannerSubtitle:
+    'Impresión offset y digital de alta definición, regalos corporativos y cartelería comercial.',
   heroImages: [
     'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'grafica-comercial', name: 'Gráfica Comercial', slug: 'grafica-comercial', imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'merchandising', name: 'Merchandising & Regalos', slug: 'merchandising', imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'indumentaria-corp', name: 'Remeras & Uniformes', slug: 'indumentaria-corp', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'packaging', name: 'Packaging & Etiquetas', slug: 'packaging', imageUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'grafica-comercial',
+      name: 'Gráfica Comercial',
+      slug: 'grafica-comercial',
+      imageUrl:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'merchandising',
+      name: 'Merchandising & Regalos',
+      slug: 'merchandising',
+      imageUrl:
+        'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'indumentaria-corp',
+      name: 'Remeras & Uniformes',
+      slug: 'indumentaria-corp',
+      imageUrl:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'packaging',
+      name: 'Packaging & Etiquetas',
+      slug: 'packaging',
+      imageUrl:
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'grafica-comercial', name: 'Folletos, Tarjetas & Papelería Comercial', slug: 'grafica-comercial', order: 1, filterableAttributes: ['cantidad-pack'] },
-    { id: 'merchandising', name: 'Tazas, Botellas & Regalos Corporativos', slug: 'merchandising', order: 2, filterableAttributes: [] },
-    { id: 'indumentaria-corp', name: 'Remeras, Gorras & Uniformes Estampados', slug: 'indumentaria-corp', order: 3, filterableAttributes: ['talle-imprenta'] },
-    { id: 'packaging', name: 'Bolsas Kraft, Cajas & Etiquetas Adhesivas', slug: 'packaging', order: 4, filterableAttributes: ['cantidad-pack'] },
-    { id: 'carteleria-banners', name: 'Banners, Vinilos & Cartelería Gran Formato', slug: 'carteleria-banners', order: 5, filterableAttributes: [] },
+    {
+      id: 'grafica-comercial',
+      name: 'Folletos, Tarjetas & Papelería Comercial',
+      slug: 'grafica-comercial',
+      order: 1,
+      filterableAttributes: ['cantidad-pack'],
+    },
+    {
+      id: 'merchandising',
+      name: 'Tazas, Botellas & Regalos Corporativos',
+      slug: 'merchandising',
+      order: 2,
+      filterableAttributes: [],
+    },
+    {
+      id: 'indumentaria-corp',
+      name: 'Remeras, Gorras & Uniformes Estampados',
+      slug: 'indumentaria-corp',
+      order: 3,
+      filterableAttributes: ['talle-imprenta'],
+    },
+    {
+      id: 'packaging',
+      name: 'Bolsas Kraft, Cajas & Etiquetas Adhesivas',
+      slug: 'packaging',
+      order: 4,
+      filterableAttributes: ['cantidad-pack'],
+    },
+    {
+      id: 'carteleria-banners',
+      name: 'Banners, Vinilos & Cartelería Gran Formato',
+      slug: 'carteleria-banners',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'cantidad-pack', name: 'Cantidad / Tirada', code: 'cantidad-pack', type: 'select', values: ['Pack x100 unidades', 'Pack x500 unidades', 'Pack x1000 unidades'], required: false },
-    { id: 'talle-imprenta', name: 'Talle', code: 'talle-imprenta', type: 'button', values: ['S', 'M', 'L', 'XL', 'XXL'], required: false },
+    {
+      id: 'cantidad-pack',
+      name: 'Cantidad / Tirada',
+      code: 'cantidad-pack',
+      type: 'select',
+      values: ['Pack x100 unidades', 'Pack x500 unidades', 'Pack x1000 unidades'],
+      required: false,
+    },
+    {
+      id: 'talle-imprenta',
+      name: 'Talle',
+      code: 'talle-imprenta',
+      type: 'button',
+      values: ['S', 'M', 'L', 'XL', 'XXL'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#7c3aed',
@@ -34,9 +104,18 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Impresión de Alta Definición', content: 'Colores vivos, registro milimétrico y control densitométrico estricto.' },
-    { title: 'Prueba de Impresión Previa', content: 'Revisión digital y muestra física para verificar tipografías y sangrías.' },
-    { title: 'Descuentos por Volumen', content: 'Precios escalonados super convenientes para compras y tiradas mayoristas.' },
+    {
+      title: 'Impresión de Alta Definición',
+      content: 'Colores vivos, registro milimétrico y control densitométrico estricto.',
+    },
+    {
+      title: 'Prueba de Impresión Previa',
+      content: 'Revisión digital y muestra física para verificar tipografías y sangrías.',
+    },
+    {
+      title: 'Descuentos por Volumen',
+      content: 'Precios escalonados super convenientes para compras y tiradas mayoristas.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +124,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 50,
       skuPrefix: 'IMP-TRJ-500',
-      description: 'Impresión offset full color frente y dorso en cartulina ilustración pesada con laca UV sectorizada.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Impresión offset full color frente y dorso en cartulina ilustración pesada con laca UV sectorizada.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +136,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 35,
       skuPrefix: 'IMP-FLY-1000',
-      description: 'Medida 15x21cm impresos en alta definición ideales para promociones comerciales y eventos.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Medida 15x21cm impresos en alta definición ideales para promociones comerciales y eventos.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -65,8 +148,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 64000,
       stock: 25,
       skuPrefix: 'IMP-CARP-100',
-      description: 'Cartulina encapada 300g con cuño para tarjeta personal y solapa pegada para hojas A4.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cartulina encapada 300g con cuño para tarjeta personal y solapa pegada para hojas A4.',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,8 +160,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 8500,
       stock: 80,
       skuPrefix: 'IMP-TAZ-SUB',
-      description: 'Apta para microondas y lavavajillas con impresión fotográfica 360° nítida y brillante.',
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Apta para microondas y lavavajillas con impresión fotográfica 360° nítida y brillante.',
+      image:
+        'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -85,8 +172,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 45,
       skuPrefix: 'IMP-BOT-LSR',
-      description: 'Grabado permanente inalterable con acabado mate antideslizante y mosquetón de transporte.',
-      image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
+      description:
+        'Grabado permanente inalterable con acabado mate antideslizante y mosquetón de transporte.',
+      image:
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -95,7 +184,8 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 50,
       skuPrefix: 'IMP-LIB-CORP',
-      description: '80 hojas rayadas de 80g con elástico de cierre, cinta señaladora y grabado bajorrelieve.',
+      description:
+        '80 hojas rayadas de 80g con elástico de cierre, cinta señaladora y grabado bajorrelieve.',
       image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -105,8 +195,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 40,
       skuPrefix: 'IMP-PEN-50',
-      description: 'Cuerpo metálico con grip gomoso, clip cromado y tinta fluida de larga duración.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cuerpo metálico con grip gomoso, clip cromado y tinta fluida de larga duración.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -115,8 +207,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 24500,
       stock: 60,
       skuPrefix: 'IMP-REM-DTF',
-      description: 'Estampado textil de alta resistencia al lavado en remera de corte unisex reforzada.',
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estampado textil de alta resistencia al lavado en remera de corte unisex reforzada.',
+      image:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'IMP-REM-M', price: 24500, stock: 30, attributes: { 'talle-imprenta': 'M' } },
@@ -129,8 +223,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 55,
       skuPrefix: 'IMP-CAP-TRK',
-      description: 'Malla plástica respirable trasera con broche regulable snapback de 7 posiciones.',
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Malla plástica respirable trasera con broche regulable snapback de 7 posiciones.',
+      image:
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -139,7 +235,8 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 52000,
       stock: 30,
       skuPrefix: 'IMP-HD-BRD',
-      description: 'Frisa pesada de primera calidad con bordado computarizado de alta definición en pecho o manga.',
+      description:
+        'Frisa pesada de primera calidad con bordado computarizado de alta definición en pecho o manga.',
       image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -153,8 +250,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 34000,
       stock: 45,
       skuPrefix: 'IMP-BAG-KRF',
-      description: 'Papel kraft marrón ecológico de 120g con base reforzada para locales de indumentaria y regalos.',
-      image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
+      description:
+        'Papel kraft marrón ecológico de 120g con base reforzada para locales de indumentaria y regalos.',
+      image:
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -163,8 +262,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 60,
       skuPrefix: 'IMP-STK-VIN',
-      description: 'Vinilo impermeable resistente al agua y sol con semicorte troquelado según la forma de tu logo.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Vinilo impermeable resistente al agua y sol con semicorte troquelado según la forma de tu logo.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -173,8 +274,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 40,
       skuPrefix: 'IMP-BOX-ECO',
-      description: 'Cartón resistente para envíos por correo con traba de seguridad lateral sin necesidad de cinta extra.',
-      image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cartón resistente para envíos por correo con traba de seguridad lateral sin necesidad de cinta extra.',
+      image:
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -183,8 +286,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 29000,
       stock: 35,
       skuPrefix: 'IMP-CNT-EMB',
-      description: 'Adhesivo acrílico de alta adherencia con impresión a 2 colores para seguridad de paquetes.',
-      image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
+      description:
+        'Adhesivo acrílico de alta adherencia con impresión a 2 colores para seguridad de paquetes.',
+      image:
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -193,8 +298,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 20,
       skuPrefix: 'IMP-BNR-ROL',
-      description: 'Estructura retráctil liviana de aluminio con lona front de alta resolución y bolso de transporte incluido.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estructura retráctil liviana de aluminio con lona front de alta resolución y bolso de transporte incluido.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -203,8 +310,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 45000,
       stock: 25,
       skuPrefix: 'IMP-CRT-PVC',
-      description: 'Sustrato rígido para señalética de locales y oficinas con vinilo laminado anti-rayaduras UV.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sustrato rígido para señalética de locales y oficinas con vinilo laminado anti-rayaduras UV.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -213,8 +322,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 40,
       skuPrefix: 'IMP-VIN-MIC',
-      description: 'Permite visibilidad total desde el interior hacia afuera mostrando la gráfica publicitaria desde la calle.',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Permite visibilidad total desde el interior hacia afuera mostrando la gráfica publicitaria desde la calle.',
+      image:
+        'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -223,7 +334,8 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 7800,
       stock: 75,
       skuPrefix: 'IMP-TOT-LNZ',
-      description: 'Bolsa ecológica reutilizable de 40x40cm con manijas reforzadas y estampa serigráfica.',
+      description:
+        'Bolsa ecológica reutilizable de 40x40cm con manijas reforzadas y estampa serigráfica.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -233,7 +345,8 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 45,
       skuPrefix: 'IMP-LLV-ACR',
-      description: 'Acrílico cristal de 3mm cortado por láser con impresión digital directa UV doble faz.',
+      description:
+        'Acrílico cristal de 3mm cortado por láser con impresión digital directa UV doble faz.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -243,8 +356,10 @@ export const IMPRENTA_MERCHANDISING_PRESET: BusinessVerticalDefinition = {
       price: 32000,
       stock: 30,
       skuPrefix: 'IMP-CRD-PVC',
-      description: 'Credenciales plásticas durables con código de barras o QR para eventos corporativos y acreditaciones.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      description:
+        'Credenciales plásticas durables con código de barras o QR para eventos corporativos y acreditaciones.',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
