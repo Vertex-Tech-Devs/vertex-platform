@@ -12,24 +12,112 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
     'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'mancuernas', name: 'Mancuernas & Pesas', slug: 'mancuernas', imageUrl: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'barras-discos', name: 'Barras & Discos', slug: 'barras-discos', imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'funcional', name: 'Entrenamiento Funcional', slug: 'funcional', imageUrl: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'yoga-pilates', name: 'Yoga & Pilates', slug: 'yoga-pilates', imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'mancuernas',
+      name: 'Mancuernas & Pesas',
+      slug: 'mancuernas',
+      imageUrl:
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'barras-discos',
+      name: 'Barras & Discos',
+      slug: 'barras-discos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'funcional',
+      name: 'Entrenamiento Funcional',
+      slug: 'funcional',
+      imageUrl:
+        'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'yoga-pilates',
+      name: 'Yoga & Pilates',
+      slug: 'yoga-pilates',
+      imageUrl:
+        'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'mancuernas', name: 'Mancuernas & Pesas', slug: 'mancuernas', order: 1, filterableAttributes: ['peso-kg'] },
-    { id: 'barras-discos', name: 'Barras & Discos', slug: 'barras-discos', order: 2, filterableAttributes: ['peso-kg'] },
-    { id: 'funcional', name: 'Entrenamiento Funcional', slug: 'funcional', order: 3, filterableAttributes: ['color'] },
-    { id: 'yoga-pilates', name: 'Yoga & Pilates', slug: 'yoga-pilates', order: 4, filterableAttributes: ['color'] },
-    { id: 'cardio-box', name: 'Cardio & Boxeo', slug: 'cardio-box', order: 5, filterableAttributes: ['peso-oz'] },
-    { id: 'indumentaria-fit', name: 'Indumentaria Deportiva', slug: 'indumentaria-fit', order: 6, filterableAttributes: ['talle', 'color'] },
+    {
+      id: 'mancuernas',
+      name: 'Mancuernas & Pesas',
+      slug: 'mancuernas',
+      order: 1,
+      filterableAttributes: ['peso-kg'],
+    },
+    {
+      id: 'barras-discos',
+      name: 'Barras & Discos',
+      slug: 'barras-discos',
+      order: 2,
+      filterableAttributes: ['peso-kg'],
+    },
+    {
+      id: 'funcional',
+      name: 'Entrenamiento Funcional',
+      slug: 'funcional',
+      order: 3,
+      filterableAttributes: ['color'],
+    },
+    {
+      id: 'yoga-pilates',
+      name: 'Yoga & Pilates',
+      slug: 'yoga-pilates',
+      order: 4,
+      filterableAttributes: ['color'],
+    },
+    {
+      id: 'cardio-box',
+      name: 'Cardio & Boxeo',
+      slug: 'cardio-box',
+      order: 5,
+      filterableAttributes: ['peso-oz'],
+    },
+    {
+      id: 'indumentaria-fit',
+      name: 'Indumentaria Deportiva',
+      slug: 'indumentaria-fit',
+      order: 6,
+      filterableAttributes: ['talle', 'color'],
+    },
   ],
   attributes: [
-    { id: 'peso-kg', name: 'Peso', code: 'peso-kg', type: 'button', values: ['2.5 kg', '5 kg', '10 kg', '15 kg', '20 kg'], required: true },
-    { id: 'peso-oz', name: 'Onzas', code: 'peso-oz', type: 'button', values: ['10 oz', '12 oz', '14 oz', '16 oz'], required: false },
-    { id: 'talle', name: 'Talle', code: 'talle', type: 'button', values: ['S', 'M', 'L', 'XL', 'XXL'], required: true },
-    { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Negro', 'Azul', 'Rosa', 'Gris', 'Verde Oliva'], required: false },
+    {
+      id: 'peso-kg',
+      name: 'Peso',
+      code: 'peso-kg',
+      type: 'button',
+      values: ['2.5 kg', '5 kg', '10 kg', '15 kg', '20 kg'],
+      required: true,
+    },
+    {
+      id: 'peso-oz',
+      name: 'Onzas',
+      code: 'peso-oz',
+      type: 'button',
+      values: ['10 oz', '12 oz', '14 oz', '16 oz'],
+      required: false,
+    },
+    {
+      id: 'talle',
+      name: 'Talle',
+      code: 'talle',
+      type: 'button',
+      values: ['S', 'M', 'L', 'XL', 'XXL'],
+      required: true,
+    },
+    {
+      id: 'color',
+      name: 'Color',
+      code: 'color',
+      type: 'color',
+      values: ['Negro', 'Azul', 'Rosa', 'Gris', 'Verde Oliva'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#0284c7',
@@ -37,9 +125,18 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Equipamiento Profesional', content: 'Materiales testeados para alta exigencia y uso comercial/hogareño.' },
-    { title: 'Envíos a Todo el País', content: 'Embalaje reforzado y despacho express a las principales ciudades.' },
-    { title: 'Garantía Estructural', content: 'Garantía directa de 1 año en toda la línea de musculación y pesas.' },
+    {
+      title: 'Equipamiento Profesional',
+      content: 'Materiales testeados para alta exigencia y uso comercial/hogareño.',
+    },
+    {
+      title: 'Envíos a Todo el País',
+      content: 'Embalaje reforzado y despacho express a las principales ciudades.',
+    },
+    {
+      title: 'Garantía Estructural',
+      content: 'Garantía directa de 1 año en toda la línea de musculación y pesas.',
+    },
   ],
   sampleProducts: [
     {
@@ -48,8 +145,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 40,
       skuPrefix: 'FIT-HEX',
-      description: 'Núcleo de hierro fundido recubierto en caucho virgen de alta absorción de impacto.',
-      image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
+      description:
+        'Núcleo de hierro fundido recubierto en caucho virgen de alta absorción de impacto.',
+      image:
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-HEX-5KG', price: 26000, stock: 20, attributes: { 'peso-kg': '5 kg' } },
@@ -62,8 +161,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 34000,
       stock: 30,
       skuPrefix: 'FIT-KB',
-      description: 'Pesas rusas de hierro pulido macizo con agarre ergonómico texturado para swings y clean.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pesas rusas de hierro pulido macizo con agarre ergonómico texturado para swings y clean.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-KB-10KG', price: 34000, stock: 15, attributes: { 'peso-kg': '10 kg' } },
@@ -76,8 +177,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 185000,
       stock: 15,
       skuPrefix: 'FIT-BAR-20',
-      description: 'Barra olímpica de acero templado con 4 rodamientos de aguja por manga y moleteado suave.',
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
+      description:
+        'Barra olímpica de acero templado con 4 rodamientos de aguja por manga y moleteado suave.',
+      image:
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -86,8 +189,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 45000,
       stock: 50,
       skuPrefix: 'FIT-BMP',
-      description: 'Discos bumper 100% caucho de alta densidad para cross training y levantamiento olímpico.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Discos bumper 100% caucho de alta densidad para cross training y levantamiento olímpico.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-BMP-5KG', price: 45000, stock: 25, attributes: { 'peso-kg': '5 kg' } },
@@ -100,8 +205,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 18000,
       stock: 40,
       skuPrefix: 'FIT-LCK',
-      description: 'Cierres de fijación rápida con seguro de nylon reforzado y gomas antideslizantes internas.',
-      image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cierres de fijación rápida con seguro de nylon reforzado y gomas antideslizantes internas.',
+      image:
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -110,8 +217,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 60,
       skuPrefix: 'FIT-BND',
-      description: 'Set de 5 bandas de látex natural con niveles progresivos de resistencia ligera a extra pesada.',
-      image: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Set de 5 bandas de látex natural con niveles progresivos de resistencia ligera a extra pesada.',
+      image:
+        'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -120,8 +229,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 55,
       skuPrefix: 'FIT-JMP',
-      description: 'Cable de acero recubierto con doble rulemán 360° para saltos dobles y cardio intenso.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cable de acero recubierto con doble rulemán 360° para saltos dobles y cardio intenso.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-JMP-BLK', price: 14500, stock: 30, attributes: { color: 'Negro' } },
@@ -134,8 +245,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 25,
       skuPrefix: 'FIT-TRX',
-      description: 'Correas ajustables de alta tenacidad con mosquetones de seguridad y anclaje de puerta incluido.',
-      image: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Correas ajustables de alta tenacidad con mosquetones de seguridad y anclaje de puerta incluido.',
+      image:
+        'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -144,7 +257,8 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 19500,
       stock: 35,
       skuPrefix: 'FIT-RLR',
-      description: 'Rodillo texturado de EVA para liberación miofascial, estiramiento y recuperación muscular.',
+      description:
+        'Rodillo texturado de EVA para liberación miofascial, estiramiento y recuperación muscular.',
       image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -158,8 +272,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 40,
       skuPrefix: 'FIT-ABW',
-      description: 'Rueda de ejercicios para abdomen y core con eje de acero y empuñaduras antideslizantes.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Rueda de ejercicios para abdomen y core con eje de acero y empuñaduras antideslizantes.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -168,7 +284,8 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 32000,
       stock: 45,
       skuPrefix: 'FIT-MAT',
-      description: 'Colchoneta de doble capa texturada libre de tóxicos con líneas guía posturales impresas.',
+      description:
+        'Colchoneta de doble capa texturada libre de tóxicos con líneas guía posturales impresas.',
       image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -182,7 +299,8 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 30,
       skuPrefix: 'FIT-FTB',
-      description: 'Balón suizo para rehabilitación, pilates y fortalecimiento del core. Incluye bombín de inflado.',
+      description:
+        'Balón suizo para rehabilitación, pilates y fortalecimiento del core. Incluye bombín de inflado.',
       image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -196,7 +314,8 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 12000,
       stock: 50,
       skuPrefix: 'FIT-BLK',
-      description: 'Ladrillo de corcho 100% natural para apoyo seguro y alineación postural en posturas de yoga.',
+      description:
+        'Ladrillo de corcho 100% natural para apoyo seguro y alineación postural en posturas de yoga.',
       image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -206,8 +325,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 58000,
       stock: 30,
       skuPrefix: 'FIT-BOX',
-      description: 'Guantes acolchados con triple capa de espuma antichoque y ajuste ancho de muñeca.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Guantes acolchados con triple capa de espuma antichoque y ajuste ancho de muñeca.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-BOX-12OZ', price: 58000, stock: 15, attributes: { 'peso-oz': '12 oz' } },
@@ -220,8 +341,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 9500,
       stock: 60,
       skuPrefix: 'FIT-VND',
-      description: 'Vendas de protección de nudillos y articulaciones de mano con presilla de pulgar y velcro.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Vendas de protección de nudillos y articulaciones de mano con presilla de pulgar y velcro.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-VND-BLK', price: 9500, stock: 30, attributes: { color: 'Negro' } },
@@ -234,12 +357,24 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 24500,
       stock: 50,
       skuPrefix: 'FIT-TSH',
-      description: 'Tejido respirable de secado ultrarrápido con costuras planas anti-roce e inserts reflectivos.',
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tejido respirable de secado ultrarrápido con costuras planas anti-roce e inserts reflectivos.',
+      image:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'FIT-TSH-BLK-M', price: 24500, stock: 25, attributes: { talle: 'M', color: 'Negro' } },
-        { sku: 'FIT-TSH-BLK-L', price: 24500, stock: 25, attributes: { talle: 'L', color: 'Negro' } },
+        {
+          sku: 'FIT-TSH-BLK-M',
+          price: 24500,
+          stock: 25,
+          attributes: { talle: 'M', color: 'Negro' },
+        },
+        {
+          sku: 'FIT-TSH-BLK-L',
+          price: 24500,
+          stock: 25,
+          attributes: { talle: 'L', color: 'Negro' },
+        },
       ],
     },
     {
@@ -248,12 +383,24 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 35,
       skuPrefix: 'FIT-LG',
-      description: 'Calza larga deportiva con soporte de cintura alta y tejido elástico multidireccional.',
-      image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&h=800&fit=crop&q=80',
+      description:
+        'Calza larga deportiva con soporte de cintura alta y tejido elástico multidireccional.',
+      image:
+        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'FIT-LG-BLK-S', price: 36000, stock: 15, attributes: { talle: 'S', color: 'Negro' } },
-        { sku: 'FIT-LG-BLK-M', price: 36000, stock: 20, attributes: { talle: 'M', color: 'Negro' } },
+        {
+          sku: 'FIT-LG-BLK-S',
+          price: 36000,
+          stock: 15,
+          attributes: { talle: 'S', color: 'Negro' },
+        },
+        {
+          sku: 'FIT-LG-BLK-M',
+          price: 36000,
+          stock: 20,
+          attributes: { talle: 'M', color: 'Negro' },
+        },
       ],
     },
     {
@@ -262,8 +409,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 18900,
       stock: 45,
       skuPrefix: 'FIT-BTL',
-      description: 'Doble pared aislada al vacío que mantiene el agua fría por 24 horas. Libre de BPA con pico deportivo.',
-      image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
+      description:
+        'Doble pared aislada al vacío que mantiene el agua fría por 24 horas. Libre de BPA con pico deportivo.',
+      image:
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-BTL-BLK', price: 18900, stock: 25, attributes: { color: 'Negro' } },
@@ -276,8 +425,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 38000,
       stock: 25,
       skuPrefix: 'FIT-BLT',
-      description: 'Cinturón de cuero sintético acolchado con hebilla de acero inoxidable de doble púa.',
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cinturón de cuero sintético acolchado con hebilla de acero inoxidable de doble púa.',
+      image:
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'FIT-BLT-M', price: 38000, stock: 15, attributes: { talle: 'M' } },
@@ -290,8 +441,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 7500,
       stock: 70,
       skuPrefix: 'FIT-MGN',
-      description: 'Carbonato de magnesio puro para máximo agarre y control en levantamiento de pesas.',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Carbonato de magnesio puro para máximo agarre y control en levantamiento de pesas.',
+      image:
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -300,8 +453,10 @@ export const DEPORTES_FITNESS_PRESET: BusinessVerticalDefinition = {
       price: 120000,
       stock: 10,
       skuPrefix: 'FIT-BNC',
-      description: 'Estructura de tubo de acero estructural de 50x50mm con tapizado de alta densidad anti-sudor.',
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estructura de tubo de acero estructural de 50x50mm con tapizado de alta densidad anti-sudor.',
+      image:
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

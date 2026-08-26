@@ -1,5 +1,11 @@
 <div class="custom-vertical-modal-overlay" (click)="onCancel()">
-  <div class="custom-vertical-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="custom-vertical-title">
+  <div
+    class="custom-vertical-modal-card"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="custom-vertical-title"
+  >
     <header class="custom-vertical-modal-card__header">
       <div class="header-left">
         <div class="header-icon-badge">
@@ -41,7 +47,9 @@
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="field-label" for="vertical-name-input">Nombre del Rubro <span class="required-mark">*</span></label>
+              <label class="field-label" for="vertical-name-input"
+                >Nombre del Rubro <span class="required-mark">*</span></label
+              >
               <input
                 id="vertical-name-input"
                 type="text"
@@ -57,14 +65,16 @@
             </div>
 
             <div class="form-group">
-              <label class="field-label" for="vertical-icon-input">Icono / Emoji <span class="required-mark">*</span></label>
+              <label class="field-label" for="vertical-icon-input"
+                >Icono / Emoji <span class="required-mark">*</span></label
+              >
               <div class="icon-selector-inline">
                 <input
                   id="vertical-icon-input"
                   type="text"
                   class="glass-input text-center fs-5"
                   formControlName="icon"
-                  style="max-width: 70px;"
+                  style="max-width: 70px"
                   maxlength="4"
                 />
                 <span class="helper-text">Elegí o escribí tu emoji:</span>
@@ -88,14 +98,18 @@
           </div>
 
           <div class="form-group mt-3">
-            <label class="field-label" for="vertical-desc-input">Descripción del Negocio <span class="required-mark">*</span></label>
+            <label class="field-label" for="vertical-desc-input"
+              >Descripción del Negocio <span class="required-mark">*</span></label
+            >
             <textarea
               id="vertical-desc-input"
               class="glass-input"
               rows="2"
               formControlName="description"
               placeholder="Breve resumen de los productos, propuesta de valor y público objetivo de este rubro..."
-              [class.is-invalid]="form.get('description')?.invalid && form.get('description')?.touched"
+              [class.is-invalid]="
+                form.get('description')?.invalid && form.get('description')?.touched
+              "
             ></textarea>
             @if (form.get('description')?.invalid && form.get('description')?.touched) {
               <span class="field-error">La descripción debe tener al menos 10 caracteres.</span>
@@ -109,7 +123,9 @@
             <span class="section-step">2</span>
             <div>
               <h4 class="section-title">Categorías del Catálogo</h4>
-              <p class="section-hint">Se crearán automáticamente al sembrar o crear tiendas en este rubro.</p>
+              <p class="section-hint">
+                Se crearán automáticamente al sembrar o crear tiendas en este rubro.
+              </p>
             </div>
           </div>
 
@@ -156,7 +172,9 @@
             <span class="section-step">3</span>
             <div>
               <h4 class="section-title">Paleta de Color de Marca</h4>
-              <p class="section-hint">Colores temáticos que personalizarán el diseño del Storefront.</p>
+              <p class="section-hint">
+                Colores temáticos que personalizarán el diseño del Storefront.
+              </p>
             </div>
           </div>
 
@@ -188,11 +206,19 @@
             </div>
 
             <!-- Preview Card -->
-            <div class="preview-mini-card" [style.--brand-primary]="form.get('primaryColor')?.value" [style.--brand-accent]="form.get('accentColor')?.value">
+            <div
+              class="preview-mini-card"
+              [style.--brand-primary]="form.get('primaryColor')?.value"
+              [style.--brand-accent]="form.get('accentColor')?.value"
+            >
               <span class="preview-icon">{{ form.get('icon')?.value || '🏷️' }}</span>
               <div class="preview-info">
-                <span class="preview-title">{{ form.get('name')?.value || 'Nombre del Rubro' }}</span>
-                <span class="preview-badge" [style.background]="form.get('primaryColor')?.value">Vista Previa</span>
+                <span class="preview-title">{{
+                  form.get('name')?.value || 'Nombre del Rubro'
+                }}</span>
+                <span class="preview-badge" [style.background]="form.get('primaryColor')?.value"
+                  >Vista Previa</span
+                >
               </div>
             </div>
           </div>
@@ -208,11 +234,7 @@
         >
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-modal-primary"
-          [disabled]="isSubmitting() || form.invalid"
-        >
+        <button type="submit" class="btn-modal-primary" [disabled]="isSubmitting() || form.invalid">
           @if (isSubmitting()) {
             <span class="btn-spinner"></span> Guardando Rubro...
           } @else {

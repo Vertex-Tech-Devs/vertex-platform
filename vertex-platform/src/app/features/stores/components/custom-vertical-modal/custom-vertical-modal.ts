@@ -33,7 +33,26 @@ export class CustomVerticalModal implements OnInit {
   readonly categoriesList = signal<string[]>(['Productos Destacados', 'Novedades', 'Ofertas']);
 
   readonly quickEmojis: string[] = [
-    '🏷️', '🍔', '👗', '💻', '☕', '🍺', '🚲', '🎨', '🌿', '🛠️', '🎮', '🎂', '🧼', '📦', '✂️', '📸', '🍕', '🌸', '👟', '💍',
+    '🏷️',
+    '🍔',
+    '👗',
+    '💻',
+    '☕',
+    '🍺',
+    '🚲',
+    '🎨',
+    '🌿',
+    '🛠️',
+    '🎮',
+    '🎂',
+    '🧼',
+    '📦',
+    '✂️',
+    '📸',
+    '🍕',
+    '🌸',
+    '👟',
+    '💍',
   ];
 
   readonly form = this.fb.group({

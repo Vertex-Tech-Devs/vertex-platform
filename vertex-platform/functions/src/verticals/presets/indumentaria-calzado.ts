@@ -12,24 +12,112 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
     'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'remeras', name: 'Remeras & Tops', slug: 'remeras', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'pantalones', name: 'Pantalones & Jeans', slug: 'pantalones', imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'camperas', name: 'Camperas & Abrigos', slug: 'camperas', imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'calzado', name: 'Zapatillas Urbanas', slug: 'calzado', imageUrl: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'remeras',
+      name: 'Remeras & Tops',
+      slug: 'remeras',
+      imageUrl:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'pantalones',
+      name: 'Pantalones & Jeans',
+      slug: 'pantalones',
+      imageUrl:
+        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'camperas',
+      name: 'Camperas & Abrigos',
+      slug: 'camperas',
+      imageUrl:
+        'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'calzado',
+      name: 'Zapatillas Urbanas',
+      slug: 'calzado',
+      imageUrl:
+        'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'remeras', name: 'Remeras & Tops', slug: 'remeras', order: 1, filterableAttributes: ['talle-ropa', 'color'] },
-    { id: 'pantalones', name: 'Pantalones & Denim', slug: 'pantalones', order: 2, filterableAttributes: ['talle-pantalon', 'color'] },
-    { id: 'buzos-hoodies', name: 'Buzos & Hoodies', slug: 'buzos-hoodies', order: 3, filterableAttributes: ['talle-ropa', 'color'] },
-    { id: 'camperas', name: 'Camperas & Abrigos', slug: 'camperas', order: 4, filterableAttributes: ['talle-ropa', 'color'] },
-    { id: 'calzado', name: 'Calzado & Zapatillas', slug: 'calzado', order: 5, filterableAttributes: ['talle-calzado', 'color'] },
-    { id: 'accesorios-moda', name: 'Accesorios & Gorras', slug: 'accesorios-moda', order: 6, filterableAttributes: ['color'] },
+    {
+      id: 'remeras',
+      name: 'Remeras & Tops',
+      slug: 'remeras',
+      order: 1,
+      filterableAttributes: ['talle-ropa', 'color'],
+    },
+    {
+      id: 'pantalones',
+      name: 'Pantalones & Denim',
+      slug: 'pantalones',
+      order: 2,
+      filterableAttributes: ['talle-pantalon', 'color'],
+    },
+    {
+      id: 'buzos-hoodies',
+      name: 'Buzos & Hoodies',
+      slug: 'buzos-hoodies',
+      order: 3,
+      filterableAttributes: ['talle-ropa', 'color'],
+    },
+    {
+      id: 'camperas',
+      name: 'Camperas & Abrigos',
+      slug: 'camperas',
+      order: 4,
+      filterableAttributes: ['talle-ropa', 'color'],
+    },
+    {
+      id: 'calzado',
+      name: 'Calzado & Zapatillas',
+      slug: 'calzado',
+      order: 5,
+      filterableAttributes: ['talle-calzado', 'color'],
+    },
+    {
+      id: 'accesorios-moda',
+      name: 'Accesorios & Gorras',
+      slug: 'accesorios-moda',
+      order: 6,
+      filterableAttributes: ['color'],
+    },
   ],
   attributes: [
-    { id: 'talle-ropa', name: 'Talle (Ropa)', code: 'talle-ropa', type: 'button', values: ['S', 'M', 'L', 'XL', 'XXL'], required: true },
-    { id: 'talle-pantalon', name: 'Talle (Pantalón)', code: 'talle-pantalon', type: 'button', values: ['38', '40', '42', '44', '46'], required: true },
-    { id: 'talle-calzado', name: 'Talle (Calzado)', code: 'talle-calzado', type: 'button', values: ['39', '40', '41', '42', '43', '44'], required: true },
-    { id: 'color', name: 'Color', code: 'color', type: 'color', values: ['Negro', 'Blanco', 'Azul Marino', 'Beige', 'Gris Melange', 'Verde Militar'], required: true },
+    {
+      id: 'talle-ropa',
+      name: 'Talle (Ropa)',
+      code: 'talle-ropa',
+      type: 'button',
+      values: ['S', 'M', 'L', 'XL', 'XXL'],
+      required: true,
+    },
+    {
+      id: 'talle-pantalon',
+      name: 'Talle (Pantalón)',
+      code: 'talle-pantalon',
+      type: 'button',
+      values: ['38', '40', '42', '44', '46'],
+      required: true,
+    },
+    {
+      id: 'talle-calzado',
+      name: 'Talle (Calzado)',
+      code: 'talle-calzado',
+      type: 'button',
+      values: ['39', '40', '41', '42', '43', '44'],
+      required: true,
+    },
+    {
+      id: 'color',
+      name: 'Color',
+      code: 'color',
+      type: 'color',
+      values: ['Negro', 'Blanco', 'Azul Marino', 'Beige', 'Gris Melange', 'Verde Militar'],
+      required: true,
+    },
   ],
   colors: {
     primary: '#18181b',
@@ -38,8 +126,14 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
   },
   featureCards: [
     { title: 'Primer Cambio Gratis', content: 'Cambiá talle o modelo sin costo en todo el país.' },
-    { title: 'Confección Premium', content: 'Telas seleccionadas, algodón peinado 24/1 y costuras reforzadas.' },
-    { title: 'Cuotas Sin Interés', content: 'Aprovechá todas las promociones bancarias y Mercado Pago.' },
+    {
+      title: 'Confección Premium',
+      content: 'Telas seleccionadas, algodón peinado 24/1 y costuras reforzadas.',
+    },
+    {
+      title: 'Cuotas Sin Interés',
+      content: 'Aprovechá todas las promociones bancarias y Mercado Pago.',
+    },
   ],
   sampleProducts: [
     {
@@ -48,13 +142,30 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 28900,
       stock: 60,
       skuPrefix: 'REM-OVR',
-      description: 'Confeccionada en 100% algodón peinado premium 24/1 con caída pesada estructurada y cuello rib reforzado.',
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
+      description:
+        'Confeccionada en 100% algodón peinado premium 24/1 con caída pesada estructurada y cuello rib reforzado.',
+      image:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'REM-OVR-BLK-M', price: 28900, stock: 20, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
-        { sku: 'REM-OVR-BLK-L', price: 28900, stock: 20, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
-        { sku: 'REM-OVR-WHT-L', price: 28900, stock: 20, attributes: { 'talle-ropa': 'L', color: 'Blanco' } },
+        {
+          sku: 'REM-OVR-BLK-M',
+          price: 28900,
+          stock: 20,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
+        {
+          sku: 'REM-OVR-BLK-L',
+          price: 28900,
+          stock: 20,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
+        {
+          sku: 'REM-OVR-WHT-L',
+          price: 28900,
+          stock: 20,
+          attributes: { 'talle-ropa': 'L', color: 'Blanco' },
+        },
       ],
     },
     {
@@ -63,12 +174,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 31000,
       stock: 45,
       skuPrefix: 'REM-BOX',
-      description: 'Corte cuadrado estilo streetwear con estampa serigráfica de alta definición al frente y espalda.',
-      image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Corte cuadrado estilo streetwear con estampa serigráfica de alta definición al frente y espalda.',
+      image:
+        'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'REM-BOX-BLK-M', price: 31000, stock: 25, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
-        { sku: 'REM-BOX-GRY-L', price: 31000, stock: 20, attributes: { 'talle-ropa': 'L', color: 'Gris Melange' } },
+        {
+          sku: 'REM-BOX-BLK-M',
+          price: 31000,
+          stock: 25,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
+        {
+          sku: 'REM-BOX-GRY-L',
+          price: 31000,
+          stock: 20,
+          attributes: { 'talle-ropa': 'L', color: 'Gris Melange' },
+        },
       ],
     },
     {
@@ -77,12 +200,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 22500,
       stock: 40,
       skuPrefix: 'TOP-RIB',
-      description: 'Top sin mangas de algodón con elastano acanalado, ideal para combinar en capas urbanas.',
-      image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Top sin mangas de algodón con elastano acanalado, ideal para combinar en capas urbanas.',
+      image:
+        'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'TOP-RIB-WHT-S', price: 22500, stock: 20, attributes: { 'talle-ropa': 'S', color: 'Blanco' } },
-        { sku: 'TOP-RIB-BLK-M', price: 22500, stock: 20, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
+        {
+          sku: 'TOP-RIB-WHT-S',
+          price: 22500,
+          stock: 20,
+          attributes: { 'talle-ropa': 'S', color: 'Blanco' },
+        },
+        {
+          sku: 'TOP-RIB-BLK-M',
+          price: 22500,
+          stock: 20,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
       ],
     },
     {
@@ -91,12 +226,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 64900,
       stock: 40,
       skuPrefix: 'PNT-CRG',
-      description: 'Pantalón cargo corte relajado con 6 bolsillos utilitarios, cintura elástica y tejido antidesgarro.',
-      image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pantalón cargo corte relajado con 6 bolsillos utilitarios, cintura elástica y tejido antidesgarro.',
+      image:
+        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'PNT-CRG-BLK-40', price: 64900, stock: 20, attributes: { 'talle-pantalon': '40', color: 'Negro' } },
-        { sku: 'PNT-CRG-BGE-42', price: 64900, stock: 20, attributes: { 'talle-pantalon': '42', color: 'Beige' } },
+        {
+          sku: 'PNT-CRG-BLK-40',
+          price: 64900,
+          stock: 20,
+          attributes: { 'talle-pantalon': '40', color: 'Negro' },
+        },
+        {
+          sku: 'PNT-CRG-BGE-42',
+          price: 64900,
+          stock: 20,
+          attributes: { 'talle-pantalon': '42', color: 'Beige' },
+        },
       ],
     },
     {
@@ -105,12 +252,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 69000,
       stock: 35,
       skuPrefix: 'JN-WIDE',
-      description: 'Denim 100% algodón rígido de tiro medio-alto con caída ancha recta desde la cadera.',
+      description:
+        'Denim 100% algodón rígido de tiro medio-alto con caída ancha recta desde la cadera.',
       image: 'https://images.unsplash.com/photo-1542272604-780c96856592?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'JN-WIDE-BLU-40', price: 69000, stock: 15, attributes: { 'talle-pantalon': '40', color: 'Azul Marino' } },
-        { sku: 'JN-WIDE-BLU-42', price: 69000, stock: 20, attributes: { 'talle-pantalon': '42', color: 'Azul Marino' } },
+        {
+          sku: 'JN-WIDE-BLU-40',
+          price: 69000,
+          stock: 15,
+          attributes: { 'talle-pantalon': '40', color: 'Azul Marino' },
+        },
+        {
+          sku: 'JN-WIDE-BLU-42',
+          price: 69000,
+          stock: 20,
+          attributes: { 'talle-pantalon': '42', color: 'Azul Marino' },
+        },
       ],
     },
     {
@@ -119,12 +277,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 48000,
       stock: 50,
       skuPrefix: 'JOG-FLC',
-      description: 'Jogger de rústico peinado con frisa interior ultrasuave, puños acanalados y cordón de ajuste.',
+      description:
+        'Jogger de rústico peinado con frisa interior ultrasuave, puños acanalados y cordón de ajuste.',
       image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'JOG-FLC-GRY-M', price: 48000, stock: 25, attributes: { 'talle-ropa': 'M', color: 'Gris Melange' } },
-        { sku: 'JOG-FLC-BLK-L', price: 48000, stock: 25, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
+        {
+          sku: 'JOG-FLC-GRY-M',
+          price: 48000,
+          stock: 25,
+          attributes: { 'talle-ropa': 'M', color: 'Gris Melange' },
+        },
+        {
+          sku: 'JOG-FLC-BLK-L',
+          price: 48000,
+          stock: 25,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
       ],
     },
     {
@@ -133,12 +302,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 59000,
       stock: 45,
       skuPrefix: 'HD-HVY',
-      description: 'Buzo con capucha doble forrada, bolsillo canguro amplio y tejido de alto gramaje para invierno.',
+      description:
+        'Buzo con capucha doble forrada, bolsillo canguro amplio y tejido de alto gramaje para invierno.',
       image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'HD-HVY-BLK-L', price: 59000, stock: 25, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
-        { sku: 'HD-HVY-BGE-XL', price: 59000, stock: 20, attributes: { 'talle-ropa': 'XL', color: 'Beige' } },
+        {
+          sku: 'HD-HVY-BLK-L',
+          price: 59000,
+          stock: 25,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
+        {
+          sku: 'HD-HVY-BGE-XL',
+          price: 59000,
+          stock: 20,
+          attributes: { 'talle-ropa': 'XL', color: 'Beige' },
+        },
       ],
     },
     {
@@ -147,12 +327,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 49500,
       stock: 35,
       skuPrefix: 'CRW-CLS',
-      description: 'Buzo básico de corte regular con interior frisado térmico y bordado sutil en el pecho.',
+      description:
+        'Buzo básico de corte regular con interior frisado térmico y bordado sutil en el pecho.',
       image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'CRW-CLS-GRY-M', price: 49500, stock: 20, attributes: { 'talle-ropa': 'M', color: 'Gris Melange' } },
-        { sku: 'CRW-CLS-NVY-L', price: 49500, stock: 15, attributes: { 'talle-ropa': 'L', color: 'Azul Marino' } },
+        {
+          sku: 'CRW-CLS-GRY-M',
+          price: 49500,
+          stock: 20,
+          attributes: { 'talle-ropa': 'M', color: 'Gris Melange' },
+        },
+        {
+          sku: 'CRW-CLS-NVY-L',
+          price: 49500,
+          stock: 15,
+          attributes: { 'talle-ropa': 'L', color: 'Azul Marino' },
+        },
       ],
     },
     {
@@ -161,12 +352,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 135000,
       stock: 25,
       skuPrefix: 'JKT-PUFF',
-      description: 'Acolchado sintético térmico de alto rendimiento con cierre sellado y bolsillos interiores.',
+      description:
+        'Acolchado sintético térmico de alto rendimiento con cierre sellado y bolsillos interiores.',
       image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'JKT-PUFF-BLK-M', price: 135000, stock: 15, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
-        { sku: 'JKT-PUFF-BLK-L', price: 135000, stock: 10, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
+        {
+          sku: 'JKT-PUFF-BLK-M',
+          price: 135000,
+          stock: 15,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
+        {
+          sku: 'JKT-PUFF-BLK-L',
+          price: 135000,
+          stock: 10,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
       ],
     },
     {
@@ -175,12 +377,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 89000,
       stock: 20,
       skuPrefix: 'JKT-BMB',
-      description: 'Chaqueta bomber ligera con forro interior de satén, broches a presión metálicos y bolsillos ojal.',
+      description:
+        'Chaqueta bomber ligera con forro interior de satén, broches a presión metálicos y bolsillos ojal.',
       image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'JKT-BMB-GRN-L', price: 89000, stock: 10, attributes: { 'talle-ropa': 'L', color: 'Verde Militar' } },
-        { sku: 'JKT-BMB-BLK-L', price: 89000, stock: 10, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
+        {
+          sku: 'JKT-BMB-GRN-L',
+          price: 89000,
+          stock: 10,
+          attributes: { 'talle-ropa': 'L', color: 'Verde Militar' },
+        },
+        {
+          sku: 'JKT-BMB-BLK-L',
+          price: 89000,
+          stock: 10,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
       ],
     },
     {
@@ -189,12 +402,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 74000,
       stock: 30,
       skuPrefix: 'JKT-WND',
-      description: 'Tejido impermeable y cortaviento ultraligero con capucha oculta y detalles reflectantes.',
+      description:
+        'Tejido impermeable y cortaviento ultraligero con capucha oculta y detalles reflectantes.',
       image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'JKT-WND-BLK-M', price: 74000, stock: 15, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
-        { sku: 'JKT-WND-NVY-L', price: 74000, stock: 15, attributes: { 'talle-ropa': 'L', color: 'Azul Marino' } },
+        {
+          sku: 'JKT-WND-BLK-M',
+          price: 74000,
+          stock: 15,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
+        {
+          sku: 'JKT-WND-NVY-L',
+          price: 74000,
+          stock: 15,
+          attributes: { 'talle-ropa': 'L', color: 'Azul Marino' },
+        },
       ],
     },
     {
@@ -203,12 +427,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 98000,
       stock: 35,
       skuPrefix: 'ZAP-RET',
-      description: 'Zapatillas de cuero sintético premium y suela de caucho vulcanizado antideslizante.',
-      image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&h=800&fit=crop&q=80',
+      description:
+        'Zapatillas de cuero sintético premium y suela de caucho vulcanizado antideslizante.',
+      image:
+        'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'ZAP-RET-WHT-41', price: 98000, stock: 15, attributes: { 'talle-calzado': '41', color: 'Blanco' } },
-        { sku: 'ZAP-RET-WHT-42', price: 98000, stock: 20, attributes: { 'talle-calzado': '42', color: 'Blanco' } },
+        {
+          sku: 'ZAP-RET-WHT-41',
+          price: 98000,
+          stock: 15,
+          attributes: { 'talle-calzado': '41', color: 'Blanco' },
+        },
+        {
+          sku: 'ZAP-RET-WHT-42',
+          price: 98000,
+          stock: 20,
+          attributes: { 'talle-calzado': '42', color: 'Blanco' },
+        },
       ],
     },
     {
@@ -217,12 +453,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 115000,
       stock: 25,
       skuPrefix: 'ZAP-CHK',
-      description: 'Diseño voluminoso con entresuela amortiguada de EVA y capellada en mix de mesh respirable y cuero.',
+      description:
+        'Diseño voluminoso con entresuela amortiguada de EVA y capellada en mix de mesh respirable y cuero.',
       image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'ZAP-CHK-BLK-42', price: 115000, stock: 15, attributes: { 'talle-calzado': '42', color: 'Negro' } },
-        { sku: 'ZAP-CHK-GRY-43', price: 115000, stock: 10, attributes: { 'talle-calzado': '43', color: 'Gris Melange' } },
+        {
+          sku: 'ZAP-CHK-BLK-42',
+          price: 115000,
+          stock: 15,
+          attributes: { 'talle-calzado': '42', color: 'Negro' },
+        },
+        {
+          sku: 'ZAP-CHK-GRY-43',
+          price: 115000,
+          stock: 10,
+          attributes: { 'talle-calzado': '43', color: 'Gris Melange' },
+        },
       ],
     },
     {
@@ -231,12 +478,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 128000,
       stock: 20,
       skuPrefix: 'BOT-URB',
-      description: 'Botas caña media con suela tractor antideslizante, cordones encerados y plantilla anatómica.',
-      image: 'https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Botas caña media con suela tractor antideslizante, cordones encerados y plantilla anatómica.',
+      image:
+        'https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'BOT-URB-BLK-41', price: 128000, stock: 10, attributes: { 'talle-calzado': '41', color: 'Negro' } },
-        { sku: 'BOT-URB-BLK-42', price: 128000, stock: 10, attributes: { 'talle-calzado': '42', color: 'Negro' } },
+        {
+          sku: 'BOT-URB-BLK-41',
+          price: 128000,
+          stock: 10,
+          attributes: { 'talle-calzado': '41', color: 'Negro' },
+        },
+        {
+          sku: 'BOT-URB-BLK-42',
+          price: 128000,
+          stock: 10,
+          attributes: { 'talle-calzado': '42', color: 'Negro' },
+        },
       ],
     },
     {
@@ -245,8 +504,10 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 50,
       skuPrefix: 'CAP-DAD',
-      description: 'Gorra de 6 gajos con visera curva, hebilla metálica regulable y bordado minimalista.',
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Gorra de 6 gajos con visera curva, hebilla metálica regulable y bordado minimalista.',
+      image:
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'CAP-DAD-BLK', price: 18500, stock: 25, attributes: { color: 'Negro' } },
@@ -260,7 +521,8 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       stock: 45,
       skuPrefix: 'BN-RIB',
       description: 'Gorro de lana sintética suave con vuelta ancha y elasticidad adaptable.',
-      image: 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'BN-RIB-BLK', price: 15000, stock: 25, attributes: { color: 'Negro' } },
@@ -287,7 +549,8 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 40,
       skuPrefix: 'BLT-TAC',
-      description: 'Cinta de nylon de alta resistencia de 3.8cm de ancho con hebilla de aleación de liberación rápida.',
+      description:
+        'Cinta de nylon de alta resistencia de 3.8cm de ancho con hebilla de aleación de liberación rápida.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -297,8 +560,10 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 60,
       skuPrefix: 'SOX-STR',
-      description: 'Set de 3 pares de medias con toalla acolchada en planta y tejido elástico compresivo en empeine.',
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Set de 3 pares de medias con toalla acolchada en planta y tejido elástico compresivo en empeine.',
+      image:
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -307,12 +572,24 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 52000,
       stock: 30,
       skuPrefix: 'CMS-FLN',
-      description: 'Camisa leñadora de algodón pesado con botones carey y bolsillos plaqué con solapa.',
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
+      description:
+        'Camisa leñadora de algodón pesado con botones carey y bolsillos plaqué con solapa.',
+      image:
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'CMS-FLN-BLK-L', price: 52000, stock: 15, attributes: { 'talle-ropa': 'L', color: 'Negro' } },
-        { sku: 'CMS-FLN-NVY-XL', price: 52000, stock: 15, attributes: { 'talle-ropa': 'XL', color: 'Azul Marino' } },
+        {
+          sku: 'CMS-FLN-BLK-L',
+          price: 52000,
+          stock: 15,
+          attributes: { 'talle-ropa': 'L', color: 'Negro' },
+        },
+        {
+          sku: 'CMS-FLN-NVY-XL',
+          price: 52000,
+          stock: 15,
+          attributes: { 'talle-ropa': 'XL', color: 'Azul Marino' },
+        },
       ],
     },
     {
@@ -321,12 +598,23 @@ export const INDUMENTARIA_CALZADO_PRESET: BusinessVerticalDefinition = {
       price: 32000,
       stock: 45,
       skuPrefix: 'SHT-RST',
-      description: 'Short cómodo con bolsillos laterales con cierre y cordón de ajuste con punteras metálicas.',
+      description:
+        'Short cómodo con bolsillos laterales con cierre y cordón de ajuste con punteras metálicas.',
       image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'SHT-RST-BLK-M', price: 32000, stock: 25, attributes: { 'talle-ropa': 'M', color: 'Negro' } },
-        { sku: 'SHT-RST-GRY-L', price: 32000, stock: 20, attributes: { 'talle-ropa': 'L', color: 'Gris Melange' } },
+        {
+          sku: 'SHT-RST-BLK-M',
+          price: 32000,
+          stock: 25,
+          attributes: { 'talle-ropa': 'M', color: 'Negro' },
+        },
+        {
+          sku: 'SHT-RST-GRY-L',
+          price: 32000,
+          stock: 20,
+          attributes: { 'talle-ropa': 'L', color: 'Gris Melange' },
+        },
       ],
     },
   ],

@@ -6,27 +6,96 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
   icon: 'bi-journal-bookmark',
   description: 'Cuadernos de diseño, artículos de arte, escritura fina, útiles escolares y libros.',
   bannerTitle: 'Inspiración, Creatividad y Escritura',
-  bannerSubtitle: 'Papelería de autor, materiales para artistas, libros seleccionados e insumos de oficina.',
+  bannerSubtitle:
+    'Papelería de autor, materiales para artistas, libros seleccionados e insumos de oficina.',
   heroImages: [
     'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'cuadernos', name: 'Cuadernos & Agendas', slug: 'cuadernos', imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'escritura', name: 'Escritura & Plumas', slug: 'escritura', imageUrl: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'arte', name: 'Arte & Dibujo', slug: 'arte', imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'organizacion', name: 'Oficina & Mochilas', slug: 'organizacion', imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'cuadernos',
+      name: 'Cuadernos & Agendas',
+      slug: 'cuadernos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'escritura',
+      name: 'Escritura & Plumas',
+      slug: 'escritura',
+      imageUrl:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'arte',
+      name: 'Arte & Dibujo',
+      slug: 'arte',
+      imageUrl:
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'organizacion',
+      name: 'Oficina & Mochilas',
+      slug: 'organizacion',
+      imageUrl:
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'cuadernos', name: 'Cuadernos, Agendas & Bullet Journals', slug: 'cuadernos', order: 1, filterableAttributes: ['hojas'] },
-    { id: 'escritura', name: 'Bolígrafos, Rollers & Plumas Fuente', slug: 'escritura', order: 2, filterableAttributes: ['trazo'] },
-    { id: 'arte', name: 'Acuarelas, Marcadores & Dibujo Pro', slug: 'arte', order: 3, filterableAttributes: [] },
-    { id: 'escolar', name: 'Útiles Escolares & Manualidades', slug: 'escolar', order: 4, filterableAttributes: [] },
-    { id: 'organizacion', name: 'Mochilas, Cartucheras & Oficina', slug: 'organizacion', order: 5, filterableAttributes: [] },
+    {
+      id: 'cuadernos',
+      name: 'Cuadernos, Agendas & Bullet Journals',
+      slug: 'cuadernos',
+      order: 1,
+      filterableAttributes: ['hojas'],
+    },
+    {
+      id: 'escritura',
+      name: 'Bolígrafos, Rollers & Plumas Fuente',
+      slug: 'escritura',
+      order: 2,
+      filterableAttributes: ['trazo'],
+    },
+    {
+      id: 'arte',
+      name: 'Acuarelas, Marcadores & Dibujo Pro',
+      slug: 'arte',
+      order: 3,
+      filterableAttributes: [],
+    },
+    {
+      id: 'escolar',
+      name: 'Útiles Escolares & Manualidades',
+      slug: 'escolar',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'organizacion',
+      name: 'Mochilas, Cartucheras & Oficina',
+      slug: 'organizacion',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'hojas', name: 'Interior de Hojas', code: 'hojas', type: 'select', values: ['Rayadas', 'Punteadas (Bullet)', 'Cuadriculadas', 'Lisas'], required: false },
-    { id: 'trazo', name: 'Grosor de Trazo', code: 'trazo', type: 'button', values: ['Fino 0.5mm', 'Medio 0.7mm', 'Grueso 1.0mm'], required: false },
+    {
+      id: 'hojas',
+      name: 'Interior de Hojas',
+      code: 'hojas',
+      type: 'select',
+      values: ['Rayadas', 'Punteadas (Bullet)', 'Cuadriculadas', 'Lisas'],
+      required: false,
+    },
+    {
+      id: 'trazo',
+      name: 'Grosor de Trazo',
+      code: 'trazo',
+      type: 'button',
+      values: ['Fino 0.5mm', 'Medio 0.7mm', 'Grueso 1.0mm'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#4f46e5',
@@ -34,9 +103,18 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Papel de Alto Gramaje', content: 'Cuadernos y bitácoras resistentes a tintas al agua y plumas estilográficas.' },
-    { title: 'Marcas de Arte Internacionales', content: 'Insumos profesionales para ilustración, caligrafía y lettering.' },
-    { title: 'Packaging Cuidadoso', content: 'Tus libros y libretas llegan impecables sin esquinas dobladas ni marcas.' },
+    {
+      title: 'Papel de Alto Gramaje',
+      content: 'Cuadernos y bitácoras resistentes a tintas al agua y plumas estilográficas.',
+    },
+    {
+      title: 'Marcas de Arte Internacionales',
+      content: 'Insumos profesionales para ilustración, caligrafía y lettering.',
+    },
+    {
+      title: 'Packaging Cuidadoso',
+      content: 'Tus libros y libretas llegan impecables sin esquinas dobladas ni marcas.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,11 +123,17 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 45,
       skuPrefix: 'LIB-CD-BJ',
-      description: '192 páginas de papel libre de ácido de 120g que no traspasa la tinta. Tapa dura encuadernada en ecocuero.',
+      description:
+        '192 páginas de papel libre de ácido de 120g que no traspasa la tinta. Tapa dura encuadernada en ecocuero.',
       image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'LIB-CD-BJ-DOT', price: 18500, stock: 25, attributes: { hojas: 'Punteadas (Bullet)' } },
+        {
+          sku: 'LIB-CD-BJ-DOT',
+          price: 18500,
+          stock: 25,
+          attributes: { hojas: 'Punteadas (Bullet)' },
+        },
         { sku: 'LIB-CD-BJ-LIN', price: 18500, stock: 20, attributes: { hojas: 'Rayadas' } },
       ],
     },
@@ -59,8 +143,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 35,
       skuPrefix: 'LIB-AG26',
-      description: 'Planificador anual con cinta señaladora, sobre fuelle trasero y hojas de stickers temáticos.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      description:
+        'Planificador anual con cinta señaladora, sobre fuelle trasero y hojas de stickers temáticos.',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -69,7 +155,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 8900,
       stock: 70,
       skuPrefix: 'LIB-UNI',
-      description: 'Hojas microperforadas con margen reforzado y tapas de polipropileno de alta resistencia.',
+      description:
+        'Hojas microperforadas con margen reforzado y tapas de polipropileno de alta resistencia.',
       image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -79,7 +166,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 12000,
       stock: 50,
       skuPrefix: 'LIB-PCK',
-      description: 'Libretas flexibles de costura visible con papel kraft natural ideales para llevar a todos lados.',
+      description:
+        'Libretas flexibles de costura visible con papel kraft natural ideales para llevar a todos lados.',
       image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -89,8 +177,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 25,
       skuPrefix: 'LIB-PLU',
-      description: 'Cuerpo metálico laqueado con convertidor de émbolo para tinta en tintero y cartuchos universales.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cuerpo metálico laqueado con convertidor de émbolo para tinta en tintero y cartuchos universales.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -99,8 +189,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 60,
       skuPrefix: 'LIB-ROL-BOR',
-      description: 'Tinta termosensible que se borra por fricción sin dañar el papel ni dejar residuos.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tinta termosensible que se borra por fricción sin dañar el papel ni dejar residuos.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -109,8 +201,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 40,
       skuPrefix: 'LIB-FIN-8',
-      description: 'Puntas calibradas de 0.05mm a 0.8mm con tinta pigmentada impermeable resistente a la luz.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Puntas calibradas de 0.05mm a 0.8mm con tinta pigmentada impermeable resistente a la luz.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -119,8 +213,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 9500,
       stock: 55,
       skuPrefix: 'LIB-PEN-MET',
-      description: 'Mecanismo de click suave con repuesto de tinta de aceite fluida de secado instantáneo.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mecanismo de click suave con repuesto de tinta de aceite fluida de secado instantáneo.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'LIB-PEN-05', price: 9500, stock: 30, attributes: { trazo: 'Fino 0.5mm' } },
@@ -133,8 +229,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 25,
       skuPrefix: 'LIB-MRK-ALC',
-      description: 'Marcadores profesionales con punta pincel flexible y biselada para ilustración, manga y bocetos.',
-      image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Marcadores profesionales con punta pincel flexible y biselada para ilustración, manga y bocetos.',
+      image:
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -143,8 +241,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 38000,
       stock: 20,
       skuPrefix: 'LIB-ACU-24',
-      description: 'Pigmentos puros de alta solubilidad y transparencia en caja metálica con paleta de mezcla y pincel de agua.',
-      image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pigmentos puros de alta solubilidad y transparencia en caja metálica con paleta de mezcla y pincel de agua.',
+      image:
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -153,8 +253,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 30,
       skuPrefix: 'LIB-BLK-ACU',
-      description: 'Prensado en frío con grano fino, encolado en los 4 lados para evitar deformaciones con el agua.',
-      image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Prensado en frío con grano fino, encolado en los 4 lados para evitar deformaciones con el agua.',
+      image:
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -163,8 +265,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 25,
       skuPrefix: 'LIB-LAP-36',
-      description: 'Minas gruesas a base de cera de 3.8mm con máxima resistencia a la rotura y cobertura uniforme.',
-      image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Minas gruesas a base de cera de 3.8mm con máxima resistencia a la rotura y cobertura uniforme.',
+      image:
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -173,7 +277,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 58000,
       stock: 30,
       skuPrefix: 'LIB-MCH-NB',
-      description: 'Compartimento acolchado para laptop de 15.6", puerto de carga USB externo y espaldar ergonómico.',
+      description:
+        'Compartimento acolchado para laptop de 15.6", puerto de carga USB externo y espaldar ergonómico.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -183,7 +288,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 45,
       skuPrefix: 'LIB-CAR-MUL',
-      description: 'Capacidad para 50 útiles con elásticos organizadores para marcadores, regla y tijera.',
+      description:
+        'Capacidad para 50 útiles con elásticos organizadores para marcadores, regla y tijera.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -194,7 +300,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       stock: 35,
       skuPrefix: 'LIB-ORG-MET',
       description: 'Porta lápices, tacos de notas, clips y bandeja porta documentos integrada.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -203,8 +310,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 9800,
       stock: 80,
       skuPrefix: 'LIB-RST-PAS',
-      description: 'Punta biselada de 2 y 5mm con tinta a base de agua que no mancha el reverso de las fotocopias.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Punta biselada de 2 y 5mm con tinta a base de agua que no mancha el reverso de las fotocopias.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -213,8 +322,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 5900,
       stock: 90,
       skuPrefix: 'LIB-NOT-ADH',
-      description: 'Adhesivo reposicionable que no deja marcas en libros, cuadernos o pantallas de monitor.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      description:
+        'Adhesivo reposicionable que no deja marcas en libros, cuadernos o pantallas de monitor.',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -223,8 +334,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 40,
       skuPrefix: 'LIB-ABR-MET',
-      description: 'Capacidad de abrochado de hasta 30 hojas de 80g con base antideslizante de goma.',
-      image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
+      description:
+        'Capacidad de abrochado de hasta 30 hojas de 80g con base antideslizante de goma.',
+      image:
+        'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -233,8 +346,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 4900,
       stock: 85,
       skuPrefix: 'LIB-TIJ-SFT',
-      description: 'Mangos ergonómicos con goma antifatiga y hojas afiladas con punta redondeada de seguridad.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mangos ergonómicos con goma antifatiga y hojas afiladas con punta redondeada de seguridad.',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -244,7 +359,8 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       stock: 90,
       skuPrefix: 'LIB-COR-CNT',
       description: 'Aplicación en seco que permite reescribir inmediatamente sin manchas.',
-      image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -253,8 +369,10 @@ export const LIBRERIA_PAPELERIA_PRESET: BusinessVerticalDefinition = {
       price: 11500,
       stock: 45,
       skuPrefix: 'LIB-WSH-10',
-      description: 'Cintas de papel de arroz adhesivas removibles para journaling, scrapbooking y manualidades.',
-      image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cintas de papel de arroz adhesivas removibles para journaling, scrapbooking y manualidades.',
+      image:
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

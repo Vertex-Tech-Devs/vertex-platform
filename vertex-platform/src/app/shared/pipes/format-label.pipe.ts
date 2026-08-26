@@ -26,4 +26,3 @@ export class FormatLabelPipe implements PipeTransform {
       .join(' ');
   }
 }
-

@@ -146,7 +146,9 @@
         >
           <i class="bi bi-cpu"></i>
           <span>Orquestación</span>
-          <span class="tab-badge tab-badge--version">{{ formatVersion(store()!.templateVersion) }}</span>
+          <span class="tab-badge tab-badge--version">{{
+            formatVersion(store()!.templateVersion)
+          }}</span>
         </button>
         <button
           type="button"
@@ -157,7 +159,9 @@
           <i class="bi bi-people"></i>
           <span>Equipo</span>
           @if (staff().length > 0 || invitations().length > 0) {
-            <span class="tab-badge tab-badge--count">{{ staff().length + invitations().length }}</span>
+            <span class="tab-badge tab-badge--count">{{
+              staff().length + invitations().length
+            }}</span>
           }
         </button>
         <button
@@ -372,71 +376,67 @@
                         }
                       </select>
                     </div>
-                      <div class="col-auto">
-                        <button
-                          class="action-btn action-btn--primary"
-                          [disabled]="
-                            isDeploying() ||
-                            store()!.status !== 'active' ||
-                            deployActionState().status === 'running'
-                          "
-                          (click)="triggerDeployment()"
-                        >
-                          @if (isDeploying() || deployActionState().status === 'running') {
-                            <app-spinner size="sm" label="Desplegando…" />
-                          } @else if (selectedVersion() === store()!.templateVersion) {
-                            <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
-                          } @else {
-                            <i class="bi bi-rocket-takeoff"></i> Actualizar a v{{ selectedVersion() }}
-                          }
-                        </button>
+                    <div class="col-auto">
+                      <button
+                        class="action-btn action-btn--primary"
+                        [disabled]="
+                          isDeploying() ||
+                          store()!.status !== 'active' ||
+                          deployActionState().status === 'running'
+                        "
+                        (click)="triggerDeployment()"
+                      >
+                        @if (isDeploying() || deployActionState().status === 'running') {
+                          <app-spinner size="sm" label="Desplegando…" />
+                        } @else if (selectedVersion() === store()!.templateVersion) {
+                          <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
+                        } @else {
+                          <i class="bi bi-rocket-takeoff"></i> Actualizar a v{{ selectedVersion() }}
+                        }
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (store()!.pendingMigration) {
+                    <p class="feedback feedback--warning mt-2">
+                      ⚠️ La versión aplicada cambia el esquema de datos — revisá que los datos sean
+                      compatibles tras el deploy.
+                    </p>
+                  }
+
+                  @if (deployActionState().status !== 'idle') {
+                    <div
+                      class="action-progress action-progress--{{ deployActionState().status }} mt-3"
+                    >
+                      <div class="action-progress__bar">
+                        <div
+                          class="action-progress__fill"
+                          [style.width.%]="deployActionState().progress"
+                        ></div>
+                      </div>
+                      <div class="action-progress__info">
+                        @if (deployActionState().status === 'running') {
+                          <span class="spinner-sm"></span>
+                        } @else if (deployActionState().status === 'success') {
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        } @else if (deployActionState().status === 'error') {
+                          <i class="bi bi-x-circle-fill text-danger"></i>
+                        }
+                        <span class="action-progress__text">{{ deployActionState().message }}</span>
+                        @if (deployActionState().status !== 'running') {
+                          <button
+                            type="button"
+                            class="btn-close btn-close-white btn-sm ms-2"
+                            aria-label="Cerrar notificación"
+                            (click)="dismissDeployProgress()"
+                          ></button>
+                        }
                       </div>
                     </div>
-
-                    @if (store()!.pendingMigration) {
-                      <p class="feedback feedback--warning mt-2">
-                        ⚠️ La versión aplicada cambia el esquema de datos — revisá que los datos
-                        sean compatibles tras el deploy.
-                      </p>
-                    }
-
-                    @if (deployActionState().status !== 'idle') {
-                      <div
-                        class="action-progress action-progress--{{
-                          deployActionState().status
-                        }} mt-3"
-                      >
-                        <div class="action-progress__bar">
-                          <div
-                            class="action-progress__fill"
-                            [style.width.%]="deployActionState().progress"
-                          ></div>
-                        </div>
-                        <div class="action-progress__info">
-                          @if (deployActionState().status === 'running') {
-                            <span class="spinner-sm"></span>
-                          } @else if (deployActionState().status === 'success') {
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                          } @else if (deployActionState().status === 'error') {
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                          }
-                          <span class="action-progress__text">{{
-                            deployActionState().message
-                          }}</span>
-                          @if (deployActionState().status !== 'running') {
-                            <button
-                              type="button"
-                              class="btn-close btn-close-white btn-sm ms-2"
-                              aria-label="Cerrar notificación"
-                              (click)="dismissDeployProgress()"
-                            ></button>
-                          }
-                        </div>
-                      </div>
-                    }
-                  </div>
+                  }
                 </div>
-              }
+              </div>
+            }
 
             <!-- Operations Card -->
             <div class="detail-card ops-card">
@@ -476,7 +476,9 @@
                       </p>
 
                       @if (seedActionState().status !== 'idle') {
-                        <div class="action-progress action-progress--{{ seedActionState().status }}">
+                        <div
+                          class="action-progress action-progress--{{ seedActionState().status }}"
+                        >
                           <div class="action-progress__bar">
                             <div
                               class="action-progress__fill"
@@ -491,7 +493,9 @@
                             } @else if (seedActionState().status === 'error') {
                               <i class="bi bi-x-circle-fill text-danger"></i>
                             }
-                            <span class="action-progress__text">{{ seedActionState().message }}</span>
+                            <span class="action-progress__text">{{
+                              seedActionState().message
+                            }}</span>
                           </div>
                         </div>
                       }
@@ -531,12 +535,14 @@
 
                   <div class="op-control-card__body">
                     <p class="op-control-card__desc">
-                      Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos e
-                      imágenes resguardados.
+                      Pausá temporalmente el acceso público a la tienda manteniendo todos sus datos
+                      e imágenes resguardados.
                     </p>
 
                     @if (suspendActionState().status !== 'idle') {
-                      <div class="action-progress action-progress--{{ suspendActionState().status }}">
+                      <div
+                        class="action-progress action-progress--{{ suspendActionState().status }}"
+                      >
                         <div class="action-progress__bar">
                           <div
                             class="action-progress__fill"
@@ -736,16 +742,22 @@
                     @if (staff().length === 0) {
                       <div class="deployment-empty" style="padding: 2rem 0">
                         <i class="bi bi-people-mute"></i>
-                        <p>
-                          No se encontraron miembros activos adicionales.
-                        </p>
+                        <p>No se encontraron miembros activos adicionales.</p>
                       </div>
                     } @else {
                       @for (member of staff(); track member.uid) {
-                        <div class="staff-item" [class.staff-item--owner]="member.isOwner || member.role === 'owner'">
-                          <div class="staff-item__avatar" [class.staff-item__avatar--owner]="member.isOwner || member.role === 'owner'">
+                        <div
+                          class="staff-item"
+                          [class.staff-item--owner]="member.isOwner || member.role === 'owner'"
+                        >
+                          <div
+                            class="staff-item__avatar"
+                            [class.staff-item__avatar--owner]="
+                              member.isOwner || member.role === 'owner'
+                            "
+                          >
                             @if (member.isOwner || member.role === 'owner') {
-                              <i class="bi bi-star-fill"></i>
+                              <i class="bi bi-person-fill-lock"></i>
                             } @else {
                               {{ (member.displayName || member.email).charAt(0).toUpperCase() }}
                             }
@@ -753,18 +765,35 @@
                           <div class="staff-item__info">
                             <div class="staff-item__name-row">
                               <span class="staff-item__name">{{
-                                member.displayName || (member.isOwner ? 'Dueño de la tienda' : 'Operador Vertex')
+                                member.displayName || member.email
                               }}</span>
-                              @if (member.isOwner || member.role === 'owner') {
-                                <span class="badge-owner">Dueño</span>
-                              }
                             </div>
                             <span class="staff-item__email">{{ member.email }}</span>
                           </div>
                           <div class="staff-item__role">
-                            <span class="badge-role badge-role--{{ member.role }}">{{
-                              member.role === 'owner' ? 'Propietario' : member.role
-                            }}</span>
+                            <span class="badge-role badge-role--{{ member.role }}">
+                              <i
+                                class="bi"
+                                [class.bi-shield-check]="member.isOwner || member.role === 'owner'"
+                                [class.bi-person-badge]="member.role === 'admin' && !member.isOwner"
+                                [class.bi-box-seam]="member.role === 'warehouse'"
+                                [class.bi-truck]="member.role === 'fulfillment'"
+                                [class.bi-graph-up]="member.role === 'analyst'"
+                              ></i>
+                              {{
+                                member.isOwner || member.role === 'owner'
+                                  ? 'Titular'
+                                  : member.role === 'admin'
+                                    ? 'Administrador'
+                                    : member.role === 'warehouse'
+                                      ? 'Depósito'
+                                      : member.role === 'fulfillment'
+                                        ? 'Logística'
+                                        : member.role === 'analyst'
+                                          ? 'Analista'
+                                          : member.role
+                              }}
+                            </span>
                           </div>
                         </div>
                       }
@@ -889,215 +918,231 @@
               <div class="dns-grid">
                 <!-- Connection info/setup card -->
                 <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-globe"></i> Conexión de Dominio</h2>
+                  <h2 class="detail-card__title">
+                    <i class="bi bi-globe"></i> Conexión de Dominio
+                  </h2>
 
-                @if (!store()!.customDomain) {
-                  <!-- Non-connected state -->
-                  <div class="dns-setup-flow">
-                    <p class="dns-setup-flow__desc">
-                      Vertex Platform permite enrutar tus tiendas a dominios personalizados de forma
-                      automática mediante la infraestructura de Firebase Hosting.
-                    </p>
-
-                    <div class="form-group mb-4" style="max-width: 480px">
-                      <label class="form-label">Dominio Custom a conectar</label>
-                      <div class="input-addon">
-                        <span class="input-addon__pre">https://</span>
-                        <input
-                          class="form-control"
-                          [ngModel]="domainInput()"
-                          (ngModelChange)="domainInput.set($event)"
-                          placeholder="tienda.com o tienda.com.ar"
-                          type="text"
-                        />
-                      </div>
-                      <small class="form-hint" style="margin-top: 0.35rem">
-                        No incluyas "www" ni barras finales ("/").
-                      </small>
-                    </div>
-
-                    <div class="dns-checklist-section">
-                      <label class="form-label mb-2">Checklist previo obligatorio</label>
-                      <div class="dns-checklist">
-                        <label class="dns-check-card" [class.is-checked]="hasDomainOwnership()">
-                          <input
-                            type="checkbox"
-                            [ngModel]="hasDomainOwnership()"
-                            (ngModelChange)="hasDomainOwnership.set(!!$event)"
-                          />
-                          <span class="dns-check-card__box">
-                            <i class="bi bi-check-lg"></i>
-                          </span>
-                          <div class="dns-check-card__text">
-                            <span class="dns-check-card__title">Tengo titularidad del dominio</span>
-                            <span class="dns-check-card__desc">Puedo operar sobre el dominio en el registrador actual.</span>
-                          </div>
-                        </label>
-
-                        <label class="dns-check-card" [class.is-checked]="hasDnsAccess()">
-                          <input
-                            type="checkbox"
-                            [ngModel]="hasDnsAccess()"
-                            (ngModelChange)="hasDnsAccess.set(!!$event)"
-                          />
-                          <span class="dns-check-card__box">
-                            <i class="bi bi-check-lg"></i>
-                          </span>
-                          <div class="dns-check-card__text">
-                            <span class="dns-check-card__title">Tengo acceso al panel DNS</span>
-                            <span class="dns-check-card__desc">Puedo crear registros tipo A, TXT o CNAME en el proveedor DNS.</span>
-                          </div>
-                        </label>
-
-                        <label class="dns-check-card" [class.is-checked]="wantsRootOrWwwReady()">
-                          <input
-                            type="checkbox"
-                            [ngModel]="wantsRootOrWwwReady()"
-                            (ngModelChange)="wantsRootOrWwwReady.set(!!$event)"
-                          />
-                          <span class="dns-check-card__box">
-                            <i class="bi bi-check-lg"></i>
-                          </span>
-                          <div class="dns-check-card__text">
-                            <span class="dns-check-card__title">Definí el dominio final</span>
-                            <span class="dns-check-card__desc">Ya validé si voy a usar dominio raíz (tienda.com) o subdominio (www.tienda.com).</span>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      class="btn btn-primary mt-4"
-                      [disabled]="isConnectingDomain() || !canConnectDomain()"
-                      (click)="connectDomain()"
-                    >
-                      @if (isConnectingDomain()) {
-                        <span class="spinner-sm"></span> Vinculando proyecto Hosting…
-                      } @else {
-                        <i class="bi bi-link-45deg"></i> Vincular Dominio
-                      }
-                    </button>
-                  </div>
-                } @else {
-                  <!-- Connected domain info -->
-                  <div class="dns-connected-info">
-                    <div class="dns-connected-header">
-                      <div class="dns-globe-icon"><i class="bi bi-globe-americas"></i></div>
-                      <div class="dns-globe-details">
-                        <span class="dns-domain-name">{{ store()!.customDomain }}</span>
-
-                        @if (domainStatus() === 'live') {
-                          <span class="badge-dns badge-dns--live">
-                            <span class="pulse-dot-green"></span> Activo & Enrutado (SSL Listo)
-                          </span>
-                        } @else {
-                          <span class="badge-dns badge-dns--pending">
-                            <span class="pulse-dot-yellow"></span> Esperando propagación DNS
-                          </span>
-                        }
-                      </div>
-                    </div>
-
-                    <div
-                      class="dns-meta-info"
-                      style="
-                        margin-top: 1.5rem;
-                        border-top: 1px solid var(--platform-card-border);
-                        padding-top: 1rem;
-                      "
-                    >
-                      <p style="font-size: 0.85rem; color: var(--platform-text-muted)">
-                        El enrutamiento está configurado en Vertex API. Recordá que la propagación
-                        del certificado SSL gratuito puede tardar entre 2 y 24 horas una vez creados
-                        los registros.
+                  @if (!store()!.customDomain) {
+                    <!-- Non-connected state -->
+                    <div class="dns-setup-flow">
+                      <p class="dns-setup-flow__desc">
+                        Vertex Platform permite enrutar tus tiendas a dominios personalizados de
+                        forma automática mediante la infraestructura de Firebase Hosting.
                       </p>
-                    </div>
 
-                    <div
-                      class="dns-actions-bar"
-                      style="margin-top: 1.5rem; display: flex; gap: 0.75rem"
-                    >
+                      <div class="form-group mb-4" style="max-width: 480px">
+                        <label class="form-label">Dominio Custom a conectar</label>
+                        <div class="input-addon">
+                          <span class="input-addon__pre">https://</span>
+                          <input
+                            class="form-control"
+                            [ngModel]="domainInput()"
+                            (ngModelChange)="domainInput.set($event)"
+                            placeholder="tienda.com o tienda.com.ar"
+                            type="text"
+                          />
+                        </div>
+                        <small class="form-hint" style="margin-top: 0.35rem">
+                          No incluyas "www" ni barras finales ("/").
+                        </small>
+                      </div>
+
+                      <div class="dns-checklist-section">
+                        <label class="form-label mb-2">Checklist previo obligatorio</label>
+                        <div class="dns-checklist">
+                          <label class="dns-check-card" [class.is-checked]="hasDomainOwnership()">
+                            <input
+                              type="checkbox"
+                              [ngModel]="hasDomainOwnership()"
+                              (ngModelChange)="hasDomainOwnership.set(!!$event)"
+                            />
+                            <span class="dns-check-card__box">
+                              <i class="bi bi-check-lg"></i>
+                            </span>
+                            <div class="dns-check-card__text">
+                              <span class="dns-check-card__title"
+                                >Tengo titularidad del dominio</span
+                              >
+                              <span class="dns-check-card__desc"
+                                >Puedo operar sobre el dominio en el registrador actual.</span
+                              >
+                            </div>
+                          </label>
+
+                          <label class="dns-check-card" [class.is-checked]="hasDnsAccess()">
+                            <input
+                              type="checkbox"
+                              [ngModel]="hasDnsAccess()"
+                              (ngModelChange)="hasDnsAccess.set(!!$event)"
+                            />
+                            <span class="dns-check-card__box">
+                              <i class="bi bi-check-lg"></i>
+                            </span>
+                            <div class="dns-check-card__text">
+                              <span class="dns-check-card__title">Tengo acceso al panel DNS</span>
+                              <span class="dns-check-card__desc"
+                                >Puedo crear registros tipo A, TXT o CNAME en el proveedor
+                                DNS.</span
+                              >
+                            </div>
+                          </label>
+
+                          <label class="dns-check-card" [class.is-checked]="wantsRootOrWwwReady()">
+                            <input
+                              type="checkbox"
+                              [ngModel]="wantsRootOrWwwReady()"
+                              (ngModelChange)="wantsRootOrWwwReady.set(!!$event)"
+                            />
+                            <span class="dns-check-card__box">
+                              <i class="bi bi-check-lg"></i>
+                            </span>
+                            <div class="dns-check-card__text">
+                              <span class="dns-check-card__title">Definí el dominio final</span>
+                              <span class="dns-check-card__desc"
+                                >Ya validé si voy a usar dominio raíz (tienda.com) o subdominio
+                                (www.tienda.com).</span
+                              >
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
                       <button
-                        class="btn btn-primary"
-                        [disabled]="isVerifyingDNS()"
-                        (click)="verifyDNS(false)"
+                        class="btn btn-primary mt-4"
+                        [disabled]="isConnectingDomain() || !canConnectDomain()"
+                        (click)="connectDomain()"
                       >
-                        @if (isVerifyingDNS()) {
-                          <span class="spinner-sm"></span> Consultando Name Servers…
+                        @if (isConnectingDomain()) {
+                          <span class="spinner-sm"></span> Vinculando proyecto Hosting…
                         } @else {
-                          <i class="bi bi-arrow-repeat"></i> Verificar Registros DNS
+                          <i class="bi bi-link-45deg"></i> Vincular Dominio
                         }
                       </button>
+                    </div>
+                  } @else {
+                    <!-- Connected domain info -->
+                    <div class="dns-connected-info">
+                      <div class="dns-connected-header">
+                        <div class="dns-globe-icon"><i class="bi bi-globe-americas"></i></div>
+                        <div class="dns-globe-details">
+                          <span class="dns-domain-name">{{ store()!.customDomain }}</span>
+
+                          @if (domainStatus() === 'live') {
+                            <span class="badge-dns badge-dns--live">
+                              <span class="pulse-dot-green"></span> Activo & Enrutado (SSL Listo)
+                            </span>
+                          } @else {
+                            <span class="badge-dns badge-dns--pending">
+                              <span class="pulse-dot-yellow"></span> Esperando propagación DNS
+                            </span>
+                          }
+                        </div>
+                      </div>
+
+                      <div
+                        class="dns-meta-info"
+                        style="
+                          margin-top: 1.5rem;
+                          border-top: 1px solid var(--platform-card-border);
+                          padding-top: 1rem;
+                        "
+                      >
+                        <p style="font-size: 0.85rem; color: var(--platform-text-muted)">
+                          El enrutamiento está configurado en Vertex API. Recordá que la propagación
+                          del certificado SSL gratuito puede tardar entre 2 y 24 horas una vez
+                          creados los registros.
+                        </p>
+                      </div>
+
+                      <div
+                        class="dns-actions-bar"
+                        style="margin-top: 1.5rem; display: flex; gap: 0.75rem"
+                      >
+                        <button
+                          class="btn btn-primary"
+                          [disabled]="isVerifyingDNS()"
+                          (click)="verifyDNS(false)"
+                        >
+                          @if (isVerifyingDNS()) {
+                            <span class="spinner-sm"></span> Consultando Name Servers…
+                          } @else {
+                            <i class="bi bi-arrow-repeat"></i> Verificar Registros DNS
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- DNS Records Table / Copy Card -->
+                @if (dnsRecords().length > 0 || store()!.customDomain) {
+                  <div class="detail-card">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-server"></i> Registros DNS Requeridos
+                    </h2>
+                    <p
+                      class="form-hint"
+                      style="
+                        margin-bottom: 1.25rem;
+                        text-transform: none;
+                        font-weight: normal;
+                        letter-spacing: normal;
+                      "
+                    >
+                      Ingresá al panel de control de tu registrador de dominio (e.g. NIC.ar,
+                      GoDaddy, Cloudflare) y da de alta los siguientes registros.
+                    </p>
+
+                    <div class="dns-records-container">
+                      @if (dnsRecords().length === 0) {
+                        <div class="dns-loading-records">
+                          <span class="spinner-sm"></span> Recuperando registros del proyecto
+                          Firebase Hosting...
+                        </div>
+                      } @else {
+                        <div class="dns-table-responsive">
+                          <table class="table dns-records-table mb-0">
+                            <thead>
+                              <tr>
+                                <th scope="col">Tipo</th>
+                                <th scope="col">Host / Nombre</th>
+                                <th scope="col">Valor</th>
+                                <th scope="col" class="text-end">Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (
+                                record of dnsRecords();
+                                track record.host + '-' + record.type + '-' + record.value
+                              ) {
+                                <tr>
+                                  <td>
+                                    <code>{{ record.type }}</code>
+                                  </td>
+                                  <td>
+                                    <code>{{ record.host }}</code>
+                                  </td>
+                                  <td>
+                                    <code class="dns-value-copy__code">{{ record.value }}</code>
+                                  </td>
+                                  <td class="text-end">
+                                    <span class="badge-role badge-role--admin">{{
+                                      record.requiredAction
+                                    }}</span>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
                     </div>
                   </div>
                 }
               </div>
-
-              <!-- DNS Records Table / Copy Card -->
-              @if (dnsRecords().length > 0 || store()!.customDomain) {
-                <div class="detail-card">
-                  <h2 class="detail-card__title">
-                    <i class="bi bi-server"></i> Registros DNS Requeridos
-                  </h2>
-                  <p
-                    class="form-hint"
-                    style="
-                      margin-bottom: 1.25rem;
-                      text-transform: none;
-                      font-weight: normal;
-                      letter-spacing: normal;
-                    "
-                  >
-                    Ingresá al panel de control de tu registrador de dominio (e.g. NIC.ar, GoDaddy,
-                    Cloudflare) y da de alta los siguientes registros.
-                  </p>
-
-                  <div class="dns-records-container">
-                    @if (dnsRecords().length === 0) {
-                      <div class="dns-loading-records">
-                        <span class="spinner-sm"></span> Recuperando registros del proyecto Firebase
-                        Hosting...
-                      </div>
-                    } @else {
-                      <div class="dns-table-responsive">
-                        <table class="table dns-records-table mb-0">
-                          <thead>
-                            <tr>
-                              <th scope="col">Tipo</th>
-                              <th scope="col">Host / Nombre</th>
-                              <th scope="col">Valor</th>
-                              <th scope="col" class="text-end">Acción</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (
-                              record of dnsRecords();
-                              track record.host + '-' + record.type + '-' + record.value
-                            ) {
-                              <tr>
-                                <td><code>{{ record.type }}</code></td>
-                                <td><code>{{ record.host }}</code></td>
-                                <td>
-                                  <code class="dns-value-copy__code">{{ record.value }}</code>
-                                </td>
-                                <td class="text-end">
-                                  <span class="badge-role badge-role--admin">{{
-                                    record.requiredAction
-                                  }}</span>
-                                </td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
+            }
+          </div>
+        }
 
         <!-- Tab 4: Historial de Despliegues -->
         @if (activeTab() === 'historial') {
@@ -1119,94 +1164,94 @@
                 <h2 class="detail-card__title">
                   <i class="bi bi-clock-history"></i> Historial de Despliegues
                 </h2>
-              <p
-                style="
-                  font-size: 0.85rem;
-                  color: var(--platform-text-secondary);
-                  margin-bottom: 1.25rem;
-                  line-height: 1.5;
-                "
-              >
-                Registro de compilaciones y publicaciones ejecutadas por GitHub Actions en Firebase
-                Hosting. Cada entrada detalla la versión instalada, la rama de origen y el commit
-                exacto desplegado (incluyendo actualizaciones automáticas de versión y
-                re-despliegues manuales).
-                <button
-                  class="btn btn-secondary btn--sm ms-2"
-                  style="float: right"
-                  (click)="refreshDeployHistory()"
-                  title="Recargar historial"
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    color: var(--platform-text-secondary);
+                    margin-bottom: 1.25rem;
+                    line-height: 1.5;
+                  "
                 >
-                  <i class="bi bi-arrow-clockwise"></i> Refrescar
-                </button>
-              </p>
-
-              @if (deployHistory().length === 0) {
-                <div class="empty-state" style="padding: 2rem 0; text-align: center">
-                  <i
-                    class="bi bi-inbox"
-                    style="font-size: 2rem; color: var(--platform-text-secondary); opacity: 0.5"
-                  ></i>
-                  <p
-                    style="
-                      margin-top: 0.75rem;
-                      color: var(--platform-text-secondary);
-                      font-size: 0.9rem;
-                    "
+                  Registro de compilaciones y publicaciones ejecutadas por GitHub Actions en
+                  Firebase Hosting. Cada entrada detalla la versión instalada, la rama de origen y
+                  el commit exacto desplegado (incluyendo actualizaciones automáticas de versión y
+                  re-despliegues manuales).
+                  <button
+                    class="btn btn-secondary btn--sm ms-2"
+                    style="float: right"
+                    (click)="refreshDeployHistory()"
+                    title="Recargar historial"
                   >
-                    Aún no hay despliegues registrados para esta tienda.
-                  </p>
-                </div>
-              } @else {
-                <div class="deploy-history-table-wrapper">
-                  <table class="deploy-history-table">
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Estado</th>
-                        <th>Versión</th>
-                        <th>Rama</th>
-                        <th>Commit</th>
-                        <th>Mensaje</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (deploy of deployHistory(); track deploy.timestamp) {
+                    <i class="bi bi-arrow-clockwise"></i> Refrescar
+                  </button>
+                </p>
+
+                @if (deployHistory().length === 0) {
+                  <div class="empty-state" style="padding: 2rem 0; text-align: center">
+                    <i
+                      class="bi bi-inbox"
+                      style="font-size: 2rem; color: var(--platform-text-secondary); opacity: 0.5"
+                    ></i>
+                    <p
+                      style="
+                        margin-top: 0.75rem;
+                        color: var(--platform-text-secondary);
+                        font-size: 0.9rem;
+                      "
+                    >
+                      Aún no hay despliegues registrados para esta tienda.
+                    </p>
+                  </div>
+                } @else {
+                  <div class="deploy-history-table-wrapper">
+                    <table class="deploy-history-table">
+                      <thead>
                         <tr>
-                          <td class="deploy-date">
-                            {{
-                              deploy.timestamp?.toDate
-                                ? (deploy.timestamp.toDate() | date: 'dd/MM/yy HH:mm')
-                                : '—'
-                            }}
-                          </td>
-                          <td>
-                            <span class="badge badge--{{ deploy.success ? 'active' : 'error' }}">
-                              {{ deploy.success ? 'Éxito' : 'Error' }}
-                            </span>
-                          </td>
-                          <td>
-                            <code class="deploy-code">{{ deploy.version || '—' }}</code>
-                          </td>
-                          <td>
-                            <code class="deploy-code">{{ deploy.ref || '—' }}</code>
-                          </td>
-                          <td>
-                            <code class="deploy-code deploy-sha" [title]="deploy.commitSha || ''">
-                              {{ deploy.commitSha ? deploy.commitSha.substring(0, 7) : '—' }}
-                            </code>
-                          </td>
-                          <td class="deploy-message">{{ deploy.commitMessage || '—' }}</td>
+                          <th>Fecha</th>
+                          <th>Estado</th>
+                          <th>Versión</th>
+                          <th>Rama</th>
+                          <th>Commit</th>
+                          <th>Mensaje</th>
                         </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
+                      </thead>
+                      <tbody>
+                        @for (deploy of deployHistory(); track deploy.timestamp) {
+                          <tr>
+                            <td class="deploy-date">
+                              {{
+                                deploy.timestamp?.toDate
+                                  ? (deploy.timestamp.toDate() | date: 'dd/MM/yy HH:mm')
+                                  : '—'
+                              }}
+                            </td>
+                            <td>
+                              <span class="badge badge--{{ deploy.success ? 'active' : 'error' }}">
+                                {{ deploy.success ? 'Éxito' : 'Error' }}
+                              </span>
+                            </td>
+                            <td>
+                              <code class="deploy-code">{{ deploy.version || '—' }}</code>
+                            </td>
+                            <td>
+                              <code class="deploy-code">{{ deploy.ref || '—' }}</code>
+                            </td>
+                            <td>
+                              <code class="deploy-code deploy-sha" [title]="deploy.commitSha || ''">
+                                {{ deploy.commitSha ? deploy.commitSha.substring(0, 7) : '—' }}
+                              </code>
+                            </td>
+                            <td class="deploy-message">{{ deploy.commitMessage || '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
         @if (activeTab() === 'pagos') {
           <div class="payments-container">
             @if (paymentSaveError()) {
@@ -1226,31 +1271,42 @@
               </div>
             } @else {
               <div class="payments-grid">
-
                 <!-- Mercado Pago Card -->
                 <div class="detail-card">
-                  <h2 class="detail-card__title">
-                    <i class="bi bi-credit-card"></i> Mercado Pago
-                  </h2>
-                  <p class="form-hint mb-4">
-                    Configurá las credenciales de Mercado Pago para que los clientes de esta tienda puedan pagar con tarjeta, transferencia y más.
-                  </p>
+                  <div class="detail-card__header mb-3">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-credit-card text-primary"></i> Mercado Pago
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Configurá las credenciales de Mercado Pago para procesar cobros automáticos en
+                      el checkout de la tienda.
+                    </p>
+                  </div>
 
                   @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
                     <div class="mp-validation-badge mp-validation-badge--valid">
-                      <i class="bi bi-patch-check-fill"></i>
-                      <span>Cuenta validada: <strong>{{ mpAccountEmail() }}</strong></span>
+                      <div class="mp-validation-badge__main">
+                        <i class="bi bi-patch-check-fill"></i>
+                        <span
+                          >Cuenta validada: <strong>{{ mpAccountEmail() }}</strong></span
+                        >
+                      </div>
                       @if (mpTokenMasked()) {
                         <span class="mp-validation-badge__sep">·</span>
-                        <span class="mp-validation-badge__token">Token: <code>{{ mpTokenMasked() }}</code></span>
+                        <span class="mp-validation-badge__token"
+                          >Token: <code>{{ mpTokenMasked() }}</code></span
+                        >
                       }
                     </div>
                   }
 
                   <div class="mp-form">
                     <!-- Public Key -->
-                    <div class="form-group mb-3">
-                      <label class="form-label" for="mp-public-key">Public Key</label>
+                    <div class="form-group">
+                      <label class="form-label" for="mp-public-key">
+                        Public Key
+                        <span class="form-label__tag">Frontend</span>
+                      </label>
                       <input
                         id="mp-public-key"
                         class="form-control"
@@ -1260,12 +1316,18 @@
                         placeholder="TEST-... o APP_USR-..."
                         autocomplete="off"
                       />
-                      <small class="form-hint">Clave pública para inicializar el Brick de MP en el frontend de la tienda.</small>
+                      <span class="form-hint"
+                        >Clave pública utilizada para inicializar el Brick de pagos en el
+                        frontend.</span
+                      >
                     </div>
 
                     <!-- Access Token (protegido) -->
-                    <div class="form-group mb-3">
-                      <label class="form-label" for="mp-access-token">Access Token</label>
+                    <div class="form-group">
+                      <label class="form-label" for="mp-access-token">
+                        Access Token
+                        <span class="form-label__tag form-label__tag--secret">Secreto</span>
+                      </label>
                       <div class="input-password-wrapper">
                         <input
                           id="mp-access-token"
@@ -1273,7 +1335,11 @@
                           [type]="showMpToken() ? 'text' : 'password'"
                           [ngModel]="mpAccessToken()"
                           (ngModelChange)="mpAccessToken.set($event)"
-                          [placeholder]="mpTokenMasked() ? 'Dejar vacío para mantener el token actual' : 'TEST-... o APP_USR-...'"
+                          [placeholder]="
+                            mpTokenMasked()
+                              ? 'Dejar vacío para mantener el token actual'
+                              : 'TEST-... o APP_USR-...'
+                          "
                           autocomplete="new-password"
                         />
                         <button
@@ -1281,110 +1347,147 @@
                           class="input-password-toggle"
                           (click)="showMpToken.set(!showMpToken())"
                           [title]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
+                          [attr.aria-label]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
                         >
                           <i [class]="showMpToken() ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
                         </button>
                       </div>
-                      <small class="form-hint">Token privado. Se guarda encriptado en Secret Manager — nunca en texto plano.</small>
+                      <span class="form-hint"
+                        >Token privado. Se guarda encriptado de forma segura en Google Cloud Secret
+                        Manager.</span
+                      >
                     </div>
 
                     <!-- Sandbox Toggle -->
-                    <div class="form-group mb-4">
-                      <div class="toggle-row">
-                        <div class="toggle-row__info">
-                          <span class="form-label">Modo Sandbox (Pruebas)</span>
-                          <span class="form-hint">Activar para operar en entorno de pruebas de Mercado Pago.</span>
+                    <div class="sandbox-card">
+                      <div class="sandbox-card__info">
+                        <div class="sandbox-card__title-row">
+                          <i class="bi bi-shield-shaded"></i>
+                          <span class="form-label mb-0">Modo Sandbox (Pruebas)</span>
                         </div>
-                        <label class="toggle-switch" [class.is-on]="mpSandbox()">
-                          <input
-                            type="checkbox"
-                            [ngModel]="mpSandbox()"
-                            (ngModelChange)="mpSandbox.set(!!$event)"
-                          />
-                          <span class="toggle-switch__slider"></span>
-                        </label>
+                        <span class="form-hint"
+                          >Activalo para operar en entorno de pruebas antes de procesar ventas
+                          reales.</span
+                        >
                       </div>
+                      <label class="toggle-switch" [class.is-on]="mpSandbox()">
+                        <input
+                          type="checkbox"
+                          [ngModel]="mpSandbox()"
+                          (ngModelChange)="mpSandbox.set(!!$event)"
+                        />
+                        <span class="toggle-switch__slider"></span>
+                      </label>
                     </div>
 
                     <!-- Webhook URL (readonly) -->
-                    <div class="form-group mb-4">
-                      <label class="form-label">Webhook URL (solo lectura)</label>
+                    <div class="form-group">
+                      <label class="form-label">
+                        Webhook IPN URL
+                        <span class="form-label__tag">Solo Lectura</span>
+                      </label>
                       <div class="input-copy-wrapper">
                         <input
                           class="form-control form-control--readonly"
                           type="text"
-                          [value]="'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=' + (store()!.slug || store()!.id)"
+                          [value]="
+                            'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=' +
+                            (store()!.slug || store()!.id)
+                          "
                           readonly
                         />
                         <button
                           type="button"
-                          class="btn btn-secondary btn-sm"
+                          class="btn btn-secondary btn-copy"
                           (click)="copyWebhookUrl(store()!.id)"
                           title="Copiar URL al portapapeles"
                         >
-                          <i class="bi bi-clipboard"></i>
+                          <i class="bi bi-clipboard"></i> Copiar
                         </button>
                       </div>
-                      <small class="form-hint">Configurá esta URL en el panel de webhooks de tu cuenta de Mercado Pago.</small>
+                      <span class="form-hint"
+                        >Configurá esta URL en tu cuenta de Mercado Pago (Tus integraciones →
+                        Webhooks) para recibir notificaciones instantáneas de pago.</span
+                      >
                     </div>
 
-                    <!-- Save Button -->
-                    <button
-                      class="btn btn-primary"
-                      [disabled]="isSavingPayment()"
-                      (click)="savePaymentConfig()"
-                    >
-                      @if (isSavingPayment()) {
-                        <span class="spinner-sm"></span> Guardando y validando…
-                      } @else {
-                        <i class="bi bi-floppy"></i> Guardar Credenciales de Pago
-                      }
-                    </button>
+                    <!-- Save Button Actions -->
+                    <div class="mp-form__actions">
+                      <button
+                        class="btn btn-primary btn-save-mp"
+                        [disabled]="isSavingPayment()"
+                        (click)="savePaymentConfig()"
+                      >
+                        @if (isSavingPayment()) {
+                          <span class="spinner-sm"></span> Guardando y validando…
+                        } @else {
+                          <i class="bi bi-check2-circle"></i> Guardar Credenciales de Pago
+                        }
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Info Card: Cómo usar -->
                 <div class="detail-card">
-                  <h2 class="detail-card__title"><i class="bi bi-info-circle"></i> ¿Cómo funciona?</h2>
+                  <div class="detail-card__header mb-3">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-info-circle text-info"></i> ¿Cómo funciona?
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Guía rápida para vincular tu cuenta de Mercado Pago con el storefront.
+                    </p>
+                  </div>
                   <div class="mp-info-list">
                     <div class="mp-info-step">
                       <span class="mp-info-step__num">1</span>
-                      <div>
-                        <strong>Obtené tus credenciales</strong>
-                        <p>En el panel de Mercado Pago, accedé a <em>Mis integraciones → Tu aplicación → Credenciales</em>.</p>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Obtené tus credenciales</strong>
+                        <p class="mp-info-step__text">
+                          En el panel de Mercado Pago, ingresá a
+                          <em>Mis integraciones → Tu aplicación → Credenciales</em>.
+                        </p>
                       </div>
                     </div>
                     <div class="mp-info-step">
                       <span class="mp-info-step__num">2</span>
-                      <div>
-                        <strong>Modo Sandbox para pruebas</strong>
-                        <p>Usá las credenciales de prueba (<code>TEST-...</code>) para validar el flujo antes de ir a producción.</p>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Modo Sandbox para pruebas</strong>
+                        <p class="mp-info-step__text">
+                          Usá las credenciales de prueba (<code>TEST-...</code>) para validar el
+                          checkout antes de habilitar cobros reales.
+                        </p>
                       </div>
                     </div>
                     <div class="mp-info-step">
                       <span class="mp-info-step__num">3</span>
-                      <div>
-                        <strong>Configurá el Webhook</strong>
-                        <p>Copiá la URL del webhook y registrala en tu cuenta de MP en <em>Tus integraciones → Webhooks</em>.</p>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Configurá el Webhook</strong>
+                        <p class="mp-info-step__text">
+                          Copiá la URL del webhook y registrala en tu cuenta de MP en
+                          <em>Tus integraciones → Webhooks</em>.
+                        </p>
                       </div>
                     </div>
                     <div class="mp-info-step">
                       <span class="mp-info-step__num">4</span>
-                      <div>
-                        <strong>Producción</strong>
-                        <p>Una vez validado, reemplazá las credenciales por las de producción (<code>APP_USR-...</code>) y desactivá el sandbox.</p>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Pase a Producción</strong>
+                        <p class="mp-info-step__text">
+                          Una vez validado el flujo, reemplazá las credenciales por las de
+                          producción (<code>APP_USR-...</code>) y desactivá el sandbox.
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
               </div>
             }
           </div>
         }
-    </div>
-  }
-</div>
+      </div>
+    }
+  </div>
 
   <!-- Edit modal -->
   @if (showEditModal()) {
@@ -1642,7 +1745,9 @@
     <div class="detail-card text-center py-5">
       <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2.5rem"></i>
       <h3 class="mt-3 text-white">Tienda no encontrada</h3>
-      <p class="text-muted">No se encontró ninguna tienda con el identificador solicitado o fue eliminada.</p>
+      <p class="text-muted">
+        No se encontró ninguna tienda con el identificador solicitado o fue eliminada.
+      </p>
       <a routerLink="/stores" class="btn btn-primary mt-3">
         <i class="bi bi-arrow-left"></i> Volver a tiendas
       </a>

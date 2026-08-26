@@ -6,29 +6,112 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
   icon: 'bi-cup-hot',
   description: 'Hamburguesas gourmet, pizzas artesanales, cafetería de especialidad y bebidas.',
   bannerTitle: 'Sabores Artesanales & Experiencias Únicas',
-  bannerSubtitle: 'Cocina de autor con ingredientes frescos, delivery rápido y opciones vegetarianas.',
+  bannerSubtitle:
+    'Cocina de autor con ingredientes frescos, delivery rápido y opciones vegetarianas.',
   heroImages: [
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'burgers', name: 'Burgers Gourmet', slug: 'burgers', imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'pizzas', name: 'Pizzas & Empanadas', slug: 'pizzas', imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'cafeteria', name: 'Café & Dulces', slug: 'cafeteria', imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'bebidas', name: 'Bebidas & Cócteles', slug: 'bebidas', imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'burgers',
+      name: 'Burgers Gourmet',
+      slug: 'burgers',
+      imageUrl:
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'pizzas',
+      name: 'Pizzas & Empanadas',
+      slug: 'pizzas',
+      imageUrl:
+        'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'cafeteria',
+      name: 'Café & Dulces',
+      slug: 'cafeteria',
+      imageUrl:
+        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'bebidas',
+      name: 'Bebidas & Cócteles',
+      slug: 'bebidas',
+      imageUrl:
+        'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'burgers', name: 'Burgers & Sandwiches', slug: 'burgers', order: 1, filterableAttributes: ['coccion', 'combo'] },
-    { id: 'pizzas', name: 'Pizzas & Empanadas', slug: 'pizzas', order: 2, filterableAttributes: ['tamano'] },
-    { id: 'cafeteria', name: 'Café de Especialidad & Bakery', slug: 'cafeteria', order: 3, filterableAttributes: ['leche'] },
-    { id: 'platos-principales', name: 'Platos de Autor & Pastas', slug: 'platos-principales', order: 4, filterableAttributes: [] },
-    { id: 'bebidas', name: 'Bebidas, Cervezas & Tragos', slug: 'bebidas', order: 5, filterableAttributes: ['tamano'] },
+    {
+      id: 'burgers',
+      name: 'Burgers & Sandwiches',
+      slug: 'burgers',
+      order: 1,
+      filterableAttributes: ['coccion', 'combo'],
+    },
+    {
+      id: 'pizzas',
+      name: 'Pizzas & Empanadas',
+      slug: 'pizzas',
+      order: 2,
+      filterableAttributes: ['tamano'],
+    },
+    {
+      id: 'cafeteria',
+      name: 'Café de Especialidad & Bakery',
+      slug: 'cafeteria',
+      order: 3,
+      filterableAttributes: ['leche'],
+    },
+    {
+      id: 'platos-principales',
+      name: 'Platos de Autor & Pastas',
+      slug: 'platos-principales',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'bebidas',
+      name: 'Bebidas, Cervezas & Tragos',
+      slug: 'bebidas',
+      order: 5,
+      filterableAttributes: ['tamano'],
+    },
   ],
   attributes: [
-    { id: 'coccion', name: 'Punto de Carne', code: 'coccion', type: 'select', values: ['A Punto', 'Jugoso', 'Cocido'], required: false },
-    { id: 'combo', name: 'Guarnición', code: 'combo', type: 'button', values: ['Papas Rústicas', 'Batatas Fritas', 'Aros de Cebolla'], required: false },
-    { id: 'tamano', name: 'Tamaño', code: 'tamano', type: 'button', values: ['Individual', 'Mediana', 'Grande'], required: false },
-    { id: 'leche', name: 'Tipo de Leche', code: 'leche', type: 'select', values: ['Entera', 'Deslactosada', 'Almendras', 'Avena'], required: false },
+    {
+      id: 'coccion',
+      name: 'Punto de Carne',
+      code: 'coccion',
+      type: 'select',
+      values: ['A Punto', 'Jugoso', 'Cocido'],
+      required: false,
+    },
+    {
+      id: 'combo',
+      name: 'Guarnición',
+      code: 'combo',
+      type: 'button',
+      values: ['Papas Rústicas', 'Batatas Fritas', 'Aros de Cebolla'],
+      required: false,
+    },
+    {
+      id: 'tamano',
+      name: 'Tamaño',
+      code: 'tamano',
+      type: 'button',
+      values: ['Individual', 'Mediana', 'Grande'],
+      required: false,
+    },
+    {
+      id: 'leche',
+      name: 'Tipo de Leche',
+      code: 'leche',
+      type: 'select',
+      values: ['Entera', 'Deslactosada', 'Almendras', 'Avena'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#ea580c',
@@ -36,9 +119,18 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Elaboración en el Día', content: 'Ingredientes frescos seleccionados y panes artesanales horneados a diario.' },
-    { title: 'Delivery Térmico y Rápido', content: 'Empaquetado especial para que tu pedido llegue caliente y crujiente.' },
-    { title: 'Atención Personalizada', content: 'Hacé tu pedido online y coordiná detalles de entrega al instante por WhatsApp.' },
+    {
+      title: 'Elaboración en el Día',
+      content: 'Ingredientes frescos seleccionados y panes artesanales horneados a diario.',
+    },
+    {
+      title: 'Delivery Térmico y Rápido',
+      content: 'Empaquetado especial para que tu pedido llegue caliente y crujiente.',
+    },
+    {
+      title: 'Atención Personalizada',
+      content: 'Hacé tu pedido online y coordiná detalles de entrega al instante por WhatsApp.',
+    },
   ],
   sampleProducts: [
     {
@@ -47,8 +139,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 50,
       skuPrefix: 'BGR-SMASH',
-      description: 'Doble medallón de 100g de blend vacuno madurado, cuádruple cheddar inglés, panceta crocante y salsa Thousand Island.',
-      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Doble medallón de 100g de blend vacuno madurado, cuádruple cheddar inglés, panceta crocante y salsa Thousand Island.',
+      image:
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'BGR-SMASH-PST', price: 13500, stock: 25, attributes: { combo: 'Papas Rústicas' } },
@@ -61,8 +155,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 40,
       skuPrefix: 'BGR-CHK',
-      description: 'Pechuga marinada en suero de leche, doble rebozado crujiente, ensalada coleslaw fresca y pepinillos agridulces.',
-      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pechuga marinada en suero de leche, doble rebozado crujiente, ensalada coleslaw fresca y pepinillos agridulces.',
+      image:
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -71,8 +167,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 12000,
       stock: 30,
       skuPrefix: 'BGR-VEG',
-      description: 'Medallón artesanal de gírgolas y quinoa, queso provolone fundido, rúcula fresca y alioli de ajo asado.',
-      image: 'https://images.unsplash.com/photo-1520072959219-c595dc870360?w=800&h=800&fit=crop&q=80',
+      description:
+        'Medallón artesanal de gírgolas y quinoa, queso provolone fundido, rúcula fresca y alioli de ajo asado.',
+      image:
+        'https://images.unsplash.com/photo-1520072959219-c595dc870360?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -81,8 +179,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 15500,
       stock: 25,
       skuPrefix: 'SND-PST',
-      description: '150g de pastrón ahumado casero con mostaza relish, queso emmental y cebolla caramelizada.',
-      image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&h=800&fit=crop&q=80',
+      description:
+        '150g de pastrón ahumado casero con mostaza relish, queso emmental y cebolla caramelizada.',
+      image:
+        'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -91,8 +191,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 14900,
       stock: 40,
       skuPrefix: 'PIZ-MARG',
-      description: 'Masa fermentada 48hs con harina italiana, salsa de tomate San Marzano, mozzarella fior di latte y albahaca fresca.',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
+      description:
+        'Masa fermentada 48hs con harina italiana, salsa de tomate San Marzano, mozzarella fior di latte y albahaca fresca.',
+      image:
+        'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'PIZ-MARG-IND', price: 14900, stock: 20, attributes: { tamano: 'Individual' } },
@@ -105,8 +207,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 17500,
       stock: 35,
       skuPrefix: 'PIZ-4Q',
-      description: 'Mozzarella, gorgonzola cremoso, parmesano reggiano, provolone ahumado, nueces tostadas y hot honey.',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mozzarella, gorgonzola cremoso, parmesano reggiano, provolone ahumado, nueces tostadas y hot honey.',
+      image:
+        'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -115,8 +219,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 18900,
       stock: 30,
       skuPrefix: 'PIZ-FGZ',
-      description: 'Tradicional pizza porteña rellena con 500g de mozzarella y jamón cocido premium, cubierta de cebollas doradas y orégano.',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tradicional pizza porteña rellena con 500g de mozzarella y jamón cocido premium, cubierta de cebollas doradas y orégano.',
+      image:
+        'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -125,8 +231,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 19800,
       stock: 40,
       skuPrefix: 'EMP-SAL',
-      description: '12 empanadas de lomo cortado a cuchillo, papa, huevo duro y cebolla de verdeo horneadas al barro.',
-      image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=800&h=800&fit=crop&q=80',
+      description:
+        '12 empanadas de lomo cortado a cuchillo, papa, huevo duro y cebolla de verdeo horneadas al barro.',
+      image:
+        'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -135,8 +243,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 4200,
       stock: 80,
       skuPrefix: 'CAF-FLAT',
-      description: 'Doble ristretto de café de especialidad con leche vaporizada a textura sedosa y arte latte.',
-      image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&h=800&fit=crop&q=80',
+      description:
+        'Doble ristretto de café de especialidad con leche vaporizada a textura sedosa y arte latte.',
+      image:
+        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'CAF-FLAT-ENT', price: 4200, stock: 40, attributes: { leche: 'Entera' } },
@@ -149,8 +259,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 4800,
       stock: 60,
       skuPrefix: 'CAF-CLD',
-      description: 'Infusión en frío de granos colombianos de origen único con notas a chocolate amargo y cítricos dulces.',
-      image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Infusión en frío de granos colombianos de origen único con notas a chocolate amargo y cítricos dulces.',
+      image:
+        'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -159,7 +271,8 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 3600,
       stock: 50,
       skuPrefix: 'BAK-CRSS',
-      description: 'Hojaldrado perfecto con 100% manteca de campo, alveolos abiertos y textura ultracrocante.',
+      description:
+        'Hojaldrado perfecto con 100% manteca de campo, alveolos abiertos y textura ultracrocante.',
       image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -169,8 +282,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 6800,
       stock: 30,
       skuPrefix: 'BAK-CHZ',
-      description: 'Tarta de queso caramelizada por fuera con corazón cremoso fluido y compota de frutos rojos.',
-      image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tarta de queso caramelizada por fuera con corazón cremoso fluido y compota de frutos rojos.',
+      image:
+        'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -179,8 +294,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 4500,
       stock: 40,
       skuPrefix: 'BAK-CNN',
-      description: 'Masa suave y esponjosa aromatizada con canela de Ceilán y frosting de queso crema con vainilla natural.',
-      image: 'https://images.unsplash.com/photo-1509365465985-25d11c17e812?w=800&h=800&fit=crop&q=80',
+      description:
+        'Masa suave y esponjosa aromatizada con canela de Ceilán y frosting de queso crema con vainilla natural.',
+      image:
+        'https://images.unsplash.com/photo-1509365465985-25d11c17e812?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -189,7 +306,8 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 16800,
       stock: 25,
       skuPrefix: 'PST-RAV',
-      description: 'Pasta fresca casera al huevo servida con manteca de salvia tostada, almendras crocantes y queso sardo.',
+      description:
+        'Pasta fresca casera al huevo servida con manteca de salvia tostada, almendras crocantes y queso sardo.',
       image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -199,7 +317,8 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 26500,
       stock: 20,
       skuPrefix: 'PLT-BIF',
-      description: 'Corte de novillo seleccionado a las brasas de quebracho blanco con chimichurri casero fresco.',
+      description:
+        'Corte de novillo seleccionado a las brasas de quebracho blanco con chimichurri casero fresco.',
       image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
@@ -213,8 +332,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 13900,
       stock: 30,
       skuPrefix: 'PLT-CSR',
-      description: 'Mix de lechugas crocantes, pechuga de campo grillada, crutones de masa madre, parmesano y aderezo Caesar clásico.',
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mix de lechugas crocantes, pechuga de campo grillada, crutones de masa madre, parmesano y aderezo Caesar clásico.',
+      image:
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -223,8 +344,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 4900,
       stock: 60,
       skuPrefix: 'BEB-IPA',
-      description: 'Cerveza lupulada de cuerpo medio con intensas notas cítricas y resinosas a maracuyá y pomelo.',
-      image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cerveza lupulada de cuerpo medio con intensas notas cítricas y resinosas a maracuyá y pomelo.',
+      image:
+        'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -233,7 +356,8 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 8500,
       stock: 50,
       skuPrefix: 'BEB-GIN',
-      description: 'Gin botánico destilado nacional, tónica premium, rodaja de pomelo rosado y bayas de enebro.',
+      description:
+        'Gin botánico destilado nacional, tónica premium, rodaja de pomelo rosado y bayas de enebro.',
       image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -243,8 +367,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 3900,
       stock: 50,
       skuPrefix: 'BEB-LIM',
-      description: 'Jugo de limones exprimidos en el momento, almíbar casero, hojas de menta de huerta y jengibre rallado.',
-      image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&h=800&fit=crop&q=80',
+      description:
+        'Jugo de limones exprimidos en el momento, almíbar casero, hojas de menta de huerta y jengibre rallado.',
+      image:
+        'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -253,8 +379,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 6200,
       stock: 35,
       skuPrefix: 'BAK-TRM',
-      description: 'Vainillas artesanales embebidas en espresso y licor de café con crema suave de mascarpone y cacao amargo.',
-      image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&h=800&fit=crop&q=80',
+      description:
+        'Vainillas artesanales embebidas en espresso y licor de café con crema suave de mascarpone y cacao amargo.',
+      image:
+        'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -263,8 +391,10 @@ export const GASTRONOMIA_RESTAURANTE_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 20,
       skuPrefix: 'PLT-TBL',
-      description: 'Selección de jamón crudo estacionado 18 meses, salame de colonia, queso gouda ahumado, olivas marinadas y panes.',
-      image: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=800&h=800&fit=crop&q=80',
+      description:
+        'Selección de jamón crudo estacionado 18 meses, salame de colonia, queso gouda ahumado, olivas marinadas y panes.',
+      image:
+        'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

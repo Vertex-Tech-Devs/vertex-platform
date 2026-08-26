@@ -4,30 +4,111 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
   id: 'VIVEROS_JARDINERIA',
   name: 'Viveros & Jardinería',
   icon: 'bi-tree',
-  description: 'Plantas de interior, macetas de diseño, sustratos orgánicos, fertilizantes y huerta.',
+  description:
+    'Plantas de interior, macetas de diseño, sustratos orgánicos, fertilizantes y huerta.',
   bannerTitle: 'Espacios Verdes, Naturaleza & Vida en tu Hogar',
-  bannerSubtitle: 'Plantas aclimatadas, macetas autorriego, insumos para huerta urbana y herramientas de jardinería.',
+  bannerSubtitle:
+    'Plantas aclimatadas, macetas autorriego, insumos para huerta urbana y herramientas de jardinería.',
   heroImages: [
     'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'plantas-interior', name: 'Plantas de Interior', slug: 'plantas-interior', imageUrl: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'macetas-deco', name: 'Macetas & Jardineras', slug: 'macetas-deco', imageUrl: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'sustratos-abonos', name: 'Sustratos & Abonos', slug: 'sustratos-abonos', imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'huerta-semillas', name: 'Huerta & Semillas', slug: 'huerta-semillas', imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d69102a5c?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'plantas-interior',
+      name: 'Plantas de Interior',
+      slug: 'plantas-interior',
+      imageUrl:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'macetas-deco',
+      name: 'Macetas & Jardineras',
+      slug: 'macetas-deco',
+      imageUrl:
+        'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'sustratos-abonos',
+      name: 'Sustratos & Abonos',
+      slug: 'sustratos-abonos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'huerta-semillas',
+      name: 'Huerta & Semillas',
+      slug: 'huerta-semillas',
+      imageUrl:
+        'https://images.unsplash.com/photo-1592417817098-8f3d69102a5c?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'plantas-interior', name: 'Plantas de Interior & Follaje', slug: 'plantas-interior', order: 1, filterableAttributes: ['luz-requerida'] },
-    { id: 'plantas-exterior', name: 'Plantas de Exterior, Arbustos & Flores', slug: 'plantas-exterior', order: 2, filterableAttributes: ['luz-requerida'] },
-    { id: 'macetas-deco', name: 'Macetas de Cemento, Cerámica & Rotomoldeo', slug: 'macetas-deco', order: 3, filterableAttributes: ['material-maceta'] },
-    { id: 'sustratos-abonos', name: 'Sustratos, Compost & Fertilizantes', slug: 'sustratos-abonos', order: 4, filterableAttributes: [] },
-    { id: 'huerta-semillas', name: 'Semillas Orgánicas, Huerta & Riego', slug: 'huerta-semillas', order: 5, filterableAttributes: [] },
-    { id: 'herramientas-jardin', name: 'Herramientas & Accesorios de Poda', slug: 'herramientas-jardin', order: 6, filterableAttributes: [] },
+    {
+      id: 'plantas-interior',
+      name: 'Plantas de Interior & Follaje',
+      slug: 'plantas-interior',
+      order: 1,
+      filterableAttributes: ['luz-requerida'],
+    },
+    {
+      id: 'plantas-exterior',
+      name: 'Plantas de Exterior, Arbustos & Flores',
+      slug: 'plantas-exterior',
+      order: 2,
+      filterableAttributes: ['luz-requerida'],
+    },
+    {
+      id: 'macetas-deco',
+      name: 'Macetas de Cemento, Cerámica & Rotomoldeo',
+      slug: 'macetas-deco',
+      order: 3,
+      filterableAttributes: ['material-maceta'],
+    },
+    {
+      id: 'sustratos-abonos',
+      name: 'Sustratos, Compost & Fertilizantes',
+      slug: 'sustratos-abonos',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'huerta-semillas',
+      name: 'Semillas Orgánicas, Huerta & Riego',
+      slug: 'huerta-semillas',
+      order: 5,
+      filterableAttributes: [],
+    },
+    {
+      id: 'herramientas-jardin',
+      name: 'Herramientas & Accesorios de Poda',
+      slug: 'herramientas-jardin',
+      order: 6,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'luz-requerida', name: 'Requerimiento de Luz', code: 'luz-requerida', type: 'select', values: ['Luz Indirecta Brillante', 'Poca Luz / Sombra', 'Sol Directo Pleno'], required: false },
-    { id: 'material-maceta', name: 'Material de Maceta', code: 'material-maceta', type: 'select', values: ['Cerámica Esmaltada', 'Cemento Artesanal', 'Plástico Rotomoldeado Ligero', 'Barro Natural Cocido'], required: false },
+    {
+      id: 'luz-requerida',
+      name: 'Requerimiento de Luz',
+      code: 'luz-requerida',
+      type: 'select',
+      values: ['Luz Indirecta Brillante', 'Poca Luz / Sombra', 'Sol Directo Pleno'],
+      required: false,
+    },
+    {
+      id: 'material-maceta',
+      name: 'Material de Maceta',
+      code: 'material-maceta',
+      type: 'select',
+      values: [
+        'Cerámica Esmaltada',
+        'Cemento Artesanal',
+        'Plástico Rotomoldeado Ligero',
+        'Barro Natural Cocido',
+      ],
+      required: false,
+    },
   ],
   colors: {
     primary: '#15803d',
@@ -35,9 +116,18 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Plantas Sanas y Aclimatadas', content: 'Cultivo cuidado con sustratos orgánicos y control biológico de plagas.' },
-    { title: 'Embalaje con Protección Hídrica', content: 'Enviamos tus ejemplares con protección hídrica y fijación de cepellón.' },
-    { title: 'Guía de Cuidados Personalizada', content: 'Cada planta incluye una ficha con sus requerimientos específicos de riego y luz.' },
+    {
+      title: 'Plantas Sanas y Aclimatadas',
+      content: 'Cultivo cuidado con sustratos orgánicos y control biológico de plagas.',
+    },
+    {
+      title: 'Embalaje con Protección Hídrica',
+      content: 'Enviamos tus ejemplares con protección hídrica y fijación de cepellón.',
+    },
+    {
+      title: 'Guía de Cuidados Personalizada',
+      content: 'Cada planta incluye una ficha con sus requerimientos específicos de riego y luz.',
+    },
   ],
   sampleProducts: [
     {
@@ -46,8 +136,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 25,
       skuPrefix: 'VIV-PLN-MON',
-      description: 'Hojas grandes fenestradas icónicas de fácil cuidado para interiores luminosos con riego moderado.',
-      image: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Hojas grandes fenestradas icónicas de fácil cuidado para interiores luminosos con riego moderado.',
+      image:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -56,8 +148,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 64000,
       stock: 15,
       skuPrefix: 'VIV-PLN-FIC',
-      description: 'Árbol ornamental de interior de hojas lustrosas en forma de lira en maceta de cultivo reforzada.',
-      image: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Árbol ornamental de interior de hojas lustrosas en forma de lira en maceta de cultivo reforzada.',
+      image:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -66,8 +160,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 19500,
       stock: 40,
       skuPrefix: 'VIV-PLN-SAN',
-      description: 'Planta purificadora de aire altamente resistente que tolera poca luz y riegos espaciados.',
-      image: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Planta purificadora de aire altamente resistente que tolera poca luz y riegos espaciados.',
+      image:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -76,8 +172,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 16000,
       stock: 35,
       skuPrefix: 'VIV-PLN-POT',
-      description: 'Enredadera de hojas acorazonadas variegadas con crecimiento rápido para repisas o macetas colgantes.',
-      image: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Enredadera de hojas acorazonadas variegadas con crecimiento rápido para repisas o macetas colgantes.',
+      image:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -86,8 +184,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 32000,
       stock: 20,
       skuPrefix: 'VIV-PLN-CAL',
-      description: 'Follaje decorativo con patrones plateados que pliega sus hojas al caer la noche (planta de oración).',
-      image: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
+      description:
+        'Follaje decorativo con patrones plateados que pliega sus hojas al caer la noche (planta de oración).',
+      image:
+        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -96,8 +196,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 58000,
       stock: 18,
       skuPrefix: 'VIV-PLN-STR',
-      description: 'Planta tropical majestuosa de exterior o sol pleno con flores anaranjadas y azules espectaculares.',
-      image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
+      description:
+        'Planta tropical majestuosa de exterior o sol pleno con flores anaranjadas y azules espectaculares.',
+      image:
+        'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -106,8 +208,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 45,
       skuPrefix: 'VIV-PLN-LAV',
-      description: 'Arbusto perenne con espigas florales violetas muy perfumadas que atraen polinizadores y repelen plagas.',
-      image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
+      description:
+        'Arbusto perenne con espigas florales violetas muy perfumadas que atraen polinizadores y repelen plagas.',
+      image:
+        'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -116,8 +220,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 20,
       skuPrefix: 'VIV-PLN-JAZ',
-      description: 'Flores blancas carnosas de aroma dulce inconfundible con follaje verde oscuro brillante.',
-      image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
+      description:
+        'Flores blancas carnosas de aroma dulce inconfundible con follaje verde oscuro brillante.',
+      image:
+        'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -126,8 +232,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 34000,
       stock: 30,
       skuPrefix: 'VIV-MAC-ROT',
-      description: 'Polietileno virgen irrompible con protección anti-UV de peso ultraliviano para interior y exterior.',
-      image: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
+      description:
+        'Polietileno virgen irrompible con protección anti-UV de peso ultraliviano para interior y exterior.',
+      image:
+        'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -136,8 +244,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 35,
       skuPrefix: 'VIV-MAC-CER',
-      description: 'Terminación satinada mate hecha a mano en torno con orificio de drenaje y plato desmontable.',
-      image: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
+      description:
+        'Terminación satinada mate hecha a mano en torno con orificio de drenaje y plato desmontable.',
+      image:
+        'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -146,8 +256,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 22500,
       stock: 30,
       skuPrefix: 'VIV-PIE-PAR',
-      description: 'Soporte nórdico elevado para macetas de hasta 25cm de diámetro con hidrolaqueado antihumedad.',
-      image: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
+      description:
+        'Soporte nórdico elevado para macetas de hasta 25cm de diámetro con hidrolaqueado antihumedad.',
+      image:
+        'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -156,8 +268,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 60,
       skuPrefix: 'VIV-SUS-20L',
-      description: 'Mezcla aireada con turba de Sphagnum, perlita expandida, corteza de pino y humus de lombriz.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Mezcla aireada con turba de Sphagnum, perlita expandida, corteza de pino y humus de lombriz.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -166,8 +280,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 8900,
       stock: 70,
       skuPrefix: 'VIV-HUM-10L',
-      description: 'Fertilizante biológico rico en flora microbiana benéfica que mejora la estructura y nutrición del suelo.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Fertilizante biológico rico en flora microbiana benéfica que mejora la estructura y nutrición del suelo.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -176,8 +292,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 12000,
       stock: 50,
       skuPrefix: 'VIV-FER-ALG',
-      description: 'Extracto natural de Ascophyllum Nodosum que estimula el enraizamiento y la resistencia al estrés hídrico.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Extracto natural de Ascophyllum Nodosum que estimula el enraizamiento y la resistencia al estrés hídrico.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -186,8 +304,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 11500,
       stock: 65,
       skuPrefix: 'VIV-NEM-POT',
-      description: 'Control preventivo y curativo 100% natural contra pulgones, cochinillas, trips y mosca blanca.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Control preventivo y curativo 100% natural contra pulgones, cochinillas, trips y mosca blanca.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -196,8 +316,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 29000,
       stock: 35,
       skuPrefix: 'VIV-KIT-HRT',
-      description: 'Incluye cajón de madera tratado, sustrato fértil, macetas biodegradables, semillas de albahaca, rúcula, tomate cherry y guía.',
-      image: 'https://images.unsplash.com/photo-1592417817098-8f3d69102a5c?w=800&h=800&fit=crop&q=80',
+      description:
+        'Incluye cajón de madera tratado, sustrato fértil, macetas biodegradables, semillas de albahaca, rúcula, tomate cherry y guía.',
+      image:
+        'https://images.unsplash.com/photo-1592417817098-8f3d69102a5c?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -206,8 +328,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 40,
       skuPrefix: 'VIV-REG-INOX',
-      description: 'Pico largo y fino que permite dirigir el agua con precisión a la raíz sin salpicar el follaje.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pico largo y fino que permite dirigir el agua con precisión a la raíz sin salpicar el follaje.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -216,8 +340,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 24500,
       stock: 35,
       skuPrefix: 'VIV-TIJ-SK5',
-      description: 'Corte limpio y preciso para ramas verdes de hasta 20mm con cierre de seguridad y resorte suave.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Corte limpio y preciso para ramas verdes de hasta 20mm con cierre de seguridad y resorte suave.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -226,8 +352,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 45,
       skuPrefix: 'VIV-SET-HRR',
-      description: 'Aluminio fundido macizo antioxidable con mango ergonómico de goma antideslizante.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Aluminio fundido macizo antioxidable con mango ergonómico de goma antideslizante.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -236,8 +364,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 16000,
       stock: 50,
       skuPrefix: 'VIV-PUL-2L',
-      description: 'Boquilla de bronce regulable desde chorro directo hasta niebla ultrafina con traba de gatillo.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Boquilla de bronce regulable desde chorro directo hasta niebla ultrafina con traba de gatillo.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -246,8 +376,10 @@ export const VIVEROS_JARDINERIA_PRESET: BusinessVerticalDefinition = {
       price: 7900,
       stock: 80,
       skuPrefix: 'VIV-GNT-JAR',
-      description: 'Tejido elástico transpirable con recubrimiento impermeable que protege contra cortes y humedad.',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tejido elástico transpirable con recubrimiento impermeable que protege contra cortes y humedad.',
+      image:
+        'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

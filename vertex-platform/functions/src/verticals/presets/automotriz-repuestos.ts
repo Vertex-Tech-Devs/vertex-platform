@@ -4,29 +4,99 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
   id: 'AUTOMOTRIZ_REPUESTOS',
   name: 'Automotor & Repuestos',
   icon: 'bi-car-front',
-  description: 'Repuestos mecánicos, lubricantes, baterías, estética vehicular (detailing) y audio.',
+  description:
+    'Repuestos mecánicos, lubricantes, baterías, estética vehicular (detailing) y audio.',
   bannerTitle: 'Potencia, Mantenimiento & Cuidado Automotriz',
-  bannerSubtitle: 'Aceites sintéticos, filtros originales, baterías de alta duración y productos de detailing.',
+  bannerSubtitle:
+    'Aceites sintéticos, filtros originales, baterías de alta duración y productos de detailing.',
   heroImages: [
     'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'lubricantes', name: 'Aceites & Lubricantes', slug: 'lubricantes', imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'baterias', name: 'Baterías & Encendido', slug: 'baterias', imageUrl: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'detailing', name: 'Estética & Detailing', slug: 'detailing', imageUrl: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'accesorios-auto', name: 'Accesorios & Iluminación', slug: 'accesorios-auto', imageUrl: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'lubricantes',
+      name: 'Aceites & Lubricantes',
+      slug: 'lubricantes',
+      imageUrl:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'baterias',
+      name: 'Baterías & Encendido',
+      slug: 'baterias',
+      imageUrl:
+        'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'detailing',
+      name: 'Estética & Detailing',
+      slug: 'detailing',
+      imageUrl:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'accesorios-auto',
+      name: 'Accesorios & Iluminación',
+      slug: 'accesorios-auto',
+      imageUrl:
+        'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'lubricantes', name: 'Aceites, Fluidos & Filtros', slug: 'lubricantes', order: 1, filterableAttributes: ['viscosidad'] },
-    { id: 'baterias', name: 'Baterías & Sistema Eléctrico', slug: 'baterias', order: 2, filterableAttributes: ['amperaje'] },
-    { id: 'frenos-suspension', name: 'Frenos, Embragues & Suspensión', slug: 'frenos-suspension', order: 3, filterableAttributes: [] },
-    { id: 'detailing', name: 'Detailing, Ceras & Limpieza', slug: 'detailing', order: 4, filterableAttributes: [] },
-    { id: 'accesorios-auto', name: 'Accesorios de Interior, Confort & LED', slug: 'accesorios-auto', order: 5, filterableAttributes: [] },
+    {
+      id: 'lubricantes',
+      name: 'Aceites, Fluidos & Filtros',
+      slug: 'lubricantes',
+      order: 1,
+      filterableAttributes: ['viscosidad'],
+    },
+    {
+      id: 'baterias',
+      name: 'Baterías & Sistema Eléctrico',
+      slug: 'baterias',
+      order: 2,
+      filterableAttributes: ['amperaje'],
+    },
+    {
+      id: 'frenos-suspension',
+      name: 'Frenos, Embragues & Suspensión',
+      slug: 'frenos-suspension',
+      order: 3,
+      filterableAttributes: [],
+    },
+    {
+      id: 'detailing',
+      name: 'Detailing, Ceras & Limpieza',
+      slug: 'detailing',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'accesorios-auto',
+      name: 'Accesorios de Interior, Confort & LED',
+      slug: 'accesorios-auto',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'viscosidad', name: 'Viscosidad de Aceite', code: 'viscosidad', type: 'button', values: ['5W-30 Sintético', '5W-40 Sintético', '10W-40 Semisintético', '15W-40 Mineral'], required: false },
-    { id: 'amperaje', name: 'Capacidad de Batería', code: 'amperaje', type: 'button', values: ['12V 55Ah', '12V 65Ah', '12V 75Ah', '12V 90Ah'], required: false },
+    {
+      id: 'viscosidad',
+      name: 'Viscosidad de Aceite',
+      code: 'viscosidad',
+      type: 'button',
+      values: ['5W-30 Sintético', '5W-40 Sintético', '10W-40 Semisintético', '15W-40 Mineral'],
+      required: false,
+    },
+    {
+      id: 'amperaje',
+      name: 'Capacidad de Batería',
+      code: 'amperaje',
+      type: 'button',
+      values: ['12V 55Ah', '12V 65Ah', '12V 75Ah', '12V 90Ah'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#dc2626',
@@ -34,9 +104,18 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Repuestos 100% Compatibles', content: 'Filtros, lubricantes y piezas con especificación y norma OEM de fábrica.' },
-    { title: 'Detailing de Alto Brillo', content: 'Ceras sintéticas y productos testeados para proteger la pintura de tu auto.' },
-    { title: 'Baterías con Instalación', content: 'Chequeo del alternador y garantía escrita por hasta 18 meses.' },
+    {
+      title: 'Repuestos 100% Compatibles',
+      content: 'Filtros, lubricantes y piezas con especificación y norma OEM de fábrica.',
+    },
+    {
+      title: 'Detailing de Alto Brillo',
+      content: 'Ceras sintéticas y productos testeados para proteger la pintura de tu auto.',
+    },
+    {
+      title: 'Baterías con Instalación',
+      content: 'Chequeo del alternador y garantía escrita por hasta 18 meses.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +124,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 54000,
       stock: 40,
       skuPrefix: 'AUT-OIL-5W30',
-      description: 'Tecnología sintética avanzada con aditivos antidesgaste para motores nafteros y diésel modernos.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tecnología sintética avanzada con aditivos antidesgaste para motores nafteros y diésel modernos.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +136,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 45,
       skuPrefix: 'AUT-OIL-10W40',
-      description: 'Protección superior contra la formación de lodos y desgaste en motores con más de 100.000 km.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Protección superior contra la formación de lodos y desgaste en motores con más de 100.000 km.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -66,7 +149,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       stock: 50,
       skuPrefix: 'AUT-REF-ORG',
       description: 'Protección anticorrosiva de radiador y bomba de agua de -35°C a +130°C.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,8 +159,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 11000,
       stock: 60,
       skuPrefix: 'AUT-DOT-4',
-      description: 'Punto de ebullición seco de 260°C para sistemas de frenos a disco, tambor y ABS.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Punto de ebullición seco de 260°C para sistemas de frenos a disco, tambor y ABS.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -85,8 +171,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 145000,
       stock: 25,
       skuPrefix: 'AUT-BAT-12V',
-      description: 'Placas de aleación calcio-plata con visor de carga densímetro y 18 meses de garantía oficial.',
-      image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Placas de aleación calcio-plata con visor de carga densímetro y 18 meses de garantía oficial.',
+      image:
+        'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'AUT-BAT-65AH', price: 145000, stock: 15, attributes: { amperaje: '12V 65Ah' } },
@@ -99,8 +187,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 89000,
       stock: 20,
       skuPrefix: 'AUT-BST-1000',
-      description: 'Arranca motores de hasta 6.0L nafta y 3.0L diésel. Incluye linterna LED y puertos Powerbank USB.',
-      image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Arranca motores de hasta 6.0L nafta y 3.0L diésel. Incluye linterna LED y puertos Powerbank USB.',
+      image:
+        'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -109,8 +199,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 24500,
       stock: 40,
       skuPrefix: 'AUT-CBL-ARR',
-      description: 'Pinzas de cobre con aislamiento de alta seguridad y cable de gran sección conductora.',
-      image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pinzas de cobre con aislamiento de alta seguridad y cable de gran sección conductora.',
+      image:
+        'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -119,8 +211,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 46000,
       stock: 30,
       skuPrefix: 'AUT-PST-FRN',
-      description: 'Frenado silencioso sin polvo residual en llantas con lámina antirruido shims de acero.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Frenado silencioso sin polvo residual en llantas con lámina antirruido shims de acero.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -129,8 +223,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 135000,
       stock: 15,
       skuPrefix: 'AUT-AMR-GAS',
-      description: 'Válvula multietapa de respuesta rápida que garantiza estabilidad y confort en curvas y baches.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Válvula multietapa de respuesta rápida que garantiza estabilidad y confort en curvas y baches.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -139,8 +235,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 60,
       skuPrefix: 'AUT-SHP-NEU',
-      description: 'Fórmula ultra espumosa para foam lance que no remueve ceras ni selladores previos.',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Fórmula ultra espumosa para foam lance que no remueve ceras ni selladores previos.',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -149,8 +247,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 28000,
       stock: 45,
       skuPrefix: 'AUT-WAX-GRF',
-      description: 'Brillo espejo profundo, protección UV y repelencia extrema al agua y polvo por 6 meses.',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Brillo espejo profundo, protección UV y repelencia extrema al agua y polvo por 6 meses.',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -159,8 +259,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 16000,
       stock: 50,
       skuPrefix: 'AUT-REV-CUB',
-      description: 'Acabado natural no grasoso con inhibidores UV que evitan el cuarteamiento del caucho.',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Acabado natural no grasoso con inhibidores UV que evitan el cuarteamiento del caucho.',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -170,7 +272,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       stock: 70,
       skuPrefix: 'AUT-GNT-MIC',
       description: 'Atrapa la suciedad sin rayar la laca ni dejar marcas circulares (swirls).',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -180,7 +283,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       stock: 40,
       skuPrefix: 'AUT-TOW-DRY',
       description: 'Absorbe hasta 3 litros de agua en una sola pasada sin dejar pelusas ni vetas.',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -189,7 +293,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 39000,
       stock: 35,
       skuPrefix: 'AUT-LED-H7',
-      description: 'Luz blanca fría 6500K con disipador térmico de cobre y driver Canbus anti-error en tablero.',
+      description:
+        'Luz blanca fría 6500K con disipador térmico de cobre y driver Canbus anti-error en tablero.',
       image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -199,7 +304,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 48000,
       stock: 30,
       skuPrefix: 'AUT-CMP-DIG',
-      description: 'Batería recargable integrada con corte automático por presión programada y linterna de emergencia.',
+      description:
+        'Batería recargable integrada con corte automático por presión programada y linterna de emergencia.',
       image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -209,7 +315,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 32000,
       stock: 40,
       skuPrefix: 'AUT-HLD-QI',
-      description: 'Apertura y cierre automático con sensor infrarrojo y fijación a la rejilla de ventilación.',
+      description:
+        'Apertura y cierre automático con sensor infrarrojo y fijación a la rejilla de ventilación.',
       image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -219,7 +326,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 35,
       skuPrefix: 'AUT-ALF-GOM',
-      description: 'Bordes elevados antiderrame con base antideslizante adaptable por corte a cualquier modelo.',
+      description:
+        'Bordes elevados antiderrame con base antideslizante adaptable por corte a cualquier modelo.',
       image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -230,7 +338,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       stock: 30,
       skuPrefix: 'AUT-ASP-12V',
       description: 'Filtro HEPA lavable con boquilla para rincones y cepillo para tapizados.',
-      image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -239,8 +348,10 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 65,
       skuPrefix: 'AUT-INJ-CLN',
-      description: 'Restaura la potencia del motor, reduce el consumo de combustible y limpia válvulas y cámara de combustión.',
-      image: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Restaura la potencia del motor, reduce el consumo de combustible y limpia válvulas y cámara de combustión.',
+      image:
+        'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -249,7 +360,8 @@ export const AUTOMOTRIZ_REPUESTOS_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 20,
       skuPrefix: 'AUT-COV-THM',
-      description: 'Protección contra granizo ligero, rayos solares UV, lluvia ácida y resina de árboles.',
+      description:
+        'Protección contra granizo ligero, rayos solares UV, lluvia ácida y resina de árboles.',
       image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },

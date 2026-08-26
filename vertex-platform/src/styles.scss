@@ -317,7 +317,9 @@ code {
 .glass-card:hover,
 .detail-card:hover {
   border-color: var(--platform-card-border-hover);
-  box-shadow: var(--platform-shadow-card), 0 0 0 1px hsla(244, 75%, 64%, 0.08);
+  box-shadow:
+    var(--platform-shadow-card),
+    0 0 0 1px hsla(244, 75%, 64%, 0.08);
 }
 
 /* Tablas: filas con hover sutil y encabezados consistentes */

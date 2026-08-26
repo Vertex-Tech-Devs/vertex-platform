@@ -111,18 +111,33 @@ export async function seedStoreData(
   );
 
   const defaultFeatureCards = [
-    { icon: 'patch-check', title: 'Calidad Garantizada', content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.' },
-    { icon: 'truck', title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
-    { icon: 'headset', title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
+    {
+      icon: 'patch-check',
+      title: 'Calidad Garantizada',
+      content: 'Seleccionamos rigurosamente cada producto de nuestro catálogo.',
+    },
+    {
+      icon: 'truck',
+      title: 'Envíos Rápidos',
+      content: 'Despachamos tus pedidos con seguimiento online a todo el país.',
+    },
+    {
+      icon: 'headset',
+      title: 'Atención Personalizada',
+      content: 'Estamos disponibles para asesorarte en cada paso de tu compra.',
+    },
   ];
 
-  const aboutFeatureCards = (preset.featureCards && preset.featureCards.length > 0
-    ? preset.featureCards.map((card, idx) => ({
-        icon: (card as { icon?: string }).icon ?? (idx === 0 ? 'patch-check' : idx === 1 ? 'truck' : 'headset'),
-        title: card.title,
-        content: card.content,
-      }))
-    : defaultFeatureCards);
+  const aboutFeatureCards =
+    preset.featureCards && preset.featureCards.length > 0
+      ? preset.featureCards.map((card, idx) => ({
+          icon:
+            (card as { icon?: string }).icon ??
+            (idx === 0 ? 'patch-check' : idx === 1 ? 'truck' : 'headset'),
+          title: card.title,
+          content: card.content,
+        }))
+      : defaultFeatureCards;
 
   const aboutUsPayload = {
     storeId: activeStoreId,
@@ -151,13 +166,20 @@ export async function seedStoreData(
   const normalizedSlug = sName.toLowerCase().replace(/[^a-z0-9]/g, '');
   // Email real del dueño (owner) si está disponible; fallback demo para tests/back-compat.
   const effectiveOwnerEmail = ownerEmail?.trim() || `admin@${normalizedSlug || 'mi-tienda'}.com.ar`;
-  const brandColors = preset.colors ?? { primary: '#6366f1', accent: '#06b6d4', background: '#ffffff' };
-  const whatsAppText = encodeURIComponent(`¡Hola! Quisiera hacer una consulta en la tienda de ${sName}.`);
+  const brandColors = preset.colors ?? {
+    primary: '#6366f1',
+    accent: '#06b6d4',
+    background: '#ffffff',
+  };
+  const whatsAppText = encodeURIComponent(
+    `¡Hola! Quisiera hacer una consulta en la tienda de ${sName}.`,
+  );
 
   const deliveryMethodsConfig = {
     enableStorePickup: true,
     enableHomeDelivery: true,
-    homeDeliveryDescription: 'Envíos a todo el país coordinados por WhatsApp o despachados por correo prioritario.',
+    homeDeliveryDescription:
+      'Envíos a todo el país coordinados por WhatsApp o despachados por correo prioritario.',
     pickupLocations: [
       {
         id: `${activeStoreId}-loc-central`,
@@ -222,7 +244,10 @@ export async function seedStoreData(
     socialFacebookUrl: `https://facebook.com/${normalizedSlug || 'mi-tienda'}`,
     socialWhatsAppUrl: `https://wa.me/5491145678900?text=${whatsAppText}`,
     copyrightText: `© ${new Date().getFullYear()} ${sName}. Todos los derechos reservados. Desarrollado con Vertex Commerce.`,
-    seo: { metaTitle: sName, metaDescription: `Catálogo oficial de ${sName}. ${preset.description}` },
+    seo: {
+      metaTitle: sName,
+      metaDescription: `Catálogo oficial de ${sName}. ${preset.description}`,
+    },
     features: { reviewsEnabled: true, wishlistEnabled: true, blogEnabled: false },
     deliveryMethods: deliveryMethodsConfig,
     // Email management configurations
@@ -295,7 +320,11 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/emailTemplates_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(emailTemplatesPayload), quotaProject: projectId },
+        {
+          method: 'PATCH',
+          body: toFirestoreFields(emailTemplatesPayload),
+          quotaProject: projectId,
+        },
       ),
     5,
     3000,
@@ -374,7 +403,8 @@ export async function seedStoreData(
   for (let i = 0; i < preset.sampleProducts.length; i++) {
     const prod = preset.sampleProducts[i];
     const prodId = `${activeStoreId}-prod-${i + 1}`;
-    const catId = categoryIdMap.get(prod.categorySlug) ?? `${activeStoreId}-cat-${prod.categorySlug}`;
+    const catId =
+      categoryIdMap.get(prod.categorySlug) ?? `${activeStoreId}-cat-${prod.categorySlug}`;
 
     const inStockAttributes: Record<string, string[]> = {};
     if (prod.variants && prod.variants.length > 0) {
@@ -488,7 +518,11 @@ export async function seedStoreData(
           apiFetch(
             auth,
             `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/clients/${client.id}`,
-            { method: 'PATCH', body: toFirestoreFields(client as unknown as Record<string, unknown>), quotaProject: projectId },
+            {
+              method: 'PATCH',
+              body: toFirestoreFields(client as unknown as Record<string, unknown>),
+              quotaProject: projectId,
+            },
           ),
         5,
         3000,
@@ -502,7 +536,11 @@ export async function seedStoreData(
           apiFetch(
             auth,
             `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${order.id}`,
-            { method: 'PATCH', body: toFirestoreFields(order as unknown as Record<string, unknown>), quotaProject: projectId },
+            {
+              method: 'PATCH',
+              body: toFirestoreFields(order as unknown as Record<string, unknown>),
+              quotaProject: projectId,
+            },
           ),
         5,
         3000,
