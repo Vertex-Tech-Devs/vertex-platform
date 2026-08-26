@@ -3,7 +3,16 @@
   <div class="rubro-selector__toolbar">
     <div class="rubro-selector__search-wrapper">
       <span class="rubro-selector__search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
@@ -14,7 +23,7 @@
         placeholder="Buscar rubro comercial por nombre o palabra clave..."
         [ngModel]="searchTerm()"
         (ngModelChange)="searchTerm.set($event)"
-        [ngModelOptions]="{standalone: true}"
+        [ngModelOptions]="{ standalone: true }"
       />
       @if (searchTerm()) {
         <button
@@ -86,7 +95,9 @@
                 <span class="rubro-card__cat-pill">{{ cat }}</span>
               }
               @if (v.categories.length > 3) {
-                <span class="rubro-card__cat-pill rubro-card__cat-pill--more">+{{ v.categories.length - 3 }}</span>
+                <span class="rubro-card__cat-pill rubro-card__cat-pill--more"
+                  >+{{ v.categories.length - 3 }}</span
+                >
               }
             </div>
           }
@@ -99,22 +110,15 @@
       <div class="rubro-selector__empty-icon">🔍</div>
       <h4 class="rubro-selector__empty-title">No se encontraron rubros</h4>
       <p class="rubro-selector__empty-desc">
-        No hay coincidencias para "<strong>{{ searchTerm() }}</strong>".
+        No hay coincidencias para "<strong>{{ searchTerm() }}</strong
+        >".
       </p>
       <div class="rubro-selector__empty-actions">
-        <button
-          type="button"
-          class="btn-secondary-glass"
-          (click)="clearSearch()"
-        >
+        <button type="button" class="btn-secondary-glass" (click)="clearSearch()">
           Limpiar búsqueda
         </button>
         @if (allowCreate()) {
-          <button
-            type="button"
-            class="btn-primary-glass"
-            (click)="requestCreate()"
-          >
+          <button type="button" class="btn-primary-glass" (click)="requestCreate()">
             Crear rubro "{{ searchTerm() }}"
           </button>
         }
@@ -125,9 +129,7 @@
   <!-- Bottom Bar: Paginador Moderno -->
   @if (filteredVerticals().length > pageSize()) {
     <div class="rubro-selector__pagination">
-      <span class="rubro-selector__pagination-summary">
-        Mostrando {{ paginationSummary() }}
-      </span>
+      <span class="rubro-selector__pagination-summary"> Mostrando {{ paginationSummary() }} </span>
 
       <div class="rubro-selector__pagination-controls">
         <button
@@ -137,7 +139,16 @@
           (click)="prevPage()"
           aria-label="Página anterior"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
           <span>Anterior</span>
@@ -165,7 +176,16 @@
           aria-label="Página siguiente"
         >
           <span>Siguiente</span>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>

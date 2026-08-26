@@ -1,8 +1,16 @@
 import type { ProvisioningStep } from '@core/models/store';
 
 export const STEP_ORDER = [
-  'createProject', 'linkBilling', 'addFirebase', 'enableApis', 'createWebApp',
-  'initFirestore', 'configureEmail', 'initAdmin', 'grantAccess', 'triggerDeploy',
+  'createProject',
+  'linkBilling',
+  'addFirebase',
+  'enableApis',
+  'createWebApp',
+  'initFirestore',
+  'configureEmail',
+  'initAdmin',
+  'grantAccess',
+  'triggerDeploy',
 ];
 
 export interface ActionProgressState {

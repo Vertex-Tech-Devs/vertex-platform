@@ -106,7 +106,11 @@ export class StoreDetailOrchestrationService {
         return { status: 'success', progress: 100, message: '✓ Despliegue completado con éxito.' };
       }
       this.lastKnownProgress = Math.max(this.lastKnownProgress, 25);
-      return { status: 'running', progress: this.lastKnownProgress, message: '🔨 Iniciando flujo en GitHub Actions…' };
+      return {
+        status: 'running',
+        progress: this.lastKnownProgress,
+        message: '🔨 Iniciando flujo en GitHub Actions…',
+      };
     }
     this.lastKnownProgress = 0;
     return IDLE_STATE;
@@ -167,10 +171,10 @@ export class StoreDetailOrchestrationService {
     }
     try {
       const fns = getFunctions();
-      const check = httpsCallable<{ storeId: string }, { ok: boolean; redirectUri: string | null; consoleUrl?: string }>(
-        fns,
-        'checkStoreOAuthRedirect',
-      );
+      const check = httpsCallable<
+        { storeId: string },
+        { ok: boolean; redirectUri: string | null; consoleUrl?: string }
+      >(fns, 'checkStoreOAuthRedirect');
       const res = await check({ storeId: store.id });
       this.oauthRedirect.set(res.data);
     } catch {

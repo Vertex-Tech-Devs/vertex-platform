@@ -6,28 +6,109 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
   icon: 'bi-music-note-beamed',
   description: 'Guitarras, teclados, ukeleles, micrófonos de estudio, amplificadores y accesorios.',
   bannerTitle: 'Pasión por la Música, Sonido & Creación',
-  bannerSubtitle: 'Guitarras de luthier, sintetizadores, baterías, micrófonos de estudio e interfaces de audio.',
+  bannerSubtitle:
+    'Guitarras de luthier, sintetizadores, baterías, micrófonos de estudio e interfaces de audio.',
   heroImages: [
     'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'guitarras', name: 'Guitarras & Bajos', slug: 'guitarras', imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'teclados', name: 'Teclados & Pianos', slug: 'teclados', imageUrl: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'audio-estudio', name: 'Audio & Grabación', slug: 'audio-estudio', imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'percusion', name: 'Baterías & Percusión', slug: 'percusion', imageUrl: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'guitarras',
+      name: 'Guitarras & Bajos',
+      slug: 'guitarras',
+      imageUrl:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'teclados',
+      name: 'Teclados & Pianos',
+      slug: 'teclados',
+      imageUrl:
+        'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'audio-estudio',
+      name: 'Audio & Grabación',
+      slug: 'audio-estudio',
+      imageUrl:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'percusion',
+      name: 'Baterías & Percusión',
+      slug: 'percusion',
+      imageUrl:
+        'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'guitarras', name: 'Guitarras Eléctricas, Acústicas & Bajos', slug: 'guitarras', order: 1, filterableAttributes: ['tipo-guitarra', 'color-instrumento'] },
-    { id: 'teclados', name: 'Teclados, Pianos Digitales & Sintetizadores', slug: 'teclados', order: 2, filterableAttributes: ['teclas'] },
-    { id: 'audio-estudio', name: 'Interfaces de Audio, Micrófonos & Monitores', slug: 'audio-estudio', order: 3, filterableAttributes: [] },
-    { id: 'percusion', name: 'Baterías Acústicas, Electrónicas & Percusión', slug: 'percusion', order: 4, filterableAttributes: [] },
-    { id: 'accesorios-musica', name: 'Cuerdas, Afinadores, Pedales & Fundas', slug: 'accesorios-musica', order: 5, filterableAttributes: [] },
+    {
+      id: 'guitarras',
+      name: 'Guitarras Eléctricas, Acústicas & Bajos',
+      slug: 'guitarras',
+      order: 1,
+      filterableAttributes: ['tipo-guitarra', 'color-instrumento'],
+    },
+    {
+      id: 'teclados',
+      name: 'Teclados, Pianos Digitales & Sintetizadores',
+      slug: 'teclados',
+      order: 2,
+      filterableAttributes: ['teclas'],
+    },
+    {
+      id: 'audio-estudio',
+      name: 'Interfaces de Audio, Micrófonos & Monitores',
+      slug: 'audio-estudio',
+      order: 3,
+      filterableAttributes: [],
+    },
+    {
+      id: 'percusion',
+      name: 'Baterías Acústicas, Electrónicas & Percusión',
+      slug: 'percusion',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'accesorios-musica',
+      name: 'Cuerdas, Afinadores, Pedales & Fundas',
+      slug: 'accesorios-musica',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'tipo-guitarra', name: 'Tipo', code: 'tipo-guitarra', type: 'select', values: ['Eléctrica Solid Body', 'Electroacústica', 'Criolla / Clásica', 'Bajo Eléctrico 4 Cuerdas'], required: false },
-    { id: 'color-instrumento', name: 'Color / Acabado', code: 'color-instrumento', type: 'color', values: ['Sunburst Tabaco', 'Negro Brillante', 'Blanco Vintage', 'Madera Natural', 'Rojo'], required: false },
-    { id: 'teclas', name: 'Cantidad de Teclas', code: 'teclas', type: 'button', values: ['49 Teclas', '61 Teclas', '88 Teclas Acción Martillo'], required: false },
+    {
+      id: 'tipo-guitarra',
+      name: 'Tipo',
+      code: 'tipo-guitarra',
+      type: 'select',
+      values: [
+        'Eléctrica Solid Body',
+        'Electroacústica',
+        'Criolla / Clásica',
+        'Bajo Eléctrico 4 Cuerdas',
+      ],
+      required: false,
+    },
+    {
+      id: 'color-instrumento',
+      name: 'Color / Acabado',
+      code: 'color-instrumento',
+      type: 'color',
+      values: ['Sunburst Tabaco', 'Negro Brillante', 'Blanco Vintage', 'Madera Natural', 'Rojo'],
+      required: false,
+    },
+    {
+      id: 'teclas',
+      name: 'Cantidad de Teclas',
+      code: 'teclas',
+      type: 'button',
+      values: ['49 Teclas', '61 Teclas', '88 Teclas Acción Martillo'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#475569',
@@ -35,9 +116,18 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Calibración de Luthier', content: 'Cada instrumento de cuerda se entrega calibrado y listo para tocar.' },
-    { title: 'Audio y Grabación Pro', content: 'Equipamiento testeado para home studios y sonido en vivo.' },
-    { title: 'Asesoramiento por Músicos', content: 'Equipo especializado para recomendarte el mejor setup según tu nivel.' },
+    {
+      title: 'Calibración de Luthier',
+      content: 'Cada instrumento de cuerda se entrega calibrado y listo para tocar.',
+    },
+    {
+      title: 'Audio y Grabación Pro',
+      content: 'Equipamiento testeado para home studios y sonido en vivo.',
+    },
+    {
+      title: 'Asesoramiento por Músicos',
+      content: 'Equipo especializado para recomendarte el mejor setup según tu nivel.',
+    },
   ],
   sampleProducts: [
     {
@@ -46,12 +136,30 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 340000,
       stock: 18,
       skuPrefix: 'MUS-GTR-STR',
-      description: '3 micrófonos simples alnico V, selector de 5 posiciones, puente trémolo sincronizado y mástil en C moderno.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        '3 micrófonos simples alnico V, selector de 5 posiciones, puente trémolo sincronizado y mástil en C moderno.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
-        { sku: 'MUS-GTR-SUN', price: 340000, stock: 10, attributes: { 'color-instrumento': 'Sunburst Tabaco', 'tipo-guitarra': 'Eléctrica Solid Body' } },
-        { sku: 'MUS-GTR-BLK', price: 340000, stock: 8, attributes: { 'color-instrumento': 'Negro Brillante', 'tipo-guitarra': 'Eléctrica Solid Body' } },
+        {
+          sku: 'MUS-GTR-SUN',
+          price: 340000,
+          stock: 10,
+          attributes: {
+            'color-instrumento': 'Sunburst Tabaco',
+            'tipo-guitarra': 'Eléctrica Solid Body',
+          },
+        },
+        {
+          sku: 'MUS-GTR-BLK',
+          price: 340000,
+          stock: 8,
+          attributes: {
+            'color-instrumento': 'Negro Brillante',
+            'tipo-guitarra': 'Eléctrica Solid Body',
+          },
+        },
       ],
     },
     {
@@ -60,8 +168,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 290000,
       stock: 20,
       skuPrefix: 'MUS-GTR-ACU',
-      description: 'Preamplificador activo con afinador cromático digital incorporado y ecualizador de 3 bandas con notch filter.',
-      image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Preamplificador activo con afinador cromático digital incorporado y ecualizador de 3 bandas con notch filter.',
+      image:
+        'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -70,8 +180,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 165000,
       stock: 25,
       skuPrefix: 'MUS-GTR-CLS',
-      description: 'Escala completa de 650mm con trastes de alpaca pulidos y clavijero dorado de precisión.',
-      image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Escala completa de 650mm con trastes de alpaca pulidos y clavijero dorado de precisión.',
+      image:
+        'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -80,8 +192,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 380000,
       stock: 15,
       skuPrefix: 'MUS-BAS-JB',
-      description: 'Doble micrófono single-coil con controles independientes de volumen y tono maestro para versatilidad sonora.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Doble micrófono single-coil con controles independientes de volumen y tono maestro para versatilidad sonora.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -90,8 +204,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 35,
       skuPrefix: 'MUS-UKL-CON',
-      description: 'Cuerdas italianas Aquila Nylgut instaladas de fábrica con afinación estable y sonido cálido brillante.',
-      image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cuerdas italianas Aquila Nylgut instaladas de fábrica con afinación estable y sonido cálido brillante.',
+      image:
+        'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -100,8 +216,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 780000,
       stock: 10,
       skuPrefix: 'MUS-PNO-88',
-      description: 'Muestreo estéreo de piano de cola de concierto con polifonía de 192 notas y pedal de sustain progresivo incluido.',
-      image: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Muestreo estéreo de piano de cola de concierto con polifonía de 192 notas y pedal de sustain progresivo incluido.',
+      image:
+        'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -110,8 +228,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 240000,
       stock: 20,
       skuPrefix: 'MUS-KEY-61',
-      description: '600 timbres de instrumentos, 200 ritmos de acompañamiento automático y pantalla LCD informativa.',
-      image: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
+      description:
+        '600 timbres de instrumentos, 200 ritmos de acompañamiento automático y pantalla LCD informativa.',
+      image:
+        'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -121,7 +241,8 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       stock: 25,
       skuPrefix: 'MUS-MID-49',
       description: 'Integración plug-and-play con Ableton Live, Logic Pro, Pro Tools y FL Studio.',
-      image: 'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1520523839898-507125cd53c1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -130,8 +251,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 195000,
       stock: 25,
       skuPrefix: 'MUS-INT-2X2',
-      description: 'Previos de micrófono de ruido ultrabajo con alimentación Phantom +48V y monitoreo directo sin latencia.',
-      image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
+      description:
+        'Previos de micrófono de ruido ultrabajo con alimentación Phantom +48V y monitoreo directo sin latencia.',
+      image:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -140,8 +263,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 145000,
       stock: 30,
       skuPrefix: 'MUS-MIC-CND',
-      description: 'Cápsula dorada de alta sensibilidad para voces acústicas e instrumentos. Incluye shockmount araña y filtro pop.',
-      image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cápsula dorada de alta sensibilidad para voces acústicas e instrumentos. Incluye shockmount araña y filtro pop.',
+      image:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -150,8 +275,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 89000,
       stock: 40,
       skuPrefix: 'MUS-MIC-VOC',
-      description: 'Patrón cardioide uniforme que aísla la fuente principal y minimiza el ruido de fondo y acoples en vivo.',
-      image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
+      description:
+        'Patrón cardioide uniforme que aísla la fuente principal y minimiza el ruido de fondo y acoples en vivo.',
+      image:
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -160,7 +287,8 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 360000,
       stock: 15,
       skuPrefix: 'MUS-MON-5IN',
-      description: 'Woofer de Kevlar de 5 pulgadas y tweeter de cúpula de seda de 1" con respuesta de frecuencia plana 45Hz - 22kHz.',
+      description:
+        'Woofer de Kevlar de 5 pulgadas y tweeter de cúpula de seda de 1" con respuesta de frecuencia plana 45Hz - 22kHz.',
       image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -170,8 +298,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 125000,
       stock: 35,
       skuPrefix: 'MUS-AUR-STU',
-      description: 'Drivers de neodimio de 45mm con aislamiento acústico superior en entornos ruidosos y cable desmontable.',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Drivers de neodimio de 45mm con aislamiento acústico superior en entornos ruidosos y cable desmontable.',
+      image:
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -180,8 +310,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 640000,
       stock: 10,
       skuPrefix: 'MUS-DRM-ELC',
-      description: 'Parches de malla silenciosos con rebote natural auténtico, platillos con choke y 350 sonidos de percusión.',
-      image: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=800&fit=crop&q=80',
+      description:
+        'Parches de malla silenciosos con rebote natural auténtico, platillos con choke y 350 sonidos de percusión.',
+      image:
+        'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -190,8 +322,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 54000,
       stock: 25,
       skuPrefix: 'MUS-CAJ-PER',
-      description: 'Tapa de abedul multilaminado de 3mm con graves profundos y agudos arenosos definidos.',
-      image: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tapa de abedul multilaminado de 3mm con graves profundos y agudos arenosos definidos.',
+      image:
+        'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -200,8 +334,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 175000,
       stock: 20,
       skuPrefix: 'MUS-AMP-20W',
-      description: '16 modelos de amplificadores clásicos, efectos de modulación, delay, reverb y salida de auriculares.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        '16 modelos de amplificadores clásicos, efectos de modulación, delay, reverb y salida de auriculares.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -210,8 +346,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 78000,
       stock: 30,
       skuPrefix: 'MUS-PED-OVD',
-      description: 'Circuito clásico con chip JRC4558D para empujar válvulas y lograr tonos de blues/rock cálidos.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Circuito clásico con chip JRC4558D para empujar válvulas y lograr tonos de blues/rock cálidos.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -220,8 +358,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 65,
       skuPrefix: 'MUS-AFN-CLP',
-      description: 'Sensor piezoeléctrico de alta precisión con pantalla LCD color orientable 360° para guitarra, bajo y ukelele.',
-      image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sensor piezoeléctrico de alta precisión con pantalla LCD color orientable 360° para guitarra, bajo y ukelele.',
+      image:
+        'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -230,8 +370,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 13500,
       stock: 80,
       skuPrefix: 'MUS-STR-ELC',
-      description: 'Bobinado de acero niquelado de máxima durabilidad con entonación perfecta y brillo equilibrado.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Bobinado de acero niquelado de máxima durabilidad con entonación perfecta y brillo equilibrado.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -240,8 +382,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 18000,
       stock: 45,
       skuPrefix: 'MUS-STN-GTR',
-      description: 'Brazos acolchados con espuma EVA antideslizante que no daña los acabados de nitrocelulosa o laca.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Brazos acolchados con espuma EVA antideslizante que no daña los acabados de nitrocelulosa o laca.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -250,8 +394,10 @@ export const INSTRUMENTOS_MUSICALES_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 60,
       skuPrefix: 'MUS-CBL-6M',
-      description: 'Conectores metálicos soldados a mano con doble blindaje trenzado que elimina zumbidos e interferencias.',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Conectores metálicos soldados a mano con doble blindaje trenzado que elimina zumbidos e interferencias.',
+      image:
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

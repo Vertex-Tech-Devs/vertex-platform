@@ -1424,7 +1424,12 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       });
       const dnsRecords = [
         { domainName: domain, type: 'A', rdata: '199.36.158.100', requiredAction: 'ADD' },
-        { domainName: `www.${domain}`, type: 'CNAME', rdata: `${siteId}.web.app`, requiredAction: 'ADD' },
+        {
+          domainName: `www.${domain}`,
+          type: 'CNAME',
+          rdata: `${siteId}.web.app`,
+          requiredAction: 'ADD',
+        },
       ];
       return { success: true, dnsRecords };
     }
@@ -1457,7 +1462,8 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
           'El dominio no es válido o no coincide con el sitio del shard.',
         );
       }
-      if (res.status === 403) throw new HttpsError('permission-denied', 'Insufficient permissions.');
+      if (res.status === 403)
+        throw new HttpsError('permission-denied', 'Insufficient permissions.');
       if (res.status === 404) throw new HttpsError('not-found', 'Site or project not found.');
       if (res.status === 409) throw new HttpsError('already-exists', 'Domain already connected.');
       throw new HttpsError('internal', 'Failed to connect domain.');
@@ -2138,7 +2144,7 @@ export const getStoreStaff = onCall<{ storeId: string }>(
         uid: `owner-${store.slug || storeId}`,
         email: ownerEmail,
         role: 'owner',
-        displayName: store.name ? `${store.name} (Dueño)` : 'Dueño de la tienda',
+        displayName: store.name ? store.name : 'Titular de la cuenta',
         joinedAt:
           store.createdAt instanceof Date
             ? store.createdAt.toISOString()
@@ -2239,7 +2245,9 @@ export const getStoreStaff = onCall<{ storeId: string }>(
       for (const inv of pending) {
         const invEmailLower = (inv.email || '').trim().toLowerCase();
         // Si el usuario ya figura en users/staff (e.g. logueado o registrado en admin_roles con actividad)
-        const staffFound = users.find((u) => (u.email || '').trim().toLowerCase() === invEmailLower);
+        const staffFound = users.find(
+          (u) => (u.email || '').trim().toLowerCase() === invEmailLower,
+        );
         if (staffFound) {
           inv.status = 'accepted';
           await db
@@ -2634,4 +2642,3 @@ export const createCustomVertical = onCall(
     return { success: true, vertical: customVerticalRecord };
   },
 );
-

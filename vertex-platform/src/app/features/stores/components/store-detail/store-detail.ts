@@ -64,7 +64,9 @@ export class StoreDetail implements OnInit {
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(true);
   readonly oauthRedirect = this.orchestrationService.oauthRedirect;
-  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'>('orquestacion');
+  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'>(
+    'orquestacion',
+  );
 
   readonly store = computed(() => {
     const id = this.storeId();
@@ -84,7 +86,9 @@ export class StoreDetail implements OnInit {
       : s.defaultUrl;
   });
 
-  readonly orderedSteps = computed(() => STEP_ORDER.filter((id) => id in (this.store()?.provisioningSteps ?? {})));
+  readonly orderedSteps = computed(() =>
+    STEP_ORDER.filter((id) => id in (this.store()?.provisioningSteps ?? {})),
+  );
 
   readonly provisioningSnapshot = computed(() =>
     this.orchestrationService.computeProvisioningSnapshot(this.store()),
@@ -196,16 +200,14 @@ export class StoreDetail implements OnInit {
 
   ngOnInit(): void {
     void this.loadVersions();
-    this.route.paramMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        const id = params.get('id');
-        this.storeId.set(id);
-        if (id) {
-          this.refreshDeployHistory(id);
-          void this.staffService.loadStaff(id);
-        }
-      });
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = params.get('id');
+      this.storeId.set(id);
+      if (id) {
+        this.refreshDeployHistory(id);
+        void this.staffService.loadStaff(id);
+      }
+    });
   }
 
   copyOAuthUri(): Promise<void> {
@@ -368,7 +370,8 @@ export class StoreDetail implements OnInit {
         this.mpSandbox.set(
           typeof mp.sandbox === 'boolean'
             ? mp.sandbox
-            : (mp.accessTokenSecret || '').includes('TEST-') || (mp.publicKey || '').startsWith('TEST-'),
+            : (mp.accessTokenSecret || '').includes('TEST-') ||
+                (mp.publicKey || '').startsWith('TEST-'),
         );
         this.mpValidationStatus.set(mp.validationStatus || '');
         this.mpAccountEmail.set(mp.accountEmail || '');
@@ -390,7 +393,12 @@ export class StoreDetail implements OnInit {
     this.paymentSaveError.set('');
     this.paymentSaveSuccess.set('');
     try {
-      const mpConfig: { publicKey: string; sandbox: boolean; accessToken?: string; webhookUrl?: string } = {
+      const mpConfig: {
+        publicKey: string;
+        sandbox: boolean;
+        accessToken?: string;
+        webhookUrl?: string;
+      } = {
         publicKey: this.mpPublicKey().trim(),
         sandbox: this.mpSandbox(),
       };
@@ -406,7 +414,9 @@ export class StoreDetail implements OnInit {
       // Recargar para mostrar el estado actualizado (masked token, email, etc.)
       await this.loadPaymentConfig(s.id);
     } catch (err) {
-      this.paymentSaveError.set(errorMessage(err, 'No se pudieron guardar las credenciales de pago.'));
+      this.paymentSaveError.set(
+        errorMessage(err, 'No se pudieron guardar las credenciales de pago.'),
+      );
     } finally {
       this.isSavingPayment.set(false);
     }
@@ -460,7 +470,12 @@ export class StoreDetail implements OnInit {
       return;
     }
     this.showSeedConfirm.set(false);
-    await this.orchestrationService.seedData(id, p.includeMockData, p.provisioningMode, p.verticalId);
+    await this.orchestrationService.seedData(
+      id,
+      p.includeMockData,
+      p.provisioningMode,
+      p.verticalId,
+    );
   }
 
   retry(): Promise<void> {

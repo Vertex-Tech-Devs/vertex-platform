@@ -4,30 +4,119 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
   id: 'OPTICA_ACCESORIOS',
   name: 'Óptica & Accesorios',
   icon: 'bi-eyeglasses',
-  description: 'Anteojos de sol polarizados, armazones recetados, lentes de contacto y líquidos de limpieza.',
+  description:
+    'Anteojos de sol polarizados, armazones recetados, lentes de contacto y líquidos de limpieza.',
   bannerTitle: 'Visión Clara, Protección & Estilo',
-  bannerSubtitle: 'Armazones de acetato italiano, cristales con filtro de luz azul y lentes de sol con protección UV400.',
+  bannerSubtitle:
+    'Armazones de acetato italiano, cristales con filtro de luz azul y lentes de sol con protección UV400.',
   heroImages: [
     'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'sol', name: 'Anteojos de Sol', slug: 'sol', imageUrl: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'recetados', name: 'Armazones Recetados', slug: 'recetados', imageUrl: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'blue-light', name: 'Lentes Blue Light', slug: 'blue-light', imageUrl: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'contacto', name: 'Lentes de Contacto', slug: 'contacto', imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'sol',
+      name: 'Anteojos de Sol',
+      slug: 'sol',
+      imageUrl:
+        'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'recetados',
+      name: 'Armazones Recetados',
+      slug: 'recetados',
+      imageUrl:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'blue-light',
+      name: 'Lentes Blue Light',
+      slug: 'blue-light',
+      imageUrl:
+        'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'contacto',
+      name: 'Lentes de Contacto',
+      slug: 'contacto',
+      imageUrl:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'sol', name: 'Anteojos de Sol Polarizados UV400', slug: 'sol', order: 1, filterableAttributes: ['forma-marco', 'color-lente'] },
-    { id: 'recetados', name: 'Armazones Oftálmicos & Recetados', slug: 'recetados', order: 2, filterableAttributes: ['material-armazon', 'forma-marco'] },
-    { id: 'blue-light', name: 'Filtro Luz Azul / Pantallas (Sin Aumento)', slug: 'blue-light', order: 3, filterableAttributes: ['forma-marco'] },
-    { id: 'contacto', name: 'Lentes de Contacto & Soluciones', slug: 'contacto', order: 4, filterableAttributes: [] },
-    { id: 'accesorios-optica', name: 'Estuches, Cadenas & Limpieza', slug: 'accesorios-optica', order: 5, filterableAttributes: [] },
+    {
+      id: 'sol',
+      name: 'Anteojos de Sol Polarizados UV400',
+      slug: 'sol',
+      order: 1,
+      filterableAttributes: ['forma-marco', 'color-lente'],
+    },
+    {
+      id: 'recetados',
+      name: 'Armazones Oftálmicos & Recetados',
+      slug: 'recetados',
+      order: 2,
+      filterableAttributes: ['material-armazon', 'forma-marco'],
+    },
+    {
+      id: 'blue-light',
+      name: 'Filtro Luz Azul / Pantallas (Sin Aumento)',
+      slug: 'blue-light',
+      order: 3,
+      filterableAttributes: ['forma-marco'],
+    },
+    {
+      id: 'contacto',
+      name: 'Lentes de Contacto & Soluciones',
+      slug: 'contacto',
+      order: 4,
+      filterableAttributes: [],
+    },
+    {
+      id: 'accesorios-optica',
+      name: 'Estuches, Cadenas & Limpieza',
+      slug: 'accesorios-optica',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'forma-marco', name: 'Forma del Marco', code: 'forma-marco', type: 'select', values: ['Aviador / Piloto', 'Wayfarer Clásico', 'Redondo / Round', 'Cat Eye / Ojo de Gato', 'Hexagonal / Geométrico', 'Rectangular'], required: false },
-    { id: 'material-armazon', name: 'Material', code: 'material-armazon', type: 'select', values: ['Acetato Italiano Fresado', 'Titanio Ultraliviano', 'Metal / Acero Inoxidable', 'TR90 Flexible'], required: false },
-    { id: 'color-lente', name: 'Color de Cristal', code: 'color-lente', type: 'color', values: ['Negro Polarizado', 'G15 Verde Clásico', 'Marrón Degradé', 'Azul Espejado', 'Rosa'], required: false },
+    {
+      id: 'forma-marco',
+      name: 'Forma del Marco',
+      code: 'forma-marco',
+      type: 'select',
+      values: [
+        'Aviador / Piloto',
+        'Wayfarer Clásico',
+        'Redondo / Round',
+        'Cat Eye / Ojo de Gato',
+        'Hexagonal / Geométrico',
+        'Rectangular',
+      ],
+      required: false,
+    },
+    {
+      id: 'material-armazon',
+      name: 'Material',
+      code: 'material-armazon',
+      type: 'select',
+      values: [
+        'Acetato Italiano Fresado',
+        'Titanio Ultraliviano',
+        'Metal / Acero Inoxidable',
+        'TR90 Flexible',
+      ],
+      required: false,
+    },
+    {
+      id: 'color-lente',
+      name: 'Color de Cristal',
+      code: 'color-lente',
+      type: 'color',
+      values: ['Negro Polarizado', 'G15 Verde Clásico', 'Marrón Degradé', 'Azul Espejado', 'Rosa'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#0891b2',
@@ -35,9 +124,18 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Protección UV400 Certificada', content: 'Cristales polarizados que filtran el 100% de la radiación nociva.' },
-    { title: 'Filtro Blue Light para Pantallas', content: 'Protegé tu vista de la luz azul emitida por monitores y celulares.' },
-    { title: 'Garantía y Ajuste Óptico', content: 'Calibración y cambio de tornillos/plaquetas de por vida en nuestras ópticas.' },
+    {
+      title: 'Protección UV400 Certificada',
+      content: 'Cristales polarizados que filtran el 100% de la radiación nociva.',
+    },
+    {
+      title: 'Filtro Blue Light para Pantallas',
+      content: 'Protegé tu vista de la luz azul emitida por monitores y celulares.',
+    },
+    {
+      title: 'Garantía y Ajuste Óptico',
+      content: 'Calibración y cambio de tornillos/plaquetas de por vida en nuestras ópticas.',
+    },
   ],
   sampleProducts: [
     {
@@ -46,8 +144,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 89000,
       stock: 35,
       skuPrefix: 'OPT-SOL-AVI',
-      description: 'Lentes minerales de alta claridad óptica con protección UV400 y bisagras flex reforzadas.',
-      image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
+      description:
+        'Lentes minerales de alta claridad óptica con protección UV400 y bisagras flex reforzadas.',
+      image:
+        'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -56,8 +156,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 95000,
       stock: 40,
       skuPrefix: 'OPT-SOL-WAY',
-      description: 'Filtro polarizado antirreflejo ideal para conducir y actividades al aire libre.',
-      image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Filtro polarizado antirreflejo ideal para conducir y actividades al aire libre.',
+      image:
+        'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -66,8 +168,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 92000,
       stock: 25,
       skuPrefix: 'OPT-SOL-HEX',
-      description: 'Diseño geométrico de vanguardia con plaquetas nasales de silicona hipoalergénicas.',
-      image: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&h=800&fit=crop&q=80',
+      description:
+        'Diseño geométrico de vanguardia con plaquetas nasales de silicona hipoalergénicas.',
+      image:
+        'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -77,7 +181,8 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 30,
       skuPrefix: 'OPT-SOL-CAT',
       description: 'Marco estilizado de acetato habana con patillas anchas y protección UV total.',
-      image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -86,8 +191,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 68000,
       stock: 30,
       skuPrefix: 'OPT-SOL-DEP',
-      description: 'Monolente panorámico de policarbonato irrompible con ventilación antivaho lateral.',
-      image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
+      description:
+        'Monolente panorámico de policarbonato irrompible con ventilación antivaho lateral.',
+      image:
+        'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -96,8 +203,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 78000,
       stock: 30,
       skuPrefix: 'OPT-REC-RND',
-      description: 'Marco ligero apto para cristales monofocales, bifocales y multifocales progresivos.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Marco ligero apto para cristales monofocales, bifocales y multifocales progresivos.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -106,8 +215,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 135000,
       stock: 15,
       skuPrefix: 'OPT-REC-TIT',
-      description: 'Estructura minimalista de titanio flexible libre de marco para máximo confort y ligereza.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Estructura minimalista de titanio flexible libre de marco para máximo confort y ligereza.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -117,7 +228,8 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 45,
       skuPrefix: 'OPT-REC-TR90',
       description: 'Polímero suizo ultra flexible y resistente a caídas y torsiones extremas.',
-      image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -126,8 +238,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 98000,
       stock: 25,
       skuPrefix: 'OPT-REC-CLP',
-      description: 'Armazón óptico con suplemento solar polarizado que se adhiere magnéticamente en 1 segundo.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Armazón óptico con suplemento solar polarizado que se adhiere magnéticamente en 1 segundo.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -136,8 +250,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 50,
       skuPrefix: 'OPT-BLU-STD',
-      description: 'Cristales orgánicos con filtro de luz azul de 420nm que reducen la fatiga visual y el insomnio.',
-      image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cristales orgánicos con filtro de luz azul de 420nm que reducen la fatiga visual y el insomnio.',
+      image:
+        'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -146,8 +262,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 58000,
       stock: 35,
       skuPrefix: 'OPT-BLU-GAM',
-      description: 'Optimizados para largas sesiones de videojuegos y trabajo frente a monitores LED/OLED.',
-      image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
+      description:
+        'Optimizados para largas sesiones de videojuegos y trabajo frente a monitores LED/OLED.',
+      image:
+        'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -156,8 +274,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 36000,
       stock: 40,
       skuPrefix: 'OPT-CNT-MNS',
-      description: 'Alta transmisibilidad de oxígeno Dk/t 160 para ojos hidratados y blancos durante todo el día.',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
+      description:
+        'Alta transmisibilidad de oxígeno Dk/t 160 para ojos hidratados y blancos durante todo el día.',
+      image:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -166,8 +286,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 42000,
       stock: 30,
       skuPrefix: 'OPT-CNT-DAY',
-      description: 'Máxima higiene y frescura con un par nuevo cada día sin necesidad de líquidos de limpieza.',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
+      description:
+        'Máxima higiene y frescura con un par nuevo cada día sin necesidad de líquidos de limpieza.',
+      image:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -176,8 +298,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 60,
       skuPrefix: 'OPT-SOL-LIQ',
-      description: 'Limpia, desinfecta, enjuaga, remueve proteínas y lubrica. Incluye estuche portalentes estéril.',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
+      description:
+        'Limpia, desinfecta, enjuaga, remueve proteínas y lubrica. Incluye estuche portalentes estéril.',
+      image:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -186,8 +310,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 12000,
       stock: 70,
       skuPrefix: 'OPT-GOT-LUB',
-      description: 'Alivio instantáneo para ojos secos, cansados o irritados por aire acondicionado y pantallas.',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
+      description:
+        'Alivio instantáneo para ojos secos, cansados o irritados por aire acondicionado y pantallas.',
+      image:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -196,8 +322,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 16500,
       stock: 50,
       skuPrefix: 'OPT-EST-RIG',
-      description: 'Interior aterciopelado anti-rayaduras que protege contra golpes y aplastamientos.',
-      image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
+      description:
+        'Interior aterciopelado anti-rayaduras que protege contra golpes y aplastamientos.',
+      image:
+        'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -206,8 +334,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 45,
       skuPrefix: 'OPT-CAD-RES',
-      description: 'Accesorio de moda cómodo con terminales de silicona ajustables para patillas de cualquier grosor.',
-      image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&h=800&fit=crop&q=80',
+      description:
+        'Accesorio de moda cómodo con terminales de silicona ajustables para patillas de cualquier grosor.',
+      image:
+        'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -216,8 +346,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 8900,
       stock: 80,
       skuPrefix: 'OPT-SPR-FOG',
-      description: 'Evita que los lentes se empañen con el uso de barbijos, vapor o cambios de temperatura.',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
+      description:
+        'Evita que los lentes se empañen con el uso de barbijos, vapor o cambios de temperatura.',
+      image:
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -226,8 +358,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 6500,
       stock: 90,
       skuPrefix: 'OPT-PAN-MIC',
-      description: 'Limpian grasa y huellas sin rayar los tratamientos antirreflejo de cristales ópticos.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Limpian grasa y huellas sin rayar los tratamientos antirreflejo de cristales ópticos.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -236,8 +370,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 4900,
       stock: 100,
       skuPrefix: 'OPT-DST-LLV',
-      description: 'Puntas plana, phillips y tuerca hexagonal para ajustar tornillos de patillas y plaquetas en cualquier lugar.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Puntas plana, phillips y tuerca hexagonal para ajustar tornillos de patillas y plaquetas en cualquier lugar.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -246,8 +382,10 @@ export const OPTICA_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 35,
       skuPrefix: 'OPT-LUP-LED',
-      description: 'Lente acrílica de 90mm de diámetro con iluminación circular brillante para lectura y manualidades.',
-      image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
+      description:
+        'Lente acrílica de 90mm de diámetro con iluminación circular brillante para lectura y manualidades.',
+      image:
+        'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

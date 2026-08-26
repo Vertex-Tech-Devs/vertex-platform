@@ -4,29 +4,99 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
   id: 'BIJOUTERIE_ACCESORIOS',
   name: 'Bijouterie & Accesorios',
   icon: 'bi-stars',
-  description: 'Aros de tendencia, collares en capas, pañuelos de seda, carteras y cinturones de moda.',
+  description:
+    'Aros de tendencia, collares en capas, pañuelos de seda, carteras y cinturones de moda.',
   bannerTitle: 'Tendencias, Estilo & Accesorios de Moda',
-  bannerSubtitle: 'Complementos urbanos, bijou de diseño contemporáneo, carteras y accesorios para elevar tu look.',
+  bannerSubtitle:
+    'Complementos urbanos, bijou de diseño contemporáneo, carteras y accesorios para elevar tu look.',
   heroImages: [
     'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1920&h=700&fit=crop&q=80',
     'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1920&h=700&fit=crop&q=80',
   ],
   featuredCategories: [
-    { categoryId: 'aros-bijou', name: 'Aros & Ear Cuffs', slug: 'aros-bijou', imageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'collares-layering', name: 'Collares & Cadenas', slug: 'collares-layering', imageUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'carteras-bolsos', name: 'Carteras & Bandoleras', slug: 'carteras-bolsos', imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&h=400&fit=crop&q=80' },
-    { categoryId: 'panuelos-cinturones', name: 'Pañuelos & Cinturones', slug: 'panuelos-cinturones', imageUrl: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=600&h=400&fit=crop&q=80' },
+    {
+      categoryId: 'aros-bijou',
+      name: 'Aros & Ear Cuffs',
+      slug: 'aros-bijou',
+      imageUrl:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'collares-layering',
+      name: 'Collares & Cadenas',
+      slug: 'collares-layering',
+      imageUrl:
+        'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'carteras-bolsos',
+      name: 'Carteras & Bandoleras',
+      slug: 'carteras-bolsos',
+      imageUrl:
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&h=400&fit=crop&q=80',
+    },
+    {
+      categoryId: 'panuelos-cinturones',
+      name: 'Pañuelos & Cinturones',
+      slug: 'panuelos-cinturones',
+      imageUrl:
+        'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=600&h=400&fit=crop&q=80',
+    },
   ],
   categories: [
-    { id: 'aros-bijou', name: 'Aros, Argollas & Ear Cuffs', slug: 'aros-bijou', order: 1, filterableAttributes: ['bano-color'] },
-    { id: 'collares-layering', name: 'Collares en Capas & Gargantillas', slug: 'collares-layering', order: 2, filterableAttributes: ['bano-color'] },
-    { id: 'pulseras-bijou', name: 'Pulseras, Brazaletes & Tobilleras', slug: 'pulseras-bijou', order: 3, filterableAttributes: ['bano-color'] },
-    { id: 'carteras-bolsos', name: 'Carteras, Tote Bags & Riñoneras', slug: 'carteras-bolsos', order: 4, filterableAttributes: ['color-accesorio'] },
-    { id: 'panuelos-cinturones', name: 'Pañuelos de Seda, Billeteras & Cinturones', slug: 'panuelos-cinturones', order: 5, filterableAttributes: [] },
+    {
+      id: 'aros-bijou',
+      name: 'Aros, Argollas & Ear Cuffs',
+      slug: 'aros-bijou',
+      order: 1,
+      filterableAttributes: ['bano-color'],
+    },
+    {
+      id: 'collares-layering',
+      name: 'Collares en Capas & Gargantillas',
+      slug: 'collares-layering',
+      order: 2,
+      filterableAttributes: ['bano-color'],
+    },
+    {
+      id: 'pulseras-bijou',
+      name: 'Pulseras, Brazaletes & Tobilleras',
+      slug: 'pulseras-bijou',
+      order: 3,
+      filterableAttributes: ['bano-color'],
+    },
+    {
+      id: 'carteras-bolsos',
+      name: 'Carteras, Tote Bags & Riñoneras',
+      slug: 'carteras-bolsos',
+      order: 4,
+      filterableAttributes: ['color-accesorio'],
+    },
+    {
+      id: 'panuelos-cinturones',
+      name: 'Pañuelos de Seda, Billeteras & Cinturones',
+      slug: 'panuelos-cinturones',
+      order: 5,
+      filterableAttributes: [],
+    },
   ],
   attributes: [
-    { id: 'bano-color', name: 'Acabado', code: 'bano-color', type: 'select', values: ['Dorado Brillante', 'Plateado Níquel Free', 'Oro Rosa', 'Resina / Acrílico'], required: false },
-    { id: 'color-accesorio', name: 'Color', code: 'color-accesorio', type: 'color', values: ['Negro', 'Suela / Caramelo', 'Bordeaux', 'Beige Crema', 'Verde'], required: false },
+    {
+      id: 'bano-color',
+      name: 'Acabado',
+      code: 'bano-color',
+      type: 'select',
+      values: ['Dorado Brillante', 'Plateado Níquel Free', 'Oro Rosa', 'Resina / Acrílico'],
+      required: false,
+    },
+    {
+      id: 'color-accesorio',
+      name: 'Color',
+      code: 'color-accesorio',
+      type: 'color',
+      values: ['Negro', 'Suela / Caramelo', 'Bordeaux', 'Beige Crema', 'Verde'],
+      required: false,
+    },
   ],
   colors: {
     primary: '#db2777',
@@ -34,9 +104,18 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
     background: '#ffffff',
   },
   featureCards: [
-    { title: 'Diseños de Tendencia', content: 'Accesorios inspirados en el streetstyle y pasarelas a precios accesibles.' },
-    { title: 'Materiales Hipoalergénicos', content: 'Baños libres de níquel que cuidan tu piel y prolongan el brillo.' },
-    { title: 'Packaging de Regalo', content: 'Bolsitas de lienzo y tarjetas especiales incluidas en todas tus compras.' },
+    {
+      title: 'Diseños de Tendencia',
+      content: 'Accesorios inspirados en el streetstyle y pasarelas a precios accesibles.',
+    },
+    {
+      title: 'Materiales Hipoalergénicos',
+      content: 'Baños libres de níquel que cuidan tu piel y prolongan el brillo.',
+    },
+    {
+      title: 'Packaging de Regalo',
+      content: 'Bolsitas de lienzo y tarjetas especiales incluidas en todas tus compras.',
+    },
   ],
   sampleProducts: [
     {
@@ -45,8 +124,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 45,
       skuPrefix: 'BIJ-ARG-CHK',
-      description: 'Argollas livianas de aleación con baño dorado hipoalergénico y cierre italiano a presión.',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
+      description:
+        'Argollas livianas de aleación con baño dorado hipoalergénico y cierre italiano a presión.',
+      image:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -55,8 +136,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 16000,
       stock: 50,
       skuPrefix: 'BIJ-EAR-CUF',
-      description: 'Aros falsos adaptables al cartílago de la oreja con baño plateado y microcircones engarzados.',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
+      description:
+        'Aros falsos adaptables al cartílago de la oreja con baño plateado y microcircones engarzados.',
+      image:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -65,8 +148,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 14500,
       stock: 35,
       skuPrefix: 'BIJ-ARO-RES',
-      description: 'Diseño liviano de resina acrílica con perno de acero quirúrgico hipoalergénico.',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
+      description:
+        'Diseño liviano de resina acrílica con perno de acero quirúrgico hipoalergénico.',
+      image:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -75,8 +160,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 24500,
       stock: 40,
       skuPrefix: 'BIJ-COL-DBL',
-      description: 'Combinación de cadena de eslabón fino y cadena forzada con medalla romana acuñada.',
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
+      description:
+        'Combinación de cadena de eslabón fino y cadena forzada con medalla romana acuñada.',
+      image:
+        'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -86,7 +173,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 30,
       skuPrefix: 'BIJ-CHK-PRL',
       description: 'Perlas cultivadas irregulares con broche marinero frontal bañado en oro 18k.',
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -96,7 +184,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 50,
       skuPrefix: 'BIJ-COL-SNK',
       description: 'Cadena plana de 4mm con caída fluida efecto metal líquido brillante.',
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -105,8 +194,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 26000,
       stock: 35,
       skuPrefix: 'BIJ-PUL-SET',
-      description: 'Brazaletes lisos y martillados combinables para muñeca con acabado brillante duradero.',
-      image: 'https://images.unsplash.com/photo-1611591475152-47794389424e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Brazaletes lisos y martillados combinables para muñeca con acabado brillante duradero.',
+      image:
+        'https://images.unsplash.com/photo-1611591475152-47794389424e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -116,7 +207,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 45,
       skuPrefix: 'BIJ-PUL-CND',
       description: 'Cadena contundente con candado grabado y cierre mosquetón reforzado.',
-      image: 'https://images.unsplash.com/photo-1611591475152-47794389424e?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1611591475152-47794389424e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -125,12 +217,19 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 49000,
       stock: 30,
       skuPrefix: 'BIJ-BAG-BGT',
-      description: 'Formato rectangular noventero con cierre superior, forrería interior de raso y bolsillo con cierre.',
-      image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Formato rectangular noventero con cierre superior, forrería interior de raso y bolsillo con cierre.',
+      image:
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'BIJ-BAG-BLK', price: 49000, stock: 15, attributes: { 'color-accesorio': 'Negro' } },
-        { sku: 'BIJ-BAG-SUEL', price: 49000, stock: 15, attributes: { 'color-accesorio': 'Suela / Caramelo' } },
+        {
+          sku: 'BIJ-BAG-SUEL',
+          price: 49000,
+          stock: 15,
+          attributes: { 'color-accesorio': 'Suela / Caramelo' },
+        },
       ],
     },
     {
@@ -140,7 +239,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 25,
       skuPrefix: 'BIJ-BAG-TOT',
       description: 'Bolso amplio de hombro con base rígida y sobre organizador extraíble.',
-      image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -159,8 +259,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 18500,
       stock: 50,
       skuPrefix: 'BIJ-PAN-SLK',
-      description: 'Tacto sedoso ultra suave para usar en el cuello, cabello, muñeca o como detalle en carteras.',
-      image: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
+      description:
+        'Tacto sedoso ultra suave para usar en el cuello, cabello, muñeca o como detalle en carteras.',
+      image:
+        'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -170,11 +272,17 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       stock: 40,
       skuPrefix: 'BIJ-BLT-DBL',
       description: 'Ancho de 2.5cm ideal para jeans y vestidos con pasador forrado en cuero.',
-      image: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
+      image:
+        'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
       hasVariants: true,
       variants: [
         { sku: 'BIJ-BLT-BLK', price: 28000, stock: 20, attributes: { 'color-accesorio': 'Negro' } },
-        { sku: 'BIJ-BLT-SUEL', price: 28000, stock: 20, attributes: { 'color-accesorio': 'Suela / Caramelo' } },
+        {
+          sku: 'BIJ-BLT-SUEL',
+          price: 28000,
+          stock: 20,
+          attributes: { 'color-accesorio': 'Suela / Caramelo' },
+        },
       ],
     },
     {
@@ -183,8 +291,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 24000,
       stock: 30,
       skuPrefix: 'BIJ-BLT-CRS',
-      description: 'Cinta elástica de 6cm de ancho que entalla la cintura con broches a presión traseros.',
-      image: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cinta elástica de 6cm de ancho que entalla la cintura con broches a presión traseros.',
+      image:
+        'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -193,7 +303,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 26500,
       stock: 45,
       skuPrefix: 'BIJ-BIL-CMP',
-      description: '8 divisiones para tarjetas, bolsillo con cierre para monedas y bloqueo antifraude RFID.',
+      description:
+        '8 divisiones para tarjetas, bolsillo con cierre para monedas y bloqueo antifraude RFID.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -203,8 +314,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 12500,
       stock: 60,
       skuPrefix: 'BIJ-CLP-PEL',
-      description: 'Pinzas clip francesas y broches pico de pato con resina resistente para todo tipo de peinados.',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
+      description:
+        'Pinzas clip francesas y broches pico de pato con resina resistente para todo tipo de peinados.',
+      image:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -213,8 +326,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 15000,
       stock: 40,
       skuPrefix: 'BIJ-VNC-TRB',
-      description: 'Base flexible que no presiona la cabeza con nudo superior central de tendencia.',
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
+      description:
+        'Base flexible que no presiona la cabeza con nudo superior central de tendencia.',
+      image:
+        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -223,7 +338,8 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 9800,
       stock: 70,
       skuPrefix: 'BIJ-LLV-CHM',
-      description: 'Accesorio decorativo para llaves o asas de bolsos con baño dorado y cristal facetado.',
+      description:
+        'Accesorio decorativo para llaves o asas de bolsos con baño dorado y cristal facetado.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
@@ -233,8 +349,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 14000,
       stock: 50,
       skuPrefix: 'BIJ-ANI-FLG',
-      description: 'Anillo regulable para usar en falange media o base del dedo con microengarce brillante.',
-      image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=800&fit=crop&q=80',
+      description:
+        'Anillo regulable para usar en falange media o base del dedo con microengarce brillante.',
+      image:
+        'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -243,8 +361,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 45000,
       stock: 25,
       skuPrefix: 'BIJ-BAG-CLT',
-      description: 'Cartera de mano estructurada con brillo glitter para eventos nocturnos y fiestas.',
-      image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
+      description:
+        'Cartera de mano estructurada con brillo glitter para eventos nocturnos y fiestas.',
+      image:
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
     {
@@ -253,8 +373,10 @@ export const BIJOUTERIE_ACCESORIOS_PRESET: BusinessVerticalDefinition = {
       price: 22000,
       stock: 35,
       skuPrefix: 'BIJ-GOR-RAF',
-      description: 'Sombrero visera abierto superior ideal para días de verano y playa con protección facial.',
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
+      description:
+        'Sombrero visera abierto superior ideal para días de verano y playa con protección facial.',
+      image:
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop&q=80',
       hasVariants: false,
     },
   ],

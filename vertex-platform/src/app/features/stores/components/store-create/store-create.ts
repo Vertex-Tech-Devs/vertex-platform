@@ -147,7 +147,9 @@ export class StoreCreate implements OnInit {
 
   private processLogoFile(file: File): void {
     if (!file.type.startsWith('image/')) {
-      this.errorMessage.set('Por favor seleccioná un archivo de imagen válido (PNG, JPG, SVG o WebP).');
+      this.errorMessage.set(
+        'Por favor seleccioná un archivo de imagen válido (PNG, JPG, SVG o WebP).',
+      );
       return;
     }
     if (file.size > 2 * 1024 * 1024) {

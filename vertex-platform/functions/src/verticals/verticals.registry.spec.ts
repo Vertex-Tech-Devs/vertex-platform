@@ -31,7 +31,9 @@ describe('Verticals Registry', () => {
       icon: '🍺',
       description: 'Venta de cervezas artesanales y growlers',
       categories: ['IPAs', 'Stouts', 'Rubias'],
-      attributes: [{ name: 'Volumen', code: 'volumen', type: 'select', values: ['500ml', '1L', '1.9L'] }],
+      attributes: [
+        { name: 'Volumen', code: 'volumen', type: 'select', values: ['500ml', '1L', '1.9L'] },
+      ],
     });
 
     expect(customDef.name).toBe('Cervecería Artesanal');
@@ -49,14 +51,14 @@ describe('Verticals Registry', () => {
       expect(preset, `Preset ${summary.id} should exist`).toBeDefined();
       expect(
         preset.sampleProducts.length,
-        `Preset ${summary.id} must have >= 20 products, got ${preset.sampleProducts.length}`
+        `Preset ${summary.id} must have >= 20 products, got ${preset.sampleProducts.length}`,
       ).toBeGreaterThanOrEqual(20);
 
       const catSlugs = new Set(preset.categories.map((c) => c.slug));
       for (const prod of preset.sampleProducts) {
         expect(
           catSlugs.has(prod.categorySlug),
-          `Product "${prod.name}" in preset ${summary.id} has categorySlug "${prod.categorySlug}" which is not in [${Array.from(catSlugs).join(', ')}]`
+          `Product "${prod.name}" in preset ${summary.id} has categorySlug "${prod.categorySlug}" which is not in [${Array.from(catSlugs).join(', ')}]`,
         ).toBe(true);
       }
     }

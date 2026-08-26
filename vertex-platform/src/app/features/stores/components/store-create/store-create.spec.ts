@@ -203,7 +203,9 @@ describe('StoreCreate', () => {
     expect(component.errorMessage()).toContain('archivo de imagen válido');
 
     // File over 2MB rejection
-    const largeFile = new File([new ArrayBuffer(3 * 1024 * 1024)], 'huge.png', { type: 'image/png' });
+    const largeFile = new File([new ArrayBuffer(3 * 1024 * 1024)], 'huge.png', {
+      type: 'image/png',
+    });
     const dropEventLarge = {
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),

@@ -64,13 +64,21 @@ export function resolveVerticalKey(input?: string): BusinessVerticalId {
   if (normalized.includes('TEC') || normalized.includes('ELECTRO')) {
     return 'TECNOLOGIA_ELECTRONICA';
   }
-  if (normalized.includes('INDUMENTARIA') || normalized.includes('ROPA') || normalized.includes('MODA')) {
+  if (
+    normalized.includes('INDUMENTARIA') ||
+    normalized.includes('ROPA') ||
+    normalized.includes('MODA')
+  ) {
     return 'INDUMENTARIA_CALZADO';
   }
   if (normalized.includes('GASTRO') || normalized.includes('REST') || normalized.includes('CAF')) {
     return 'GASTRONOMIA_RESTAURANTE';
   }
-  if (normalized.includes('HOGAR') || normalized.includes('MUEBLE') || normalized.includes('DECO')) {
+  if (
+    normalized.includes('HOGAR') ||
+    normalized.includes('MUEBLE') ||
+    normalized.includes('DECO')
+  ) {
     return 'HOGAR_MUEBLES_DECO';
   }
   if (normalized.includes('BELLEZA') || normalized.includes('COSMETICA')) {
@@ -128,7 +136,9 @@ export function resolveVerticalKey(input?: string): BusinessVerticalId {
   return 'TECNOLOGIA_ELECTRONICA';
 }
 
-export function buildCustomVerticalDefinition(data: Record<string, unknown>): BusinessVerticalDefinition {
+export function buildCustomVerticalDefinition(
+  data: Record<string, unknown>,
+): BusinessVerticalDefinition {
   const id = String(data['id'] || data['slug'] || 'CUSTOM_VERTICAL');
   const name = String(data['name'] || 'Rubro Personalizado');
   const icon = String(data['icon'] || '🏷️');
@@ -223,7 +233,12 @@ export function buildCustomVerticalDefinition(data: Record<string, unknown>): Bu
     description: string;
     image: string;
     hasVariants: boolean;
-    variants?: Array<{ sku: string; price: number; stock: number; attributes: Record<string, string> }>;
+    variants?: Array<{
+      sku: string;
+      price: number;
+      stock: number;
+      attributes: Record<string, string>;
+    }>;
   }>;
 
   if (Array.isArray(data['sampleProducts']) && data['sampleProducts'].length >= 20) {
@@ -274,14 +289,31 @@ export function buildCustomVerticalDefinition(data: Record<string, unknown>): Bu
     attributes,
     sampleProducts,
     colors: {
-      primary: String((data['themeColors'] as Record<string, unknown>)?.['primary'] || (data['colors'] as Record<string, unknown>)?.['primary'] || '#6366f1'),
-      accent: String((data['themeColors'] as Record<string, unknown>)?.['accent'] || (data['colors'] as Record<string, unknown>)?.['accent'] || '#06b6d4'),
+      primary: String(
+        (data['themeColors'] as Record<string, unknown>)?.['primary'] ||
+          (data['colors'] as Record<string, unknown>)?.['primary'] ||
+          '#6366f1',
+      ),
+      accent: String(
+        (data['themeColors'] as Record<string, unknown>)?.['accent'] ||
+          (data['colors'] as Record<string, unknown>)?.['accent'] ||
+          '#06b6d4',
+      ),
       background: '#ffffff',
     },
     featureCards: [
-      { title: 'Calidad Garantizada', content: `Seleccionamos rigurosamente cada producto para nuestra tienda ${name}.` },
-      { title: 'Envíos Rápidos', content: 'Despachamos tus pedidos con seguimiento online a todo el país.' },
-      { title: 'Atención Personalizada', content: 'Estamos disponibles para asesorarte en cada paso de tu compra.' },
+      {
+        title: 'Calidad Garantizada',
+        content: `Seleccionamos rigurosamente cada producto para nuestra tienda ${name}.`,
+      },
+      {
+        title: 'Envíos Rápidos',
+        content: 'Despachamos tus pedidos con seguimiento online a todo el país.',
+      },
+      {
+        title: 'Atención Personalizada',
+        content: 'Estamos disponibles para asesorarte en cada paso de tu compra.',
+      },
     ],
   };
 }
@@ -321,4 +353,3 @@ export function getAllBusinessVerticalsSummary(): BusinessVerticalSummary[] {
     description: preset.description,
   }));
 }
-
