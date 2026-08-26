@@ -1188,34 +1188,43 @@
 
 .dns-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 .dns-setup-flow {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
 }
 
 .input-addon {
   display: flex;
   align-items: stretch;
   border: 1px solid var(--platform-card-border);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
-  transition: border-color var(--transition-base);
+  background: rgba(0, 0, 0, 0.35);
+  transition: all 0.2s ease;
 
   &:focus-within {
-    border-color: var(--platform-accent-purple);
+    border-color: var(--platform-accent-purple, #6c63ff);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.18);
   }
 
   &__pre {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
     border-right: 1px solid var(--platform-card-border);
-    padding: 0.55rem 0.75rem;
+    padding: 0.68rem 0.95rem;
     color: var(--platform-text-muted);
     font-size: 0.85rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
     user-select: none;
@@ -1225,10 +1234,205 @@
     border: none;
     background: transparent;
     border-radius: 0;
+    padding: 0.68rem 0.95rem;
+    color: var(--platform-text-primary);
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     flex: 1;
 
     &:focus {
       box-shadow: none;
+      background: transparent;
+    }
+  }
+}
+
+.dns-checklist-section {
+  margin-top: 0.5rem;
+}
+
+.dns-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.dns-check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  &.is-checked {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.35);
+
+    .dns-check-card__box {
+      background: var(
+        --platform-accent-gradient,
+        linear-gradient(135deg, #6366f1 0%, #a855f7 100%)
+      );
+      border-color: transparent;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+  }
+
+  input[type='checkbox'] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: transparent;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    transition: all 0.2s ease;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--platform-text-primary);
+  }
+
+  &__desc {
+    font-size: 0.82rem;
+    color: var(--platform-text-muted);
+    line-height: 1.4;
+  }
+}
+
+.dns-form__actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 1.5rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-connect-domain {
+  padding: 0.8rem 1.65rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--platform-accent-gradient, linear-gradient(135deg, #6366f1 0%, #a855f7 100%));
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Help Card (Como funciona el enrutamiento)
+.dns-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.dns-info-step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(3px);
+  }
+
+  &__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--platform-accent-gradient, linear-gradient(135deg, #6366f1 0%, #a855f7 100%));
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+  }
+
+  &__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--platform-text-primary);
+  }
+
+  &__text {
+    font-size: 0.83rem;
+    color: var(--platform-text-muted);
+    line-height: 1.5;
+    margin: 0;
+
+    code {
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.15rem 0.4rem;
+      border-radius: 5px;
+      color: #38bdf8;
     }
   }
 }
