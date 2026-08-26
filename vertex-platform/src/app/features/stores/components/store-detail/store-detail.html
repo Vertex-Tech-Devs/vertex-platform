@@ -804,7 +804,7 @@
                 <!-- Pending Invitations Card -->
                 <div class="detail-card detail-card--full" style="margin-top: 1rem">
                   <h2 class="detail-card__title">
-                    <i class="bi bi-envelope-open"></i> Invitaciones Pendientes
+                    <i class="bi bi-envelope-open"></i> Invitaciones Enviadas
                   </h2>
 
                   <div class="invitations-list">
@@ -923,15 +923,18 @@
                   </h2>
 
                   @if (!store()!.customDomain) {
-                    <!-- Non-connected state -->
+                    <!-- Non-connected state: Form Column -->
                     <div class="dns-setup-flow">
-                      <p class="dns-setup-flow__desc">
-                        Vertex Platform permite enrutar tus tiendas a dominios personalizados de
-                        forma automática mediante la infraestructura de Firebase Hosting.
+                      <p class="detail-card__subtitle">
+                        Vertex Platform permite enrutar tu tienda a un dominio personalizado de
+                        forma automática con aprovisionamiento de certificado SSL y CDN global.
                       </p>
 
-                      <div class="form-group mb-4" style="max-width: 480px">
-                        <label class="form-label">Dominio Custom a conectar</label>
+                      <div class="form-group mb-4">
+                        <label class="form-label">
+                          <span>Dominio personalizado</span>
+                          <span class="form-label__tag">HTTPS</span>
+                        </label>
                         <div class="input-addon">
                           <span class="input-addon__pre">https://</span>
                           <input
@@ -942,13 +945,16 @@
                             type="text"
                           />
                         </div>
-                        <small class="form-hint" style="margin-top: 0.35rem">
-                          No incluyas "www" ni barras finales ("/").
+                        <small class="form-hint">
+                          Ingresá el dominio raíz (ej. <code>tienda.com</code>) o subdominio (ej.
+                          <code>shop.tienda.com</code>). No incluyas "www" ni barras.
                         </small>
                       </div>
 
                       <div class="dns-checklist-section">
-                        <label class="form-label mb-2">Checklist previo obligatorio</label>
+                        <label class="form-label mb-3">
+                          <i class="bi bi-shield-check"></i> Checklist previo obligatorio
+                        </label>
                         <div class="dns-checklist">
                           <label class="dns-check-card" [class.is-checked]="hasDomainOwnership()">
                             <input
@@ -960,12 +966,11 @@
                               <i class="bi bi-check-lg"></i>
                             </span>
                             <div class="dns-check-card__text">
-                              <span class="dns-check-card__title"
-                                >Tengo titularidad del dominio</span
-                              >
-                              <span class="dns-check-card__desc"
-                                >Puedo operar sobre el dominio en el registrador actual.</span
-                              >
+                              <span class="dns-check-card__title">Titularidad del dominio</span>
+                              <span class="dns-check-card__desc">
+                                Tengo el dominio registrado a mi nombre o tengo autorización de
+                                administración en el registrador.
+                              </span>
                             </div>
                           </label>
 
@@ -979,11 +984,11 @@
                               <i class="bi bi-check-lg"></i>
                             </span>
                             <div class="dns-check-card__text">
-                              <span class="dns-check-card__title">Tengo acceso al panel DNS</span>
-                              <span class="dns-check-card__desc"
-                                >Puedo crear registros tipo A, TXT o CNAME en el proveedor
-                                DNS.</span
-                              >
+                              <span class="dns-check-card__title">Acceso al panel DNS</span>
+                              <span class="dns-check-card__desc">
+                                Puedo crear registros tipo A y TXT en el proveedor DNS (NIC.ar,
+                                Cloudflare, GoDaddy, DonWeb, etc.).
+                              </span>
                             </div>
                           </label>
 
@@ -997,27 +1002,29 @@
                               <i class="bi bi-check-lg"></i>
                             </span>
                             <div class="dns-check-card__text">
-                              <span class="dns-check-card__title">Definí el dominio final</span>
-                              <span class="dns-check-card__desc"
-                                >Ya validé si voy a usar dominio raíz (tienda.com) o subdominio
-                                (www.tienda.com).</span
-                              >
+                              <span class="dns-check-card__title">Estructura definida</span>
+                              <span class="dns-check-card__desc">
+                                Confirmé si voy a utilizar dominio apex (ej.
+                                <code>tienda.com</code>) o subdominio específico.
+                              </span>
                             </div>
                           </label>
                         </div>
                       </div>
 
-                      <button
-                        class="btn btn-primary mt-4"
-                        [disabled]="isConnectingDomain() || !canConnectDomain()"
-                        (click)="connectDomain()"
-                      >
-                        @if (isConnectingDomain()) {
-                          <span class="spinner-sm"></span> Vinculando proyecto Hosting…
-                        } @else {
-                          <i class="bi bi-link-45deg"></i> Vincular Dominio
-                        }
-                      </button>
+                      <div class="dns-form__actions">
+                        <button
+                          class="btn-connect-domain"
+                          [disabled]="isConnectingDomain() || !canConnectDomain()"
+                          (click)="connectDomain()"
+                        >
+                          @if (isConnectingDomain()) {
+                            <span class="spinner-sm"></span> Vinculando proyecto Hosting…
+                          } @else {
+                            <i class="bi bi-link-45deg"></i> Vincular Dominio
+                          }
+                        </button>
+                      </div>
                     </div>
                   } @else {
                     <!-- Connected domain info -->
@@ -1073,6 +1080,54 @@
                     </div>
                   }
                 </div>
+
+                <!-- DNS Guide Card (when not connected) -->
+                @if (!store()!.customDomain && dnsRecords().length === 0) {
+                  <div class="detail-card">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-info-circle"></i> ¿Cómo funciona el enrutamiento?
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Conectar un dominio propio permite que tus clientes ingresen directamente a tu
+                      marca con SSL y CDN global de alta velocidad.
+                    </p>
+
+                    <div class="dns-info-list">
+                      <div class="dns-info-step">
+                        <div class="dns-info-step__num">1</div>
+                        <div class="dns-info-step__content">
+                          <span class="dns-info-step__title">Vincular dominio en Vertex</span>
+                          <p class="dns-info-step__text">
+                            Ingresá tu dominio personalizado y completá el checklist. Vertex
+                            registrará el host en la infraestructura global de Firebase Hosting.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div class="dns-info-step">
+                        <div class="dns-info-step__num">2</div>
+                        <div class="dns-info-step__content">
+                          <span class="dns-info-step__title">Configurar registros DNS</span>
+                          <p class="dns-info-step__text">
+                            Te daremos los registros <code>A</code> y <code>TXT</code> exactos para
+                            que copies y pegues en tu panel de NIC.ar, Cloudflare, GoDaddy o DonWeb.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div class="dns-info-step">
+                        <div class="dns-info-step__num">3</div>
+                        <div class="dns-info-step__content">
+                          <span class="dns-info-step__title">Certificado SSL Automático</span>
+                          <p class="dns-info-step__text">
+                            Una vez validados los registros, se emite automáticamente un certificado
+                            TLS/SSL gratuito y tu tienda queda protegida y 100% activa.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
 
                 <!-- DNS Records Table / Copy Card -->
                 @if (dnsRecords().length > 0 || store()!.customDomain) {
