@@ -219,9 +219,9 @@ export class StoreDetail implements OnInit {
     await this.orchestrationService.loadVersions();
     const latest = this.orchestrationService.latestVersion();
     const defaultVer =
+      this.store()?.templateVersion ||
       latest?.version ||
       this.availableVersions()[0]?.version ||
-      this.store()?.templateVersion ||
       '0.5.0';
     this.selectedVersion.set(defaultVer);
   }
