@@ -707,13 +707,15 @@ export const redeployStore = onCall<{ storeId: string }>(
     const deployTokenValue = await getDeployToken();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
-    // En entorno de desarrollo, re-desplegar SIEMPRE compila la última versión de develop
-    // para que cualquier cambio de código pusheado se refleje de inmediato en la tienda.
+    // Si la tienda tiene autoUpdate activo, compila la última versión del canal (develop en dev, main en prod).
+    // Si la tienda es estable (autoUpdate = false) y tiene templateVersion fijada, compila estrictamente su tag fijado.
     const ref =
-      env === 'development'
-        ? 'develop'
+      store.autoUpdate === true
+        ? env === 'development'
+          ? 'develop'
+          : targetRef
         : store.templateVersion
-          ? `refs/tags/v${store.templateVersion}`
+          ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`
           : targetRef;
 
     await db.collection('stores').doc(storeId).update({
@@ -801,11 +803,15 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
   const deployTokenValue = await getDeployToken();
   const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
   const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
+  // Si la tienda tiene autoUpdate activo, compila la última versión del canal.
+  // Si la tienda es estable (autoUpdate = false) y tiene templateVersion fijada, compila estrictamente su tag fijado.
   const ref =
-    env === 'development'
-      ? 'develop'
+    store.autoUpdate === true
+      ? env === 'development'
+        ? 'develop'
+        : targetRef
       : store.templateVersion
-        ? `refs/tags/v${store.templateVersion}`
+        ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`
         : targetRef;
 
   const res = await fetch(
@@ -1615,7 +1621,8 @@ export const getActiveStores = onCall(
           storeId: store.id,
           tenantId: store.slug || store.tenantId || store.id,
           siteId: store.runtimeSiteId || store.id,
-          autoUpdate: store.autoUpdate ?? false,
+          autoUpdate: store.autoUpdate === true,
+          templateVersion: store.templateVersion || null,
           projectId,
           storeName: store.name,
           firebaseConfig: configSnap.exists ? JSON.stringify(configSnap.data()) : null,
