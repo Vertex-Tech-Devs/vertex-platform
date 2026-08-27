@@ -61,7 +61,7 @@ npm audit                                # Verificación 0 vulnerabilidades
 
 ## 🔢 Versionado de la Plataforma
 
-Versión actual: `0.5.0` (Template: `0.5.0`, Platform: `0.5.0`)
+Versión actual: `0.7.0` (Template: `0.7.0`, Platform: `0.7.0`)
 
 La constante `CURRENT_TEMPLATE_VERSION` en `provisioning.ts` define qué versión del storefront
 se usa al provisionar nuevas tiendas.
@@ -70,7 +70,7 @@ se usa al provisionar nuevas tiendas.
 cuando el storefront publica un nuevo release.
 
 ### Flujo automático
-1. Storefront hace `npm run release:minor` → tag `v0.5.0`
+1. Storefront hace `npm run release:minor` → tag `v0.7.0`
 2. Workflow `release.yml` del storefront dispara `repository_dispatch: storefront-release`
 3. Workflow `sync-template-version.yml` de la plataforma abre PR automático
 4. Admin de plataforma revisa y mergea el PR
