@@ -56,6 +56,8 @@ export interface Store {
   autoUpdate?: boolean;
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;
+  unhandledProvisioningError?: string | null;
+  error?: string | null;
   verticalId?: string;
   businessVertical?: BusinessVertical;
   provisioningMode?: ProvisioningMode;
