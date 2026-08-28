@@ -88,14 +88,26 @@ export async function checkShardReadiness(
 ): Promise<ShardReadiness> {
   const missing: ShardReadinessReason[] = [];
   const checkedAt = new Date();
+  const env = shard.environment || resolvePlatformEnvironment(PLATFORM_PROJECT);
 
-  if (shard.status !== 'WARMUP_READY' && shard.status !== 'ACTIVE') {
-    missing.push('status');
-  }
+  let currentStatus = shard.status;
+  let billingAccountId = String(shard.billingAccountId ?? '').trim();
 
-  const billingAccountId = String(shard.billingAccountId ?? '').trim();
+  // 1. Auto-backfill billing account if missing from registered billing accounts
   if (!billingAccountId) {
-    missing.push('billing');
+    try {
+      const billingSnap = await db.collection('billingAccounts').where('active', '==', true).get();
+      if (!billingSnap.empty) {
+        billingAccountId = billingSnap.docs[0].id;
+      } else {
+        const legacyBillingSnap = await db.collection('billing_accounts').get();
+        if (!legacyBillingSnap.empty) {
+          billingAccountId = legacyBillingSnap.docs[0].id;
+        }
+      }
+    } catch {
+      /* noop */
+    }
   }
 
   let redirectUri = '';
@@ -120,33 +132,46 @@ export async function checkShardReadiness(
     } else if (persistedFresh && persistedStatus === 'registered') {
       redirectOk = true;
     } else {
-      const clientId = getMasterOAuthClientId(
-        shard.environment || resolvePlatformEnvironment(PLATFORM_PROJECT),
-      );
+      const clientId = getMasterOAuthClientId(env);
       redirectOk = await verifyRedirectUri(clientId, redirectUri);
       inMemoryCache.set(redirectUri, { ok: redirectOk, at: Date.now() });
-      // Persistir para evitar re-verificar en cada cold start del panel.
-      try {
-        await db
-          .collection('infrastructure_shards')
-          .doc(shard.id)
-          .update({
-            redirectUriStatus: redirectOk ? 'registered' : 'missing',
-            redirectUriCheckedAt: checkedAt,
-          });
-      } catch {
-        /* best-effort: si falla la persistencia, el cache en memoria alcanza */
-      }
     }
-    if (!redirectOk) {
-      missing.push('redirect_uri');
-    }
+  }
+
+  // 2. Auto-heal failed warmup shards (status FULL with 0 stores) if OAuth and billing are valid
+  const currentStores = shard.currentStores || 0;
+  if (currentStatus === 'FULL' && currentStores === 0 && redirectOk && billingAccountId) {
+    currentStatus = 'WARMUP_READY';
+  }
+
+  // Update Firestore with recovered state
+  try {
+    const updatePayload: Record<string, unknown> = {
+      redirectUriStatus: redirectOk ? 'registered' : 'missing',
+      redirectUriCheckedAt: checkedAt,
+      billingAccountId,
+      status: currentStatus,
+      updatedAt: checkedAt,
+    };
+    await db.collection('infrastructure_shards').doc(shard.id).update(updatePayload);
+  } catch {
+    /* best-effort: si falla la persistencia, el cache en memoria alcanza */
+  }
+
+  if (currentStatus !== 'WARMUP_READY' && currentStatus !== 'ACTIVE') {
+    missing.push('status');
+  }
+  if (!billingAccountId) {
+    missing.push('billing');
+  }
+  if (!redirectOk) {
+    missing.push('redirect_uri');
   }
 
   return {
     id: shard.id,
     projectId: shard.projectId ?? '',
-    status: shard.status,
+    status: currentStatus,
     billingAccountId,
     redirectUri,
     ready: missing.length === 0,
