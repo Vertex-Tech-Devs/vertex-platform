@@ -195,12 +195,12 @@ export class StoresService {
     return result.data.summary ?? (result.data as RuntimeCapacitySummary);
   }
 
-  async getShardReadiness(): Promise<ShardReadinessReport> {
-    const fn = httpsCallable<Record<string, never>, ShardReadinessReport>(
+  async getShardReadiness(forceRefresh = false): Promise<ShardReadinessReport> {
+    const fn = httpsCallable<{ forceRefresh?: boolean }, ShardReadinessReport>(
       this.fns,
       'getShardReadiness',
     );
-    const result = await fn({});
+    const result = await fn({ forceRefresh });
     return result.data;
   }
 
