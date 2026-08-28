@@ -84,6 +84,7 @@ function toDate(value: unknown): Date | null {
 export async function checkShardReadiness(
   db: FirebaseFirestore.Firestore,
   shard: StoreShard & { id: string },
+  forceRefresh = false,
 ): Promise<ShardReadiness> {
   const missing: ShardReadinessReason[] = [];
   const checkedAt = new Date();
@@ -105,16 +106,19 @@ export async function checkShardReadiness(
   let redirectOk = false;
   if (redirectUri) {
     const cached = inMemoryCache.get(redirectUri);
-    const cachedFresh = cached !== undefined && Date.now() - cached.at < REDIRECT_URI_TTL_MS;
+    const cachedFresh =
+      !forceRefresh && cached !== undefined && Date.now() - cached.at < REDIRECT_URI_TTL_MS;
     const persistedStatus = shard['redirectUriStatus'] as string | undefined;
     const persistedAt = toDate(shard['redirectUriCheckedAt']);
     const persistedFresh =
-      persistedAt !== null && Date.now() - persistedAt.getTime() < REDIRECT_URI_TTL_MS;
+      !forceRefresh &&
+      persistedAt !== null &&
+      Date.now() - persistedAt.getTime() < REDIRECT_URI_TTL_MS;
 
-    if (cachedFresh) {
-      redirectOk = cached.ok;
-    } else if (persistedFresh) {
-      redirectOk = persistedStatus === 'registered';
+    if (cachedFresh && cached.ok) {
+      redirectOk = true;
+    } else if (persistedFresh && persistedStatus === 'registered') {
+      redirectOk = true;
     } else {
       const clientId = getMasterOAuthClientId(
         shard.environment || resolvePlatformEnvironment(PLATFORM_PROJECT),
@@ -164,6 +168,7 @@ export const getShardReadiness = onCall(
 
     const db = getFirestore();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const forceRefresh = Boolean(request.data?.forceRefresh);
 
     const snap = await db.collection('infrastructure_shards').where('environment', '==', env).get();
 
@@ -171,7 +176,9 @@ export const getShardReadiness = onCall(
       .map((doc) => ({ id: doc.id, ...doc.data() }) as StoreShard & { id: string })
       .filter((shard) => shard.runtimeMode === 'shared-shard');
 
-    const results = await Promise.all(shards.map((shard) => checkShardReadiness(db, shard)));
+    const results = await Promise.all(
+      shards.map((shard) => checkShardReadiness(db, shard, forceRefresh)),
+    );
 
     results.sort((a, b) => {
       if (a.ready !== b.ready) return a.ready ? 1 : -1;
