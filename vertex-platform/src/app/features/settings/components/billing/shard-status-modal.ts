@@ -15,8 +15,11 @@ export class ShardStatusModal {
 
   readonly copied = signal(false);
 
-  readonly MASTER_CLIENT_ID =
-    '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+  masterClientId(): string {
+    return this.environment() === 'production'
+      ? '488126647984-lfcabruobbobh65p2eqijncfs30g3m4l.apps.googleusercontent.com'
+      : '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+  }
 
   masterProject(): string {
     return this.environment() === 'production' ? 'ecommerce-vertex' : 'ecommerce-vertex-dev';
@@ -27,7 +30,7 @@ export class ShardStatusModal {
   }
 
   consoleUrl(): string {
-    return `https://console.cloud.google.com/apis/credentials/oauthclient/${this.MASTER_CLIENT_ID}?project=vertex-platform-dev`;
+    return `https://console.cloud.google.com/apis/credentials/oauthclient/${this.masterClientId()}?project=${this.masterProject()}`;
   }
 
   title(reason: ShardReadinessReason): string {
