@@ -130,10 +130,10 @@ export class Billing implements OnInit {
     }
   }
 
-  async checkShards(): Promise<void> {
+  async checkShards(forceRefresh = true): Promise<void> {
     this.isCheckingShards.set(true);
     try {
-      this.readiness.set(await this.storesSvc.getShardReadiness());
+      this.readiness.set(await this.storesSvc.getShardReadiness(forceRefresh));
     } catch {
       /* silent catch */
     } finally {
