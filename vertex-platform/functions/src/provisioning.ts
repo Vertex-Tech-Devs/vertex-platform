@@ -827,13 +827,23 @@ async function createWebAppWithRetry(
     } catch (err) {
       lastErr = err;
       const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('already exists') || msg.includes('409') || msg.includes('ALREADY_EXISTS')) {
+        console.info(
+          `[provisioning:createWebApp] Web app ${displayName} already exists on ${projectId}.`,
+        );
+        return `projects/${projectId}/webApps/existing`;
+      }
       const isPropagationError =
-        msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
+        msg.includes('404') ||
+        msg.includes('NOT_FOUND') ||
+        msg.includes('fetch failed') ||
+        msg.includes('403') ||
+        msg.includes('PERMISSION_DENIED');
       if (!isPropagationError || attempt === MAX_ATTEMPTS) {
         throw err;
       }
       console.warn(
-        `[provisioning:createWebApp] FirebaseProject not propagated yet (attempt ${attempt}/${MAX_ATTEMPTS}). Retrying in ${PAUSE_MS}ms...`,
+        `[provisioning:createWebApp] FirebaseProject not ready yet (attempt ${attempt}/${MAX_ATTEMPTS}). Retrying in ${PAUSE_MS}ms...`,
       );
       await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
     }
@@ -1762,12 +1772,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`,
           );
         } else {
-          const appsRes = (await apiFetch(
+          let appsRes = (await apiFetch(
             auth,
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-          )) as { apps: Array<{ appId: string }> };
+          )) as { apps?: Array<{ appId: string }> };
 
-          if (appsRes.apps?.length) {
+          if (appsRes.apps && appsRes.apps.length > 0) {
             appId = appsRes.apps[0].appId;
           } else {
             // Crea la web app con retry + delay de propagación usando el gcpProjectId real
@@ -1775,8 +1785,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             const refreshed = (await apiFetch(
               auth,
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-            )) as { apps: Array<{ appId: string }> };
-            appId = refreshed.apps[0].appId;
+            )) as { apps?: Array<{ appId: string }> };
+            if (refreshed.apps && refreshed.apps.length > 0) {
+              appId = refreshed.apps[0].appId;
+            } else {
+              throw new Error(`Web app creation completed on ${projectId} but no appId was found.`);
+            }
           }
 
           const configRes = (await apiFetch(
@@ -1803,7 +1817,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         const appsRes = (await apiFetch(
           auth,
           `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-        )) as { apps: Array<{ appId: string }> };
+        )) as { apps?: Array<{ appId: string }> };
+        if (!appsRes.apps || appsRes.apps.length === 0) {
+          throw new Error(
+            `Web app creation completed on dedicated project ${projectId} but no appId was found.`,
+          );
+        }
         appId = appsRes.apps[0].appId;
 
         const configRes = (await apiFetch(
