@@ -248,6 +248,17 @@ export async function apiFetch(
           delayMs = Math.min(delayMs * 2, 45000);
           continue;
         }
+        if (
+          (text.includes('USER_PROJECT_DENIED') ||
+            (res.status === 403 && text.includes('serviceusage'))) &&
+          options.quotaProject
+        ) {
+          console.warn(
+            `[apiFetch] USER_PROJECT_DENIED with quotaProject ${options.quotaProject}. Retrying without quota project header...`,
+          );
+          delete options.quotaProject;
+          continue;
+        }
         throw new Error(`${res.status} ${res.statusText}: ${text}`);
       }
       return res.json();

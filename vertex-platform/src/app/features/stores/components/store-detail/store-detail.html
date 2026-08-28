@@ -80,6 +80,22 @@
           }
         </ul>
 
+        @if (store()!.unhandledProvisioningError || store()!.error) {
+          <div
+            class="step-item__error"
+            style="
+              margin-top: 1rem;
+              margin-bottom: 1rem;
+              padding: 0.75rem;
+              border-radius: 6px;
+              background: rgba(239, 68, 68, 0.1);
+              border: 1px solid rgba(239, 68, 68, 0.2);
+            "
+          >
+            {{ store()!.unhandledProvisioningError || store()!.error }}
+          </div>
+        }
+
         @if (store()!.status === 'error') {
           <div class="error-actions">
             @if (actionError()) {
