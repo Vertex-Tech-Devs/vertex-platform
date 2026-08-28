@@ -908,12 +908,12 @@ export const provisionStore = onCall<CreateStorePayload>(
     let shardsSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
-      .where('status', '==', 'ACTIVE')
+      .where('status', 'in', ['ACTIVE', 'WARMUP_READY'])
       .get();
 
     // Auto-Healing: if no active shard exists, create the default shard before continuing
     if (shardsSnap.empty) {
-      const defaultShardId = 'shared-dev-01';
+      const defaultShardId = env === 'production' ? 'shared-prod-01' : 'shared-dev-01';
       const defaultShardRef = db.collection('infrastructure_shards').doc(defaultShardId);
       const defaultShardSnap = await defaultShardRef.get();
       if (!defaultShardSnap.exists) {
@@ -921,12 +921,12 @@ export const provisionStore = onCall<CreateStorePayload>(
           id: defaultShardId,
           environment: env,
           runtimeMode: 'shared-shard',
-          projectId: env === 'development' ? 'ecommerce-vertex-dev' : 'ecommerce-vertex',
+          projectId: env === 'production' ? 'ecommerce-vertex' : 'ecommerce-vertex-dev',
           siteId: 'default',
           region: 'us-central1',
           status: 'ACTIVE',
           redirectUriStatus: 'registered',
-          billingAccountId: '01D2F4-C25DF1-489AE9',
+          billingAccountId: env === 'production' ? '016C49-4BE679-4F9DF2' : '01D2F4-C25DF1-489AE9',
           maxCapacity: DEFAULT_MAX_STORES_PER_SHARD,
           currentStores: 0,
           reservedStores: 0,
@@ -940,7 +940,7 @@ export const provisionStore = onCall<CreateStorePayload>(
       shardsSnap = await db
         .collection('infrastructure_shards')
         .where('environment', '==', env)
-        .where('status', '==', 'ACTIVE')
+        .where('status', 'in', ['ACTIVE', 'WARMUP_READY'])
         .get();
     }
 
