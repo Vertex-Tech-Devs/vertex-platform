@@ -94,11 +94,16 @@ describe('ShardStatusModal', () => {
     expect(text).toContain('vuelve a ACTIVE');
   });
 
-  it('genera enlace directo con el MASTER_CLIENT_ID correcto', () => {
+  it('genera enlace directo con el masterClientId correcto para cada entorno', () => {
     fixture.componentRef.setInput('shard', makeShard({ ready: false, missing: ['redirect_uri'] }));
     fixture.detectChanges();
-    expect(component.consoleUrl()).toContain(component.MASTER_CLIENT_ID);
-    expect(component.consoleUrl()).toContain('project=vertex-platform-dev');
+    expect(component.consoleUrl()).toContain(component.masterClientId());
+    expect(component.consoleUrl()).toContain('project=ecommerce-vertex-dev');
+
+    fixture.componentRef.setInput('environment', 'production');
+    fixture.detectChanges();
+    expect(component.consoleUrl()).toContain('488126647984-lfcabruobbobh65p2eqijncfs30g3m4l');
+    expect(component.consoleUrl()).toContain('project=ecommerce-vertex');
   });
 
   it('copia el redirect URI al clipboard', async () => {
@@ -144,10 +149,11 @@ describe('ShardStatusModal', () => {
   it('masterProject/envShort/consoleUrl dependen del entorno', () => {
     expect(component.masterProject()).toBe('ecommerce-vertex-dev');
     expect(component.envShort()).toBe('dev');
-    expect(component.consoleUrl()).toContain('vertex-platform-dev');
+    expect(component.consoleUrl()).toContain('ecommerce-vertex-dev');
     fixture.componentRef.setInput('environment', 'production');
     expect(component.masterProject()).toBe('ecommerce-vertex');
     expect(component.envShort()).toBe('prod');
+    expect(component.consoleUrl()).toContain('ecommerce-vertex');
   });
 
   it('copy no falla si el clipboard no está disponible', async () => {

@@ -21,7 +21,14 @@ import type { StoreShard } from './types';
 
 const REDIRECT_URI_TTL_MS = 60 * 60 * 1000; // 1h
 
-const MASTER_CLIENT_ID = '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+export const DEV_MASTER_CLIENT_ID =
+  '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+export const PROD_MASTER_CLIENT_ID =
+  '488126647984-lfcabruobbobh65p2eqijncfs30g3m4l.apps.googleusercontent.com';
+
+export function getMasterOAuthClientId(env: string): string {
+  return env === 'production' ? PROD_MASTER_CLIENT_ID : DEV_MASTER_CLIENT_ID;
+}
 
 const inMemoryCache = new Map<string, { ok: boolean; at: number }>();
 
@@ -109,7 +116,10 @@ export async function checkShardReadiness(
     } else if (persistedFresh) {
       redirectOk = persistedStatus === 'registered';
     } else {
-      redirectOk = await verifyRedirectUri(MASTER_CLIENT_ID, redirectUri);
+      const clientId = getMasterOAuthClientId(
+        shard.environment || resolvePlatformEnvironment(PLATFORM_PROJECT),
+      );
+      redirectOk = await verifyRedirectUri(clientId, redirectUri);
       inMemoryCache.set(redirectUri, { ok: redirectOk, at: Date.now() });
       // Persistir para evitar re-verificar en cada cold start del panel.
       try {
