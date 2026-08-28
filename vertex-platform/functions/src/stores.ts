@@ -685,6 +685,7 @@ export const redeployStore = onCall<{ storeId: string }>(
       runtimeProjectId?: string;
       runtimeMode?: string;
       templateVersion?: string;
+      autoUpdate?: boolean;
     };
 
     const projectId = resolveRuntimeProjectId(store);
@@ -785,6 +786,7 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
     firebaseProjectId?: string;
     runtimeProjectId?: string;
     templateVersion?: string;
+    autoUpdate?: boolean;
   };
   const projectId = resolveRuntimeProjectId(store);
   const runtimeSiteId = store.runtimeSiteId || store.id;
@@ -1598,6 +1600,7 @@ export const getActiveStores = onCall(
           tenantId?: string;
           runtimeSiteId?: string;
           autoUpdate?: boolean;
+          templateVersion?: string;
         };
         let projectId: string;
         try {
