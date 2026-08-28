@@ -27,7 +27,7 @@ export class ShardStatusModal {
   }
 
   consoleUrl(): string {
-    return `https://console.cloud.google.com/apis/credentials?project=${this.masterProject()}`;
+    return `https://console.cloud.google.com/apis/credentials/oauthclient/${this.MASTER_CLIENT_ID}?project=vertex-platform-dev`;
   }
 
   title(reason: ShardReadinessReason): string {

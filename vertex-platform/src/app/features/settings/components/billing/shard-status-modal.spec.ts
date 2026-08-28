@@ -52,9 +52,9 @@ describe('ShardStatusModal', () => {
     expect(text).toContain('Redirect URI sin registrar');
     expect(text).toContain('redirect_uri_mismatch');
     expect(text).toContain('https://vtx-sd-abc12345.firebaseapp.com/__/auth/handler');
-    expect(text).toContain('ecommerce-vertex-dev');
-    // los enlaces están en href (no en textContent)
-    const consoleLink = el.querySelector('a[href*="console.cloud.google.com/apis/credentials"]');
+    const consoleLink = el.querySelector(
+      'a[href*="console.cloud.google.com/apis/credentials/oauthclient"]',
+    );
     expect(consoleLink).toBeTruthy();
   });
 
@@ -94,13 +94,11 @@ describe('ShardStatusModal', () => {
     expect(text).toContain('vuelve a ACTIVE');
   });
 
-  it('usar prod cambia el proyecto master a ecommerce-vertex', () => {
+  it('genera enlace directo con el MASTER_CLIENT_ID correcto', () => {
     fixture.componentRef.setInput('shard', makeShard({ ready: false, missing: ['redirect_uri'] }));
-    fixture.componentRef.setInput('environment', 'production');
     fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('ecommerce-vertex');
-    expect(text).not.toContain('ecommerce-vertex-dev');
+    expect(component.consoleUrl()).toContain(component.MASTER_CLIENT_ID);
+    expect(component.consoleUrl()).toContain('project=vertex-platform-dev');
   });
 
   it('copia el redirect URI al clipboard', async () => {
@@ -146,7 +144,7 @@ describe('ShardStatusModal', () => {
   it('masterProject/envShort/consoleUrl dependen del entorno', () => {
     expect(component.masterProject()).toBe('ecommerce-vertex-dev');
     expect(component.envShort()).toBe('dev');
-    expect(component.consoleUrl()).toContain('ecommerce-vertex-dev');
+    expect(component.consoleUrl()).toContain('vertex-platform-dev');
     fixture.componentRef.setInput('environment', 'production');
     expect(component.masterProject()).toBe('ecommerce-vertex');
     expect(component.envShort()).toBe('prod');

@@ -54,18 +54,18 @@
                 </p>
                 <ol class="issue__steps">
                   <li>
-                    Abrí
+                    Abrí directamente el cliente OAuth maestro en
                     <a [href]="consoleUrl()" target="_blank" rel="noopener noreferrer">
-                      Google Cloud Console → Credenciales
-                    </a>
-                    (proyecto {{ masterProject() }}).
-                  </li>
-                  <li>
-                    Client OAuth: <code>{{ MASTER_CLIENT_ID }}</code
+                      Google Cloud Console → Cliente OAuth 2.0 Web </a
                     >.
                   </li>
                   <li>
-                    <strong>Authorized redirect URIs</strong> → “Agregar URI” → pegá:
+                    Buscá la sección
+                    <strong>URIs de redireccionamiento autorizados</strong> (Authorized redirect
+                    URIs) y hacé clic en <strong>“Agregar URI”</strong>.
+                  </li>
+                  <li>
+                    Pegá la siguiente URL:
                     <div class="copy-row">
                       <code class="copy-row__uri">{{ shard.redirectUri }}</code>
                       <button class="copy-row__btn" (click)="copy(shard.redirectUri)">
@@ -73,11 +73,13 @@
                       </button>
                     </div>
                   </li>
-                  <li>Guardar.</li>
                   <li>
-                    Verificá con
-                    <code>npx tsx scripts/audit-shards.ts --env {{ envShort() }}</code> y presioná
-                    “Verificar” en el panel.
+                    Hacé clic en <strong>Guardar</strong> al final de la página en Google Cloud
+                    Console.
+                  </li>
+                  <li>
+                    Regresá a esta pantalla y presioná <strong>“Verificar”</strong> en el panel para
+                    marcar el shard como 🟢 Listo.
                   </li>
                 </ol>
               }
