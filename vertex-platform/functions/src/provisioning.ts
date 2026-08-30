@@ -750,12 +750,23 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
   console.warn(
     `[provisioning:ensureFirebaseProject] Project ${projectId} NOT in Firebase. Re-running addFirebase...`,
   );
-  const op = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}:addFirebase`, {
-    method: 'POST',
-    body: {},
-    quotaProject: projectId,
-  })) as { name: string };
-  await pollOperation(auth, op.name, firebaseBase);
+  try {
+    const op = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}:addFirebase`, {
+      method: 'POST',
+      body: {},
+      quotaProject: projectId,
+    })) as { name: string };
+    await pollOperation(auth, op.name, firebaseBase);
+  } catch (addErr) {
+    const addMsg = addErr instanceof Error ? addErr.message : String(addErr);
+    if (
+      !addMsg.includes('already') &&
+      !addMsg.includes('409') &&
+      !addMsg.includes('ALREADY_EXISTS')
+    ) {
+      throw addErr;
+    }
+  }
 
   // 3. Esperar propagación (hasta ~3 min, 10s entre intentos)
   const POLL_ATTEMPTS = 18;
@@ -1354,7 +1365,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // Verify that the GCP project exists and is active if createProject is already marked as done
   let projectIsActive = false;
-  if (isDone('createProject')) {
+  if (runtimeMode === 'dedicated-project' && isDone('createProject')) {
     try {
       const projRes = (await apiFetch(
         auth,
@@ -1368,7 +1379,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
-  if (isDone('createProject') && !projectIsActive) {
+  if (runtimeMode === 'dedicated-project' && isDone('createProject') && !projectIsActive) {
     const suffix = `-${Math.random().toString(36).substring(2, 6)}`;
     const newProjectId = `${projectId.substring(0, 30 - suffix.length)}${suffix}`;
 
@@ -1754,13 +1765,22 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             }
             const isPropagationError =
               msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('fetch failed');
-            if (siteAttempt === MAX_SITE_ATTEMPTS || !isPropagationError) {
-              throw err;
+            if (siteAttempt === MAX_SITE_ATTEMPTS) {
+              console.warn(
+                `[provisioning:createWebApp] Non-fatal custom site creation warning on ${projectId}: ${msg}`,
+              );
+              break;
             }
-            console.warn(
-              `[provisioning:createWebApp] Firebase Hosting not ready for ${projectId} (attempt ${siteAttempt}/${MAX_SITE_ATTEMPTS}). Retrying in 10s...`,
-            );
-            await new Promise((resolve) => setTimeout(resolve, 10000));
+            if (!isPropagationError) {
+              console.warn(
+                `[provisioning:createWebApp] Custom site creation attempt ${siteAttempt} error: ${msg}. Retrying...`,
+              );
+            } else {
+              console.warn(
+                `[provisioning:createWebApp] Firebase Hosting not ready for ${projectId} (attempt ${siteAttempt}/${MAX_SITE_ATTEMPTS}). Retrying in 10s...`,
+              );
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5000));
           }
         }
       }
