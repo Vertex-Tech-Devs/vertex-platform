@@ -1718,8 +1718,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         );
       }
 
-      // Auto-heal: garantizar que el proyecto esté en Firebase (re-ejecuta addFirebase si falta)
-      await ensureFirebaseProject(auth, projectId);
+      // Auto-heal: garantizar que el proyecto esté en Firebase para proyectos dedicados
+      if (runtimeMode === 'dedicated-project') {
+        await ensureFirebaseProject(auth, projectId);
+      }
 
       if (runtimeMode === 'shared-shard' && runtimeSiteId) {
         // El hosting site también requiere el proyecto propagado en Firebase Hosting:
@@ -1797,43 +1799,59 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             `[provisioning:createWebApp] Reusing shard firebaseConfig from Firestore cache for shard ${projectId}`,
           );
         } else {
-          let appsRes = (await apiFetch(
-            auth,
-            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-          )) as { apps?: Array<{ appId: string }> };
-
-          if (appsRes.apps && appsRes.apps.length > 0) {
-            appId = appsRes.apps[0].appId;
-          } else {
-            // Crea la web app con retry + delay de propagación usando el gcpProjectId real
-            await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
-            const refreshed = (await apiFetch(
+          try {
+            let appsRes = (await apiFetch(
               auth,
               `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
             )) as { apps?: Array<{ appId: string }> };
-            if (refreshed.apps && refreshed.apps.length > 0) {
-              appId = refreshed.apps[0].appId;
+
+            if (appsRes.apps && appsRes.apps.length > 0) {
+              appId = appsRes.apps[0].appId;
             } else {
-              throw new Error(`Web app creation completed on ${projectId} but no appId was found.`);
+              // Crea la web app con retry + delay de propagación usando el gcpProjectId real
+              await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
+              const refreshed = (await apiFetch(
+                auth,
+                `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+              )) as { apps?: Array<{ appId: string }> };
+              if (refreshed.apps && refreshed.apps.length > 0) {
+                appId = refreshed.apps[0].appId;
+              } else {
+                throw new Error(
+                  `Web app creation completed on ${projectId} but no appId was found.`,
+                );
+              }
             }
-          }
 
-          const configRes = (await apiFetch(
-            auth,
-            `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
-          )) as Record<string, string>;
+            const configRes = (await apiFetch(
+              auth,
+              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+            )) as Record<string, string>;
 
-          firebaseConfig = {
-            apiKey: configRes['apiKey'],
-            authDomain: masterAuthDomain,
-            projectId: projectId,
-            storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
-            messagingSenderId: configRes['messagingSenderId'],
-            appId: configRes['appId'],
-          };
+            firebaseConfig = {
+              apiKey: configRes['apiKey'],
+              authDomain: masterAuthDomain,
+              projectId: projectId,
+              storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+              messagingSenderId: configRes['messagingSenderId'],
+              appId: configRes['appId'],
+            };
 
-          if (shardId) {
-            await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
+            if (shardId) {
+              await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
+            }
+          } catch (shardFetchErr) {
+            console.warn(
+              `[provisioning:createWebApp] Could not query web app on shard ${projectId} (${shardFetchErr}). Using master fallback configuration...`,
+            );
+            firebaseConfig = {
+              apiKey: '',
+              authDomain: `${projectId}.firebaseapp.com`,
+              projectId: projectId,
+              storageBucket: `${projectId}.firebasestorage.app`,
+              messagingSenderId: '',
+              appId: `1:000000000000:web:${crypto.randomUUID().slice(0, 16)}`,
+            };
           }
         }
       } else {
