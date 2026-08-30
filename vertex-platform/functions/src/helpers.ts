@@ -215,7 +215,7 @@ export async function apiFetch(
         Authorization: `Bearer ${tokenRes.token}`,
         'Content-Type': 'application/json',
       };
-      if (options.quotaProject) {
+      if (options.quotaProject && options.quotaProject === PLATFORM_PROJECT) {
         headers['x-goog-user-project'] = options.quotaProject;
       }
       const res = await fetch(url, {

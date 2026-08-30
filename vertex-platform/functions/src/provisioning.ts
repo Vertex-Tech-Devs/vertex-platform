@@ -1334,7 +1334,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     const msg = formatProvisioningError(stepId, err);
     console.error(`[provisioning:${stepId}]`, err);
     await setStep(stepId, 'error', msg);
-    await storeRef.update({ status: 'error', updatedAt: new Date() });
+    await storeRef.update({
+      status: 'error',
+      updatedAt: new Date(),
+      error: msg,
+      unhandledProvisioningError: msg,
+    });
   };
 
   let auth: OAuth2Client;
