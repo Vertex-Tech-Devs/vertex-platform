@@ -80,7 +80,9 @@
           }
         </ul>
 
-        @if (store()!.unhandledProvisioningError || store()!.error) {
+        @if (
+          store()!.status === 'error' && (store()!.unhandledProvisioningError || store()!.error)
+        ) {
           <div
             class="step-item__error"
             style="
