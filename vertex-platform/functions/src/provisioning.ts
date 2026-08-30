@@ -3311,7 +3311,12 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
 
     const steps = (storeData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
-    const updates: Record<string, unknown> = { status: 'provisioning', updatedAt: new Date() };
+    const updates: Record<string, unknown> = {
+      status: 'provisioning',
+      updatedAt: new Date(),
+      error: null,
+      unhandledProvisioningError: null,
+    };
     for (const [id, step] of Object.entries(steps)) {
       if (step.status === 'error') {
         updates[`provisioningSteps.${id}.status`] = 'pending';
