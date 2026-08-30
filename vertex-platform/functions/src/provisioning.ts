@@ -641,7 +641,7 @@ export async function ensureServiceEnabled(
 
   // 1. ¿Ya está habilitado?
   try {
-    const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
+    const res = (await apiFetch(auth, base)) as {
       state?: string;
     };
     if (res && res.state === 'ENABLED') {
@@ -649,43 +649,28 @@ export async function ensureServiceEnabled(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!msg.includes('404') && !msg.includes('NOT_FOUND')) {
-      throw err;
-    }
+    console.warn(
+      `[provisioning:ensureServiceEnabled] Could not check status for ${service} on ${projectId} (${msg}). Proceeding...`,
+    );
+    return;
   }
 
-  // 2. Habilitar y esperar propagación (hasta ~2 min)
+  // 2. Habilitar y esperar propagación
   console.warn(`[provisioning:ensureServiceEnabled] Enabling ${service} on ${projectId}...`);
   try {
     await apiFetch(auth, `${base}:enable`, {
       method: 'POST',
       body: {},
-      quotaProject: projectId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!msg.includes('already') && !msg.includes('409')) {
-      throw err;
+    if (!msg.includes('already') && !msg.includes('409') && !msg.includes('ALREADY_EXISTS')) {
+      console.warn(
+        `[provisioning:ensureServiceEnabled] Warning enabling ${service} on ${projectId}: ${msg}. Continuing...`,
+      );
+      return;
     }
   }
-
-  for (let i = 0; i < 12; i++) {
-    try {
-      const res = (await apiFetch(auth, base, { quotaProject: projectId })) as {
-        state?: string;
-      };
-      if (res && res.state === 'ENABLED') {
-        console.info(`[provisioning:ensureServiceEnabled] ${service} ENABLED on ${projectId}.`);
-        return;
-      }
-    } catch {
-      // aún propagando
-    }
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-  }
-  console.warn(
-    `[provisioning:ensureServiceEnabled] ${service} aún no propagado en ${projectId} (continuando).`,
-  );
 }
 
 /**
@@ -2176,15 +2161,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await setStep('initFirestore', 'done');
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      const isDatastoreError =
-        msg.includes('Datastore Mode') ||
-        msg.includes('DATASTORE_MODE') ||
-        msg.includes('FAILED_PRECONDITION') ||
-        msg.includes('requires billing') ||
-        msg.includes('billing to be enabled') ||
-        msg.includes('PERMISSION_DENIED') ||
-        msg.includes('403') ||
-        msg.includes('400');
+      const isDatastoreError = msg.includes('Datastore Mode') || msg.includes('DATASTORE_MODE');
 
       if (isDatastoreError && runtimeMode === 'shared-shard' && shardId) {
         console.warn(
