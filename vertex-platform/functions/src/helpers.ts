@@ -122,14 +122,21 @@ async function loadOwnerCredentialPool(): Promise<ProvisioningOwnerCredentials[]
 }
 
 export async function getOwnerOAuthClient(ownerId?: string): Promise<OAuth2Client> {
-  const owners = await loadOwnerCredentialPool();
-  const owner = ownerId ? owners.find((candidate) => candidate.id === ownerId) : owners[0];
-  if (!owner) {
-    throw new Error(`Provisioning owner credential "${ownerId}" was not found in Secret Manager.`);
+  try {
+    const owners = await loadOwnerCredentialPool();
+    const owner = ownerId ? owners.find((candidate) => candidate.id === ownerId) : owners[0];
+    if (owner && owner.client_id && owner.refresh_token) {
+      const oauth2 = new OAuth2Client(owner.client_id, owner.client_secret);
+      oauth2.setCredentials({ refresh_token: owner.refresh_token });
+      return oauth2;
+    }
+  } catch (poolErr) {
+    console.warn(
+      `[getOwnerOAuthClient] Owner credential pool unavailable (${poolErr}). Falling back to platform service account OAuth client...`,
+    );
   }
-  const oauth2 = new OAuth2Client(owner.client_id, owner.client_secret);
-  oauth2.setCredentials({ refresh_token: owner.refresh_token });
-  return oauth2;
+
+  return getPlatformServiceAccountOAuthClient();
 }
 
 export async function listProvisioningOwnerCandidates(
@@ -215,9 +222,6 @@ export async function apiFetch(
         Authorization: `Bearer ${tokenRes.token}`,
         'Content-Type': 'application/json',
       };
-      if (options.quotaProject && options.quotaProject === PLATFORM_PROJECT) {
-        headers['x-goog-user-project'] = options.quotaProject;
-      }
       const res = await fetch(url, {
         method: options.method ?? 'GET',
         headers,

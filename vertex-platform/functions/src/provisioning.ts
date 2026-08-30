@@ -1358,8 +1358,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     auth = provisioningOwnerId
       ? await getOwnerOAuthClient(provisioningOwnerId)
       : await getOwnerOAuthClient();
-  } catch {
-    await storeRef.update({ status: 'error', updatedAt: new Date() });
+  } catch (authErr) {
+    await fail('createWebApp', authErr);
     return;
   }
 
