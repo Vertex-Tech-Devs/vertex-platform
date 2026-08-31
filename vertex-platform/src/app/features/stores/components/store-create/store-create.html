@@ -80,7 +80,13 @@
             />
           </div>
           @if (form.get('slug')?.invalid && form.get('slug')?.touched) {
-            <div class="invalid-feedback">Solo letras minúsculas, números y guiones.</div>
+            <div class="invalid-feedback">
+              @if (form.get('slug')?.errors?.['required']) {
+                El slug es obligatorio.
+              } @else {
+                Debe tener entre 3 y 20 caracteres (solo letras minúsculas, números y guiones).
+              }
+            </div>
           }
         </div>
 
