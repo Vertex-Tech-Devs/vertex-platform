@@ -1,5 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import type { OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
@@ -9,8 +10,8 @@ import type { VerticalOption } from '@core/constants/business-verticals.constant
 import { RubroSelector } from '@shared/components/rubro-selector/rubro-selector';
 import { CustomVerticalModal } from '../custom-vertical-modal/custom-vertical-modal';
 
-// Must match backend: 3-20 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
-const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
+// Must match backend: 3-30 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 export type { VerticalOption };
 
@@ -67,6 +68,8 @@ export class StoreCreate implements OnInit {
     },
   ];
 
+  private destroyRef = inject(DestroyRef);
+
   readonly form = this.fb.group({
     name: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
@@ -87,6 +90,16 @@ export class StoreCreate implements OnInit {
         this.runtimeSummaryError.set('No se pudo cargar la capacidad actual de shared-shards.');
       }
     })();
+
+    this.form
+      .get('name')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const slugControl = this.form.get('slug');
+        if (slugControl && !slugControl.dirty) {
+          this.autoSlug();
+        }
+      });
   }
 
   selectVertical(id: string): void {
@@ -112,9 +125,11 @@ export class StoreCreate implements OnInit {
       .toLowerCase()
       .normalize('NFKD')
       .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 30);
     this.form.get('slug')?.setValue(slug);
+    this.form.get('slug')?.updateValueAndValidity();
   }
 
   onLogoFileSelected(event: Event): void {
