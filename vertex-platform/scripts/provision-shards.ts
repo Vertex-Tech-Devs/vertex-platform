@@ -96,12 +96,21 @@ const IDTOOLKIT_URL = 'https://identitytoolkit.googleapis.com';
 const APIKEYS_URL = 'https://apikeys.googleapis.com/v2';
 const BILLING_URL = 'https://cloudbilling.googleapis.com/v1';
 
-const MASTER_CLIENT_ID = '988454979046-jnb1sj6boknturojkohr8peha3lgevtr.apps.googleusercontent.com';
+const MASTER_CLIENT_ID = '488126647984-lfcabruobbobh65p2eqijncfs30g3m4l.apps.googleusercontent.com';
 
-// ─────────────────────────── Auth (ADC directo) ───────────────────────────// Se usa fetch directo con las credenciales de ADC en vez de google-auth-library
+// ─────────────────────────── Auth (ADC directo) ───────────────────────────
+// Se usa fetch directo con las credenciales de ADC en vez de google-auth-library
 // (el transporte de esa librería falla en algunos entornos al refrescar el token).
 
 async function getToken(): Promise<string> {
+  try {
+    const { execSync } = await import('child_process');
+    const token = execSync('gcloud auth print-access-token', { encoding: 'utf8' }).trim();
+    if (token && token.startsWith('ya29.')) return token;
+  } catch {
+    // fallback
+  }
+
   const candidates = [
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
     path.join(os.homedir(), '.config/gcloud/application_default_credentials.json'),
@@ -214,10 +223,15 @@ async function api(
   return res.json();
 }
 
-async function poll(token: string, opName: string, base: string): Promise<void> {
+async function poll(
+  token: string,
+  opName: string,
+  base: string,
+  quota = platformProject,
+): Promise<void> {
   const url = opName.startsWith('http') ? opName : `${base}/${opName}`;
   for (let i = 0; i < 40; i++) {
-    const res = await api(token, url, 'GET');
+    const res = await api(token, url, 'GET', undefined, quota);
     if (res.done) {
       if (res.error) {
         throw new Error(`LRO fallida: ${res.error.message || JSON.stringify(res.error)}`);
@@ -231,22 +245,24 @@ async function poll(token: string, opName: string, base: string): Promise<void> 
 
 function isQuotaError(err: unknown): boolean {
   const msg = String(err instanceof Error ? err.message : err).toLowerCase();
-  return msg.includes('quota') || msg.includes('project count') || msg.includes('exceeded');
+  return (
+    (msg.includes('quota') && msg.includes('project')) ||
+    msg.includes('project count limit') ||
+    msg.includes('exceeded your project quota')
+  );
 }
 
-/**
- * ¿El proyecto ya existe en GCP? 200 = existe (visible), 403 = existe pero sin
- * visibilidad (creado por SA). 404 = libre. Nunca se adoptan proyectos huérfanos
- * a medio provisionar: si el ID colisiona, se regenera.
- */
 async function projectExists(token: string, projectId: string): Promise<boolean> {
-  const res = await fetch(`https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}`, {
+  const res = await fetch(`https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
-      'x-goog-user-project': platformProject,
     },
   });
-  return res.status === 200 || res.status === 403;
+  if (res.status === 200) {
+    const data = (await res.json()) as { state?: string };
+    return data.state === 'ACTIVE';
+  }
+  return false;
 }
 
 // ─────────────────────── Estado actual del pool ───────────────────────
@@ -349,21 +365,27 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
       undefined,
       platformProject,
     );
-    const account =
-      (billingList.billingAccounts || []).find((b: any) => b.open === true) ||
-      (billingList.billingAccounts || [])[0];
-    if (account) {
-      await api(
-        token,
-        `${BILLING_URL}/projects/${projectId}/billingInfo`,
-        'PUT',
-        { billingAccountName: account.name },
-        platformProject,
-      );
-      console.log(`  ✅ facturación vinculada (${account.name})`);
-    } else {
+    let attached = false;
+    for (const account of billingList.billingAccounts || []) {
+      if (account.open !== true) continue;
+      try {
+        await api(
+          token,
+          `${BILLING_URL}/projects/${projectId}/billingInfo`,
+          'PUT',
+          { billingAccountName: account.name },
+          platformProject,
+        );
+        console.log(`  ✅ facturación vinculada (${account.name})`);
+        attached = true;
+        break;
+      } catch (err: any) {
+        console.warn(`  ⚠️ cuenta ${account.name} al límite o no disponible, probando siguiente...`);
+      }
+    }
+    if (!attached) {
       console.warn(
-        '  ⚠️ sin cuenta de billing accesible — el shard puede quedar en Spark (sin Cloud Functions)',
+        '  ⚠️ sin cuenta de billing accesible con cupo libre — el shard puede quedar en Spark',
       );
     }
   } catch (err: any) {
