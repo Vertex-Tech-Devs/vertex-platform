@@ -10,6 +10,9 @@ export interface AdminInfo {
   displayName: string | undefined;
   photoURL: string | undefined;
   role?: 'superAdmin' | 'platformAdmin';
+  status?: 'active' | 'pending';
+  pending?: boolean;
+  addedAt?: string;
 }
 
 export type ProvisioningMode = 'EMPTY' | 'CATALOG_ONLY' | 'FULL_DEMO';

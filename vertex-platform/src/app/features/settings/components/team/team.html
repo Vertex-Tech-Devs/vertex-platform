@@ -1,58 +1,193 @@
 <div class="team-page">
+  <!-- Toast notification -->
+  @if (adminsService.toastMessage()) {
+    <div class="toast-banner">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ adminsService.toastMessage() }}</span>
+    </div>
+  }
+
   <div class="page-top">
-    <div>
-      <h1 class="page-title">Equipo</h1>
-      <p class="page-sub">Administradores con acceso a Vertex Platform</p>
+    <div class="page-top__titles">
+      <h1 class="page-title">Gestión de Equipo</h1>
+      <p class="page-sub">Control de accesos y administradores de Vertex Platform</p>
     </div>
     <a routerLink="/stores" class="btn btn-secondary">← Volver</a>
   </div>
 
+  <!-- KPIs de Equipo -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-card__label">Total Miembros</span>
+      <span class="kpi-card__value">{{ adminsService.admins().length }}</span>
+      <span class="kpi-card__sub">Equipo Vertex</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Super Admins</span>
+      <span class="kpi-card__value">{{ superAdminsCount() }}</span>
+      <span class="kpi-card__sub">Control Total</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Platform Admins</span>
+      <span class="kpi-card__value">{{ platformAdminsCount() }}</span>
+      <span class="kpi-card__sub">Operadores</span>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-card__label">Invitaciones</span>
+      <div class="kpi-card__status-row">
+        <span class="kpi-card__value">{{ pendingAdmins().length }}</span>
+        <span
+          class="badge"
+          [class.badge--active]="pendingAdmins().length === 0"
+          [class.badge--warning]="pendingAdmins().length > 0"
+        >
+          {{ pendingAdmins().length === 0 ? 'Al Día' : 'Pendientes' }}
+        </span>
+      </div>
+      <span class="kpi-card__sub">Esperando inicio</span>
+    </div>
+  </div>
+
   <!-- Add admin -->
   <div class="add-card">
-    <h2 class="add-card__title">Agregar administrador</h2>
-    <p class="add-card__hint">
-      Ingresá el correo electrónico para pre-autorizarlo. Se le asignarán los permisos
-      automáticamente cuando inicie sesión por primera vez.
-    </p>
+    <div class="add-card__header">
+      <i class="bi bi-person-plus-fill"></i>
+      <div>
+        <h2 class="add-card__title">Invitar Administrador</h2>
+        <p class="add-card__hint">
+          Ingresá el correo de Google para pre-autorizar el acceso. Los permisos se activarán
+          automáticamente cuando inicie sesión por primera vez.
+        </p>
+      </div>
+    </div>
+
     <div class="add-form">
-      <input
-        type="email"
-        class="form-control"
-        placeholder="email@dominio.com"
-        [value]="newEmail()"
-        (input)="newEmail.set($any($event.target).value)"
-        (keydown.enter)="addAdmin()"
-      />
-      <select
-        class="form-control"
-        style="max-width: 180px; margin: 0 0.5rem"
-        [value]="newRole()"
-        (change)="newRole.set($any($event.target).value)"
-      >
-        <option value="platformAdmin">Platform Admin</option>
-        <option value="superAdmin">Super Admin</option>
-      </select>
+      <div class="form-group flex-1">
+        <input
+          type="email"
+          class="form-control"
+          placeholder="nombre@gmail.com"
+          [value]="newEmail()"
+          (input)="newEmail.set(iv($event))"
+          (keydown.enter)="addAdmin()"
+        />
+      </div>
+
+      <div class="form-group select-group">
+        <select
+          class="form-control form-select"
+          [value]="newRole()"
+          (change)="newRole.set($any($event.target).value)"
+        >
+          <option value="platformAdmin">Platform Admin</option>
+          <option value="superAdmin">Super Admin</option>
+        </select>
+      </div>
+
       <button
         class="btn btn-primary"
         (click)="addAdmin()"
         [disabled]="isAdding() || !newEmail().trim()"
       >
-        {{ isAdding() ? 'Agregando…' : 'Agregar' }}
+        <i class="bi" [class.bi-send-fill]="!isAdding()" [class.bi-arrow-repeat]="isAdding()" [class.spin]="isAdding()"></i>
+        <span>{{ isAdding() ? 'Invitando…' : 'Invitar Miembro' }}</span>
       </button>
     </div>
+
     @if (addError()) {
-      <p class="add-card__error">{{ addError() }}</p>
+      <div class="error-banner">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ addError() }}</span>
+      </div>
     }
   </div>
 
-  <!-- Admin list -->
+  <!-- Invitaciones Pendientes -->
+  @if (pendingAdmins().length > 0) {
+    <div class="admins-card admins-card--pending">
+      <div class="admins-card__head">
+        <h2 class="admins-card__title">
+          <i class="bi bi-clock-history"></i>
+          Invitaciones Pendientes
+          <span class="count count--warning">{{ pendingAdmins().length }}</span>
+        </h2>
+        <span class="badge badge--warning">Requiere inicio de sesión del usuario</span>
+      </div>
+
+      <ul class="admin-list">
+        @for (admin of pendingAdmins(); track admin.email) {
+          <li class="admin-item admin-item--pending">
+            <div class="admin-item__avatar admin-item__avatar--pending">
+              <i class="bi bi-envelope-paper"></i>
+            </div>
+            <div class="admin-item__info">
+              <div class="admin-item__primary-row">
+                <strong class="admin-email">{{ admin.email }}</strong>
+                <span class="badge badge--warning">Invitación Enviada</span>
+                @if (admin.role) {
+                  <span class="badge" [class.badge--super]="admin.role === 'superAdmin'">
+                    {{ admin.role === 'superAdmin' ? 'Super Admin' : 'Platform Admin' }}
+                  </span>
+                }
+              </div>
+              <small class="admin-meta">
+                Pre-autorizado para acceso de plataforma · Pendiente de primer login con Google
+              </small>
+            </div>
+
+            <div class="admin-item__actions">
+              <button
+                class="btn btn-secondary btn--sm"
+                (click)="resendInvite(admin.email)"
+                [disabled]="resendingEmail() === admin.email"
+                title="Reenviar aviso o renovar invitación"
+              >
+                <i
+                  class="bi"
+                  [class.bi-send]="resendingEmail() !== admin.email"
+                  [class.bi-arrow-repeat]="resendingEmail() === admin.email"
+                  [class.spin]="resendingEmail() === admin.email"
+                ></i>
+                <span>{{ resendingEmail() === admin.email ? 'Reenviando…' : 'Reenviar Solicitud' }}</span>
+              </button>
+
+              <button
+                class="btn btn-icon"
+                (click)="copyEmail(admin.email)"
+                title="Copiar email"
+              >
+                <i class="bi" [class.bi-check2]="copiedEmail() === admin.email" [class.bi-copy]="copiedEmail() !== admin.email"></i>
+              </button>
+
+              <button
+                class="btn btn-icon btn-icon--danger"
+                (click)="removeAdmin(admin.uid, admin.email)"
+                [disabled]="removingUid() === admin.uid"
+                title="Cancelar invitación"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- Admin list Activos -->
   <div class="admins-card">
-    <h2 class="admins-card__title">
-      Administradores activos
-      @if (!adminsService.isLoading()) {
-        <span class="count">{{ adminsService.admins().length }}</span>
-      }
-    </h2>
+    <div class="admins-card__head">
+      <h2 class="admins-card__title">
+        <i class="bi bi-shield-check"></i>
+        Administradores Activos
+        @if (!adminsService.isLoading()) {
+          <span class="count">{{ activeAdmins().length }}</span>
+        }
+      </h2>
+    </div>
 
     @if (adminsService.isLoading()) {
       <ul
@@ -72,13 +207,17 @@
         }
       </ul>
     } @else if (adminsService.error()) {
-      <div class="error-msg">{{ adminsService.error() }}</div>
-    } @else if (adminsService.admins().length === 0) {
-      <p class="empty">No hay administradores registrados.</p>
+      <div class="error-banner">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <span>{{ adminsService.error() }}</span>
+      </div>
+    } @else if (activeAdmins().length === 0) {
+      <p class="empty">No hay administradores con sesión activa registrados.</p>
     } @else {
       <ul class="admin-list">
-        @for (admin of adminsService.admins(); track admin.uid) {
-          <li class="admin-item">
+        @for (admin of activeAdmins(); track admin.uid) {
+          @let isSelf = admin.email === auth.user()?.email;
+          <li class="admin-item" [class.admin-item--self]="isSelf">
             <div class="admin-item__avatar">
               @if (admin.photoURL) {
                 <img [src]="admin.photoURL" [alt]="admin.displayName ?? admin.email" />
@@ -86,31 +225,50 @@
                 <span>{{ admin.email[0].toUpperCase() }}</span>
               }
             </div>
+
             <div class="admin-item__info">
-              <strong>{{ admin.displayName ?? admin.email }}</strong>
+              <div class="admin-item__primary-row">
+                <strong class="admin-name">{{ admin.displayName ?? admin.email }}</strong>
+                @if (admin.role) {
+                  <span class="badge" [class.badge--super]="admin.role === 'superAdmin'">
+                    {{ admin.role === 'superAdmin' ? 'Super Admin' : 'Platform Admin' }}
+                  </span>
+                }
+                @if (isSelf) {
+                  <span class="badge badge--self">Vos</span>
+                } @else {
+                  <span class="badge badge--active">Activo</span>
+                }
+              </div>
               @if (admin.displayName) {
-                <small>{{ admin.email }}</small>
-              }
-              @if (admin.role) {
-                <span class="badge" [class.badge--super]="admin.role === 'superAdmin'">
-                  {{ admin.role === 'superAdmin' ? 'Super Admin' : 'Platform Admin' }}
-                </span>
+                <small class="admin-email">{{ admin.email }}</small>
               }
             </div>
-            @if (admin.email === auth.user()?.email) {
-              <span class="badge-you">Vos</span>
-            } @else {
+
+            <div class="admin-item__actions">
               <button
-                class="btn-remove"
-                (click)="removeAdmin(admin.uid, admin.email)"
-                [disabled]="removingUid() === admin.uid"
+                class="btn btn-icon"
+                (click)="copyEmail(admin.email)"
+                title="Copiar email"
               >
-                {{ removingUid() === admin.uid ? '…' : 'Eliminar' }}
+                <i class="bi" [class.bi-check2]="copiedEmail() === admin.email" [class.bi-copy]="copiedEmail() !== admin.email"></i>
               </button>
-            }
+
+              @if (!isSelf) {
+                <button
+                  class="btn btn-icon btn-icon--danger"
+                  (click)="removeAdmin(admin.uid, admin.email)"
+                  [disabled]="removingUid() === admin.uid"
+                  title="Revocar acceso"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              }
+            </div>
           </li>
         }
       </ul>
     }
   </div>
 </div>
+
