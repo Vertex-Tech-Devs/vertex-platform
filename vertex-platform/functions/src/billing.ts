@@ -59,7 +59,6 @@ export const listBillingAccounts = onCall(
               `https://cloudbilling.googleapis.com/v1/billingAccounts/${encodeURIComponent(accountId)}/projects${
                 pageToken ? `?pageToken=${pageToken}` : ''
               }`,
-              { quotaProject: PLATFORM_PROJECT },
             )) as {
               projectBillingInfo?: Array<{ billingEnabled?: boolean }>;
               nextPageToken?: string;

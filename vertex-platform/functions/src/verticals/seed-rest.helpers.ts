@@ -60,7 +60,6 @@ export async function checkStoreSafety(
     try {
       const res = (await apiFetch(auth, `${base}:runQuery`, {
         method: 'POST',
-        quotaProject: projectId,
         body: {
           structuredQuery: {
             from: [{ collectionId }],
@@ -104,7 +103,7 @@ export async function clearCollection(
     const res = (await apiFetch(
       auth,
       `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}`,
-      { method: 'GET', quotaProject: projectId },
+      { method: 'GET' },
     )) as { documents?: Array<{ name: string }> };
 
     if (res && res.documents && res.documents.length > 0) {
@@ -120,7 +119,7 @@ export async function clearCollection(
         await apiFetch(
           auth,
           `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${docPath}`,
-          { method: 'DELETE', quotaProject: projectId },
+          { method: 'DELETE' },
         );
       }
     }
@@ -142,7 +141,7 @@ export async function deleteDocumentPath(
     await apiFetch(
       auth,
       `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${docPath}`,
-      { method: 'DELETE', quotaProject: projectId },
+      { method: 'DELETE' },
     );
   } catch (err: any) {
     const isNotFound =
