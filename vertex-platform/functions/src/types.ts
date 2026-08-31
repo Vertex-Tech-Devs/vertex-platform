@@ -63,6 +63,7 @@ export type StepStatus = 'pending' | 'running' | 'done' | 'error';
 export interface ProvisioningStep {
   status: StepStatus;
   label: string;
+  detail?: string | null;
   error?: string;
 }
 

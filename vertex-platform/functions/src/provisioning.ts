@@ -1245,9 +1245,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   const currentSteps = (currentData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
   const isDone = (stepId: string): boolean => currentSteps[stepId]?.status === 'done';
 
-  const setStep = async (id: string, status: StepStatus, error?: string): Promise<void> => {
+  const setStep = async (
+    id: string,
+    status: StepStatus,
+    error?: string | null,
+    detail?: string | null,
+  ): Promise<void> => {
     await storeRef.update({
       [`provisioningSteps.${id}.status`]: status,
+      [`provisioningSteps.${id}.detail`]: detail !== undefined ? detail : null,
       ...(error
         ? { [`provisioningSteps.${id}.error`]: error }
         : { [`provisioningSteps.${id}.error`]: null }),
@@ -2007,12 +2013,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 6: Init Firestore + seed store config ─────────────────────────
   if (!isDone('initFirestore')) {
-    await setStep('initFirestore', 'running');
+    await setStep('initFirestore', 'running', null, 'Verificando servicios de Firestore...');
     try {
       // Auto-heal: asegurar que la API de Firestore esté habilitada antes de operar
       await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
 
       if (runtimeMode !== 'shared-shard') {
+        await setStep('initFirestore', 'running', null, 'Inicializando base de datos...');
         try {
           await retry(
             async () => {
@@ -2051,6 +2058,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
       }
+
+      await setStep('initFirestore', 'running', null, 'Escribiendo configuración de la tienda...');
 
       const now = new Date().toISOString();
       // El sufijo de los docs singleton y el campo storeId usan el tenantId (slug),
@@ -2153,6 +2162,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         6000,
       );
 
+      await setStep(
+        'initFirestore',
+        'running',
+        null,
+        'Desplegando reglas de catálogo y Storage...',
+      );
       // Desplegar reglas de seguridad del template (Firestore + Storage) en el proyecto del shard,
       // para que el storefront público (clientes sin usuario) pueda leer el catálogo.
       await deployStorefrontRules(auth, projectId);
@@ -2168,6 +2183,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         tenantId, // storeId = tenantId (slug), el identificador que usa el storefront
         effectiveMode,
         ownerEmail,
+        async (subDetail: string) => {
+          await setStep('initFirestore', 'running', null, subDetail);
+        },
       );
 
       await setStep('initFirestore', 'done');

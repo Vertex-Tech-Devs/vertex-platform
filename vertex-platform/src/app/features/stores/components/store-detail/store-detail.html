@@ -71,6 +71,9 @@
                 </span>
                 <span class="step-item__label">
                   {{ step.label }}
+                  @if (step.status === 'running' && step.detail) {
+                    <div class="step-item__detail">{{ step.detail }}</div>
+                  }
                   @if (step.error) {
                     <div class="step-item__error">{{ step.error }}</div>
                   }
