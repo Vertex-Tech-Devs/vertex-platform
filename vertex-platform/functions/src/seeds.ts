@@ -23,6 +23,7 @@ export async function seedStoreData(
   storeId?: string,
   provisioningMode = 'FULL_DEMO',
   ownerEmail?: string,
+  onProgress?: (detail: string) => Promise<void>,
 ): Promise<void> {
   const activeStoreId = storeId ?? tenantId;
   const sName = storeName ? storeName.trim() : 'Vertex';
@@ -39,12 +40,16 @@ export async function seedStoreData(
     `[SeedEngine] Starting seed on project "${projectId}" for store "${activeStoreId}" in mode "${provisioningMode}" with vertical "${preset.name}"...`,
   );
 
+  await onProgress?.('Limpiando colecciones anteriores...');
+
   // 1. Clear previous collections scoped to this storeId
   const collectionsToClear = ['products', 'categories', 'clients', 'orders', 'attributes'];
   for (const col of collectionsToClear) {
     await clearCollection(auth, projectId, col, activeStoreId);
   }
   await deleteDocumentPath(auth, projectId, `banners/home_${activeStoreId}`);
+
+  await onProgress?.('Configurando páginas de inicio y sobre nosotros...');
 
   // 2. Seed Singletons (Pages & Config)
   const categoryIdMap = new Map<string, string>();
@@ -335,18 +340,18 @@ export async function seedStoreData(
   }
 
   // 3. Seed Categories
+  await onProgress?.(`Creando ${preset.categories.length} categorías y filtros...`);
   for (let i = 0; i < preset.categories.length; i++) {
     const cat = preset.categories[i];
     const fullCatId = categoryIdMap.get(cat.slug) ?? `${activeStoreId}-cat-${cat.slug}`;
-    const mappedFilterable = (cat.filterableAttributes ?? []).map(
-      (code) => attributeIdMap.get(code) ?? `${activeStoreId}-attr-${code}`,
-    );
-    const featCat = preset.featuredCategories.find((fc) => fc.slug === cat.slug);
     const categoryImageUrl =
-      (cat as { imageUrl?: string }).imageUrl ||
-      featCat?.imageUrl ||
-      preset.heroImages[i % preset.heroImages.length] ||
-      '';
+      cat.imageUrl && cat.imageUrl.trim() !== '' ? cat.imageUrl : (preset.heroImages[0] ?? '');
+
+    const mappedFilterable = cat.filterableAttributes
+      ? cat.filterableAttributes.map(
+          (code) => attributeIdMap.get(code) ?? `${activeStoreId}-attr-${code}`,
+        )
+      : [];
 
     const catData = {
       name: cat.name,
@@ -372,6 +377,7 @@ export async function seedStoreData(
   }
 
   // 4. Seed Attributes
+  await onProgress?.(`Configurando atributos y variantes...`);
   for (const attr of preset.attributes) {
     const fullAttrId = attributeIdMap.get(attr.code) ?? `${activeStoreId}-attr-${attr.code}`;
     const attrData = {
@@ -404,6 +410,12 @@ export async function seedStoreData(
     const prodId = `${activeStoreId}-prod-${i + 1}`;
     const catId =
       categoryIdMap.get(prod.categorySlug) ?? `${activeStoreId}-cat-${prod.categorySlug}`;
+
+    if (i % 3 === 0 || i === preset.sampleProducts.length - 1) {
+      await onProgress?.(
+        `Sembrando catálogo (${i + 1}/${preset.sampleProducts.length} productos)...`,
+      );
+    }
 
     const inStockAttributes: Record<string, string[]> = {};
     if (prod.variants && prod.variants.length > 0) {
@@ -510,6 +522,7 @@ export async function seedStoreData(
 
   // 6. Seed Demo Clients & Orders if FULL_DEMO
   if (isModeFullDemo) {
+    await onProgress?.('Generando clientes y pedidos de demostración...');
     const clients = generateDemoClients(activeStoreId);
     for (const client of clients) {
       await retry(
