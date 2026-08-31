@@ -3354,8 +3354,11 @@ export const retryProvisioning = onCall<{ storeId: string }>(
     }
 
     const storeData = snap.data()!;
-    if (storeData['status'] !== 'error') {
-      throw new HttpsError('failed-precondition', 'Only stores in error status can be retried.');
+    if (storeData['status'] !== 'error' && storeData['status'] !== 'provisioning') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Solo se pueden reintentar tiendas en estado de error o aprovisionamiento.',
+      );
     }
 
     const steps = (storeData['provisioningSteps'] ?? {}) as Record<string, ProvisioningStep>;
@@ -3366,19 +3369,27 @@ export const retryProvisioning = onCall<{ storeId: string }>(
       unhandledProvisioningError: null,
     };
     for (const [id, step] of Object.entries(steps)) {
-      if (step.status === 'error') {
+      if (step.status === 'error' || step.status === 'running') {
         updates[`provisioningSteps.${id}.status`] = 'pending';
         updates[`provisioningSteps.${id}.error`] = null;
+        updates[`provisioningSteps.${id}.detail`] = null;
       }
     }
     if (steps['createProject']?.status === 'error') {
       updates['provisioningOwnerId'] = null;
     }
-    if (steps['triggerDeploy']?.status === 'error' || steps['grantAccess']?.status === 'error') {
+    if (
+      steps['triggerDeploy']?.status === 'error' ||
+      steps['triggerDeploy']?.status === 'running' ||
+      steps['grantAccess']?.status === 'error' ||
+      steps['grantAccess']?.status === 'running'
+    ) {
       updates['provisioningSteps.grantAccess.status'] = 'pending';
       updates['provisioningSteps.grantAccess.error'] = null;
+      updates['provisioningSteps.grantAccess.detail'] = null;
       updates['provisioningSteps.triggerDeploy.status'] = 'pending';
       updates['provisioningSteps.triggerDeploy.error'] = null;
+      updates['provisioningSteps.triggerDeploy.detail'] = null;
     }
     await storeRef.update(updates);
 
