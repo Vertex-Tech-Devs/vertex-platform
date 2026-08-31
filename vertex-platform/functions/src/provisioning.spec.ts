@@ -46,7 +46,11 @@ vi.mock('./helpers', () => ({
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { formatProjectDisplayName, normalizeAuthorizedDomain } from './provisioning';
+import {
+  formatProjectDisplayName,
+  normalizeAuthorizedDomain,
+  retryProvisioning,
+} from './provisioning';
 
 const VALID_PAYLOAD = {
   name: 'Test Store',
@@ -348,5 +352,113 @@ describe('normalizeAuthorizedDomain', () => {
       normalizeAuthorizedDomain('https://ecommerce-vertex-dev.firebaseapp.com/__/auth/handler'),
     ).toBe('ecommerce-vertex-dev.firebaseapp.com');
     expect(normalizeAuthorizedDomain(' VTX-STORE.web.app/admin/login ')).toBe('vtx-store.web.app');
+  });
+});
+
+describe('retryProvisioning', () => {
+  const retryHandler = retryProvisioning as unknown as (req: {
+    auth: { token: Record<string, unknown> };
+    data: { storeId: string };
+  }) => Promise<{ success: boolean }>;
+
+  it('allows retrying a store in error status and resets failed steps to pending', async () => {
+    const updateMock = vi.fn().mockResolvedValue(undefined);
+    const storeDoc = {
+      exists: true,
+      data: () => ({
+        id: 'store-error-1',
+        status: 'error',
+        error: 'Previous error',
+        provisioningSteps: {
+          createProject: { status: 'done' },
+          initFirestore: { status: 'error', error: '403 Forbidden' },
+        },
+      }),
+    };
+
+    vi.mocked(getFirestore).mockReturnValue({
+      collection: vi.fn(() => ({
+        doc: vi.fn(() => ({
+          get: vi.fn().mockResolvedValue(storeDoc),
+          update: updateMock,
+        })),
+      })),
+    } as unknown as ReturnType<typeof getFirestore>);
+
+    const res = await retryHandler({
+      auth: { token: { platformAdmin: true } },
+      data: { storeId: 'store-error-1' },
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'provisioning',
+        error: null,
+        'provisioningSteps.initFirestore.status': 'pending',
+      }),
+    );
+  });
+
+  it('allows retrying a store in provisioning status and resets running steps', async () => {
+    const updateMock = vi.fn().mockResolvedValue(undefined);
+    const storeDoc = {
+      exists: true,
+      data: () => ({
+        id: 'store-stuck-1',
+        status: 'provisioning',
+        provisioningSteps: {
+          createProject: { status: 'done' },
+          initFirestore: { status: 'running', detail: 'Desplegando...' },
+        },
+      }),
+    };
+
+    vi.mocked(getFirestore).mockReturnValue({
+      collection: vi.fn(() => ({
+        doc: vi.fn(() => ({
+          get: vi.fn().mockResolvedValue(storeDoc),
+          update: updateMock,
+        })),
+      })),
+    } as unknown as ReturnType<typeof getFirestore>);
+
+    const res = await retryHandler({
+      auth: { token: { platformAdmin: true } },
+      data: { storeId: 'store-stuck-1' },
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'provisioning',
+        'provisioningSteps.initFirestore.status': 'pending',
+      }),
+    );
+  });
+
+  it('rejects retrying active stores with precondition error', async () => {
+    const storeDoc = {
+      exists: true,
+      data: () => ({
+        id: 'store-active-1',
+        status: 'active',
+      }),
+    };
+
+    vi.mocked(getFirestore).mockReturnValue({
+      collection: vi.fn(() => ({
+        doc: vi.fn(() => ({
+          get: vi.fn().mockResolvedValue(storeDoc),
+        })),
+      })),
+    } as unknown as ReturnType<typeof getFirestore>);
+
+    await expect(
+      retryHandler({
+        auth: { token: { platformAdmin: true } },
+        data: { storeId: 'store-active-1' },
+      }),
+    ).rejects.toThrow('Solo se pueden reintentar tiendas en estado de error o aprovisionamiento');
   });
 });
