@@ -93,7 +93,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/banners/home_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(homePayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(homePayload) },
       ),
     5,
     3000,
@@ -104,7 +104,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pages/home_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(homePayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(homePayload) },
       ),
     5,
     3000,
@@ -157,7 +157,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pages/aboutUs_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(aboutUsPayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(aboutUsPayload) },
       ),
     5,
     3000,
@@ -279,7 +279,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/footer_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(footerPayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(footerPayload) },
       ),
     5,
     3000,
@@ -290,7 +290,7 @@ export async function seedStoreData(
       apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/configuracion/store_${activeStoreId}`,
-        { method: 'PATCH', body: toFirestoreFields(configPayload), quotaProject: projectId },
+        { method: 'PATCH', body: toFirestoreFields(configPayload) },
       ),
     5,
     3000,
@@ -323,7 +323,6 @@ export async function seedStoreData(
         {
           method: 'PATCH',
           body: toFirestoreFields(emailTemplatesPayload),
-          quotaProject: projectId,
         },
       ),
     5,
@@ -365,7 +364,7 @@ export async function seedStoreData(
         apiFetch(
           auth,
           `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/categories/${fullCatId}`,
-          { method: 'PATCH', body: toFirestoreFields(catData), quotaProject: projectId },
+          { method: 'PATCH', body: toFirestoreFields(catData) },
         ),
       5,
       3000,
@@ -390,7 +389,7 @@ export async function seedStoreData(
         apiFetch(
           auth,
           `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attributes/${fullAttrId}`,
-          { method: 'PATCH', body: toFirestoreFields(attrData), quotaProject: projectId },
+          { method: 'PATCH', body: toFirestoreFields(attrData) },
         ),
       5,
       3000,
@@ -453,7 +452,7 @@ export async function seedStoreData(
         apiFetch(
           auth,
           `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prodId}`,
-          { method: 'PATCH', body: toFirestoreFields(prodData), quotaProject: projectId },
+          { method: 'PATCH', body: toFirestoreFields(prodData) },
         ),
       5,
       3000,
@@ -479,7 +478,7 @@ export async function seedStoreData(
             apiFetch(
               auth,
               `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prodId}/variants/${variant.sku}`,
-              { method: 'PATCH', body: toFirestoreFields(variantData), quotaProject: projectId },
+              { method: 'PATCH', body: toFirestoreFields(variantData) },
             ),
           5,
           3000,
@@ -499,7 +498,7 @@ export async function seedStoreData(
           apiFetch(
             auth,
             `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${prodId}/variants/default`,
-            { method: 'PATCH', body: toFirestoreFields(baseVariantData), quotaProject: projectId },
+            { method: 'PATCH', body: toFirestoreFields(baseVariantData) },
           ),
         5,
         3000,
@@ -521,7 +520,6 @@ export async function seedStoreData(
             {
               method: 'PATCH',
               body: toFirestoreFields(client as unknown as Record<string, unknown>),
-              quotaProject: projectId,
             },
           ),
         5,
@@ -539,7 +537,6 @@ export async function seedStoreData(
             {
               method: 'PATCH',
               body: toFirestoreFields(order as unknown as Record<string, unknown>),
-              quotaProject: projectId,
             },
           ),
         5,

@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { AddBillingAccountPayload, UpdateBillingAccountPayload } from './types';
-import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, apiFetch } from './helpers';
+import { ALLOWED_ORIGINS, getOwnerOAuthClient, apiFetch } from './helpers';
 import { checkRateLimit } from './stores';
 
 function normalizeBillingAccountId(rawId: string): string {
@@ -59,7 +59,6 @@ export const listBillingAccounts = onCall(
               `https://cloudbilling.googleapis.com/v1/billingAccounts/${encodeURIComponent(accountId)}/projects${
                 pageToken ? `?pageToken=${pageToken}` : ''
               }`,
-              { quotaProject: PLATFORM_PROJECT },
             )) as {
               projectBillingInfo?: Array<{ billingEnabled?: boolean }>;
               nextPageToken?: string;

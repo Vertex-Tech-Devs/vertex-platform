@@ -157,7 +157,6 @@ async function ensureAuthorizedDomains(
   const projConfig = (await apiFetch(
     auth,
     `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProjectId}/config`,
-    { quotaProject: targetProjectId },
   )) as { authorizedDomains?: string[] };
 
   const existingDomains = (projConfig.authorizedDomains ?? [])
@@ -175,7 +174,6 @@ async function ensureAuthorizedDomains(
       {
         method: 'PATCH',
         body: { authorizedDomains: nextDomains },
-        quotaProject: targetProjectId,
       },
     );
     console.info(
@@ -335,7 +333,6 @@ export async function ensureCompositeIndexes(auth: OAuth2Client, projectId: stri
     const existing = (await apiFetch(
       auth,
       `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/-/indexes?pageSize=200`,
-      { quotaProject: projectId },
     )) as {
       indexes?: Array<{
         collectionGroup?: string;
@@ -366,7 +363,6 @@ export async function ensureCompositeIndexes(auth: OAuth2Client, projectId: stri
           {
             method: 'POST',
             body: { queryScope: 'COLLECTION', fields: spec.fields },
-            quotaProject: projectId,
           },
         );
         console.info(
@@ -403,36 +399,29 @@ async function waitForIndexesReady(
       const res = (await apiFetch(
         auth,
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/collectionGroups/-/indexes?pageSize=200`,
-        { quotaProject: projectId },
       )) as {
         indexes?: Array<{ state?: string; fields?: Array<{ fieldPath?: string }> }>;
       };
       const indexes = res.indexes ?? [];
-      if (indexes.length === 0) {
-        allReady = true; // Sin índices compuestos → nada que esperar
-        break;
-      }
-      const building = indexes.filter(
-        (i) => i.state === 'CREATING' || i.state === 'NEEDS_ATTENTION',
-      );
-      if (building.length === 0) {
+      const relevantIndexes = indexes.filter((idx) => idx.fields && idx.fields.length > 1);
+      if (
+        relevantIndexes.length > 0 &&
+        relevantIndexes.every((idx) => idx.state === 'READY' || idx.state === 'ACTIVE')
+      ) {
         allReady = true;
         console.info(
-          `[provisioning:indexes] All ${indexes.length} composite indexes READY on ${projectId}`,
+          `[provisioning:indexes] Todos los índices compuestos (${relevantIndexes.length}) están READY en ${projectId}.`,
         );
         break;
       }
-      console.info(
-        `[provisioning:indexes] Waiting for ${building.length} index(es) to become READY on ${projectId}...`,
-      );
-    } catch (err) {
-      console.warn(`[provisioning:indexes] Index readiness poll failed on ${projectId}:`, err);
+    } catch {
+      // Ignorar errores transitorios de polling
     }
-    await new Promise((resolve) => setTimeout(resolve, 15000));
+    await new Promise((r) => setTimeout(r, 15000));
   }
   if (!allReady) {
     console.warn(
-      `[provisioning:indexes] Timed out waiting for indexes on ${projectId} — las queries podrían fallar temporalmente.`,
+      `[provisioning:indexes] Timeout esperando índices READY en ${projectId} (continuando).`,
     );
   }
 }
@@ -491,7 +480,6 @@ async function initializeFirebaseAuth(auth: OAuth2Client, projectId: string): Pr
       {
         method: 'POST',
         body: {},
-        quotaProject: projectId,
       },
     );
   } catch (err: unknown) {
@@ -544,7 +532,6 @@ export async function deployStorefrontRules(auth: OAuth2Client, projectId: strin
       const rsRes = (await apiFetch(auth, `${rulesBase}/${projectId}/rulesets`, {
         method: 'POST',
         body: { source: { files: [{ name: fileName, content }] } },
-        quotaProject: projectId,
       })) as { name: string };
       const rulesetName = rsRes.name;
 
@@ -552,7 +539,6 @@ export async function deployStorefrontRules(auth: OAuth2Client, projectId: strin
       try {
         await apiFetch(auth, `${rulesBase}/${projectId}/releases/${releaseId}`, {
           method: 'DELETE',
-          quotaProject: projectId,
         });
       } catch {
         // 404 = no existe, ok
@@ -562,7 +548,6 @@ export async function deployStorefrontRules(auth: OAuth2Client, projectId: strin
         await apiFetch(auth, `${rulesBase}/${projectId}/releases`, {
           method: 'POST',
           body: { name: `projects/${projectId}/releases/${releaseId}`, rulesetName },
-          quotaProject: projectId,
         });
         console.info(
           `[provisioning:deployStorefrontRules] ${fileName} desplegado en ${projectId} (${releaseId}).`,
@@ -689,7 +674,6 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
       await apiFetch(auth, `${firebaseBase}/projects/${projectId}?updateMask=billingPlan`, {
         method: 'PATCH',
         body: { billingPlan: 'BLAZE' },
-        quotaProject: projectId,
       });
       console.info(`[provisioning:ensureFirebaseProject] Project ${projectId} set to BLAZE plan.`);
     } catch (err) {
@@ -710,9 +694,10 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
 
   // 1. ¿El proyecto ya está en Firebase?
   try {
-    const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
-      quotaProject: projectId,
-    })) as Record<string, unknown>;
+    const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`)) as Record<
+      string,
+      unknown
+    >;
     if (projRes && typeof projRes === 'object' && 'state' in projRes) {
       console.info(
         `[provisioning:ensureFirebaseProject] Project ${projectId} already in Firebase.`,
@@ -739,7 +724,6 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
     const op = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}:addFirebase`, {
       method: 'POST',
       body: {},
-      quotaProject: projectId,
     })) as { name: string };
     await pollOperation(auth, op.name, firebaseBase);
   } catch (addErr) {
@@ -757,9 +741,10 @@ async function ensureFirebaseProject(auth: OAuth2Client, projectId: string): Pro
   const POLL_ATTEMPTS = 18;
   for (let i = 0; i < POLL_ATTEMPTS; i++) {
     try {
-      const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`, {
-        quotaProject: projectId,
-      })) as Record<string, unknown>;
+      const projRes = (await apiFetch(auth, `${firebaseBase}/projects/${projectId}`)) as Record<
+        string,
+        unknown
+      >;
       if (projRes && typeof projRes === 'object' && 'state' in projRes) {
         console.info(
           `[provisioning:ensureFirebaseProject] Project ${projectId} is now in Firebase (attempt ${i + 1}).`,
@@ -1586,7 +1571,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           const projRes = (await apiFetch(
             auth,
             `https://firebase.googleapis.com/v1beta1/projects/${projectId}`,
-            { quotaProject: projectId },
           )) as Record<string, unknown>;
           if (projRes && typeof projRes === 'object' && 'state' in projRes) {
             firebaseProjectReady = true;
@@ -2134,7 +2118,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   updatedAt: { timestampValue: now },
                 },
               },
-              quotaProject: projectId,
             },
           ),
         5,
@@ -2320,7 +2303,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                         updatedAt: { timestampValue: now },
                       },
                     },
-                    quotaProject: projectId,
                   },
                 ),
               5,
@@ -2403,7 +2385,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   updatedAt: { timestampValue: now },
                 },
               },
-              quotaProject: projectId,
             },
           ),
         5,
@@ -2429,7 +2410,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                   updatedAt: { timestampValue: now },
                 },
               },
-              quotaProject: projectId,
             },
           ),
         5,
@@ -2449,95 +2429,96 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 7: Install firestore-send-email extension ────────────────────
   if (!isDone('installEmailExtension')) {
-    await setStep('installEmailExtension', 'running');
-    try {
-      const [pwVersion] = await secretsClient.accessSecretVersion({
-        name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
-      });
-      const smtpPassword = pwVersion.payload!.data!.toString().trim();
-
-      const secretId = 'ext-firestore-send-email-SMTP_PASSWORD';
-
+    if (runtimeMode === 'shared-shard') {
+      await setStep('installEmailExtension', 'done');
+    } else {
+      await setStep('installEmailExtension', 'running');
       try {
+        const [pwVersion] = await secretsClient.accessSecretVersion({
+          name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
+        });
+        const smtpPassword = pwVersion.payload!.data!.toString().trim();
+
+        const secretId = 'ext-firestore-send-email-SMTP_PASSWORD';
+
+        try {
+          await apiFetch(
+            auth,
+            `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${secretId}`,
+            { method: 'POST', body: { replication: { automatic: {} } } },
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
+        }
+
         await apiFetch(
           auth,
-          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${secretId}`,
-          { method: 'POST', body: { replication: { automatic: {} } }, quotaProject: projectId },
+          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${secretId}:addVersion`,
+          {
+            method: 'POST',
+            body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
+          },
         );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
-      }
 
-      await apiFetch(
-        auth,
-        `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${secretId}:addVersion`,
-        {
-          method: 'POST',
-          body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
-          quotaProject: projectId,
-        },
-      );
+        // Provisionar también el secreto SMTP_PASSWORD directo para Cloud Functions direct dispatch
+        const directSecretId = 'SMTP_PASSWORD';
+        try {
+          await apiFetch(
+            auth,
+            `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${directSecretId}`,
+            { method: 'POST', body: { replication: { automatic: {} } } },
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
+        }
 
-      // Provisionar también el secreto SMTP_PASSWORD directo para Cloud Functions direct dispatch
-      const directSecretId = 'SMTP_PASSWORD';
-      try {
         await apiFetch(
           auth,
-          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${directSecretId}`,
-          { method: 'POST', body: { replication: { automatic: {} } }, quotaProject: projectId },
+          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${directSecretId}:addVersion`,
+          {
+            method: 'POST',
+            body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
+          },
         );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.includes('409') && !msg.toLowerCase().includes('already')) throw err;
-      }
 
-      await apiFetch(
-        auth,
-        `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${directSecretId}:addVersion`,
-        {
-          method: 'POST',
-          body: { payload: { data: Buffer.from(smtpPassword).toString('base64') } },
-          quotaProject: projectId,
-        },
-      );
-
-      const extOp = (await apiFetch(
-        auth,
-        `https://firebaseextensions.googleapis.com/v1beta/projects/${projectId}/instances`,
-        {
-          method: 'POST',
-          body: {
-            name: `projects/${projectId}/instances/firestore-send-email`,
-            config: {
-              extensionRef: 'firebase/firestore-send-email',
-              params: {
-                SMTP_CONNECTION_URI: `smtp://vertex.tech.dev%40gmail.com:${encodeURIComponent(smtpPassword)}@smtp.gmail.com:587`,
-                SMTP_PASSWORD: `projects/${projectId}/secrets/${secretId}/versions/latest`,
-                DEFAULT_FROM: 'vertex.tech.dev@gmail.com',
-                MAIL_COLLECTION: 'mail',
-                TEMPLATES_COLLECTION: 'emailTemplates',
-                DEFAULT_REPLY_TO: '',
-                USERS_COLLECTION: '',
+        const extOp = (await apiFetch(
+          auth,
+          `https://firebaseextensions.googleapis.com/v1beta/projects/${projectId}/instances`,
+          {
+            method: 'POST',
+            body: {
+              name: `projects/${projectId}/instances/firestore-send-email`,
+              config: {
+                extensionRef: 'firebase/firestore-send-email',
+                params: {
+                  SMTP_CONNECTION_URI: `smtp://vertex.tech.dev%40gmail.com:${encodeURIComponent(smtpPassword)}@smtp.gmail.com:587`,
+                  SMTP_PASSWORD: `projects/${projectId}/secrets/${secretId}/versions/latest`,
+                  DEFAULT_FROM: 'vertex.tech.dev@gmail.com',
+                  MAIL_COLLECTION: 'mail',
+                  TEMPLATES_COLLECTION: 'emailTemplates',
+                  DEFAULT_REPLY_TO: '',
+                  USERS_COLLECTION: '',
+                },
               },
             },
           },
-          quotaProject: projectId,
-        },
-      )) as { name: string; done?: boolean };
+        )) as { name: string; done?: boolean };
 
-      if (!extOp.done) {
-        await pollOperation(auth, extOp.name, 'https://firebaseextensions.googleapis.com/v1beta');
-      }
+        if (!extOp.done) {
+          await pollOperation(auth, extOp.name, 'https://firebaseextensions.googleapis.com/v1beta');
+        }
 
-      await setStep('installEmailExtension', 'done');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('already exists') || msg.includes('409')) {
         await setStep('installEmailExtension', 'done');
-      } else {
-        await fail('installEmailExtension', err);
-        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('already exists') || msg.includes('409')) {
+          await setStep('installEmailExtension', 'done');
+        } else {
+          await fail('installEmailExtension', err);
+          return;
+        }
       }
     }
   }
@@ -2550,25 +2531,38 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
       // Initialize Identity Platform configuration for Google OAuth-only store login.
       const initIdentityPlatform = async (): Promise<void> => {
-        await initializeFirebaseAuth(auth, projectId);
+        try {
+          await initializeFirebaseAuth(auth, projectId);
+        } catch (authErr) {
+          console.warn(
+            `[provisioning:initAdmin] initializeFirebaseAuth non-fatal on ${projectId}:`,
+            authErr,
+          );
+        }
 
-        // Enable email/password authentication alongside Google OAuth so store admins have fallback authentication options.
-        await apiFetch(
-          auth,
-          `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
-          {
-            method: 'PATCH',
-            body: {
-              signIn: {
-                email: {
-                  enabled: true,
-                  passwordRequired: true,
+        try {
+          // Enable email/password authentication alongside Google OAuth so store admins have fallback authentication options.
+          await apiFetch(
+            auth,
+            `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config?updateMask=signIn`,
+            {
+              method: 'PATCH',
+              body: {
+                signIn: {
+                  email: {
+                    enabled: true,
+                    passwordRequired: true,
+                  },
                 },
               },
             },
-            quotaProject: projectId,
-          },
-        );
+          );
+        } catch (signInErr) {
+          console.warn(
+            `[provisioning:initAdmin] signIn config non-fatal on ${projectId}:`,
+            signInErr,
+          );
+        }
 
         let oauthClientId = '';
         let oauthClientSecret = '';
@@ -2579,7 +2573,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           const masterIdpConfig = (await apiFetch(
             auth,
             `https://identitytoolkit.googleapis.com/v2/projects/${masterProjectId}/defaultSupportedIdpConfigs/google.com`,
-            { quotaProject: masterProjectId },
           )) as { clientId?: string; clientSecret?: string };
           if (masterIdpConfig?.clientId && masterIdpConfig?.clientSecret) {
             oauthClientId = masterIdpConfig.clientId;
@@ -2610,7 +2603,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                     ...bodyData,
                     name: `projects/${projectId}/defaultSupportedIdpConfigs/google.com`,
                   },
-                  quotaProject: projectId,
                 },
               );
             } catch {
@@ -2620,7 +2612,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 {
                   method: 'PATCH',
                   body: bodyData,
-                  quotaProject: projectId,
                 },
               );
             }
@@ -2635,7 +2626,14 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           }
         }
 
-        await ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain });
+        try {
+          await ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain });
+        } catch (authDomainErr) {
+          console.warn(
+            `[provisioning:initAdmin] ensureStoreAuthDomains non-fatal on ${projectId}:`,
+            authDomainErr,
+          );
+        }
 
         // Verificación automática: el login con Google de la tienda fallará con
         // redirect_uri_mismatch si el redirect URI del shard no está autorizado en
@@ -2666,36 +2664,56 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
         // Registrar el dominio de la tienda (sitio + authDomain del shard) como authorized
         // domain del proyecto del shard — evita auth/unauthorized-domain en el login.
-        if (runtimeSiteId) {
-          await registerAuthorizedAuthDomain(projectId, `${runtimeSiteId}.web.app`);
+        try {
+          if (runtimeSiteId) {
+            await registerAuthorizedAuthDomain(projectId, `${runtimeSiteId}.web.app`);
+          }
+          await registerAuthorizedAuthDomain(projectId, `${projectId}.firebaseapp.com`);
+          await registerAuthorizedAuthDomain(projectId, `${projectId}.web.app`);
+        } catch (regErr) {
+          console.warn(
+            `[provisioning:initAdmin] registerAuthorizedAuthDomain non-fatal on ${projectId}:`,
+            regErr,
+          );
         }
-        await registerAuthorizedAuthDomain(projectId, `${projectId}.firebaseapp.com`);
-        await registerAuthorizedAuthDomain(projectId, `${projectId}.web.app`);
 
         // Índices compuestos del storefront (products/orders/clients) — automatizado para
         // evitar "The query requires an index" en el panel de administración del shard.
-        await ensureCompositeIndexes(auth, projectId);
+        try {
+          await ensureCompositeIndexes(auth, projectId);
+        } catch (idxErr) {
+          console.warn(
+            `[provisioning:initAdmin] ensureCompositeIndexes non-fatal on ${projectId}:`,
+            idxErr,
+          );
+        }
       };
       await retry(initIdentityPlatform, 5, 8000);
 
       const compositeKey = `${tenantId}_${normalizedOwnerEmail}`;
       const encodedKey = encodeURIComponent(compositeKey);
-      await apiFetch(
-        auth,
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedKey}`,
-        {
-          method: 'PATCH',
-          body: {
-            fields: {
-              role: { stringValue: 'owner' },
-              tenantId: { stringValue: tenantId },
-              source: { stringValue: 'platform-provisioning' },
-              updatedAt: { timestampValue: new Date().toISOString() },
+      try {
+        await apiFetch(
+          auth,
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/admin_roles/${encodedKey}`,
+          {
+            method: 'PATCH',
+            body: {
+              fields: {
+                role: { stringValue: 'owner' },
+                tenantId: { stringValue: tenantId },
+                source: { stringValue: 'platform-provisioning' },
+                updatedAt: { timestampValue: new Date().toISOString() },
+              },
             },
           },
-          quotaProject: projectId,
-        },
-      );
+        );
+      } catch (roleErr) {
+        console.warn(
+          `[provisioning:initAdmin] Shard admin_roles write non-fatal on ${projectId}:`,
+          roleErr,
+        );
+      }
 
       // Also write to the local platform database under 'admin_roles' for development / fallback reference
       try {
@@ -2800,7 +2818,6 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               {
                 method: 'POST',
                 body: { fields: mailDocFields },
-                quotaProject: projectId,
               },
             );
             console.info(
@@ -2957,8 +2974,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await ensureShardProjectIam(auth, projectId);
       await setStep('grantAccess', 'done');
     } catch (err) {
-      await fail('grantAccess', err);
-      return;
+      if (runtimeMode === 'shared-shard') {
+        console.warn(
+          `[provisioning:grantAccess] Non-fatal IAM sync on shared shard ${projectId}:`,
+          err,
+        );
+        await setStep('grantAccess', 'done');
+      } else {
+        await fail('grantAccess', err);
+        return;
+      }
     }
   }
 
@@ -3162,7 +3187,6 @@ export const checkStoreOAuthRedirect = onCall<{ storeId: string }>(
       const masterIdpConfig = (await apiFetch(
         auth,
         `https://identitytoolkit.googleapis.com/v2/projects/${getMasterStorefrontProjectId()}/defaultSupportedIdpConfigs/google.com`,
-        { quotaProject: getMasterStorefrontProjectId() },
       )) as { clientId?: string };
       clientId = masterIdpConfig?.clientId || '';
     } catch {
