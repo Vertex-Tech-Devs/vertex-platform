@@ -365,9 +365,16 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
       undefined,
       platformProject,
     );
+    const accounts = (billingList.billingAccounts || []).filter((a: any) => a.open === true);
+    if (opts.env === 'prod') {
+      accounts.sort((a: any, b: any) => {
+        const aProd = (a.displayName || '').toLowerCase().includes('prod') || a.name.includes('016C49');
+        const bProd = (b.displayName || '').toLowerCase().includes('prod') || b.name.includes('016C49');
+        return (bProd ? 1 : 0) - (aProd ? 1 : 0);
+      });
+    }
     let attached = false;
-    for (const account of billingList.billingAccounts || []) {
-      if (account.open !== true) continue;
+    for (const account of accounts) {
       try {
         await api(
           token,
@@ -376,11 +383,11 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
           { billingAccountName: account.name },
           platformProject,
         );
-        console.log(`  ✅ facturación vinculada (${account.name})`);
+        console.log(`  ✅ facturación vinculada (${account.displayName || account.name})`);
         attached = true;
         break;
       } catch (err: any) {
-        console.warn(`  ⚠️ cuenta ${account.name} al límite o no disponible, probando siguiente...`);
+        console.warn(`  ⚠️ cuenta ${account.displayName || account.name} al límite o no disponible, probando siguiente...`);
       }
     }
     if (!attached) {
