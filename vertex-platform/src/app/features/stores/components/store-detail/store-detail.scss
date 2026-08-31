@@ -511,6 +511,15 @@
     flex: 1;
     color: var(--platform-text-secondary);
   }
+  &__detail {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.775rem;
+    color: #fde047;
+    margin-top: 0.25rem;
+    font-weight: 500;
+  }
   &__error {
     font-size: 0.75rem;
     color: #fca5a5;

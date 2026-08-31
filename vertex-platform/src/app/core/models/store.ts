@@ -16,6 +16,7 @@ export interface TemplateVersion {
 export interface ProvisioningStep {
   status: StepStatus;
   label: string;
+  detail?: string | null;
   error?: string;
 }
 
