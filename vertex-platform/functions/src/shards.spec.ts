@@ -21,6 +21,7 @@ vi.mock('./helpers', () => ({
   pickBillingAccount: vi.fn().mockResolvedValue('billing-123'),
   apiFetch: vi.fn(),
   pollOperation: vi.fn(),
+  sendDirectEmail: vi.fn().mockResolvedValue(true),
 }));
 
 import { getFirestore } from 'firebase-admin/firestore';
