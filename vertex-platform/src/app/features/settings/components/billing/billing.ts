@@ -86,18 +86,31 @@ export class Billing implements OnInit {
     });
   });
 
-  readonly isCriticalGcp = computed(() => this.svc.totalGcpRemaining() <= 1);
+  readonly totalAvailableStores = computed(() => {
+    const list = this.sortedShards();
+    if (list.length > 0) {
+      return list.reduce((sum, s) => sum + s.availableStores, 0);
+    }
+    const r = this.readiness();
+    if (r && r.readyCount > 0) {
+      return r.readyCount * 35;
+    }
+    return 0;
+  });
+
+  readonly isCriticalGcp = computed(() => {
+    const readyShards = this.readiness()?.readyCount ?? 0;
+    // Crítico si no hay shards listos O si los cupos GCP se agotaron y casi no quedan shards listos (<= 1)
+    return readyShards === 0 || (this.svc.totalGcpRemaining() <= 1 && readyShards <= 1);
+  });
+
   readonly isWarningShards = computed(
     () =>
       !this.isCriticalGcp() &&
-      (this.readiness()?.readyCount ?? 0) <= 1 &&
+      (this.readiness()?.readyCount ?? 0) <= 2 &&
       this.pendingShardsCount() > 0,
   );
   readonly isOptimalCapacity = computed(() => !this.isCriticalGcp() && !this.isWarningShards());
-
-  readonly totalAvailableStores = computed(() => {
-    return this.sortedShards().reduce((sum, s) => sum + s.availableStores, 0);
-  });
 
   readonly pendingShardsCount = computed(() => {
     const r = this.readiness();

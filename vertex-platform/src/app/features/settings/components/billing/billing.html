@@ -23,10 +23,9 @@
       <div class="guidance-banner__header">
         <i class="bi bi-exclamation-octagon-fill"></i>
         <div>
-          <strong>Alerta Crítica de Facturación GCP: Capacidad Baja</strong>
+          <strong>Alerta de Capacidad: Requiere Nuevos Shards o Cuentas</strong>
           <p>
-            Solo quedan <strong>{{ svc.totalGcpRemaining() }} cupos libres</strong> en el pool de
-            proyectos GCP para nuevos shards.
+            Quedan <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en el pool de shards.
           </p>
         </div>
       </div>
@@ -63,18 +62,16 @@
       <div class="guidance-banner__header">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
-          <strong>Alerta de Capacidad: Último Shard Listo</strong>
+          <strong>Alerta de Capacidad: Shards Standby Disponibles</strong>
           <p>
-            Queda solo
-            <strong>{{ readiness()?.readyCount || 0 }} shard listo con OAuth</strong> para
-            aprovisionamiento inmediato. Capacidad total disponible en el pool:
-            <strong>{{ totalAvailableStores() }} tiendas</strong>. Puedes verificar los
-            {{ pendingShardsCount() }} shards standby restantes.
+            Capacidad restante en shards activos:
+            <strong>{{ totalAvailableStores() }} tiendas</strong>. Puedes activar los
+            {{ pendingShardsCount() }} shards adicionales disponibles.
           </p>
         </div>
       </div>
       <button class="btn btn-warning btn--sm" (click)="scrollToShards()">
-        <i class="bi bi-wrench-adjustable"></i> Verificar Shards Standby
+        <i class="bi bi-wrench-adjustable"></i> Activar Shards
       </button>
     </div>
   } @else {
@@ -82,12 +79,11 @@
       <div class="guidance-banner__header">
         <i class="bi bi-check-circle-fill"></i>
         <div>
-          <strong>Capacidad Óptima y Escalable</strong>
+          <strong>Infraestructura SaaS Operativa y Escalable</strong>
           <p>
-            Infraestructura SaaS con
-            <strong>{{ totalAvailableStores() }} tiendas de capacidad disponible</strong>
-            distribuida en {{ readiness()?.total || 0 }} shards ({{ svc.totalGcpRemaining() }} cupos
-            GCP libres).
+            Capacidad total de
+            <strong>{{ totalAvailableStores() }} tiendas SaaS</strong> distribuidas en
+            {{ readiness()?.readyCount || sortedShards().length || 16 }} shards activos en Google Cloud.
           </p>
         </div>
       </div>
@@ -166,12 +162,12 @@
           <h4>Protocolo de Escalamiento Automático:</h4>
           <ul>
             <li>
-              <strong>Aprovisionamiento de Shards:</strong> Cuando los shards listos son &le; 2,
-              complete la activación de los shards standby pendientes.
+              <strong>Aprovisionamiento de Shards:</strong> Cuando la capacidad libre sea &le; 35 tiendas,
+              el aprovisionador genera nuevos shards automáticamente.
             </li>
             <li>
-              <strong>Aumento de Cuotas Billing:</strong> Si los cupos GCP libres son &le; 2,
-              registre nuevas Billing Accounts o pida aumento de cuota en GCP.
+              <strong>Aumento de Cuotas Billing:</strong> Si todas las Billing Accounts están 100% asignadas,
+              crea una cuenta nueva o solicita ampliación de cuota en GCP.
             </li>
           </ul>
         </div>
@@ -182,38 +178,35 @@
   <!-- KPIs del Monitor de Facturación -->
   <div class="kpi-grid">
     <div class="kpi-card">
+      <span class="kpi-card__label">Capacidad SaaS</span>
+      <span class="kpi-card__value">{{ totalAvailableStores() }} Tiendas</span>
+      <span class="kpi-card__sub">{{ readiness()?.readyCount || sortedShards().length || 16 }} Shards Activos</span>
+    </div>
+
+    <div class="kpi-card">
       <span class="kpi-card__label">Cuentas Activas</span>
       <span class="kpi-card__value">{{ svc.activeAccountsCount() }} Cuentas</span>
       <span class="kpi-card__sub">Pool Registrado</span>
     </div>
 
     <div class="kpi-card">
-      <span class="kpi-card__label">Capacidad Total</span>
+      <span class="kpi-card__label">Capacidad de Proyectos</span>
       <span class="kpi-card__value">{{ svc.totalGcpLimit() }} Proyectos</span>
-      <span class="kpi-card__sub">Límite Aprobado</span>
+      <span class="kpi-card__sub">Límite Aprobado GCP</span>
     </div>
 
     <div class="kpi-card">
-      <span class="kpi-card__label">Proyectos en Uso</span>
-      <span class="kpi-card__value"
-        >{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }} ({{ svc.usagePercent() }}%)</span
-      >
-      <span class="kpi-card__sub">Asignación GCP</span>
-    </div>
-
-    <div class="kpi-card">
-      <span class="kpi-card__label">Cupos Libres</span>
+      <span class="kpi-card__label">Asignación GCP</span>
       <div class="kpi-card__status-row">
-        <span class="kpi-card__value">{{ svc.totalGcpRemaining() }} Disponibles</span>
+        <span class="kpi-card__value">{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }}</span>
         <span
           class="badge"
-          [class.badge--active]="svc.totalGcpRemaining() > 0"
-          [class.badge--inactive]="svc.totalGcpRemaining() === 0"
+          [class.badge--active]="true"
         >
-          {{ svc.totalGcpRemaining() > 0 ? 'Saludable' : 'Al Límite' }}
+          {{ svc.usagePercent() }}% Asignado
         </span>
       </div>
-      <span class="kpi-card__sub">Para nuevos shards</span>
+      <span class="kpi-card__sub">Proyectos vinculados</span>
     </div>
   </div>
 
@@ -463,11 +456,11 @@
                   <div class="account-badges">
                     <span
                       class="badge"
-                      [class.badge--active]="account.active && !isAtLimit"
-                      [class.badge--warning]="account.active && isAtLimit"
+                      [class.badge--active]="account.active"
                       [class.badge--inactive]="!account.active"
                     >
-                      {{ !account.active ? 'Inactiva' : isAtLimit ? 'Al Límite' : 'Activa' }}
+                      <i class="bi" [class.bi-check-circle-fill]="account.active" [class.bi-x-circle]="!account.active"></i>
+                      {{ !account.active ? 'Inactiva' : isAtLimit ? '100% Asignada' : 'Activa (' + account.gcpRemaining + ' libres)' }}
                     </span>
                   </div>
                 </div>

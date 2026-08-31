@@ -139,7 +139,12 @@ export class BillingAccountsService {
   }
 
   private mapDocToBillingAccount(id: string, data: Record<string, unknown>): BillingAccount {
-    const active = data['status'] ? data['status'] === 'ACTIVE' : data['active'] !== false;
+    const isExplicitlyDisabled =
+      data['active'] === false ||
+      data['status'] === 'DISABLED' ||
+      data['status'] === 'INACTIVE' ||
+      data['status'] === 'CLOSED';
+    const active = !isExplicitlyDisabled;
     const accountId =
       typeof data['accountId'] === 'string' && data['accountId'] ? data['accountId'] : id;
     const gcpProjectLimit = Number(data['maxProjects'] ?? data['gcpProjectLimit'] ?? 5);
