@@ -45,7 +45,17 @@ const envValue = opts.env === 'prod' ? 'production' : 'development';
 const CRM_URL = 'https://cloudresourcemanager.googleapis.com/v3';
 const FIRESTORE_URL = 'https://firestore.googleapis.com/v1';
 
+import { execSync } from 'child_process';
+
 async function getToken(): Promise<string> {
+  try {
+    const token = execSync('gcloud auth print-access-token', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (token) return token;
+  } catch {}
+
   const candidates = [
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
     path.join(os.homedir(), '.config/gcloud/application_default_credentials.json'),
@@ -112,7 +122,6 @@ async function getPoolDocs(
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'x-goog-user-project': platformProject,
     },
     body: JSON.stringify({
       structuredQuery: { from: [{ collectionId: 'infrastructure_shards' }], limit: 500 },

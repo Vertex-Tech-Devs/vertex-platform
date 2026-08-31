@@ -25,10 +25,16 @@ function readEnvInt(name: string, fallback: number): number {
  * "Disponible" = puede recibir tiendas nuevas sin configuración.
  * Configurable por entorno con POOL_LOW_THRESHOLD.
  */
-export const POOL_LOW_THRESHOLD = readEnvInt('POOL_LOW_THRESHOLD', 2);
+export const POOL_LOW_THRESHOLD = readEnvInt('POOL_LOW_THRESHOLD', 25);
 
-/** Email al que llegan las notificaciones de pool bajo. */
-const POOL_ALERT_EMAIL = process.env['POOL_ALERT_EMAIL'] || 'juan.l.espeche@gmail.com';
+/** Emails a los que llegan las notificaciones de pool bajo. */
+const POOL_ALERT_EMAILS = (
+  process.env['POOL_ALERT_EMAIL'] ||
+  'juan.l.espeche@gmail.com,leivalihue@gmail.com,vertex.tech.dev@gmail.com'
+)
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /** Devuelve cuántos shards disponibles (con cupo) hay para el entorno. */
 export async function countAvailableShards(
@@ -58,17 +64,21 @@ export async function checkPoolLowAndAlert(
   env: string,
 ): Promise<number> {
   const available = await countAvailableShards(db, env);
+  const shortEnv = env === 'production' ? 'prod' : 'dev';
   const alertRef = db.collection('system_alerts').doc(`pool_low_${env}`);
+  const shortAlertRef = db.collection('system_alerts').doc(`pool_low_${shortEnv}`);
+
   // Recomendación: cuántos shards crear de un tirón para volver al objetivo del scheduler.
   const WARM_SHARD_TARGET = readEnvInt('WARM_SHARD_TARGET', 10);
   const recommendedCount = Math.max(WARM_SHARD_TARGET, 10);
 
   if (available > POOL_LOW_THRESHOLD) {
     // Pool OK: limpiar la alerta activa si existía.
-    await alertRef.set({
+    const clearPayload = {
       active: false,
       updatedAt: new Date(),
-    });
+    };
+    await Promise.all([alertRef.set(clearPayload), shortAlertRef.set(clearPayload)]);
     return available;
   }
 
@@ -79,8 +89,8 @@ export async function checkPoolLowAndAlert(
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const shouldNotify = lastAlertedAt < oneDayAgo;
 
-  const command = `npx tsx scripts/provision-shards.ts --target ${recommendedCount} --env ${env === 'production' ? 'prod' : 'dev'}`;
-  await alertRef.set({
+  const command = `npx tsx scripts/provision-shards.ts --target ${recommendedCount} --env ${shortEnv}`;
+  const alertData = {
     active: true,
     availableShards: available,
     threshold: POOL_LOW_THRESHOLD,
@@ -88,28 +98,32 @@ export async function checkPoolLowAndAlert(
     command,
     lastAlertedAt: shouldNotify ? new Date() : lastAlertedAt,
     updatedAt: new Date(),
-  });
+  };
+
+  await Promise.all([alertRef.set(alertData), shortAlertRef.set(alertData)]);
 
   if (shouldNotify) {
     console.warn(
-      `[checkPoolLowAndAlert] Pool bajo (${available} ≤ ${POOL_LOW_THRESHOLD}) — notificando a ${POOL_ALERT_EMAIL}`,
+      `[checkPoolLowAndAlert] Pool bajo (${available} ≤ ${POOL_LOW_THRESHOLD}) — notificando a ${POOL_ALERT_EMAILS.join(', ')}`,
     );
-    try {
-      await sendDirectEmail(
-        POOL_ALERT_EMAIL,
-        `⚠️ Vertex — Pool de shards bajo (${available} disponibles)`,
-        `<p>El pool de shards de <strong>${env}</strong> está bajo:</p>
-         <p><strong>${available}</strong> shard(s) disponible(s) (umbral: ${POOL_LOW_THRESHOLD}).</p>
-         <p>Provisioná <strong>${recommendedCount}</strong> shards de un tirón con:
-         <code>${command}</code></p>
-         <p>Después registrá los redirect URIs que imprime el script (paso manual en
-         Google Cloud Console, una vez por shard) y verificá con
-         <code>npx tsx scripts/check-oauth-redirects.ts</code>.</p>
-         <p>O el scheduler lo hará automáticamente (WARM_SHARD_TARGET=${WARM_SHARD_TARGET}).</p>`,
-        `Pool de shards bajo (${available} disponibles) en ${env}. Ejecutá: ${command}`,
-      );
-    } catch (err) {
-      console.error('[checkPoolLowAndAlert] Falló el envío del email:', err);
+    for (const recipient of POOL_ALERT_EMAILS) {
+      try {
+        await sendDirectEmail(
+          recipient,
+          `⚠️ Vertex — Pool de shards bajo (${available} disponibles)`,
+          `<p>El pool de shards de <strong>${env}</strong> está bajo:</p>
+           <p><strong>${available}</strong> shard(s) disponible(s) (umbral: ${POOL_LOW_THRESHOLD}).</p>
+           <p>Provisioná <strong>${recommendedCount}</strong> shards de un tirón con:
+           <code>${command}</code></p>
+           <p>Después registrá los redirect URIs que imprime el script (paso manual en
+           Google Cloud Console, una vez por shard) y verificá con
+           <code>npx tsx scripts/check-oauth-redirects.ts</code>.</p>
+           <p>O el scheduler lo hará automáticamente (WARM_SHARD_TARGET=${WARM_SHARD_TARGET}).</p>`,
+          `Pool de shards bajo (${available} disponibles) en ${env}. Ejecutá: ${command}`,
+        );
+      } catch (err) {
+        console.error(`[checkPoolLowAndAlert] Falló el envío del email a ${recipient}:`, err);
+      }
     }
   }
   return available;
