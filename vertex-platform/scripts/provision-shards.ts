@@ -354,6 +354,47 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
   } else if (op.name) {
     await poll(token, op.name, CRM_URL);
     console.log('  ✅ proyecto creado');
+
+    // Otorgar permisos de Editor y Datastore Owner a las Service Accounts de Platform
+    try {
+      const platformMembers = [
+        'serviceAccount:vertex-platform-app@appspot.gserviceaccount.com',
+        'serviceAccount:291764287509-compute@developer.gserviceaccount.com',
+        'serviceAccount:firebase-adminsdk-fbsvc@vertex-platform-app.iam.gserviceaccount.com',
+        'serviceAccount:vertex-platform-dev@appspot.gserviceaccount.com',
+        'serviceAccount:1011688892358-compute@developer.gserviceaccount.com',
+        'serviceAccount:firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com',
+        'user:vertex.tech.dev@gmail.com',
+        'user:juan.l.espeche@gmail.com',
+        'user:leivalihue@gmail.com'
+      ];
+      const policyRes = await api(token, `${CRM_URL}/projects/${projectId}:getIamPolicy`, 'POST', {});
+      const policy = policyRes || { bindings: [] };
+      if (!policy.bindings) policy.bindings = [];
+
+      let editorBinding = policy.bindings.find((b: any) => b.role === 'roles/editor');
+      if (!editorBinding) {
+        editorBinding = { role: 'roles/editor', members: [] };
+        policy.bindings.push(editorBinding);
+      }
+      for (const m of platformMembers) {
+        if (!editorBinding.members.includes(m)) editorBinding.members.push(m);
+      }
+
+      let datastoreBinding = policy.bindings.find((b: any) => b.role === 'roles/datastore.owner');
+      if (!datastoreBinding) {
+        datastoreBinding = { role: 'roles/datastore.owner', members: [] };
+        policy.bindings.push(datastoreBinding);
+      }
+      for (const m of platformMembers) {
+        if (!datastoreBinding.members.includes(m)) datastoreBinding.members.push(m);
+      }
+
+      await api(token, `${CRM_URL}/projects/${projectId}:setIamPolicy`, 'POST', { policy });
+      console.log('  ✅ permisos IAM otorgados a Platform Service Accounts');
+    } catch (iamErr: any) {
+      console.warn('  ⚠️ setIamPolicy warning:', String(iamErr?.message || '').slice(0, 120));
+    }
   }
 
   // 2. Vincular facturación (puede fallar con ADC personal → warning no fatal)

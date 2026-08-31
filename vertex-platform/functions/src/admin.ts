@@ -142,13 +142,22 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
   // Read pre-authorized admins from Firestore collection
   const snapshot = await db.collection('platformAdmins').get();
   const adminMap = new Map(
-    snapshot.docs.map((doc) => [doc.id, doc.data()?.['role'] || 'platformAdmin']),
+    snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      return [
+        doc.id,
+        {
+          role: (data['role'] || 'platformAdmin') as 'superAdmin' | 'platformAdmin',
+          addedAt: data['addedAt']?.toDate ? data['addedAt'].toDate().toISOString() : undefined,
+        },
+      ];
+    }),
   );
 
   const admins: AdminInfo[] = [];
 
   // For each email, retrieve display profile if user already signed up
-  for (const [email, role] of adminMap.entries()) {
+  for (const [email, meta] of adminMap.entries()) {
     try {
       const user = await auth.getUserByEmail(email);
       admins.push({
@@ -156,7 +165,10 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
         email: user.email ?? email,
         displayName: user.displayName || undefined,
         photoURL: user.photoURL || undefined,
-        role: role as 'superAdmin' | 'platformAdmin',
+        role: meta.role,
+        status: 'active',
+        pending: false,
+        addedAt: meta.addedAt,
       });
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
@@ -166,7 +178,10 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
           email,
           displayName: 'Invitado (Pendiente)',
           photoURL: undefined,
-          role: role as 'superAdmin' | 'platformAdmin',
+          role: meta.role,
+          status: 'pending',
+          pending: true,
+          addedAt: meta.addedAt,
         });
       } else {
         console.error(`Error loading details for admin ${email}:`, err);
@@ -176,6 +191,43 @@ export const listAdmins = onCall({ cors: ALLOWED_ORIGINS, invoker: 'public' }, a
 
   return { admins };
 });
+
+export const resendAdminInvite = onCall<{ email: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['superAdmin'] && !request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can resend invitations.');
+    }
+
+    const email = (request.data?.email || '').trim().toLowerCase();
+    if (!email) {
+      throw new HttpsError('invalid-argument', 'Valid email required.');
+    }
+
+    const db = getFirestore();
+    const docRef = db.collection('platformAdmins').doc(email);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      throw new HttpsError('not-found', 'Admin invitation not found.');
+    }
+
+    await docRef.update({
+      updatedAt: new Date(),
+      lastResentAt: new Date(),
+      resentBy: request.auth.token.email || request.auth.uid,
+    });
+
+    await logAuditAction(
+      request.auth.uid,
+      request.auth.token.email,
+      'resendAdminInvite',
+      email,
+      'success',
+    );
+
+    return { success: true, email };
+  },
+);
 
 /**
  * Triggered reactively when a document is written in the 'platformAdmins' collection.
