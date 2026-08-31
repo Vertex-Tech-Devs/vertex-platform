@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { AddBillingAccountPayload, UpdateBillingAccountPayload } from './types';
-import { ALLOWED_ORIGINS, PLATFORM_PROJECT, getOwnerOAuthClient, apiFetch } from './helpers';
+import { ALLOWED_ORIGINS, getOwnerOAuthClient, apiFetch } from './helpers';
 import { checkRateLimit } from './stores';
 
 function normalizeBillingAccountId(rawId: string): string {
