@@ -101,27 +101,49 @@
           </div>
         }
 
-        @if (store()!.status === 'error') {
-          <div class="error-actions">
-            @if (actionError()) {
-              <p class="action-error">{{ actionError() }}</p>
-            }
-            <button class="btn btn-primary" [disabled]="isRetrying()" (click)="retry()">
+        <div class="provisioning-actions">
+          @if (actionError()) {
+            <p class="action-error">{{ actionError() }}</p>
+          }
+          <div class="provisioning-actions__buttons">
+            <button
+              class="btn btn-primary"
+              [disabled]="isRetrying()"
+              (click)="retry()"
+              title="Reintentar o reanudar el flujo de aprovisionamiento desde el paso actual"
+            >
               @if (isRetrying()) {
                 <app-spinner size="sm" label="Reintentando…" />
               } @else {
-                <i class="bi bi-arrow-repeat"></i> Reintentar aprovisionamiento
+                <i class="bi bi-arrow-repeat"></i>
+                {{
+                  store()!.status === 'error'
+                    ? 'Reintentar aprovisionamiento'
+                    : 'Reanudar / Forzar reintento'
+                }}
               }
             </button>
             <button
               class="btn btn-danger"
               [disabled]="isDeleting()"
               (click)="showDeleteConfirm.set(true)"
+              title="Cancelar el proceso y eliminar la tienda"
             >
-              <i class="bi bi-trash"></i> Eliminar tienda
+              @if (isDeleting()) {
+                <span class="spinner-sm"></span> Eliminando…
+              } @else {
+                <i class="bi bi-trash"></i> Eliminar tienda
+              }
             </button>
           </div>
-        }
+          @if (store()!.status === 'provisioning') {
+            <p class="provisioning-actions__hint">
+              <i class="bi bi-info-circle"></i> Si el proceso parece demorado o fue interrumpido,
+              podés forzar el reintento para continuar desde el paso actual o cancelar y eliminar la
+              tienda.
+            </p>
+          }
+        </div>
       </div>
     }
 
