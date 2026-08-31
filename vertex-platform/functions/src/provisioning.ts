@@ -1394,7 +1394,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 1: Create GCP project ─────────────────────────────────────────
   if (!isDone('createProject')) {
-    await setStep('createProject', 'running');
+    await setStep(
+      'createProject',
+      'running',
+      null,
+      'Asignando credenciales y creando proyecto GCP...',
+    );
     try {
       const maxQuotaRetryRounds = 3;
       let createProjectError: unknown = null;
@@ -1406,6 +1411,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         for (const candidate of ownerCandidates) {
           try {
             auth = await assignProvisioningOwner(candidate.id);
+            await setStep(
+              'createProject',
+              'running',
+              null,
+              `Creando proyecto GCP con credencial ${candidate.id}...`,
+            );
             const op = (await apiFetch(
               auth,
               'https://cloudresourcemanager.googleapis.com/v3/projects',
@@ -1417,6 +1428,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 },
               },
             )) as { name: string };
+            await setStep(
+              'createProject',
+              'running',
+              null,
+              'Esperando confirmación de Google Cloud Resource Manager...',
+            );
             await pollOperation(auth, op.name, 'https://cloudresourcemanager.googleapis.com/v3');
             createProjectError = null;
             created = true;
@@ -1457,6 +1474,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         console.warn(
           `[provisioning:createProject] Cuota de creación de proyectos agotada en la ronda ${round}/${maxQuotaRetryRounds}. Reintentando en ${Math.round(delayMs / 1000)}s.`,
         );
+        await setStep(
+          'createProject',
+          'running',
+          null,
+          `Rotando credenciales de GCP (espera ${Math.round(delayMs / 1000)}s)...`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
@@ -1475,7 +1498,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 2: Link billing ───────────────────────────────────────────────
   if (!isDone('linkBilling')) {
-    await setStep('linkBilling', 'running');
+    await setStep('linkBilling', 'running', null, 'Asignando cuenta de facturación activa...');
     try {
       let activeBillingAccountId = billingAccountId;
       let success = false;
@@ -1559,7 +1582,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 3: Add Firebase ───────────────────────────────────────────────
   if (!isDone('addFirebase')) {
-    await setStep('addFirebase', 'running');
+    await setStep('addFirebase', 'running', null, 'Activando servicios centrales de Firebase...');
     try {
       const op = (await apiFetch(
         auth,
@@ -1573,6 +1596,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       const FIREBASE_PROJECT_POLL_ATTEMPTS = 18; // ~3 minutos (10s entre intentos)
       let firebaseProjectReady = false;
       for (let i = 0; i < FIREBASE_PROJECT_POLL_ATTEMPTS; i++) {
+        await setStep(
+          'addFirebase',
+          'running',
+          null,
+          `Esperando propagación en Firebase Management (${i + 1}/${FIREBASE_PROJECT_POLL_ATTEMPTS})...`,
+        );
         try {
           const projRes = (await apiFetch(
             auth,
@@ -1607,7 +1636,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 4: Enable APIs ────────────────────────────────────────────────
   if (!isDone('enableApis')) {
-    await setStep('enableApis', 'running');
+    await setStep(
+      'enableApis',
+      'running',
+      null,
+      'Habilitando Firestore, Identity, Hosting y Secrets en GCP...',
+    );
     try {
       const enableOp = (await apiFetch(
         auth,
@@ -1630,6 +1664,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         },
       )) as { name: string; done?: boolean };
       if (!enableOp.done) {
+        await setStep(
+          'enableApis',
+          'running',
+          null,
+          'Esperando confirmación de Service Usage API...',
+        );
         await pollOperation(auth, enableOp.name, 'https://serviceusage.googleapis.com/v1');
       }
       await setStep('enableApis', 'done');
@@ -1682,7 +1722,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       .get();
     firebaseConfig = configSnap.data() as Record<string, string>;
   } else {
-    await setStep('createWebApp', 'running');
+    await setStep(
+      'createWebApp',
+      'running',
+      null,
+      'Registrando aplicación web y Hosting site en Firebase...',
+    );
     try {
       // El identificador enviado a Firebase Management debe ser SIEMPRE el gcpProjectId real
       // (proyecto del shard o proyecto dedicado vtx-<slug>), nunca el storeId interno.
@@ -2386,7 +2431,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 6.1: Configure email system defaults ─────────────────────────
   if (!isDone('configureEmail')) {
-    await setStep('configureEmail', 'running');
+    await setStep(
+      'configureEmail',
+      'running',
+      null,
+      'Sembrando plantillas transaccionales y configuración de email...',
+    );
     try {
       const now = new Date().toISOString();
 
@@ -2479,7 +2529,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     if (runtimeMode === 'shared-shard') {
       await setStep('installEmailExtension', 'done');
     } else {
-      await setStep('installEmailExtension', 'running');
+      await setStep(
+        'installEmailExtension',
+        'running',
+        null,
+        'Configurando secretos SMTP y extensión de email...',
+      );
       try {
         const [pwVersion] = await secretsClient.accessSecretVersion({
           name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
@@ -2572,7 +2627,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 8: Create store admin user and send invite email ──────────────
   if (!isDone('initAdmin')) {
-    await setStep('initAdmin', 'running');
+    await setStep(
+      'initAdmin',
+      'running',
+      null,
+      'Configurando Identity Platform, Google OAuth y credenciales...',
+    );
     try {
       const normalizedOwnerEmail = ownerEmail.trim().toLowerCase();
 
@@ -3016,7 +3076,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
 
   // ── Step 8: Grant platform SA deploy access ────────────────────────────
   if (!isDone('grantAccess')) {
-    await setStep('grantAccess', 'running');
+    await setStep('grantAccess', 'running', null, 'Configurando roles y permisos IAM en GCP...');
     try {
       await ensureShardProjectIam(auth, projectId);
       await setStep('grantAccess', 'done');
@@ -3039,7 +3099,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     if (currentSteps['triggerDeploy']?.status === 'running') {
       return;
     }
-    await setStep('triggerDeploy', 'running');
+    await setStep(
+      'triggerDeploy',
+      'running',
+      null,
+      'Disparando workflow de compilación y despliegue en GitHub...',
+    );
     try {
       if (process.env.FUNCTIONS_EMULATOR === 'true') {
         console.log(
