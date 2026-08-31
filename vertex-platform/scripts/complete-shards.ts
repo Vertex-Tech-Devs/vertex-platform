@@ -82,7 +82,17 @@ const SECRET_URL = 'https://secretmanager.googleapis.com/v1';
 
 // ─────────────────────────── Auth ───────────────────────────
 
+import { execSync } from 'child_process';
+
 async function getAadcToken(): Promise<string> {
+  try {
+    const token = execSync('gcloud auth print-access-token', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (token) return token;
+  } catch {}
+
   const candidates = [
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
     path.join(os.homedir(), '.config/gcloud/application_default_credentials.json'),
