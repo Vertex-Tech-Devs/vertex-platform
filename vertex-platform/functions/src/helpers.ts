@@ -253,6 +253,21 @@ export async function apiFetch(
           continue;
         }
         if (
+          res.status === 403 &&
+          (text.includes('CONSUMER_INVALID') ||
+            text.includes('Permission denied on resource project')) &&
+          i < maxAttempts - 1
+        ) {
+          const jitter = Math.floor(Math.random() * 1000);
+          const currentDelay = delayMs + jitter;
+          console.warn(
+            `[apiFetch] API propagation delay (CONSUMER_INVALID / 403) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
+          );
+          await new Promise((r) => setTimeout(r, currentDelay));
+          delayMs = Math.min(delayMs * 2, 45000);
+          continue;
+        }
+        if (
           (text.includes('USER_PROJECT_DENIED') ||
             (res.status === 403 && text.includes('serviceusage'))) &&
           options.quotaProject
@@ -270,12 +285,16 @@ export async function apiFetch(
       const errStr = String(err);
       if (
         i < maxAttempts - 1 &&
-        (errStr.includes('429') || errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('503'))
+        (errStr.includes('429') ||
+          errStr.includes('RESOURCE_EXHAUSTED') ||
+          errStr.includes('503') ||
+          errStr.includes('CONSUMER_INVALID') ||
+          errStr.includes('Permission denied on resource project'))
       ) {
         const jitter = Math.floor(Math.random() * 1000);
         const currentDelay = delayMs + jitter;
         console.warn(
-          `[apiFetch] Encountered rate limit error on ${url}: ${errStr}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
+          `[apiFetch] Transient/Propagation error on ${url}: ${errStr}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
         );
         await new Promise((r) => setTimeout(r, currentDelay));
         delayMs = Math.min(delayMs * 2, 45000);

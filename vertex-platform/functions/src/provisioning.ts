@@ -2011,16 +2011,45 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     try {
       // Auto-heal: asegurar que la API de Firestore esté habilitada antes de operar
       await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
-      try {
-        const dbOp = (await apiFetch(
-          auth,
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
-          { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
-        )) as { name: string };
-        await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.includes('already exists') && !msg.includes('409')) throw err;
+
+      if (runtimeMode !== 'shared-shard') {
+        try {
+          await retry(
+            async () => {
+              try {
+                const dbOp = (await apiFetch(
+                  auth,
+                  `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
+                  { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
+                )) as { name: string };
+                await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
+              } catch (createErr) {
+                const cMsg = createErr instanceof Error ? createErr.message : String(createErr);
+                if (
+                  cMsg.includes('already exists') ||
+                  cMsg.includes('409') ||
+                  cMsg.includes('ALREADY_EXISTS')
+                ) {
+                  return;
+                }
+                throw createErr;
+              }
+            },
+            5,
+            5000,
+          );
+        } catch (dbErr) {
+          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+          if (
+            !msg.includes('already exists') &&
+            !msg.includes('409') &&
+            !msg.includes('ALREADY_EXISTS')
+          ) {
+            console.warn(
+              `[provisioning:initFirestore] Database creation non-fatal warning on ${projectId}: ${msg}`,
+            );
+          }
+        }
       }
 
       const now = new Date().toISOString();
