@@ -424,15 +424,19 @@ export const getRuntimeCapacitySummary = onCall(
     // 3. Count total unique active projects
     const totalActiveProjects = new Set([...shardProjectIds, ...dedicatedProjectIds]).size;
 
-    // 4. Fetch billing account max limit
-    const billingAccountsSnap = await db
-      .collection('billingAccounts')
-      .where('active', '==', true)
-      .get();
-    let maxProjectsLimit = 15; // default fallback
-    if (!billingAccountsSnap.empty) {
-      maxProjectsLimit = billingAccountsSnap.docs[0].data()['maxProjects'] || 15;
-    }
+    // 4. Fetch billing accounts total limit
+    const [newBillingSnap, oldBillingSnap] = await Promise.all([
+      db.collection('billing_accounts').where('active', '==', true).get(),
+      db.collection('billingAccounts').where('active', '==', true).get(),
+    ]);
+    const bSnap = !newBillingSnap.empty ? newBillingSnap : oldBillingSnap;
+    let maxProjectsLimit = 0;
+    bSnap.docs.forEach((d) => {
+      const data = d.data();
+      maxProjectsLimit +=
+        (data['gcpProjectLimit'] as number) || (data['maxProjects'] as number) || 5;
+    });
+    if (maxProjectsLimit === 0) maxProjectsLimit = 20;
 
     // 5. Calculate usage metrics and check warning threshold (80%)
     const projectUsageRatio = maxProjectsLimit > 0 ? totalActiveProjects / maxProjectsLimit : 0;

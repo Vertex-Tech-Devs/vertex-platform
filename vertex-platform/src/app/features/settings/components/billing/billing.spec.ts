@@ -262,11 +262,13 @@ describe('Billing', () => {
   });
 
   it('remove elimina la cuenta y alerta en error', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
     billingSvc.removeAccount.mockRejectedValue(new Error('tiene tiendas activas'));
     await component.remove(makeAccount());
     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('tiene tiendas activas'));
     expect(component.removingId()).toBeNull();
+    confirmSpy.mockRestore();
     alertSpy.mockRestore();
   });
 
@@ -568,4 +570,82 @@ describe('Billing', () => {
     expect(sorted[0].id).toBe('shard-a');
     expect(sorted[1].id).toBe('shard-b');
   });
+
+  it('gestiona el formulario de vincular cuenta de facturación', async () => {
+    component.openAddAccount();
+    expect(component.isAddingAccount()).toBe(true);
+    expect(component.newAccountId()).toBe('');
+    expect(component.newAccountName()).toBe('');
+
+    component.cancelAddAccount();
+    expect(component.isAddingAccount()).toBe(false);
+
+    // Validación de campos vacíos
+    component.openAddAccount();
+    await component.addAccount();
+    expect(component.addAccountError()).toContain('Por favor completa el ID y el Nombre');
+
+    // Éxito al agregar
+    component.newAccountId.set('01D60F-09A9BD-8F5BC4');
+    component.newAccountName.set('Vertex Prod Billing 5');
+    component.newAccountLimit.set(5);
+
+    await component.addAccount();
+    expect(billingSvc.addAccount).toHaveBeenCalledWith({
+      id: '01D60F-09A9BD-8F5BC4',
+      name: 'Vertex Prod Billing 5',
+      gcpProjectLimit: 5,
+    });
+    expect(component.isAddingAccount()).toBe(false);
+  });
+
+  it('filtra shards por búsqueda', () => {
+    component.readiness.set({
+      environment: 'development',
+      total: 2,
+      readyCount: 2,
+      checkedAt: '',
+      shards: [
+        {
+          id: 'shard-alpha',
+          projectId: 'vtx-sd-alpha',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
+        {
+          id: 'shard-beta',
+          projectId: 'vtx-sd-beta',
+          status: 'ACTIVE',
+          billingAccountId: 'b1',
+          redirectUri: '',
+          ready: true,
+          missing: [],
+          checkedAt: '',
+        },
+      ],
+    });
+
+    component.shardSearchQuery.set('beta');
+    expect(component.filteredShards().length).toBe(1);
+    expect(component.filteredShards()[0].id).toBe('shard-beta');
+
+    component.shardSearchQuery.set('');
+    expect(component.filteredShards().length).toBe(2);
+  });
+
+  it('captura error si falla el servicio al agregar cuenta', async () => {
+    billingSvc.addAccount.mockRejectedValueOnce(new Error('Quota exceeded'));
+    component.openAddAccount();
+    component.newAccountId.set('01D60F-09A9BD-8F5BC4');
+    component.newAccountName.set('Vertex Prod Billing 5');
+
+    await component.addAccount();
+    expect(component.addAccountError()).toContain('Quota exceeded');
+    expect(component.isAdding()).toBe(false);
+  });
 });
+

@@ -39,6 +39,16 @@ export class Billing implements OnInit {
   readonly selectedShard = signal<ShardReadiness | null>(null);
   readonly copiedId = signal<string | null>(null);
   readonly showCapacityGuide = signal(false);
+  readonly activeTab = signal<'accounts' | 'shards' | 'guide'>('accounts');
+  readonly shardSearchQuery = signal('');
+
+  // Add Account form signals
+  readonly isAddingAccount = signal(false);
+  readonly newAccountId = signal('');
+  readonly newAccountName = signal('');
+  readonly newAccountLimit = signal(5);
+  readonly isAdding = signal(false);
+  readonly addAccountError = signal('');
 
   readonly sortedShards = computed<MergedShard[]>(() => {
     const report = this.readiness();
@@ -86,6 +96,18 @@ export class Billing implements OnInit {
     });
   });
 
+  readonly filteredShards = computed<MergedShard[]>(() => {
+    const q = this.shardSearchQuery().trim().toLowerCase();
+    const list = this.sortedShards();
+    if (!q) return list;
+    return list.filter(
+      (s) =>
+        s.id.toLowerCase().includes(q) ||
+        s.projectId.toLowerCase().includes(q) ||
+        s.status.toLowerCase().includes(q),
+    );
+  });
+
   readonly totalAvailableStores = computed(() => {
     const list = this.sortedShards();
     if (list.length > 0) {
@@ -100,8 +122,7 @@ export class Billing implements OnInit {
 
   readonly isCriticalGcp = computed(() => {
     const readyShards = this.readiness()?.readyCount ?? 0;
-    // Crítico si no hay shards listos O si los cupos GCP se agotaron y casi no quedan shards listos (<= 1)
-    return readyShards === 0 || (this.svc.totalGcpRemaining() <= 1 && readyShards <= 1);
+    return readyShards === 0 || (this.svc.totalGcpRemaining() === 0 && readyShards <= 1);
   });
 
   readonly isWarningShards = computed(
@@ -157,6 +178,8 @@ export class Billing implements OnInit {
   async syncAccounts(): Promise<void> {
     try {
       await this.svc.loadAccounts();
+      await this.loadRuntime();
+      await this.checkShards(true);
     } catch {
       /* silent catch */
     }
@@ -164,15 +187,6 @@ export class Billing implements OnInit {
 
   toggleCapacityGuide(): void {
     this.showCapacityGuide.set(!this.showCapacityGuide());
-  }
-
-  scrollToShards(): void {
-    if (typeof document !== 'undefined') {
-      const el = document.getElementById('shards-section');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
   }
 
   copyAccountId(id: string): void {
@@ -215,14 +229,6 @@ export class Billing implements OnInit {
     return 'usage--ok';
   }
 
-  totalGcpUsed(): number {
-    return this.svc.totalGcpUsed();
-  }
-
-  totalGcpLimit(): number {
-    return this.svc.totalGcpLimit();
-  }
-
   startEdit(a: BillingAccount): void {
     this.editingId.set(a.id);
     this.editName.set(a.name);
@@ -262,6 +268,7 @@ export class Billing implements OnInit {
   }
 
   async remove(a: BillingAccount): Promise<void> {
+    if (!confirm(`¿Eliminar la cuenta de facturación "${a.name}" (${a.id})?`)) return;
     this.removingId.set(a.id);
     try {
       await this.svc.removeAccount(a.id);
@@ -269,6 +276,64 @@ export class Billing implements OnInit {
       alert(errorMessage(err, 'Error al eliminar.'));
     } finally {
       this.removingId.set(null);
+    }
+  }
+
+  totalGcpUsed(): number {
+    return this.svc.totalGcpUsed();
+  }
+
+  totalGcpLimit(): number {
+    return this.svc.totalGcpLimit();
+  }
+
+  scrollToShards(): void {
+    this.activeTab.set('shards');
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('shards-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }
+
+  openAddAccount(): void {
+    this.isAddingAccount.set(true);
+    this.newAccountId.set('');
+    this.newAccountName.set('');
+    this.newAccountLimit.set(5);
+    this.addAccountError.set('');
+  }
+
+  cancelAddAccount(): void {
+    this.isAddingAccount.set(false);
+    this.addAccountError.set('');
+  }
+
+  async addAccount(): Promise<void> {
+    const id = this.newAccountId().trim();
+    const name = this.newAccountName().trim();
+    const limit = this.newAccountLimit();
+
+    if (!id || !name) {
+      this.addAccountError.set('Por favor completa el ID y el Nombre de la cuenta.');
+      return;
+    }
+
+    this.isAdding.set(true);
+    this.addAccountError.set('');
+    try {
+      await this.svc.addAccount({
+        id,
+        name,
+        gcpProjectLimit: limit,
+      });
+      this.isAddingAccount.set(false);
+      this.svc.showToast(`Cuenta "${name}" vinculada con éxito.`);
+    } catch (err: unknown) {
+      this.addAccountError.set(errorMessage(err, 'Error al vincular la cuenta de facturación.'));
+    } finally {
+      this.isAdding.set(false);
     }
   }
 }
