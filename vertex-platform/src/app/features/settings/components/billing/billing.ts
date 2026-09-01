@@ -108,6 +108,8 @@ export class Billing implements OnInit {
     );
   });
 
+  readonly isInitialLoading = computed(() => this.svc.isLoading() || !this.readiness());
+
   readonly totalAvailableStores = computed(() => {
     const list = this.sortedShards();
     if (list.length > 0) {
@@ -121,7 +123,9 @@ export class Billing implements OnInit {
   });
 
   readonly isCriticalGcp = computed(() => {
-    const readyShards = this.readiness()?.readyCount ?? 0;
+    const r = this.readiness();
+    if (!r) return false;
+    const readyShards = r.readyCount ?? 0;
     return readyShards === 0 || (this.svc.totalGcpRemaining() === 0 && readyShards <= 1);
   });
 

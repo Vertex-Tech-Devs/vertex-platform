@@ -230,6 +230,12 @@
       color: #ef4444;
     }
   }
+
+  &--skeleton {
+    border-color: var(--platform-card-border);
+    background: var(--platform-card-bg);
+    min-height: 72px;
+  }
 }
 
 /* ── Action Bar ───────────────────────────────────────────────────── */
