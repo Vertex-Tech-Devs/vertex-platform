@@ -399,7 +399,7 @@ describe('getRuntimeCapacitySummary quota guard', () => {
     const result = await handler({ auth: { token: { platformAdmin: true } } });
 
     expect(result.totalActiveProjects).toBe(0);
-    expect(result.maxProjectsLimit).toBe(15); // Fallback
+    expect(result.maxProjectsLimit).toBe(20); // Fallback
     expect(result.projectUsageRatio).toBe(0);
     expect(result.quotaWarning).toBe(false);
   });

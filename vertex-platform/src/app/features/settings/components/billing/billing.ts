@@ -99,7 +99,9 @@ export class Billing implements OnInit {
   readonly filteredShards = computed<MergedShard[]>(() => {
     const q = this.shardSearchQuery().trim().toLowerCase();
     const list = this.sortedShards();
-    if (!q) return list;
+    if (!q) {
+      return list;
+    }
     return list.filter(
       (s) =>
         s.id.toLowerCase().includes(q) ||
@@ -124,7 +126,9 @@ export class Billing implements OnInit {
 
   readonly isCriticalGcp = computed(() => {
     const r = this.readiness();
-    if (!r) return false;
+    if (!r) {
+      return false;
+    }
     const readyShards = r.readyCount ?? 0;
     return readyShards === 0 || (this.svc.totalGcpRemaining() === 0 && readyShards <= 1);
   });
@@ -272,7 +276,9 @@ export class Billing implements OnInit {
   }
 
   async remove(a: BillingAccount): Promise<void> {
-    if (!confirm(`¿Eliminar la cuenta de facturación "${a.name}" (${a.id})?`)) return;
+    if (!confirm(`¿Eliminar la cuenta de facturación "${a.name}" (${a.id})?`)) {
+      return;
+    }
     this.removingId.set(a.id);
     try {
       await this.svc.removeAccount(a.id);
