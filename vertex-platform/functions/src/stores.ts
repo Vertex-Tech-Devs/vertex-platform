@@ -1628,7 +1628,7 @@ export const getActiveStores = onCall(
           storeId: store.id,
           tenantId: store.slug || store.tenantId || store.id,
           siteId: store.runtimeSiteId || store.id,
-          autoUpdate: store.autoUpdate === true,
+          autoUpdate: store.autoUpdate !== false,
           templateVersion: store.templateVersion || null,
           projectId,
           storeName: store.name,
