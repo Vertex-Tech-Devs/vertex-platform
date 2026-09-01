@@ -152,10 +152,12 @@ describe('Team Component', () => {
 
   it('copia el email al portapapeles', () => {
     const writeTextSpy = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: writeTextSpy,
       },
+      writable: true,
+      configurable: true,
     });
 
     component.copyEmail('juan@vertex.com');
