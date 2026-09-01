@@ -39,17 +39,10 @@ if npx firebase-tools deploy --only "$TARGET" --project "$PROJECT" --non-interac
   exit 0
 fi
 
-# Verificar si el fallo se debe a saturación de la cola GCP (Error 409)
-if grep -qE "409|unable to queue" "$TMP_LOG"; then
-  echo ""
-  echo "⚠️ [$(date +%H:%M:%S)] Detectada saturación en la cola de GCP (Error 409)."
-  echo "🔄 Alternando a estrategia resiliente por lotes para drenar la cola..."
-else
-  echo ""
-  echo "❌ Falló el despliegue debido a errores de código o compilación (no por 409)."
-  cat "$TMP_LOG" | tail -30
-  exit 1
-fi
+# Fallback a despliegue por lotes si el fast-path no completó al 100%
+echo ""
+echo "⚠️ [$(date +%H:%M:%S)] Despliegue masivo no completó en 1 solo paso."
+echo "🔄 Alternando a estrategia resiliente por lotes para asegurar todas las funciones..."
 
 # FALLBACK: Despliegue por lotes con logs claros y backoff creciente
 FUNCS=$(grep -hoE 'export const [a-zA-Z0-9_]+ = (on[A-Za-z]+|runWith)' vertex-platform/functions/src/{admin,provisioning,shards,stores,billing,monitoring,versioning,runtime}.ts 2>/dev/null | awk '{print $3}' | sort -u | tr '\n' ',' | sed 's/,$//')
