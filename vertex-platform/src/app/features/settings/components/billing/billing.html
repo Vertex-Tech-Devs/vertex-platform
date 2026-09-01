@@ -22,7 +22,15 @@
   </div>
 
   <!-- Hero Status Banner -->
-  @if (isCriticalGcp()) {
+  @if (isInitialLoading()) {
+    <div class="guidance-banner guidance-banner--skeleton">
+      <div class="skeleton skeleton--avatar"></div>
+      <div class="skeleton-text-group flex-1">
+        <div class="skeleton skeleton--name"></div>
+        <div class="skeleton skeleton--email"></div>
+      </div>
+    </div>
+  } @else if (isCriticalGcp()) {
     <div class="guidance-banner guidance-banner--critical">
       <div class="guidance-banner__header">
         <i class="bi bi-exclamation-octagon-fill"></i>
@@ -90,34 +98,46 @@
   </div>
 
   <!-- KPIs Grid -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <span class="kpi-card__label">Capacidad SaaS Total</span>
-      <span class="kpi-card__value">{{ totalAvailableStores() }} Tiendas</span>
-      <span class="kpi-card__sub">{{ sortedShards().length || 16 }} Shards Físicos</span>
+  @if (isInitialLoading()) {
+    <div class="kpi-grid">
+      @for (_ of [1, 2, 3, 4]; track $index) {
+        <div class="kpi-card kpi-card--skeleton">
+          <div class="skeleton" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
+          <div class="skeleton" style="width: 140px; height: 26px; margin-bottom: 6px;"></div>
+          <div class="skeleton" style="width: 120px; height: 12px;"></div>
+        </div>
+      }
     </div>
-
-    <div class="kpi-card">
-      <span class="kpi-card__label">Cuentas de Facturación</span>
-      <span class="kpi-card__value">{{ svc.activeAccountsCount() }} Cuentas</span>
-      <span class="kpi-card__sub">Pool de Producción GCP</span>
-    </div>
-
-    <div class="kpi-card">
-      <span class="kpi-card__label">Proyectos GCP Vinculados</span>
-      <div class="kpi-card__status-row">
-        <span class="kpi-card__value">{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }}</span>
-        <span class="badge badge--active">{{ svc.usagePercent() }}% Asignado</span>
+  } @else {
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-card__label">Capacidad SaaS Total</span>
+        <span class="kpi-card__value">{{ totalAvailableStores() }} Tiendas</span>
+        <span class="kpi-card__sub">{{ sortedShards().length || 16 }} Shards Físicos</span>
       </div>
-      <span class="kpi-card__sub">Proyectos en Google Cloud</span>
-    </div>
 
-    <div class="kpi-card">
-      <span class="kpi-card__label">Cupos Libres GCP</span>
-      <span class="kpi-card__value">{{ svc.totalGcpRemaining() }} Proyectos</span>
-      <span class="kpi-card__sub">Disponibles para nuevos shards</span>
+      <div class="kpi-card">
+        <span class="kpi-card__label">Cuentas de Facturación</span>
+        <span class="kpi-card__value">{{ svc.activeAccountsCount() }} Cuentas</span>
+        <span class="kpi-card__sub">Pool de Producción GCP</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-card__label">Proyectos GCP Vinculados</span>
+        <div class="kpi-card__status-row">
+          <span class="kpi-card__value">{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }}</span>
+          <span class="badge badge--active">{{ svc.usagePercent() }}% Asignado</span>
+        </div>
+        <span class="kpi-card__sub">Proyectos en Google Cloud</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-card__label">Cupos Libres GCP</span>
+        <span class="kpi-card__value">{{ svc.totalGcpRemaining() }} Proyectos</span>
+        <span class="kpi-card__sub">Disponibles para nuevos shards</span>
+      </div>
     </div>
-  </div>
+  }
 
   <!-- Inline Add Account Form -->
   @if (isAddingAccount()) {
