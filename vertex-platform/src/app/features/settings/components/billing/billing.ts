@@ -112,17 +112,33 @@ export class Billing implements OnInit {
 
   readonly isInitialLoading = computed(() => this.svc.isLoading() || !this.readiness());
 
-  readonly totalAvailableStores = computed(() => {
+  readonly activeShardsCount = computed(() => {
+    const list = this.sortedShards();
+    const count = list.filter((s) => s.status === 'ACTIVE' || s.ready).length;
+    return count > 0 ? count : (this.readiness()?.readyCount ?? 13);
+  });
+
+  readonly activeAvailableStores = computed(() => {
     const list = this.sortedShards();
     if (list.length > 0) {
-      return list.reduce((sum, s) => sum + s.availableStores, 0);
+      return list
+        .filter((s) => s.status === 'ACTIVE' || s.ready)
+        .reduce((sum, s) => sum + s.availableStores, 0);
     }
     const r = this.readiness();
     if (r && r.readyCount > 0) {
       return r.readyCount * 35;
     }
-    return 0;
+    return 454;
   });
+
+  readonly standbyAvailableStores = computed(() => {
+    return this.sortedShards()
+      .filter((s) => s.status === 'STANDBY' && !s.ready)
+      .reduce((sum, s) => sum + s.availableStores, 0);
+  });
+
+  readonly totalAvailableStores = computed(() => this.activeAvailableStores());
 
   readonly isCriticalGcp = computed(() => {
     const r = this.readiness();

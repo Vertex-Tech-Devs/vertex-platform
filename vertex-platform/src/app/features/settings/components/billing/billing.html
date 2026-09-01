@@ -24,22 +24,27 @@
   <!-- Hero Status Banner -->
   @if (isInitialLoading()) {
     <div class="guidance-banner guidance-banner--skeleton">
-      <div class="skeleton skeleton--avatar"></div>
-      <div class="skeleton-text-group flex-1">
-        <div class="skeleton skeleton--name"></div>
-        <div class="skeleton skeleton--email"></div>
+      <div class="guidance-banner__icon-box skeleton skeleton--icon-box"></div>
+      <div class="guidance-banner__content flex-1">
+        <div class="skeleton" style="width: 140px; height: 16px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="width: 280px; height: 22px; margin-bottom: 6px;"></div>
+        <div class="skeleton" style="width: 220px; height: 14px;"></div>
       </div>
     </div>
   } @else if (isCriticalGcp()) {
     <div class="guidance-banner guidance-banner--critical">
-      <div class="guidance-banner__header">
+      <div class="guidance-banner__icon-box">
         <i class="bi bi-exclamation-octagon-fill"></i>
-        <div>
-          <strong>Atención: Capacidad Crítica de Shards</strong>
-          <p>
-            Quedan <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en el pool de shards. Vincula nuevas Billing Accounts o solicita aumento de cuota en Google Cloud.
-          </p>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--danger"></span>
+          <span>CAPACIDAD CRÍTICA</span>
         </div>
+        <h2 class="guidance-banner__headline">Atención: Límite de Proyectos GCP Próximo</h2>
+        <p class="guidance-banner__desc">
+          Quedan <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en shards activos. Vincula nuevas Billing Accounts o solicita aumento de cuota en Google Cloud.
+        </p>
       </div>
       <div class="guidance-banner__actions">
         <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn--sm">
@@ -49,25 +54,50 @@
     </div>
   } @else if (isWarningShards()) {
     <div class="guidance-banner guidance-banner--warning">
-      <div class="guidance-banner__header">
+      <div class="guidance-banner__icon-box">
         <i class="bi bi-exclamation-triangle-fill"></i>
-        <div>
-          <strong>Alerta de Capacidad: Shards Standby Disponibles</strong>
-          <p>
-            Capacidad libre en shards activos: <strong>{{ totalAvailableStores() }} tiendas</strong>. Hay {{ pendingShardsCount() }} shards disponibles para activar.
-          </p>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--warning"></span>
+          <span>PRE-ALERTA DE CAPACIDAD</span>
         </div>
+        <h2 class="guidance-banner__headline">Shards Standby Disponibles</h2>
+        <p class="guidance-banner__desc">
+          Capacidad libre inmediata: <strong>{{ activeAvailableStores() }} tiendas</strong> en {{ activeShardsCount() }} shards activos. Hay {{ pendingShardsCount() }} shards en standby listos para activar.
+        </p>
       </div>
     </div>
   } @else {
     <div class="guidance-banner guidance-banner--optimal">
-      <div class="guidance-banner__header">
+      <div class="guidance-banner__icon-box">
         <i class="bi bi-shield-check"></i>
-        <div>
-          <strong>Infraestructura SaaS Operativa y Escalable</strong>
-          <p>
-            Capacidad total de <strong>{{ totalAvailableStores() }} tiendas SaaS</strong> distribuidas en <strong>{{ sortedShards().length || 16 }} shards activos</strong> en Google Cloud.
-          </p>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--success"></span>
+          <span>SISTEMA 100% OPERATIVO · ALTA DISPONIBILIDAD</span>
+        </div>
+        <h2 class="guidance-banner__headline">Infraestructura SaaS Escalable & Saludable</h2>
+        <p class="guidance-banner__desc">
+          Capacidad inmediata: <strong>{{ activeAvailableStores() }} tiendas SaaS disponibles</strong> distribuidas en <strong>{{ activeShardsCount() }} shards activos</strong> en Google Cloud
+          @if (standbyAvailableStores() > 0) {
+            <span class="guidance-banner__standby-note">(+{{ standbyAvailableStores() }} cupos en shards Standby)</span>
+          }.
+        </p>
+      </div>
+      <div class="guidance-banner__chips">
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ activeAvailableStores() }}</span>
+          <span class="banner-chip__label">Cupos Libres</span>
+        </div>
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ activeShardsCount() }}</span>
+          <span class="banner-chip__label">Shards Activos</span>
+        </div>
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ svc.totalGcpRemaining() }}</span>
+          <span class="banner-chip__label">Cupos GCP</span>
         </div>
       </div>
     </div>
@@ -111,9 +141,9 @@
   } @else {
     <div class="kpi-grid">
       <div class="kpi-card">
-        <span class="kpi-card__label">Capacidad SaaS Total</span>
+        <span class="kpi-card__label">Capacidad Disponible</span>
         <span class="kpi-card__value">{{ totalAvailableStores() }} Tiendas</span>
-        <span class="kpi-card__sub">{{ sortedShards().length || 16 }} Shards Físicos</span>
+        <span class="kpi-card__sub">{{ activeShardsCount() }} Shards Activos</span>
       </div>
 
       <div class="kpi-card">
