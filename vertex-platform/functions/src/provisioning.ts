@@ -3042,7 +3042,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       'roles/firebasehosting.admin',
       'roles/firebaserules.admin',
       // Las functions del storefront (proyecto master del ecommerce) leen/escriben el
-      // Firestore de cada shard (orden, catálogo, stock) → datastore.user en el shard.
+      // Firestore de cada shard (orden, catálogo, stock) → datastore.owner en el shard.
+      'roles/datastore.owner',
       'roles/datastore.user',
       // Secret Manager accessor para lectura de SMTP_PASSWORD y credenciales en Cloud Functions
       'roles/secretmanager.secretAccessor',
