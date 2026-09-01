@@ -39,11 +39,11 @@
       <div class="guidance-banner__content">
         <div class="guidance-banner__tag">
           <span class="pulse-dot pulse-dot--danger"></span>
-          <span>CAPACIDAD CRÍTICA</span>
+          <span>CAPACIDAD CRÍTICA (≤ 25 TIENDAS)</span>
         </div>
-        <h2 class="guidance-banner__headline">Atención: Límite de Proyectos GCP Próximo</h2>
+        <h2 class="guidance-banner__headline">Atención: Capacidad de Shards al Límite</h2>
         <p class="guidance-banner__desc">
-          Quedan <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en shards activos. Vincula nuevas Billing Accounts o solicita aumento de cuota en Google Cloud.
+          Quedan solo <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en el pool de shards activos. Es necesario aprovisionar nuevos shards o solicitar aumento de cuota en Google Cloud.
         </p>
       </div>
       <div class="guidance-banner__actions">
@@ -60,11 +60,11 @@
       <div class="guidance-banner__content">
         <div class="guidance-banner__tag">
           <span class="pulse-dot pulse-dot--warning"></span>
-          <span>PRE-ALERTA DE CAPACIDAD</span>
+          <span>ATENCIÓN · POCOS SHARDS CONFIGURADOS</span>
         </div>
-        <h2 class="guidance-banner__headline">Shards Standby Disponibles</h2>
+        <h2 class="guidance-banner__headline">Solo quedan {{ activeShardsCount() }} shards listos para operar</h2>
         <p class="guidance-banner__desc">
-          Capacidad libre inmediata: <strong>{{ activeAvailableStores() }} tiendas</strong> en {{ activeShardsCount() }} shards activos. Hay {{ pendingShardsCount() }} shards en standby listos para activar.
+          Capacidad libre inmediata: <strong>{{ activeAvailableStores() }} tiendas</strong>. Hay {{ pendingShardsCount() }} shards pendientes de configuración para ampliar la capacidad operativa.
         </p>
       </div>
     </div>
