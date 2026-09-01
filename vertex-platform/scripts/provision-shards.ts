@@ -364,6 +364,9 @@ async function provisionShard(token: string, projectId: string): Promise<{ redir
         'serviceAccount:vertex-platform-dev@appspot.gserviceaccount.com',
         'serviceAccount:1011688892358-compute@developer.gserviceaccount.com',
         'serviceAccount:firebase-adminsdk-fbsvc@vertex-platform-dev.iam.gserviceaccount.com',
+        'serviceAccount:ecommerce-vertex@appspot.gserviceaccount.com',
+        'serviceAccount:488126647984-compute@developer.gserviceaccount.com',
+        'serviceAccount:firebase-adminsdk-fbsvc@ecommerce-vertex.iam.gserviceaccount.com',
         'user:vertex.tech.dev@gmail.com',
         'user:juan.l.espeche@gmail.com',
         'user:leivalihue@gmail.com'
