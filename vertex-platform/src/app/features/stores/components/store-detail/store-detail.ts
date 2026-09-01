@@ -17,11 +17,12 @@ import { StoresService } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
 
+import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
 import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
 import { StoreDetailOrchestrationService } from './services/store-detail-orchestration.service';
-import type { PendingInvitation } from '@core/models/store';
+import type { PendingInvitation, Store } from '@core/models/store';
 import {
   formatDateUtil,
   statusLabelUtil,
@@ -60,6 +61,11 @@ export class StoreDetail implements OnInit {
   private domainsService = inject(StoreDetailDomainsService);
   private orchestrationService = inject(StoreDetailOrchestrationService);
 
+  private db = getFirestore();
+  private storeUnsub: (() => void) | null = null;
+  readonly localStore = signal<Store | null>(null);
+  readonly isStoreLoading = signal(true);
+
   readonly storeId = signal<string | null>(null);
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(true);
@@ -69,6 +75,10 @@ export class StoreDetail implements OnInit {
   );
 
   readonly store = computed(() => {
+    const local = this.localStore();
+    if (local) {
+      return local;
+    }
     const id = this.storeId();
     if (!id) {
       return null;
@@ -150,9 +160,6 @@ export class StoreDetail implements OnInit {
   readonly copyFeedbackSuccess = this.staffService.copyFeedbackSuccess;
   readonly inviteForm = this.staffService.inviteForm;
 
-  readonly isStoreLoading = computed(
-    () => (this.auth.isLoading() || this.storesService.isLoading()) && !this.store(),
-  );
   readonly availableVersions = this.orchestrationService.versions;
   readonly isLoadingVersions = this.orchestrationService.isLoadingVersions;
   readonly isUpdatingAutoUpdate = signal(false);
@@ -196,6 +203,12 @@ export class StoreDetail implements OnInit {
         }
       }
     });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.storeUnsub) {
+        this.storeUnsub();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -203,7 +216,26 @@ export class StoreDetail implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const id = params.get('id');
       this.storeId.set(id);
+      if (this.storeUnsub) {
+        this.storeUnsub();
+        this.storeUnsub = null;
+      }
       if (id) {
+        try {
+          this.storeUnsub = onSnapshot(
+            doc(this.db, 'stores', id),
+            (snap) => {
+              if (snap.exists()) {
+                this.localStore.set({ id: snap.id, ...snap.data() } as Store);
+              }
+            },
+            () => {
+              /* ignore error */
+            },
+          );
+        } catch {
+          /* ignore error */
+        }
         this.refreshDeployHistory(id);
         void this.staffService.loadStaff(id);
       }

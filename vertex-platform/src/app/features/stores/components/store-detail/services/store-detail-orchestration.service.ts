@@ -165,10 +165,17 @@ export class StoreDetailOrchestrationService {
     }
   }
 
+  private checkedOAuthStoreId = '';
+
   async checkOauthRedirect(store: Store | null): Promise<void> {
-    if (!store) {
+    if (!store || (store.status !== 'active' && store.status !== 'suspended')) {
+      this.oauthRedirect.set(null);
       return;
     }
+    if (this.checkedOAuthStoreId === store.id && this.oauthRedirect()) {
+      return;
+    }
+    this.checkedOAuthStoreId = store.id;
     try {
       const fns = getFunctions();
       const check = httpsCallable<

@@ -3293,6 +3293,7 @@ export const checkStoreOAuthRedirect = onCall<{ storeId: string }>(
       typeof data['provisioningOwnerId'] === 'string'
         ? (data['provisioningOwnerId'] as string)
         : undefined;
+    const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
     let clientId = '';
     try {
       const auth = await getOwnerOAuthClient(provisioningOwnerId);
@@ -3303,6 +3304,11 @@ export const checkStoreOAuthRedirect = onCall<{ storeId: string }>(
       clientId = masterIdpConfig?.clientId || '';
     } catch {
       clientId = '';
+    }
+
+    if (!clientId) {
+      const { getMasterOAuthClientId } = await import('./shard-readiness');
+      clientId = getMasterOAuthClientId(env);
     }
 
     const redirectUri = `https://${shardProjectId}.firebaseapp.com/__/auth/handler`;
@@ -3317,7 +3323,8 @@ export const checkStoreOAuthRedirect = onCall<{ storeId: string }>(
           `&response_type=code&scope=openid%20email%20profile&prompt=select_account`;
         const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
         const location = res.headers.get('location') ?? '';
-        ok = !location.includes('/signin/oauth/error');
+        const body = await res.text();
+        ok = !location.includes('/signin/oauth/error') && !body.includes('redirect_uri_mismatch');
       } catch {
         ok = false;
       }

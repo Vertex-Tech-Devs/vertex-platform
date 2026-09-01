@@ -25,7 +25,7 @@ function readEnvInt(name: string, fallback: number): number {
  * "Disponible" = puede recibir tiendas nuevas sin configuración.
  * Configurable por entorno con POOL_LOW_THRESHOLD.
  */
-export const POOL_LOW_THRESHOLD = readEnvInt('POOL_LOW_THRESHOLD', 25);
+export const POOL_LOW_THRESHOLD = readEnvInt('POOL_LOW_THRESHOLD', 2);
 
 /** Emails a los que llegan las notificaciones de pool bajo. */
 const POOL_ALERT_EMAILS = (
