@@ -140,13 +140,41 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
           @for (store of filteredStores(); track store.id) {
             <a [routerLink]="['/stores', store.id]" class="store-card">
               <div class="store-card__header">
-                <h3 class="store-card__name">{{ store.name }}</h3>
+                <div class="store-card__avatar">
+                  @if (store.logoUrl) {
+                    <img [src]="store.logoUrl" [alt]="store.name" class="store-card__logo" />
+                  } @else {
+                    <span>{{ getStoreInitials(store.name) }}</span>
+                  }
+                </div>
+                <div class="store-card__title-wrap">
+                  <h3 class="store-card__name">{{ store.name }}</h3>
+                  <span class="store-card__slug">/{{ store.slug }}</span>
+                </div>
                 <span class="badge badge--{{ store.status }}">{{ statusLabel(store.status) }}</span>
               </div>
-              <p class="store-card__url">{{ getStoreUrl(store) }}</p>
-              <p class="store-card__meta">
-                {{ store.ownerEmail }}
-              </p>
+
+              <div class="store-card__details">
+                <div class="store-card__detail-row">
+                  <i class="bi bi-link-45deg"></i>
+                  <span class="store-card__url-text">{{ getStoreUrl(store) }}</span>
+                </div>
+                <div class="store-card__detail-row">
+                  <i class="bi bi-envelope"></i>
+                  <span>{{ store.ownerEmail }}</span>
+                </div>
+              </div>
+
+              <div class="store-card__footer">
+                <span class="store-card__vertical-tag">
+                  <i class="bi bi-tag-fill"></i>
+                  {{ formatVertical(store.businessVertical || store.verticalId) }}
+                </span>
+                <span class="store-card__arrow">
+                  <i class="bi bi-arrow-right"></i>
+                </span>
+              </div>
+
               @if (store.status === 'provisioning' || store.status === 'error') {
                 <div class="store-card__progress">
                   <div class="store-card__progress-head">
@@ -254,6 +282,28 @@ export class StoresList {
     }
     const done = entries.filter((step) => step.status === 'done').length;
     return Math.round((done / entries.length) * 100);
+  }
+
+  getStoreInitials(name: string): string {
+    if (!name) {
+      return 'V';
+    }
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  formatVertical(v?: string): string {
+    if (!v) {
+      return 'General';
+    }
+    return v
+      .toLowerCase()
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   }
 
   provisioningStepLabel(store: Store): string {
