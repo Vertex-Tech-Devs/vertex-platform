@@ -10,9 +10,9 @@
   <!-- Header -->
   <div class="page-top">
     <div class="page-top__titles">
-      <h1 class="page-title">Centro de Control de Facturación GCP</h1>
+      <h1 class="page-title">Control de Facturación GCP</h1>
       <p class="page-sub">
-        Gestión centralizada de cuentas de facturación GCP, límites de proyectos y capacidad de shards SaaS.
+        Gestión de cuentas de facturación, límites de proyectos y shards de infraestructura.
       </p>
     </div>
     <a routerLink="/stores" class="btn btn-secondary">
@@ -41,7 +41,7 @@
           <span class="pulse-dot pulse-dot--danger"></span>
           <span>CAPACIDAD CRÍTICA (≤ 25 TIENDAS)</span>
         </div>
-        <h2 class="guidance-banner__headline">Atención: Capacidad de Shards al Límite</h2>
+        <h2 class="guidance-banner__headline">Capacidad de Shards al Límite</h2>
         <p class="guidance-banner__desc">
           Quedan solo <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en el pool de shards activos. Es necesario aprovisionar nuevos shards o solicitar aumento de cuota en Google Cloud.
         </p>
@@ -78,9 +78,9 @@
           <span class="pulse-dot pulse-dot--success"></span>
           <span>SISTEMA 100% OPERATIVO · ALTA DISPONIBILIDAD</span>
         </div>
-        <h2 class="guidance-banner__headline">Infraestructura SaaS Escalable & Saludable</h2>
+        <h2 class="guidance-banner__headline">Infraestructura Escalable & Operativa</h2>
         <p class="guidance-banner__desc">
-          Capacidad inmediata: <strong>{{ activeAvailableStores() }} tiendas SaaS disponibles</strong> distribuidas en <strong>{{ activeShardsCount() }} shards activos</strong> en Google Cloud
+          Capacidad inmediata: <strong>{{ activeAvailableStores() }} tiendas disponibles</strong> distribuidas en <strong>{{ activeShardsCount() }} shards activos</strong> en Google Cloud
           @if (standbyAvailableStores() > 0) {
             <span class="guidance-banner__standby-note">(+{{ standbyAvailableStores() }} cupos en shards Standby)</span>
           }.
@@ -263,7 +263,7 @@
       (click)="activeTab.set('guide')"
     >
       <i class="bi bi-diagram-3"></i>
-      <span>Arquitectura SaaS</span>
+      <span>Arquitectura y Capacidad</span>
     </button>
   </div>
 

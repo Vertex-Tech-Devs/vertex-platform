@@ -82,9 +82,11 @@ export const listBillingAccounts = onCall(
         5;
       const gcpUsedProjects =
         gcpUsageMap[d.id] ?? (data['currentProjects'] as number | undefined) ?? usageMap[d.id] ?? 0;
-      const active = data['status']
-        ? data['status'] === 'ACTIVE'
-        : (data['active'] as boolean | undefined) !== false;
+      const active =
+        (data['active'] as boolean | undefined) !== false &&
+        data['status'] !== 'DISABLED' &&
+        data['status'] !== 'INACTIVE' &&
+        data['status'] !== 'CLOSED';
       const addedAtDate =
         (data['addedAt'] as FirebaseFirestore.Timestamp)?.toDate() ??
         (data['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() ??
