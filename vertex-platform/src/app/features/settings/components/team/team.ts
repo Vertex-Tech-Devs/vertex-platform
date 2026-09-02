@@ -26,15 +26,11 @@ export class Team implements OnInit {
   readonly copiedEmail = signal<string | null>(null);
 
   readonly activeAdmins = computed<AdminInfo[]>(() =>
-    this.adminsService
-      .admins()
-      .filter((a) => !a.pending && !a.uid.startsWith('invited-')),
+    this.adminsService.admins().filter((a) => !a.pending && !a.uid.startsWith('invited-')),
   );
 
   readonly pendingAdmins = computed<AdminInfo[]>(() =>
-    this.adminsService
-      .admins()
-      .filter((a) => a.pending === true || a.uid.startsWith('invited-')),
+    this.adminsService.admins().filter((a) => a.pending === true || a.uid.startsWith('invited-')),
   );
 
   readonly superAdminsCount = computed(

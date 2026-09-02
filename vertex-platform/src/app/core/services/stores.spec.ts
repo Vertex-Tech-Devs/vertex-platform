@@ -634,7 +634,12 @@ describe('StoresService', () => {
       data: {
         storeId: 'store-1',
         subscription: { status: 'active' },
-        basePricing: { name: 'Plan', description: 'Desc', monthlyPrice: 50000, annualPrice: 500000 },
+        basePricing: {
+          name: 'Plan',
+          description: 'Desc',
+          monthlyPrice: 50000,
+          annualPrice: 500000,
+        },
         isMasterAdmin: true,
       },
     });
@@ -663,9 +668,20 @@ describe('StoresService', () => {
     TestBed.configureTestingModule({ providers: [StoresService] });
     const service = TestBed.inject(StoresService);
 
-    const result = await service.createStoreSubscriptionLink('store-1', 'monthly', 'buyer@test.com');
-    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'createStoreSubscriptionLink');
-    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-1', billingCycle: 'monthly', payerEmail: 'buyer@test.com' });
+    const result = await service.createStoreSubscriptionLink(
+      'store-1',
+      'monthly',
+      'buyer@test.com',
+    );
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'createStoreSubscriptionLink',
+    );
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      billingCycle: 'monthly',
+      payerEmail: 'buyer@test.com',
+    });
     expect(result.checkoutUrl).toBe('https://mp.com/checkout');
   });
 
@@ -682,7 +698,10 @@ describe('StoresService', () => {
       storeId: 'store-1',
       status: 'complimentary',
     });
-    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'updateStoreSubscriptionStatus');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'updateStoreSubscriptionStatus',
+    );
     expect(result.success).toBe(true);
   });
 
@@ -694,12 +713,14 @@ describe('StoresService', () => {
       },
     });
     const mockUpdateFn = vi.fn().mockResolvedValue({
-      data: { success: true, message: 'Saved', pricing: { monthlyPrice: 55000, annualPrice: 550000 } },
+      data: {
+        success: true,
+        message: 'Saved',
+        pricing: { monthlyPrice: 55000, annualPrice: 550000 },
+      },
     });
 
-    mockHttpsCallable
-      .mockReturnValueOnce(mockGetFn)
-      .mockReturnValueOnce(mockUpdateFn);
+    mockHttpsCallable.mockReturnValueOnce(mockGetFn).mockReturnValueOnce(mockUpdateFn);
 
     const { StoresService } = await import('./stores');
     TestBed.configureTestingModule({ providers: [StoresService] });
@@ -713,7 +734,7 @@ describe('StoresService', () => {
   });
 
   it('listTemplateVersions, updateStoreVersion, seedStore, getStoreConfig, verifyDomain, generatePasswordResetLink, inviteStaff, listStaff', async () => {
-    const mockFn = vi.fn().mockImplementation((name: unknown) => {
+    const mockFn = vi.fn().mockImplementation((_name: unknown) => {
       return vi.fn().mockResolvedValue({
         data: {
           versions: [{ version: '0.8.0', isCurrent: true }],
@@ -757,14 +778,16 @@ describe('StoresService', () => {
   });
 
   it('covers store actions: redeploy, history, delete, domain, update, status, reset, suspend, activate, retry, shard readiness', async () => {
-    const mockFn = vi.fn().mockImplementation(() => vi.fn().mockResolvedValue({
-      data: {
-        success: true,
-        dnsRecords: [{ domainName: 'custom.com', type: 'CNAME', value: 'ghs.googlehosted.com' }],
-        shards: [],
-        checkedAt: new Date().toISOString(),
-      },
-    }));
+    const mockFn = vi.fn().mockImplementation(() =>
+      vi.fn().mockResolvedValue({
+        data: {
+          success: true,
+          dnsRecords: [{ domainName: 'custom.com', type: 'CNAME', value: 'ghs.googlehosted.com' }],
+          shards: [],
+          checkedAt: new Date().toISOString(),
+        },
+      }),
+    );
     mockHttpsCallable.mockImplementation(mockFn);
 
     const { StoresService } = await import('./stores');
@@ -793,7 +816,9 @@ describe('StoresService', () => {
       historyReceived = val;
     });
 
-    const deployHistoryCall = mockOnSnapshot.mock.calls.find((c) => c[0] && typeof c[0] === 'object');
+    const deployHistoryCall = mockOnSnapshot.mock.calls.find(
+      (c) => c[0] && typeof c[0] === 'object',
+    );
     if (deployHistoryCall) {
       const snapCb = deployHistoryCall[1] as (snap: unknown) => void;
       snapCb({ docs: [{ id: 'dep-1', data: () => ({ commit: 'abc' }) }] });
@@ -811,15 +836,17 @@ describe('StoresService', () => {
     let customVertSnapCb: ((snap: unknown) => void) | null = null;
     let customVertErrCb: ((err: unknown) => void) | null = null;
 
-    mockOnSnapshot.mockImplementation((ref: { id?: string }, onNext: (s: unknown) => void, onError?: (e: unknown) => void) => {
-      if (ref?.id === 'stores') {
-        storeErrCb = onError || null;
-      } else if (ref?.id === 'business_verticals') {
-        customVertSnapCb = onNext;
-        customVertErrCb = onError || null;
-      }
-      return mockUnsub;
-    });
+    mockOnSnapshot.mockImplementation(
+      (ref: { id?: string }, onNext: (s: unknown) => void, onError?: (e: unknown) => void) => {
+        if (ref?.id === 'stores') {
+          storeErrCb = onError || null;
+        } else if (ref?.id === 'business_verticals') {
+          customVertSnapCb = onNext;
+          customVertErrCb = onError || null;
+        }
+        return mockUnsub;
+      },
+    );
 
     const userSignal = signal<{ email: string } | null | undefined>(undefined);
 
@@ -868,7 +895,13 @@ describe('StoresService', () => {
         docs: [
           {
             id: 'VERT_1',
-            data: () => ({ name: '', icon: '', description: '', categories: null, themeColors: { primary: '#fff' } }),
+            data: () => ({
+              name: '',
+              icon: '',
+              description: '',
+              categories: null,
+              themeColors: { primary: '#fff' },
+            }),
           },
         ],
       });

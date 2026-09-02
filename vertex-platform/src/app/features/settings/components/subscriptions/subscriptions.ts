@@ -2,10 +2,7 @@ import { Component, type OnInit, inject, signal, computed } from '@angular/core'
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import {
-  StoresService,
-  type PlatformBillingConfig,
-} from '@core/services/stores';
+import { StoresService, type PlatformBillingConfig } from '@core/services/stores';
 import type { Store } from '@core/models/store';
 import { errorMessage } from '@core/utils/error.util';
 
@@ -69,7 +66,9 @@ export class Subscriptions implements OnInit {
 
   readonly pastDueCount = computed(() => {
     const list = this.stores() || [];
-    return list.filter((s) => s.subscription?.status === 'past_due' || s.subscription?.status === 'suspended').length;
+    return list.filter(
+      (s) => s.subscription?.status === 'past_due' || s.subscription?.status === 'suspended',
+    ).length;
   });
 
   ngOnInit(): void {

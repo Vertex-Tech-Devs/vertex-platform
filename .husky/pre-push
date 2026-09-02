@@ -40,6 +40,10 @@ npm run typecheck
 echo "Running tests..."
 npm run test
 
+# 5. Verify coverage threshold (>=95%, 100% ideal)
+echo "Verifying platform coverage threshold >=95%..."
+node vertex-platform/scripts/verify-coverage.js
+
 echo ""
 echo "✔ All platform quality gates passed! Proceeding with push."
 echo ""

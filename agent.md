@@ -30,10 +30,10 @@ platform/
 npm run start                            # Orquestador E2E con hot-reload
 bash docker/start.sh                     # Stack Docker completo
 
-# Tests (226 tests totales)
-npm test                                 # 153 Frontend + 73 Backend (Vitest)
-npm run test:backend                     # Backend (Vitest) — 73 tests
-npm run test:frontend                    # Frontend (ng test) — 153 tests
+# Tests (272 tests totales — 100% pasando)
+npm test                                 # 197 Frontend + 75 Backend (Vitest + ng test)
+npm run test:backend                     # Backend (Vitest con cobertura) — 75 tests
+npm run test:frontend                    # Frontend (ng test con cobertura) — 197 tests
 
 # Build
 npm run build                            # Build monorepo completo (Frontend + Functions)
@@ -44,6 +44,19 @@ npm run typecheck                        # TypeScript strict
 npm run qa:global                        # Lint + typecheck + firestore rules
 npm audit                                # Verificación 0 vulnerabilidades
 ```
+
+---
+
+## 🧪 Política Obligatoria de Cobertura de Código (Quality Gate ≥95%, 100% Ideal)
+
+- **Umbral Mínimo No Modificable**: La cobertura de código en Platform debe ser estrictamente **$\ge 95\%$ en todas las 4 métricas**:
+  1. `Statements` $\ge 95\%$
+  2. `Branches` $\ge 95\%$
+  3. `Functions` $\ge 95\%$
+  4. `Lines` $\ge 95\%$
+  - **100%** es el objetivo ideal permanente para toda nueva lógica y componentes.
+- **Bloqueo en Hooks Locales (`pre-commit` y `pre-push`)**: Los hooks de Husky ejecutan `npm test` y `node vertex-platform/scripts/verify-coverage.js`. No se permite realizar `git commit` ni `git push` si cualquiera de los porcentajes es menor a 95%.
+- **Bloqueo en CI/CD**: `ci.yml` ejecuta la misma verificación y rechaza automáticamente PRs que no alcancen el 95%.
 
 ---
 

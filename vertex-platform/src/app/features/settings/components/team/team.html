@@ -92,7 +92,12 @@
         (click)="addAdmin()"
         [disabled]="isAdding() || !newEmail().trim()"
       >
-        <i class="bi" [class.bi-send-fill]="!isAdding()" [class.bi-arrow-repeat]="isAdding()" [class.spin]="isAdding()"></i>
+        <i
+          class="bi"
+          [class.bi-send-fill]="!isAdding()"
+          [class.bi-arrow-repeat]="isAdding()"
+          [class.spin]="isAdding()"
+        ></i>
         <span>{{ isAdding() ? 'Invitando…' : 'Invitar Miembro' }}</span>
       </button>
     </div>
@@ -151,15 +156,17 @@
                   [class.bi-arrow-repeat]="resendingEmail() === admin.email"
                   [class.spin]="resendingEmail() === admin.email"
                 ></i>
-                <span>{{ resendingEmail() === admin.email ? 'Reenviando…' : 'Reenviar Solicitud' }}</span>
+                <span>{{
+                  resendingEmail() === admin.email ? 'Reenviando…' : 'Reenviar Solicitud'
+                }}</span>
               </button>
 
-              <button
-                class="btn btn-icon"
-                (click)="copyEmail(admin.email)"
-                title="Copiar email"
-              >
-                <i class="bi" [class.bi-check2]="copiedEmail() === admin.email" [class.bi-copy]="copiedEmail() !== admin.email"></i>
+              <button class="btn btn-icon" (click)="copyEmail(admin.email)" title="Copiar email">
+                <i
+                  class="bi"
+                  [class.bi-check2]="copiedEmail() === admin.email"
+                  [class.bi-copy]="copiedEmail() !== admin.email"
+                ></i>
               </button>
 
               <button
@@ -246,12 +253,12 @@
             </div>
 
             <div class="admin-item__actions">
-              <button
-                class="btn btn-icon"
-                (click)="copyEmail(admin.email)"
-                title="Copiar email"
-              >
-                <i class="bi" [class.bi-check2]="copiedEmail() === admin.email" [class.bi-copy]="copiedEmail() !== admin.email"></i>
+              <button class="btn btn-icon" (click)="copyEmail(admin.email)" title="Copiar email">
+                <i
+                  class="bi"
+                  [class.bi-check2]="copiedEmail() === admin.email"
+                  [class.bi-copy]="copiedEmail() !== admin.email"
+                ></i>
               </button>
 
               @if (!isSelf) {
@@ -271,4 +278,3 @@
     }
   </div>
 </div>
-

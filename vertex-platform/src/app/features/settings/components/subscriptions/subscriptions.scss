@@ -15,8 +15,12 @@
 }
 
 @keyframes spinRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-fade-in {
@@ -24,8 +28,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-top {
@@ -185,11 +195,21 @@
   }
 }
 
-.text-success { color: #10b981; }
-.text-primary { color: #818cf8; }
-.text-info { color: #38bdf8; }
-.text-warning { color: #f59e0b; }
-.text-right { text-align: right; }
+.text-success {
+  color: #10b981;
+}
+.text-primary {
+  color: #818cf8;
+}
+.text-info {
+  color: #38bdf8;
+}
+.text-warning {
+  color: #f59e0b;
+}
+.text-right {
+  text-align: right;
+}
 
 /* Master Admin Config Panel */
 .master-config-panel {
@@ -328,7 +348,11 @@
 
   &--featured {
     border-color: rgba(99, 102, 241, 0.4);
-    background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(99, 102, 241, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
   }
 
   &__badge-save {

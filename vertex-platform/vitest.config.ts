@@ -22,10 +22,10 @@ export default defineConfig({
     },
     coverage: {
       thresholds: {
-        statements: 85,
-        lines: 85,
-        functions: 85,
-        branches: 85,
+        statements: 95,
+        lines: 95,
+        functions: 95,
+        branches: 95,
       },
     },
     exclude: [

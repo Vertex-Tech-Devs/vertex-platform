@@ -52,7 +52,10 @@ export async function getEffectivePricing(): Promise<{
       };
     }
   } catch (err) {
-    console.warn('[getEffectivePricing] Could not read platform_config/billing, using defaults:', err);
+    console.warn(
+      '[getEffectivePricing] Could not read platform_config/billing, using defaults:',
+      err,
+    );
   }
   return { ...DEFAULT_SUBSCRIPTION_PRICING };
 }
@@ -61,10 +64,12 @@ export async function getEffectivePricing(): Promise<{
  * Resuelve el token de acceso central de Mercado Pago de la plataforma.
  */
 async function getPlatformMercadoPagoAccessToken(): Promise<string> {
-  const envToken = process.env['MP_PLATFORM_ACCESS_TOKEN'] || process.env['MERCADOPAGO_ACCESS_TOKEN'];
+  const envToken =
+    process.env['MP_PLATFORM_ACCESS_TOKEN'] || process.env['MERCADOPAGO_ACCESS_TOKEN'];
   if (envToken) return envToken;
 
-  const projectId = process.env['GCLOUD_PROJECT'] || process.env['GOOGLE_CLOUD_PROJECT'] || 'vertex-platform-app';
+  const projectId =
+    process.env['GCLOUD_PROJECT'] || process.env['GOOGLE_CLOUD_PROJECT'] || 'vertex-platform-app';
 
   try {
     const [version] = await secretsClient.accessSecretVersion({
@@ -73,7 +78,10 @@ async function getPlatformMercadoPagoAccessToken(): Promise<string> {
     const secretValue = version.payload?.data?.toString();
     if (secretValue) return secretValue;
   } catch (err) {
-    console.warn('[getPlatformMercadoPagoAccessToken] Failed to read Secret Manager, checking fallback in platform_config:', err);
+    console.warn(
+      '[getPlatformMercadoPagoAccessToken] Failed to read Secret Manager, checking fallback in platform_config:',
+      err,
+    );
   }
 
   try {
@@ -205,7 +213,11 @@ export const updatePlatformBillingConfig = onCall(
 export const createStoreSubscriptionLink = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
-    const { storeId, billingCycle = 'monthly', payerEmail } = request.data as {
+    const {
+      storeId,
+      billingCycle = 'monthly',
+      payerEmail,
+    } = request.data as {
       storeId: string;
       billingCycle?: 'monthly' | 'annual';
       payerEmail?: string;
@@ -228,13 +240,17 @@ export const createStoreSubscriptionLink = onCall(
 
     // 1. Calcular precio final considerando descuentos o precios personalizados asignados por Juan
     const subConfig = storeData['subscription'] || {};
-    let finalAmount = billingCycle === 'monthly' ? effectivePricing.monthlyPrice : effectivePricing.annualPrice;
+    let finalAmount =
+      billingCycle === 'monthly' ? effectivePricing.monthlyPrice : effectivePricing.annualPrice;
 
     if (billingCycle === 'monthly' && typeof subConfig['customMonthlyPrice'] === 'number') {
       finalAmount = subConfig['customMonthlyPrice'];
     } else if (billingCycle === 'annual' && typeof subConfig['customAnnualPrice'] === 'number') {
       finalAmount = subConfig['customAnnualPrice'];
-    } else if (typeof subConfig['discountPercent'] === 'number' && subConfig['discountPercent'] > 0) {
+    } else if (
+      typeof subConfig['discountPercent'] === 'number' &&
+      subConfig['discountPercent'] > 0
+    ) {
       const discount = (finalAmount * subConfig['discountPercent']) / 100;
       finalAmount = Math.max(0, Math.round(finalAmount - discount));
     }
@@ -280,7 +296,10 @@ export const createStoreSubscriptionLink = onCall(
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         console.error('[createStoreSubscriptionLink:monthly] MP Error:', errBody);
-        throw new HttpsError('internal', `Error al crear suscripción en Mercado Pago: ${errBody?.message || response.statusText}`);
+        throw new HttpsError(
+          'internal',
+          `Error al crear suscripción en Mercado Pago: ${errBody?.message || response.statusText}`,
+        );
       }
 
       const result = await response.json();
@@ -324,7 +343,8 @@ export const createStoreSubscriptionLink = onCall(
         },
         auto_return: 'approved',
         external_reference: `annual_${storeId}`,
-        notification_url: 'https://us-central1-vertex-platform-app.cloudfunctions.net/platformMercadoPagoWebhook',
+        notification_url:
+          'https://us-central1-vertex-platform-app.cloudfunctions.net/platformMercadoPagoWebhook',
       };
 
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -339,7 +359,10 @@ export const createStoreSubscriptionLink = onCall(
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         console.error('[createStoreSubscriptionLink:annual] MP Error:', errBody);
-        throw new HttpsError('internal', `Error al crear preferencia anual en Mercado Pago: ${errBody?.message || response.statusText}`);
+        throw new HttpsError(
+          'internal',
+          `Error al crear preferencia anual en Mercado Pago: ${errBody?.message || response.statusText}`,
+        );
       }
 
       const result = await response.json();
@@ -373,7 +396,10 @@ export const getPublicStoreSubscriptionInfo = onCall(
   async (request) => {
     const { storeIdOrSlug } = request.data as { storeIdOrSlug: string };
     if (!storeIdOrSlug || typeof storeIdOrSlug !== 'string') {
-      throw new HttpsError('invalid-argument', 'El identificador o slug de la tienda es requerido.');
+      throw new HttpsError(
+        'invalid-argument',
+        'El identificador o slug de la tienda es requerido.',
+      );
     }
 
     const db = getFirestore();
@@ -423,8 +449,13 @@ export const getPublicStoreSubscriptionInfo = onCall(
       const endTs = subConfig['trialEndDate'] || subConfig['currentPeriodEnd'];
       if (endTs) {
         const endDate =
-          typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
-        trialDaysRemaining = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+          typeof endTs.toDate === 'function'
+            ? endTs.toDate()
+            : new Date((endTs.seconds || 0) * 1000);
+        trialDaysRemaining = Math.max(
+          0,
+          Math.ceil((endDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+        );
       }
     }
 
@@ -625,7 +656,9 @@ export const platformMercadoPagoWebhook = onRequest(
 
           if (storeId) {
             const storeRef = db.collection('stores').doc(storeId);
-            const nextPaymentDate = subData.next_payment_date ? new Date(subData.next_payment_date) : null;
+            const nextPaymentDate = subData.next_payment_date
+              ? new Date(subData.next_payment_date)
+              : null;
             const periodEnd = nextPaymentDate || new Date(Date.now() + 32 * 24 * 60 * 60 * 1000);
 
             const updates: Record<string, any> = {
@@ -643,7 +676,9 @@ export const platformMercadoPagoWebhook = onRequest(
             }
 
             await storeRef.update(updates);
-            console.info(`[platformMercadoPagoWebhook] Updated preapproval for store ${storeId}: status=${status}`);
+            console.info(
+              `[platformMercadoPagoWebhook] Updated preapproval for store ${storeId}: status=${status}`,
+            );
           }
         }
       }
@@ -677,7 +712,9 @@ export const platformMercadoPagoWebhook = onRequest(
                 status: 'active', // Reactivación automática inmediata
               });
 
-              console.info(`[platformMercadoPagoWebhook] Annual payment approved for store ${storeId}. Renewed for 1 year.`);
+              console.info(
+                `[platformMercadoPagoWebhook] Annual payment approved for store ${storeId}. Renewed for 1 year.`,
+              );
             }
           }
         }
@@ -753,6 +790,8 @@ export const checkSubscriptionExpirations = onSchedule(
       }
     }
 
-    console.info(`[checkSubscriptionExpirations] Done. Verified: ${verified}, Grace period: ${gracePeriodCount}, Suspended: ${suspendedCount}`);
+    console.info(
+      `[checkSubscriptionExpirations] Done. Verified: ${verified}, Grace period: ${gracePeriodCount}, Suspended: ${suspendedCount}`,
+    );
   },
 );

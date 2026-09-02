@@ -212,8 +212,7 @@ export class StoreCreate implements OnInit {
       const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
       const mode = val.provisioningMode || 'FULL_DEMO';
       const subStatus = val.initialSubscriptionStatus || 'trial';
-      const days =
-        subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
+      const days = subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
       const payload = {
         ...val,
         verticalId: vertical,

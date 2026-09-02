@@ -553,9 +553,13 @@ Nueva Tienda Creada en Vertex:
 
   try {
     await sendDirectEmail(adminEmail, subject, html, text);
-    console.info(`[notifyAdminNewStoreCreated] Email de notificación enviado a ${adminEmail} para la tienda ${data.slug}`);
+    console.info(
+      `[notifyAdminNewStoreCreated] Email de notificación enviado a ${adminEmail} para la tienda ${data.slug}`,
+    );
   } catch (err) {
-    console.error(`[notifyAdminNewStoreCreated] Error al enviar notificación a ${adminEmail}:`, err);
+    console.error(
+      `[notifyAdminNewStoreCreated] Error al enviar notificación a ${adminEmail}:`,
+      err,
+    );
   }
 }
-
