@@ -3670,6 +3670,7 @@ export const completeStoreDeployment = onCall<{
     }
 
     // Notificación por email al administrador central de la plataforma
+    const storeSub = (storeData['subscription'] as Record<string, unknown>) || {};
     void notifyAdminNewStoreCreated({
       storeId,
       storeName: storeData['name'] || storeId,
@@ -3683,6 +3684,9 @@ export const completeStoreDeployment = onCall<{
         `https://${storeData['slug'] ? `vtx-${storeData['slug']}` : storeId}.web.app`,
       tier: storeData['tier'] || 'PRO',
       billingCycle: storeData['billingCycle'] || 'monthly',
+      subscriptionStatus: (storeSub['status'] as string) || (storeData['status'] as string),
+      trialDays:
+        typeof storeSub['trialDays'] === 'number' ? (storeSub['trialDays'] as number) : null,
       createdAt: (storeData['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() || new Date(),
     });
   } else {

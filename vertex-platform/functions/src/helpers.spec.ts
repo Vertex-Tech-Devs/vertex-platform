@@ -144,3 +144,34 @@ describe('pickBillingAccount', () => {
     expect(result).toBe('acc-b');
   });
 });
+
+// ─── notifyAdminNewStoreCreated & sendDirectEmail ──────────────────────────────
+
+describe('notifyAdminNewStoreCreated', () => {
+  it('formats complimentary subscription plan correctly and attempts send', async () => {
+    const { notifyAdminNewStoreCreated } = await import('./helpers');
+    await expect(
+      notifyAdminNewStoreCreated({
+        storeId: 'test-store',
+        storeName: 'Test Store',
+        slug: 'test-store',
+        ownerEmail: 'owner@test.com',
+        subscriptionStatus: 'complimentary',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('formats trial subscription plan with days correctly', async () => {
+    const { notifyAdminNewStoreCreated } = await import('./helpers');
+    await expect(
+      notifyAdminNewStoreCreated({
+        storeId: 'trial-store',
+        storeName: 'Trial Store',
+        slug: 'trial-store',
+        ownerEmail: 'trial@test.com',
+        subscriptionStatus: 'trial',
+        trialDays: 7,
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
