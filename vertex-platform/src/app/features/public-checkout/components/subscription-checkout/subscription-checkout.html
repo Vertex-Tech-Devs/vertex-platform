@@ -54,6 +54,15 @@
                   <i class="bi bi-stars"></i> {{ storeInfo()?.trialDaysRemaining }} días de prueba
                   restantes
                 </div>
+              } @else if (storeInfo()?.subscriptionStatus === 'past_due') {
+                <div class="grace-pill">
+                  <i class="bi bi-clock-history"></i> Período de Gracia (Día
+                  {{ storeInfo()?.overdueDays }}/5)
+                </div>
+              } @else if (storeInfo()?.subscriptionStatus === 'suspended') {
+                <div class="suspended-pill">
+                  <i class="bi bi-slash-circle-fill"></i> Tienda Suspendida por Mora
+                </div>
               }
             </div>
 
@@ -135,13 +144,36 @@
                 <span
                   >Plan Vertex SaaS ({{ billingCycle() === 'annual' ? 'Anual' : 'Mensual' }})</span
                 >
-                <span>${{ effectivePrice() | number }} ARS</span>
+                <span>${{ basePrice() | number }} ARS</span>
               </div>
 
               @if (storeInfo()?.discountPercent) {
                 <div class="summary-line discount-line">
-                  <span>Descuento Especial Aplicado</span>
+                  <span>Descuento Especial Asignado</span>
                   <span>-{{ storeInfo()?.discountPercent }}%</span>
+                </div>
+              }
+
+              @if (storeInfo()?.isOverdue && surchargeAmount() > 0) {
+                <div class="summary-line surcharge-line">
+                  <span class="d-flex align-items-center gap-1">
+                    <i class="bi bi-clock-history text-warning"></i>
+                    Recargo por mora ({{ storeInfo()?.overdueDays }}
+                    {{ storeInfo()?.overdueDays === 1 ? 'día' : 'días' }} x 2%/día)
+                  </span>
+                  <span>+${{ surchargeAmount() | number }} ARS</span>
+                </div>
+
+                <div class="overdue-notice-card">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                  <div>
+                    <strong>Regularización por vencimiento</strong>
+                    <p>
+                      Se aplica un recargo del 2% diario por día hábil/corrido transcurrido en el
+                      período de gracia. Al regularizar tu pago, tu tienda mantendrá el servicio
+                      100% activo sin interrupciones.
+                    </p>
+                  </div>
                 </div>
               }
 

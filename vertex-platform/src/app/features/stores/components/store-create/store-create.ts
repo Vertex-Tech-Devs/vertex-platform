@@ -85,10 +85,9 @@ export class StoreCreate implements OnInit {
     trialDays: [14, [Validators.min(1), Validators.max(365)]],
   });
 
-  readonly trialDaysSignal = toSignal(
-    this.form.get('trialDays')!.valueChanges,
-    { initialValue: 14 }
-  );
+  readonly trialDaysSignal = toSignal(this.form.get('trialDays')!.valueChanges, {
+    initialValue: 14,
+  });
 
   readonly projectedTrialEndDate = computed(() => {
     const raw = this.trialDaysSignal();

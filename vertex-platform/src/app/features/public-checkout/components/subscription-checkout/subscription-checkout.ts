@@ -33,12 +33,26 @@ export class SubscriptionCheckout implements OnInit {
   readonly isProcessingPayment = signal(false);
   readonly paymentError = signal<string | null>(null);
 
-  readonly effectivePrice = computed(() => {
+  readonly basePrice = computed(() => {
     const info = this.storeInfo();
     if (!info) {
       return 0;
     }
     return this.billingCycle() === 'annual' ? info.annualPrice : info.monthlyPrice;
+  });
+
+  readonly surchargeAmount = computed(() => {
+    const info = this.storeInfo();
+    if (!info || !info.isOverdue) {
+      return 0;
+    }
+    return this.billingCycle() === 'annual'
+      ? info.overdueAnnualSurchargeAmount || 0
+      : info.overdueMonthlySurchargeAmount || 0;
+  });
+
+  readonly effectivePrice = computed(() => {
+    return this.basePrice() + this.surchargeAmount();
   });
 
   readonly savingsAmount = computed(() => {

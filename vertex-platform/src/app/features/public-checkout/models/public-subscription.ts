@@ -15,6 +15,11 @@ export interface PublicStoreSubscriptionInfo {
   baseMonthlyPrice: number;
   baseAnnualPrice: number;
   discountPercent: number | null;
+  isOverdue?: boolean;
+  overdueDays?: number;
+  overdueSurchargePercent?: number;
+  overdueMonthlySurchargeAmount?: number;
+  overdueAnnualSurchargeAmount?: number;
 }
 
 export interface SubscriptionCheckoutResult {

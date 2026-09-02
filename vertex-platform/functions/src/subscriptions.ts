@@ -19,6 +19,70 @@ export const DEFAULT_SUBSCRIPTION_PRICING = {
 };
 
 /**
+ * Tasa de interés diaria por mora aplicada durante el período de gracia (2% por día).
+ */
+export const DAILY_OVERDUE_SURCHARGE_RATE = 0.02;
+
+export interface OverdueDetails {
+  isOverdue: boolean;
+  overdueDays: number;
+  surchargePercent: number;
+  surchargeAmount: number;
+  totalAmount: number;
+}
+
+/**
+ * Calcula con precisión los días de mora y el recargo correspondiente (2% por día, tope 10%).
+ */
+export function calculateOverdueDetails(
+  subConfig: Record<string, any> = {},
+  basePrice: number,
+  referenceNow: number = Date.now(),
+): OverdueDetails {
+  const status = subConfig['status'];
+  const isEligibleStatus = status === 'past_due' || status === 'suspended';
+
+  const endTs = subConfig['currentPeriodEnd'] || subConfig['trialEndDate'];
+  if (!isEligibleStatus || !endTs) {
+    return {
+      isOverdue: false,
+      overdueDays: 0,
+      surchargePercent: 0,
+      surchargeAmount: 0,
+      totalAmount: basePrice,
+    };
+  }
+
+  const endDate =
+    typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
+  const endMillis = endDate.getTime();
+
+  if (referenceNow <= endMillis) {
+    return {
+      isOverdue: false,
+      overdueDays: 0,
+      surchargePercent: 0,
+      surchargeAmount: 0,
+      totalAmount: basePrice,
+    };
+  }
+
+  const diffDays = Math.ceil((referenceNow - endMillis) / (24 * 60 * 60 * 1000));
+  // Limitamos de 1 a 5 días de gracia (máximo 10% de recargo)
+  const overdueDays = Math.min(5, Math.max(1, diffDays));
+  const surchargePercent = overdueDays * 2;
+  const surchargeAmount = Math.round(basePrice * (surchargePercent / 100));
+
+  return {
+    isOverdue: true,
+    overdueDays,
+    surchargePercent,
+    surchargeAmount,
+    totalAmount: basePrice + surchargeAmount,
+  };
+}
+
+/**
  * Identifica si el usuario autenticado cuenta con el rol de Administrador de Recaudación Principal
  * para la configuración segura de credenciales de pago y tesorería.
  */
@@ -255,6 +319,10 @@ export const createStoreSubscriptionLink = onCall(
       finalAmount = Math.max(0, Math.round(finalAmount - discount));
     }
 
+    // 2. Aplicar recargo por mora (2% diario) si la tienda está en período de gracia o suspendida
+    const overdueDetails = calculateOverdueDetails(subConfig, finalAmount);
+    finalAmount = overdueDetails.totalAmount;
+
     const targetEmail =
       payerEmail ||
       storeData['ownerEmail'] ||
@@ -459,6 +527,10 @@ export const getPublicStoreSubscriptionInfo = onCall(
       }
     }
 
+    // Calcular recargo por mora si la tienda está en período de gracia o suspendida
+    const monthlyOverdue = calculateOverdueDetails(subConfig, monthlyPrice);
+    const annualOverdue = calculateOverdueDetails(subConfig, annualPrice);
+
     return {
       storeId,
       name: data['name'] || storeId,
@@ -480,6 +552,11 @@ export const getPublicStoreSubscriptionInfo = onCall(
       baseMonthlyPrice: effectivePricing.monthlyPrice,
       baseAnnualPrice: effectivePricing.annualPrice,
       discountPercent: discountPercent > 0 ? discountPercent : null,
+      isOverdue: monthlyOverdue.isOverdue,
+      overdueDays: monthlyOverdue.overdueDays,
+      overdueSurchargePercent: monthlyOverdue.surchargePercent,
+      overdueMonthlySurchargeAmount: monthlyOverdue.surchargeAmount,
+      overdueAnnualSurchargeAmount: annualOverdue.surchargeAmount,
     };
   },
 );
@@ -515,11 +592,18 @@ export const getStoreSubscription = onCall(
     const email = request.auth.token.email;
     const isMaster = isMasterBillingAdmin(email);
 
+    const baseAmount =
+      subscription.billingCycle === 'annual'
+        ? subscription.customAnnualPrice || effectivePricing.annualPrice
+        : subscription.customMonthlyPrice || effectivePricing.monthlyPrice;
+    const overdueDetails = calculateOverdueDetails(subscription, baseAmount);
+
     return {
       storeId,
       subscription,
       basePricing: effectivePricing,
       isMasterAdmin: isMaster,
+      overdueDetails,
     };
   },
 );
