@@ -147,9 +147,7 @@
 
               @if (billingCycle() === 'annual' && savingsAmount() > 0) {
                 <div class="savings-pill">
-                  <i class="bi bi-gift-fill"></i> Estás ahorrando ${{
-                    savingsAmount() | number
-                  }}
+                  <i class="bi bi-gift-fill"></i> Estás ahorrando ${{ savingsAmount() | number }}
                   ARS al año
                 </div>
               }
