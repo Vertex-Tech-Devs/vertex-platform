@@ -253,6 +253,19 @@ describe('StoreCreate', () => {
     const projected = component.projectedTrialEndDate();
     const expectedDiffDays = Math.round((projected.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
     expect(expectedDiffDays).toBe(10);
+
+    // Test onCustomTrialDaysChange validation (clamp min 1, max 365)
+    component.onCustomTrialDaysChange({ target: { value: '0' } } as unknown as Event);
+    expect(component.form.get('trialDays')?.value).toBe(1);
+
+    component.onCustomTrialDaysChange({ target: { value: '-5' } } as unknown as Event);
+    expect(component.form.get('trialDays')?.value).toBe(1);
+
+    component.onCustomTrialDaysChange({ target: { value: '45' } } as unknown as Event);
+    expect(component.form.get('trialDays')?.value).toBe(45);
+
+    component.onCustomTrialDaysChange({ target: { value: '999' } } as unknown as Event);
+    expect(component.form.get('trialDays')?.value).toBe(365);
   });
 
   it('onSubmit does not call createStore if form is invalid', async () => {

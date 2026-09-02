@@ -99,6 +99,17 @@ export class StoreCreate implements OnInit {
     }
   }
 
+  onCustomTrialDaysChange(event: Event): void {
+    const rawVal = (event.target as HTMLInputElement).value;
+    let numVal = parseInt(rawVal, 10);
+    if (isNaN(numVal) || numVal < 1) {
+      numVal = 1;
+    } else if (numVal > 365) {
+      numVal = 365;
+    }
+    this.form.get('trialDays')?.setValue(numVal);
+  }
+
   ngOnInit(): void {
     void (async () => {
       try {

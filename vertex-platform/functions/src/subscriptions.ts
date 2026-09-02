@@ -26,7 +26,7 @@ export function isMasterBillingAdmin(authEmail?: string): boolean {
   if (!authEmail) return false;
   const configuredMasters = process.env['MASTER_BILLING_ADMIN_EMAILS']
     ? process.env['MASTER_BILLING_ADMIN_EMAILS'].split(',').map((e) => e.trim().toLowerCase())
-    : ['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com'];
+    : ['juan.l.espeche@gmail.com'];
   return configuredMasters.includes(authEmail.toLowerCase().trim());
 }
 
