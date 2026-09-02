@@ -1595,15 +1595,60 @@
                     </div>
                   }
 
-                  <!-- Platform Admin Subscription & Pricing Controls -->
-                  <div class="master-sub-controls">
-                    <div class="master-sub-controls__header">
-                      <div class="master-badge">
-                        <i class="bi bi-shield-lock-fill"></i>
-                        <span>Gestión y Facturación de la Tienda</span>
-                      </div>
-                      <span class="master-sub-controls__tag">Master Admin</span>
-                    </div>
+                  <!-- Platform Admin Subscription & Pricing Controls (Collapsible Accordion) -->
+                  <div class="accordion master-sub-controls-accordion" id="masterControlsAccordion">
+                    <div class="accordion-item" style="background: transparent; border: none">
+                      <h3 class="accordion-header" id="masterControlsHeading">
+                        <button
+                          class="accordion-button collapsed d-flex align-items-center justify-content-between py-2 px-3 rounded-3"
+                          style="
+                            background: rgba(15, 23, 42, 0.55);
+                            border: 1px solid rgba(251, 191, 36, 0.25);
+                            color: #f1f5f9;
+                            font-size: 0.875rem;
+                            font-weight: 700;
+                            box-shadow: none;
+                          "
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#masterControlsBody"
+                          aria-expanded="false"
+                          aria-controls="masterControlsBody"
+                        >
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-lock-fill text-warning"></i>
+                            <span>Gestión y Facturación de la Tienda</span>
+                            <span
+                              class="badge"
+                              style="
+                                background: rgba(251, 191, 36, 0.12);
+                                border: 1px solid rgba(251, 191, 36, 0.3);
+                                color: #fbbf24;
+                                font-size: 0.65rem;
+                                font-weight: 700;
+                                letter-spacing: 0.08em;
+                              "
+                              >Master Admin</span
+                            >
+                          </div>
+                        </button>
+                      </h3>
+
+                      <div
+                        id="masterControlsBody"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="masterControlsHeading"
+                        data-bs-parent="#masterControlsAccordion"
+                      >
+                        <div class="accordion-body px-0 pb-0 pt-3">
+                          <div class="master-sub-controls">
+                            <div class="master-sub-controls__header">
+                              <div class="master-badge">
+                                <i class="bi bi-shield-lock-fill"></i>
+                                <span>Gestión y Facturación</span>
+                              </div>
+                              <span class="master-sub-controls__tag">Herramientas</span>
+                            </div>
 
                     @if (discountSaveSuccess()) {
                       <div class="alert alert--success text-xs py-2 mb-3">
@@ -1622,6 +1667,7 @@
                           <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago
                         </span>
                         <div class="d-flex gap-2">
+
                           <button
                             type="button"
                             class="btn btn-secondary btn-sm"
@@ -1902,6 +1948,10 @@
                         </div>
                       }
                     </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1998,6 +2048,20 @@
                         <div class="sandbox-card__title-row">
                           <i class="bi bi-shield-shaded"></i>
                           <span class="form-label mb-0">Modo Sandbox (Pruebas)</span>
+                          <span
+                            class="badge ms-2"
+                            [class.bg-success]="!mpSandbox()"
+                            [class.bg-opacity-75]="!mpSandbox()"
+                            [class.text-white]="true"
+                            [class.bg-warning]="mpSandbox()"
+                          >
+                            <i
+                              class="bi me-1"
+                              [class.bi-check-circle-fill]="!mpSandbox()"
+                              [class.bi-shield-exclamation]="mpSandbox()"
+                            ></i>
+                            {{ mpSandbox() ? 'Sandbox Activo' : 'Producción' }}
+                          </span>
                         </div>
                         <span class="form-hint"
                           >Activalo para operar en entorno de pruebas antes de procesar ventas
@@ -2014,7 +2078,7 @@
                       </label>
                     </div>
 
-                    <!-- Webhook URL (readonly) -->
+                    <!-- Webhook URL (readonly, dynamic per tenant) -->
                     <div class="form-group">
                       <label class="form-label">
                         Webhook IPN URL
@@ -2025,7 +2089,9 @@
                           class="form-control form-control--readonly"
                           type="text"
                           [value]="
-                            'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=' +
+                            'https://us-central1-' +
+                            store()!.firebaseProjectId +
+                            '.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=' +
                             (store()!.slug || store()!.id)
                           "
                           readonly
