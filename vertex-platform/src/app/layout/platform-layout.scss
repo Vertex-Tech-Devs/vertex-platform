@@ -88,6 +88,16 @@
   gap: 0.35rem;
 }
 
+.nav-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--platform-text-muted);
+  padding: 0.4rem 0.85rem 0.2rem;
+  opacity: 0.8;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

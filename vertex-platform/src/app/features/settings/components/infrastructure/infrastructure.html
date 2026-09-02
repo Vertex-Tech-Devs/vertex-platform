@@ -1,0 +1,470 @@
+<div class="infrastructure-page">
+  <!-- Toast notification -->
+  @if (svc.toastMessage()) {
+    <div class="toast-banner">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ svc.toastMessage() }}</span>
+    </div>
+  }
+
+  <!-- Header -->
+  <div class="page-top">
+    <div class="page-top__titles">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge badge--info">Operaciones Cloud</span>
+      </div>
+      <h1 class="page-title">Infraestructura & Shards GCP</h1>
+      <p class="page-sub">
+        Monitoreo de capacidad, gestión de shards en Google Cloud y límites de proyectos.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a routerLink="/settings/subscriptions" class="btn btn-secondary">
+        <i class="bi bi-cash-stack"></i>
+        <span>Ver Suscripciones SaaS</span>
+      </a>
+      <a routerLink="/stores" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i>
+        <span>Volver a Tiendas</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Hero Status Banner -->
+  @if (isInitialLoading()) {
+    <div class="guidance-banner guidance-banner--skeleton">
+      <div class="guidance-banner__icon-box skeleton skeleton--icon-box"></div>
+      <div class="guidance-banner__content flex-1">
+        <div class="skeleton" style="width: 140px; height: 16px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="width: 280px; height: 22px; margin-bottom: 6px;"></div>
+        <div class="skeleton" style="width: 220px; height: 14px;"></div>
+      </div>
+    </div>
+  } @else if (isCriticalGcp()) {
+    <div class="guidance-banner guidance-banner--critical">
+      <div class="guidance-banner__icon-box">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--danger"></span>
+          <span>CAPACIDAD CRÍTICA (≤ 25 TIENDAS)</span>
+        </div>
+        <h2 class="guidance-banner__headline">Capacidad de Shards al Límite</h2>
+        <p class="guidance-banner__desc">
+          Quedan solo <strong>{{ totalAvailableStores() }} tiendas disponibles</strong> en el pool de shards activos. Es necesario aprovisionar nuevos shards o solicitar aumento de cuota en Google Cloud.
+        </p>
+      </div>
+      <div class="guidance-banner__actions">
+        <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn--sm">
+          <i class="bi bi-plus-circle-fill"></i> Crear Billing Account en GCP
+        </a>
+      </div>
+    </div>
+  } @else if (isWarningShards()) {
+    <div class="guidance-banner guidance-banner--warning">
+      <div class="guidance-banner__icon-box">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--warning"></span>
+          <span>ATENCIÓN · POCOS SHARDS CONFIGURADOS</span>
+        </div>
+        <h2 class="guidance-banner__headline">Solo quedan {{ activeShardsCount() }} shards listos para operar</h2>
+        <p class="guidance-banner__desc">
+          Capacidad libre inmediata: <strong>{{ activeAvailableStores() }} tiendas</strong>. Hay {{ pendingShardsCount() }} shards pendientes de configuración para ampliar la capacidad operativa.
+        </p>
+      </div>
+    </div>
+  } @else {
+    <div class="guidance-banner guidance-banner--optimal">
+      <div class="guidance-banner__icon-box">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div class="guidance-banner__content">
+        <div class="guidance-banner__tag">
+          <span class="pulse-dot pulse-dot--success"></span>
+          <span>SISTEMA 100% OPERATIVO · ALTA DISPONIBILIDAD</span>
+        </div>
+        <h2 class="guidance-banner__headline">Infraestructura Escalable & Operativa</h2>
+        <p class="guidance-banner__desc">
+          Capacidad inmediata: <strong>{{ activeAvailableStores() }} tiendas disponibles</strong> distribuidas en <strong>{{ activeShardsCount() }} shards activos</strong> en Google Cloud
+          @if (standbyAvailableStores() > 0) {
+            <span class="guidance-banner__standby-note">(+{{ standbyAvailableStores() }} cupos en shards Standby)</span>
+          }.
+        </p>
+      </div>
+      <div class="guidance-banner__chips">
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ activeAvailableStores() }}</span>
+          <span class="banner-chip__label">Cupos Libres</span>
+        </div>
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ activeShardsCount() }}</span>
+          <span class="banner-chip__label">Shards Activos</span>
+        </div>
+        <div class="banner-chip">
+          <span class="banner-chip__value">{{ svc.totalGcpRemaining() }}</span>
+          <span class="banner-chip__label">Cupos GCP</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-primary" (click)="openAddAccount()">
+      <i class="bi bi-plus-lg"></i>
+      <span>Vincular Cuenta GCP</span>
+    </button>
+
+    <button class="btn btn-secondary" (click)="syncAccounts()" [disabled]="svc.isSyncing()">
+      <i class="bi bi-arrow-repeat" [class.spin]="svc.isSyncing()"></i>
+      <span>{{ svc.isSyncing() ? 'Sincronizando…' : 'Sincronizar con GCP' }}</span>
+    </button>
+
+    <a
+      href="https://console.cloud.google.com/iam-admin/quotas"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="btn btn-secondary"
+    >
+      <i class="bi bi-graph-up-arrow"></i>
+      <span>Solicitar Cuota en GCP</span>
+      <i class="bi bi-box-arrow-up-right"></i>
+    </a>
+  </div>
+
+  <!-- KPIs Grid -->
+  @if (isInitialLoading()) {
+    <div class="kpi-grid">
+      @for (_ of [1, 2, 3, 4]; track $index) {
+        <div class="kpi-card kpi-card--skeleton">
+          <div class="skeleton" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
+          <div class="skeleton" style="width: 140px; height: 26px; margin-bottom: 6px;"></div>
+          <div class="skeleton" style="width: 120px; height: 12px;"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-card__label">Capacidad Disponible</span>
+        <span class="kpi-card__value">{{ totalAvailableStores() }} Tiendas</span>
+        <span class="kpi-card__sub">{{ activeShardsCount() }} Shards Activos</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-card__label">Cuentas de Facturación</span>
+        <span class="kpi-card__value">{{ svc.activeAccountsCount() }} Cuentas</span>
+        <span class="kpi-card__sub">Pool de Producción GCP</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-card__label">Proyectos GCP Vinculados</span>
+        <div class="kpi-card__status-row">
+          <span class="kpi-card__value">{{ svc.totalGcpUsed() }} / {{ svc.totalGcpLimit() }}</span>
+          <span class="badge badge--active">{{ svc.usagePercent() }}% Asignado</span>
+        </div>
+        <span class="kpi-card__sub">Proyectos en Google Cloud</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-card__label">Cupos Libres GCP</span>
+        <span class="kpi-card__value">{{ svc.totalGcpRemaining() }} Proyectos</span>
+        <span class="kpi-card__sub">Disponibles para nuevos shards</span>
+      </div>
+    </div>
+  }
+
+  <!-- Inline Add Account Form -->
+  @if (isAddingAccount()) {
+    <div class="add-account-card">
+      <div class="add-account-card__head">
+        <div class="add-account-card__title">
+          <i class="bi bi-credit-card-2-front-fill"></i>
+          <span>Vincular Nueva Cuenta de Facturación GCP</span>
+        </div>
+        <button class="btn-icon" (click)="cancelAddAccount()" title="Cerrar">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <p class="add-account-card__hint">
+        Ingresa el ID de la Billing Account creada en la consola de Google Cloud (ej: <code>016C49-4BE679-4F9DF2</code>) y un nombre identificador.
+      </p>
+
+      <div class="add-account-form">
+        <div class="form-group flex-1">
+          <label class="form-label">ID de Facturación GCP</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="ej. 016C49-4BE679-4F9DF2"
+            [value]="newAccountId()"
+            (input)="newAccountId.set($any($event.target).value)"
+          />
+        </div>
+        <div class="form-group flex-1">
+          <label class="form-label">Nombre Identificador</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="ej. Vertex Prod Billing 6"
+            [value]="newAccountName()"
+            (input)="newAccountName.set($any($event.target).value)"
+          />
+        </div>
+        <div class="form-group limit-group">
+          <label class="form-label">Límite Proyectos</label>
+          <input
+            type="number"
+            class="form-control"
+            min="1"
+            max="100"
+            [value]="newAccountLimit()"
+            (input)="newAccountLimit.set(+$any($event.target).value)"
+          />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" (click)="cancelAddAccount()" [disabled]="isAdding()">
+            Cancelar
+          </button>
+          <button class="btn btn-primary" (click)="addAccount()" [disabled]="isAdding()">
+            <i class="bi" [class.bi-check-lg]="!isAdding()" [class.bi-arrow-repeat]="isAdding()" [class.spin]="isAdding()"></i>
+            <span>{{ isAdding() ? 'Vinculando…' : 'Vincular Cuenta' }}</span>
+          </button>
+        </div>
+      </div>
+
+      @if (addAccountError()) {
+        <div class="error-banner">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ addAccountError() }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="activeTab() === 'shards'"
+      (click)="activeTab.set('shards')"
+    >
+      <i class="bi bi-server"></i>
+      <span>Infrastructure Shards</span>
+      <span class="tab-badge">{{ sortedShards().length || 16 }}</span>
+    </button>
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="activeTab() === 'accounts'"
+      (click)="activeTab.set('accounts')"
+    >
+      <i class="bi bi-credit-card-2-front"></i>
+      <span>Cuentas de Facturación GCP</span>
+      <span class="tab-badge">{{ svc.accounts().length }}</span>
+    </button>
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="activeTab() === 'guide'"
+      (click)="activeTab.set('guide')"
+    >
+      <i class="bi bi-diagram-3"></i>
+      <span>Arquitectura y Capacidad Cloud</span>
+    </button>
+  </div>
+
+  <!-- TAB: Shards de Infraestructura -->
+  @if (activeTab() === 'shards') {
+    <div class="shards-section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Shards en Producción & Standby</h2>
+          <p class="section-sub">
+            Distribución física de tiendas por proyecto GCP. Cada shard soporta hasta 35 tiendas en alta disponibilidad.
+          </p>
+        </div>
+        <div class="section-controls">
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Buscar por ID..."
+              [value]="shardSearchQuery()"
+              (input)="shardSearchQuery.set($any($event.target).value)"
+            />
+          </div>
+          <button class="btn btn-secondary btn--sm" (click)="loadReadiness()" [disabled]="isCheckingShards()">
+            <i class="bi bi-arrow-repeat" [class.spin]="isCheckingShards()"></i>
+            <span>{{ isCheckingShards() ? 'Verificando…' : 'Reverificar Shards' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="shards-grid">
+        @for (shard of filteredShards(); track shard.id) {
+          <div
+            class="shard-card"
+            [class.shard-card--ready]="shard.ready"
+            [class.shard-card--unready]="!shard.ready"
+            [class.shard-card--primary]="shard.status === 'ACTIVE'"
+            [class.shard-card--standby]="shard.status === 'WARMUP_READY'"
+            [class.shard-card--pending]="shard.status === 'WARMUP_PENDING'"
+          >
+            <div class="shard-card__head">
+              <div class="shard-card__title-row">
+                <span class="shard-card__id" [title]="shard.id">{{ shard.id }}</span>
+                <button
+                  class="btn-icon-xs"
+                  (click)="copyToClipboard(shard.id)"
+                  [title]="copiedId() === shard.id ? '¡Copiado!' : 'Copiar ID'"
+                >
+                  <i class="bi" [class.bi-clipboard]="copiedId() !== shard.id" [class.bi-check2]="copiedId() === shard.id"></i>
+                </button>
+              </div>
+              <div class="shard-card__badges">
+                @if (shard.status === 'ACTIVE') {
+                  <span class="badge badge--active">ACTIVO</span>
+                } @else if (shard.status === 'WARMUP_READY') {
+                  <span class="badge badge--standby">STANDBY</span>
+                } @else if (shard.status === 'WARMUP_PENDING') {
+                  <span class="badge badge--pending">PREPARANDO</span>
+                }
+              </div>
+            </div>
+
+            <!-- Capacity Bar -->
+            <div class="shard-card__capacity">
+              <div class="capacity-labels">
+                <span class="capacity-label">Ocupación: {{ shard.currentStores }} / {{ shard.maxCapacity }} tiendas</span>
+                <span class="capacity-ratio">{{ shard.occupancyRatio * 100 | number:'1.0-0' }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div
+                  class="progress-bar__fill"
+                  [style.width.%]="shard.occupancyRatio * 100"
+                  [class.progress-bar__fill--full]="shard.occupancyRatio >= 0.9"
+                  [class.progress-bar__fill--warning]="shard.occupancyRatio >= 0.7 && shard.occupancyRatio < 0.9"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Readiness footer -->
+            <div class="shard-card__foot">
+              <div class="readiness-pill" [class.readiness-pill--ok]="shard.ready" [class.readiness-pill--fail]="!shard.ready">
+                <i class="bi" [class.bi-check-circle-fill]="shard.ready" [class.bi-exclamation-circle-fill]="!shard.ready"></i>
+                <span>{{ shard.ready ? 'Configuración OK' : 'Atención Requerida' }}</span>
+              </div>
+              <button class="btn btn-secondary btn--xs" (click)="openShardModal(shard)">
+                Detalle
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- TAB: Cuentas de Facturación GCP -->
+  @if (activeTab() === 'accounts') {
+    <div class="accounts-section">
+      @if (svc.isLoading()) {
+        <div class="account-list account-list--skeleton" aria-busy="true">
+          @for (_ of [1, 2, 3]; track $index) {
+            <div class="account-card account-card--skeleton">
+              <div class="skeleton skeleton--name"></div>
+              <div class="skeleton skeleton--bar"></div>
+            </div>
+          }
+        </div>
+      } @else if (svc.error()) {
+        <div class="error-banner">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ svc.error() }}</span>
+        </div>
+      } @else if (svc.accounts().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-credit-card-2-front"></i>
+          <h3>No hay cuentas de facturación vinculadas</h3>
+          <p>Vincula una cuenta de facturación de Google Cloud para comenzar a aprovisionar tiendas.</p>
+          <button class="btn btn-primary" (click)="openAddAccount()">
+            <i class="bi bi-plus-lg"></i>
+            <span>Vincular Primera Cuenta</span>
+          </button>
+        </div>
+      } @else {
+        <div class="account-list">
+          @for (acc of svc.accounts(); track acc.id) {
+            <div class="account-card" [class.account-card--disabled]="!acc.active">
+              <div class="account-card__top">
+                <div class="account-card__identity">
+                  <span class="account-card__name">{{ acc.name }}</span>
+                  <span class="account-card__id">{{ acc.id }}</span>
+                </div>
+                <div class="account-card__actions">
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    (click)="toggleAccountStatus(acc)"
+                  >
+                    {{ acc.active ? 'Marcar Completa' : 'Marcar Activa' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="account-card__progress">
+                <div class="progress-labels">
+                  <span>Proyectos: {{ acc.gcpUsedProjects }} / {{ acc.gcpProjectLimit }}</span>
+                  <span>{{ (acc.gcpUsedProjects / acc.gcpProjectLimit) * 100 | number:'1.0-0' }}%</span>
+                </div>
+                <div class="progress-bar">
+                  <div
+                    class="progress-bar__fill"
+                    [style.width.%]="(acc.gcpUsedProjects / acc.gcpProjectLimit) * 100"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB: Guía de Arquitectura -->
+  @if (activeTab() === 'guide') {
+    <div class="guide-section">
+      <div class="guide-card">
+        <h3 class="guide-title"><i class="bi bi-diagram-3-fill text-primary"></i> Arquitectura Multi-Tenant Sharded</h3>
+        <p class="guide-text">
+          Vertex Platform utiliza un modelo de aislamiento por Shards sobre Google Cloud. Cada shard es un proyecto independiente de GCP que aloja múltiples tiendas en una base de datos optimizada.
+        </p>
+        <div class="guide-points">
+          <div class="guide-point">
+            <i class="bi bi-shield-check text-success"></i>
+            <div>
+              <strong>Aislamiento de Carga</strong>
+              <p>El tráfico de un cliente masivo no satura ni degrada la experiencia de otras tiendas.</p>
+            </div>
+          </div>
+          <div class="guide-point">
+            <i class="bi bi-arrow-up-right-circle text-primary"></i>
+            <div>
+              <strong>Escalabilidad Horizontal Ilimitada</strong>
+              <p>Al alcanzar el 80% de ocupación en un shard, el sistema activa automáticamente un shard en Standby.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Shard Status Modal -->
+  @if (selectedShard()) {
+    <app-shard-status-modal
+      [shard]="selectedShard()"
+      (closed)="closeShardModal()"
+    />
+  }
+</div>

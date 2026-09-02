@@ -13,6 +13,7 @@
     </div>
 
     <nav class="sidebar-nav">
+      <div class="nav-section-label">Comercio & Negocio</div>
       <a
         class="nav-item"
         routerLink="/stores"
@@ -23,7 +24,30 @@
         <i class="bi bi-shop-window"></i>
         <span>Tiendas</span>
       </a>
+
       @if (auth.isSuperAdmin()) {
+        <a
+          class="nav-item"
+          routerLink="/settings/subscriptions"
+          routerLinkActive="nav-item--active"
+          (click)="closeSidebar()"
+        >
+          <i class="bi bi-cash-stack"></i>
+          <span>Suscripciones SaaS</span>
+        </a>
+
+        <div class="nav-section-label mt-3">Operaciones Cloud</div>
+        <a
+          class="nav-item"
+          routerLink="/settings/infrastructure"
+          routerLinkActive="nav-item--active"
+          (click)="closeSidebar()"
+        >
+          <i class="bi bi-server"></i>
+          <span>Infraestructura GCP</span>
+        </a>
+
+        <div class="nav-section-label mt-3">Administración</div>
         <a
           class="nav-item"
           routerLink="/settings/team"
@@ -32,15 +56,6 @@
         >
           <i class="bi bi-people"></i>
           <span>Equipo</span>
-        </a>
-        <a
-          class="nav-item"
-          routerLink="/settings/billing"
-          routerLinkActive="nav-item--active"
-          (click)="closeSidebar()"
-        >
-          <i class="bi bi-credit-card"></i>
-          <span>Facturación</span>
         </a>
       }
     </nav>
