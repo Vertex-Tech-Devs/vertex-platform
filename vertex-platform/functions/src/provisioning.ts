@@ -3685,7 +3685,8 @@ export const completeStoreDeployment = onCall<{
       tier: storeData['tier'] || 'PRO',
       billingCycle: storeData['billingCycle'] || 'monthly',
       subscriptionStatus: (storeSub['status'] as string) || (storeData['status'] as string),
-      trialDays: typeof storeSub['trialDays'] === 'number' ? (storeSub['trialDays'] as number) : null,
+      trialDays:
+        typeof storeSub['trialDays'] === 'number' ? (storeSub['trialDays'] as number) : null,
       createdAt: (storeData['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() || new Date(),
     });
   } else {
