@@ -1422,9 +1422,9 @@
                             <span class="text-xs text-muted">
                               Disfrutando de acceso completo sin cargo hasta el
                               {{
-                                (storeSubscription()?.subscription?.trialEndDate?.toDate
-                                  ? storeSubscription()?.subscription?.trialEndDate?.toDate()
-                                  : storeSubscription()?.subscription?.currentPeriodEnd?.toDate()
+                                formatDate(
+                                  storeSubscription()?.subscription?.trialEndDate ||
+                                    storeSubscription()?.subscription?.currentPeriodEnd
                                 ) | date: 'dd/MM/yyyy'
                               }}.
                             </span>
@@ -1480,7 +1480,7 @@
                           </span>
                           <span class="text-sm font-weight-medium text-white">
                             {{
-                              storeSubscription()?.subscription?.currentPeriodEnd?.toDate()
+                              formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
                                 | date: 'dd/MM/yyyy'
                             }}
                           </span>
@@ -1765,6 +1765,80 @@
                         isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Cliente'
                       }}</span>
                     </button>
+
+                    <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
+                    <div class="qa-simulation-box mt-3 pt-3 border-top border-secondary">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <button
+                          type="button"
+                          class="btn-qa-toggle d-flex align-items-center gap-2 text-xs"
+                          (click)="showSimulationTools.set(!showSimulationTools())"
+                          title="Herramienta oculta para simular vencimientos en DEV y PROD"
+                        >
+                          <i class="bi bi-radioactive text-danger"></i>
+                          <span class="font-weight-bold text-muted"
+                            >Simulador de Vencimientos (QA / Prod Lab)</span
+                          >
+                          <i
+                            class="bi text-muted"
+                            [class.bi-chevron-down]="!showSimulationTools()"
+                            [class.bi-chevron-up]="showSimulationTools()"
+                          ></i>
+                        </button>
+                        <span class="badge badge--dark text-muted text-xxs">Testing Directo</span>
+                      </div>
+
+                      @if (showSimulationTools()) {
+                        <div class="qa-tools-content p-2 rounded bg-black-50 border border-dark">
+                          <p class="text-xs text-muted mb-2">
+                            Probá instantáneamente cómo responde la plataforma y el storefront ante
+                            distintos estados de vencimiento sin esperar días:
+                          </p>
+                          <div class="d-flex flex-column gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('imminent')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-alarm"></i>
+                                <span>Vence en 1 Hora</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('grace_period')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>Período de Gracia (5 días)</span>
+                              </button>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('expired_suspended')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-slash-circle-fill"></i>
+                                <span>Expirado y Suspendido</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-success btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('reset_trial')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                                <span>Restablecer Trial (14d)</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
                   </div>
                 </div>
 

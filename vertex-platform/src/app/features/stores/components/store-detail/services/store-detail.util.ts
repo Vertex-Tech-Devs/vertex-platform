@@ -36,7 +36,7 @@ export function parseDateToMillis(dateVal: unknown): number {
     return 0;
   }
   if (typeof dateVal === 'number') {
-    return dateVal;
+    return isNaN(dateVal) ? 0 : dateVal;
   }
   if (dateVal instanceof Date) {
     return isNaN(dateVal.getTime()) ? 0 : dateVal.getTime();
@@ -64,11 +64,17 @@ export function parseDateToMillis(dateVal: unknown): number {
       return d.getTime();
     }
   }
-  if (typeof dateVal === 'object') {
+  if (typeof dateVal === 'object' && dateVal !== null) {
     const val = dateVal as Record<string, unknown>;
     if (typeof val['toDate'] === 'function') {
-      const d = (val['toDate'] as () => Date)();
-      return d && !isNaN(d.getTime()) ? d.getTime() : 0;
+      try {
+        const d = (val['toDate'] as () => Date)();
+        if (d instanceof Date && !isNaN(d.getTime())) {
+          return d.getTime();
+        }
+      } catch {
+        // Fallback to seconds property
+      }
     }
     if (typeof val['seconds'] === 'number') {
       return (val['seconds'] as number) * 1000;

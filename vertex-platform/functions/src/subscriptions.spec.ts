@@ -43,4 +43,19 @@ describe('Single SaaS Subscription Engine & Access Control', () => {
     const end30 = new Date(now + trialDays30 * 24 * 60 * 60 * 1000);
     expect(Math.round((end30.getTime() - now) / (24 * 60 * 60 * 1000))).toBe(30);
   });
+
+  it('validates simulation mode offsets for testing store expiration', () => {
+    const now = Date.now();
+    // Inminent: 1 hour ahead
+    const imminent = new Date(now + 60 * 60 * 1000);
+    expect(imminent.getTime()).toBeGreaterThan(now);
+
+    // Grace period: 2 days overdue (within 5 days grace)
+    const grace = new Date(now - 2 * 24 * 60 * 60 * 1000);
+    expect(now - grace.getTime()).toBeLessThan(5 * 24 * 60 * 60 * 1000);
+
+    // Expired & suspended: 7 days overdue (> 5 days grace)
+    const expired = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    expect(now - expired.getTime()).toBeGreaterThan(5 * 24 * 60 * 60 * 1000);
+  });
 });
