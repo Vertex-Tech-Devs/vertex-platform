@@ -171,7 +171,11 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
                     <i class="bi bi-tag-fill"></i>
                     {{ formatVertical(store.businessVertical || store.verticalId) }}
                   </span>
-                  <span class="store-card__sub-tag store-card__sub-tag--{{ getSubscriptionBadge(store).style }}">
+                  <span
+                    class="store-card__sub-tag store-card__sub-tag--{{
+                      getSubscriptionBadge(store).style
+                    }}"
+                  >
                     <i class="bi {{ getSubscriptionBadge(store).icon }}"></i>
                     {{ getSubscriptionBadge(store).label }}
                   </span>
@@ -350,7 +354,11 @@ export class StoresList {
       return { label: `Plan ${cycle}`, style: 'active', icon: 'bi-check-circle-fill' };
     }
     if (status === 'past_due') {
-      return { label: 'Gracia (+2% mora)', style: 'past-due', icon: 'bi-exclamation-triangle-fill' };
+      return {
+        label: 'Gracia (+2% mora)',
+        style: 'past-due',
+        icon: 'bi-exclamation-triangle-fill',
+      };
     }
     if (status === 'suspended') {
       return { label: 'Suspendida', style: 'suspended', icon: 'bi-x-circle-fill' };

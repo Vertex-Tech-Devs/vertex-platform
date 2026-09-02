@@ -421,35 +421,45 @@
       background: hsla(280, 80%, 60%, 0.12);
       border-color: hsla(280, 80%, 60%, 0.3);
       color: #d8b4fe;
-      i { color: #c084fc; }
+      i {
+        color: #c084fc;
+      }
     }
 
     &--trial {
       background: hsla(38, 92%, 50%, 0.1);
       border-color: hsla(38, 92%, 50%, 0.25);
       color: #fde047;
-      i { color: #eab308; }
+      i {
+        color: #eab308;
+      }
     }
 
     &--active {
       background: hsla(142, 70%, 45%, 0.12);
       border-color: hsla(142, 70%, 45%, 0.28);
       color: #86efac;
-      i { color: #22c55e; }
+      i {
+        color: #22c55e;
+      }
     }
 
     &--past-due {
       background: hsla(25, 95%, 53%, 0.15);
       border-color: hsla(25, 95%, 53%, 0.35);
       color: #fdba74;
-      i { color: #f97316; }
+      i {
+        color: #f97316;
+      }
     }
 
     &--suspended {
       background: hsla(0, 84%, 60%, 0.12);
       border-color: hsla(0, 84%, 60%, 0.3);
       color: #fca5a5;
-      i { color: #ef4444; }
+      i {
+        color: #ef4444;
+      }
     }
   }
 

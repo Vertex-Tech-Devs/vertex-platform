@@ -1568,7 +1568,8 @@
                     <div class="alert alert--success mb-4">
                       <div class="d-flex align-items-center justify-content-between mb-2">
                         <span
-                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago generado:</span
+                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago
+                          generado:</span
                         >
                         <a
                           [href]="subLinkGenerated()"
@@ -1612,8 +1613,12 @@
 
                     <!-- Public Checkout Link for Client -->
                     <div class="payment-subcard mb-3">
-                      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                        <span class="text-xs font-weight-bold text-white d-flex align-items-center gap-1">
+                      <div
+                        class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2"
+                      >
+                        <span
+                          class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                        >
                           <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago
                         </span>
                         <div class="d-flex gap-2">
@@ -1662,10 +1667,14 @@
                     <!-- Quick Trial & Free Store Grant Controls -->
                     <div class="payment-subcard mb-3">
                       <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-xs font-weight-bold text-white d-flex align-items-center gap-1">
+                        <span
+                          class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                        >
                           <i class="bi bi-gift-fill text-warning"></i> Acciones de Bonificación
                         </span>
-                        <span class="text-xxs text-muted font-weight-semibold">100% Bonificado</span>
+                        <span class="text-xxs text-muted font-weight-semibold"
+                          >100% Bonificado</span
+                        >
                       </div>
 
                       <div class="d-flex gap-2 mb-2">
@@ -1725,13 +1734,16 @@
                         (click)="grantFreeStore()"
                         [disabled]="isGrantingTrial()"
                       >
-                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente (Cortesía)
+                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente
+                        (Cortesía)
                       </button>
                     </div>
 
                     <!-- Custom Plan & Rate Settings -->
                     <div class="payment-subcard mb-3">
-                      <div class="text-xs font-weight-bold text-white mb-2 d-flex align-items-center gap-1">
+                      <div
+                        class="text-xs font-weight-bold text-white mb-2 d-flex align-items-center gap-1"
+                      >
                         <i class="bi bi-sliders text-primary"></i> Tarifas Especiales y Estado
                       </div>
 

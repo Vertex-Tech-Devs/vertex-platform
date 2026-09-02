@@ -1148,9 +1148,7 @@ export const provisionStore = onCall<CreateStorePayload>(
               ? null
               : trialDays || 14,
           trialStartDate:
-            initialSubscriptionStatus === 'trial' || !initialSubscriptionStatus
-              ? new Date()
-              : null,
+            initialSubscriptionStatus === 'trial' || !initialSubscriptionStatus ? new Date() : null,
           trialEndDate:
             initialSubscriptionStatus === 'complimentary'
               ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)

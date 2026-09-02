@@ -99,7 +99,8 @@ export const manageAdmin = onCall<ManageAdminPayload>(
         }
 
         // Send invitation email
-        const roleLabel = effectiveRole === 'superAdmin' ? 'Super Administrador' : 'Administrador de Plataforma';
+        const roleLabel =
+          effectiveRole === 'superAdmin' ? 'Super Administrador' : 'Administrador de Plataforma';
         const loginUrl = 'https://vertex-platform.web.app';
         const subject = 'Invitación a Vertex Platform - Acceso de Administrador';
         const html = `
