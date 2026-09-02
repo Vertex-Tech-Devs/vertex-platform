@@ -219,6 +219,27 @@ export class StoreDetail implements OnInit {
     return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
   });
 
+  readonly publicCheckoutUrl = computed(() => {
+    const s = this.store();
+    if (!s) {
+      return '';
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/pay/${s.id}`;
+  });
+
+  readonly copiedPublicLink = signal(false);
+
+  copyPublicCheckoutUrl(): void {
+    const url = this.publicCheckoutUrl();
+    if (!url) {
+      return;
+    }
+    void navigator.clipboard.writeText(url);
+    this.copiedPublicLink.set(true);
+    setTimeout(() => this.copiedPublicLink.set(false), 2500);
+  }
+
   readonly statusLabel = statusLabelUtil;
   readonly stepIcon = stepIconUtil;
   readonly formatDate = formatDateUtil;
@@ -578,6 +599,29 @@ export class StoreDetail implements OnInit {
       setTimeout(() => this.discountSaveSuccess.set(null), 3500);
     } catch (err) {
       this.discountSaveSuccess.set(errorMessage(err, 'Error al activar período de prueba.'));
+    } finally {
+      this.isGrantingTrial.set(false);
+    }
+  }
+
+  async grantFreeStore(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isGrantingTrial.set(true);
+    this.discountSaveSuccess.set(null);
+
+    try {
+      await this.storesService.updateStoreSubscriptionStatus({
+        storeId: s.id,
+        status: 'complimentary',
+      });
+      this.discountSaveSuccess.set('Tienda bonificada al 100% (Gratis / Cortesía) exitosamente.');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al activar tienda bonificada.'));
     } finally {
       this.isGrantingTrial.set(false);
     }

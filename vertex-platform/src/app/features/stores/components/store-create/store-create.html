@@ -149,7 +149,113 @@
       </div>
     </section>
 
-    <!-- Section 4: Alojamiento e Infraestructura -->
+    <!-- Section 4: Modalidad de Suscripción & Prueba -->
+    <section class="form-section">
+      <div class="section-header">
+        <h2 class="form-section__title">Suscripción & Período de Prueba</h2>
+        <p class="section-subtitle">Definí cómo iniciará la tienda del cliente.</p>
+      </div>
+
+      <div class="subscription-options-grid mb-3">
+        <!-- Option 1: Trial -->
+        <div
+          class="option-card"
+          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'trial'"
+          (click)="setInitialSubscription('trial')"
+        >
+          <div class="option-card__header">
+            <span class="option-card__icon">🎁</span>
+            <div class="option-card__radio">
+              <span class="radio-dot"></span>
+            </div>
+          </div>
+          <h3 class="option-card__title">Período de Prueba (Trial)</h3>
+          <p class="option-card__desc">Acceso 100% completo bonificado por días antes de cobrar.</p>
+        </div>
+
+        <!-- Option 2: Gratis Permanente -->
+        <div
+          class="option-card"
+          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'complimentary'"
+          (click)="setInitialSubscription('complimentary')"
+        >
+          <div class="option-card__header">
+            <span class="option-card__icon">⭐</span>
+            <div class="option-card__radio">
+              <span class="radio-dot"></span>
+            </div>
+          </div>
+          <h3 class="option-card__title">Tienda Gratis (Cortesía)</h3>
+          <p class="option-card__desc">100% bonificada de forma permanente sin cargos ni vencimientos.</p>
+        </div>
+
+        <!-- Option 3: Estándar Comercial -->
+        <div
+          class="option-card"
+          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'active'"
+          (click)="setInitialSubscription('active')"
+        >
+          <div class="option-card__header">
+            <span class="option-card__icon">💳</span>
+            <div class="option-card__radio">
+              <span class="radio-dot"></span>
+            </div>
+          </div>
+          <h3 class="option-card__title">Suscripción Directa</h3>
+          <p class="option-card__desc">Cobro activo según plan mensual ($50k) o anual ($500k).</p>
+        </div>
+      </div>
+
+      <!-- Trial Days Customizer (visible if trial is selected) -->
+      @if (form.get('initialSubscriptionStatus')?.value === 'trial') {
+        <div class="trial-days-customizer p-3 rounded bg-dark border border-secondary mb-3">
+          <label class="form-label text-xs d-block mb-2">Duración de la Prueba (Días)</label>
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-warning]="form.get('trialDays')?.value === 7"
+              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 7"
+              (click)="form.get('trialDays')?.setValue(7)"
+            >
+              7 Días
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-warning]="form.get('trialDays')?.value === 14"
+              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 14"
+              (click)="form.get('trialDays')?.setValue(14)"
+            >
+              14 Días (Recomendado)
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-warning]="form.get('trialDays')?.value === 30"
+              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 30"
+              (click)="form.get('trialDays')?.setValue(30)"
+            >
+              30 Días
+            </button>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-2" style="max-width: 260px;">
+            <input
+              type="number"
+              formControlName="trialDays"
+              class="form-control text-xs"
+              placeholder="Ej. 21"
+              min="1"
+              max="365"
+            />
+            <span class="text-xs text-muted">días de prueba</span>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Section 5: Alojamiento e Infraestructura -->
     <section class="form-section">
       <h2 class="form-section__title">Alojamiento e Infraestructura</h2>
       <p class="section-subtitle mb-3">
