@@ -20,6 +20,7 @@ export class FormatLabelPipe implements PipeTransform {
     // IDs técnicos con guiones/bajo → separar y capitalizar.
     return text
       .replace(/[-_]+/g, ' ')
+      .trim()
       .replace(/\s+/g, ' ')
       .split(' ')
       .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))

@@ -105,4 +105,16 @@ describe('SubscriptionCheckout Component', () => {
     await component.proceedToPayment();
     expect(component.paymentError()).toBe('Payment gateway error');
   });
+
+  it('handles non-Error thrown in loadStore', async () => {
+    checkoutServiceMock.getPublicStoreInfo.mockRejectedValueOnce('string error');
+    await component.loadStore('unknown');
+    expect(component.errorMessage()).toBe('No se pudo encontrar la tienda o el enlace no es válido.');
+  });
+
+  it('proceedToPayment returns early if storeInfo is null', async () => {
+    component.storeInfo.set(null);
+    await component.proceedToPayment();
+    expect(checkoutServiceMock.createCheckoutLink).not.toHaveBeenCalled();
+  });
 });

@@ -133,4 +133,43 @@ describe('CustomVerticalModal', () => {
     component.onEscapeKeyDown();
     expect(closed).toBe(true);
   });
+
+  it('handles initialName input and patch form', () => {
+    fixture.componentRef.setInput('initialName', 'Rubro Predefinido');
+    component.ngOnInit();
+    expect(component.form.get('name')?.value).toBe('Rubro Predefinido');
+  });
+
+  it('does not emit close on onCancel if submitting', () => {
+    component.isSubmitting.set(true);
+    let closed = false;
+    component.close.subscribe(() => (closed = true));
+    component.onCancel();
+    expect(closed).toBe(false);
+  });
+
+  it('handles submission with defaults and object/string error formats', async () => {
+    component.form.patchValue({
+      name: 'Custom Rubro',
+      icon: '🏷️',
+      description: 'Descripcion detallada de prueba',
+      primaryColor: '',
+      accentColor: '',
+      bannerTitle: '',
+      bannerSubtitle: '',
+    });
+
+    await component.onSubmit();
+    expect(mockStoresService.createCustomVertical).toHaveBeenCalled();
+
+    // Object error with message
+    mockStoresService.createCustomVertical.mockRejectedValueOnce({ message: 'Custom obj error' });
+    await component.onSubmit();
+    expect(component.errorMessage()).toBe('Custom obj error');
+
+    // String/unknown error
+    mockStoresService.createCustomVertical.mockRejectedValueOnce(12345);
+    await component.onSubmit();
+    expect(component.errorMessage()).toBe('Error al guardar el nuevo rubro.');
+  });
 });
