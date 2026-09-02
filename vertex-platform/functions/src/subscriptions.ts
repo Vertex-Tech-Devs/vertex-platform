@@ -412,6 +412,7 @@ export const updateStoreSubscriptionStatus = onCall(
       customMonthlyPrice,
       customAnnualPrice,
       discountPercent,
+      trialDays,
       notes,
     } = request.data as {
       storeId: string;
@@ -419,6 +420,7 @@ export const updateStoreSubscriptionStatus = onCall(
       customMonthlyPrice?: number | null;
       customAnnualPrice?: number | null;
       discountPercent?: number | null;
+      trialDays?: number | null;
       notes?: string;
     };
 
@@ -426,9 +428,18 @@ export const updateStoreSubscriptionStatus = onCall(
       throw new HttpsError('invalid-argument', 'El ID de la tienda es requerido.');
     }
 
-    // Solo Juan puede modificar precios personalizados o descuentos
-    if ((customMonthlyPrice !== undefined || customAnnualPrice !== undefined || discountPercent !== undefined) && !isMaster) {
-      throw new HttpsError('permission-denied', 'Solo el administrador principal puede otorgar descuentos o precios especiales.');
+    // Solo Juan puede modificar precios personalizados, descuentos o extender trials custom
+    if (
+      (customMonthlyPrice !== undefined ||
+        customAnnualPrice !== undefined ||
+        discountPercent !== undefined ||
+        (trialDays !== undefined && trialDays !== null && trialDays > 30)) &&
+      !isMaster
+    ) {
+      throw new HttpsError(
+        'permission-denied',
+        'Solo el administrador principal puede otorgar descuentos, precios especiales o períodos de prueba extendidos.',
+      );
     }
 
     const db = getFirestore();
@@ -443,7 +454,16 @@ export const updateStoreSubscriptionStatus = onCall(
       'subscription.updatedBy': email,
     };
 
-    if (status) {
+    if (status === 'trial' || (typeof trialDays === 'number' && trialDays > 0)) {
+      const days = typeof trialDays === 'number' && trialDays > 0 ? trialDays : 14;
+      const trialEndDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      updates['subscription.status'] = 'trial';
+      updates['subscription.trialDays'] = days;
+      updates['subscription.trialStartDate'] = new Date();
+      updates['subscription.trialEndDate'] = Timestamp.fromDate(trialEndDate);
+      updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(trialEndDate);
+      updates['status'] = 'active'; // Garantizar que la tienda esté operativa durante el período de prueba
+    } else if (status) {
       updates['subscription.status'] = status;
       if (status === 'complimentary' || status === 'active') {
         const oneYearAhead = new Date();
@@ -476,7 +496,7 @@ export const updateStoreSubscriptionStatus = onCall(
       'updateStoreSubscriptionStatus',
       storeId,
       'success',
-      { status, customMonthlyPrice, customAnnualPrice, discountPercent, notes },
+      { status, customMonthlyPrice, customAnnualPrice, discountPercent, trialDays, notes },
     );
 
     return { success: true, storeId, status, updates };
@@ -609,12 +629,12 @@ export const checkSubscriptionExpirations = onSchedule(
       verified++;
       const sub = data['subscription'] || {};
 
-      // Tiendas en cortesía o de prueba no se suspenden
-      if (sub.status === 'complimentary' || sub.status === 'trial') {
+      // Tiendas en cortesía permanente no se suspenden
+      if (sub.status === 'complimentary') {
         continue;
       }
 
-      const periodEndTs: Timestamp | undefined = sub.currentPeriodEnd;
+      const periodEndTs: Timestamp | undefined = sub.currentPeriodEnd || sub.trialEndDate;
       if (!periodEndTs) continue;
 
       const periodEnd = periodEndTs.toDate();
@@ -623,7 +643,7 @@ export const checkSubscriptionExpirations = onSchedule(
         const overdueMs = now.getTime() - periodEnd.getTime();
 
         if (overdueMs <= fiveDaysInMs) {
-          // Dentro de los 5 días de gracia: past_due
+          // Dentro de los 5 días de gracia (tanto para suscripción expirada como trial vencido)
           if (sub.status !== 'past_due') {
             await doc.ref.update({
               'subscription.status': 'past_due',

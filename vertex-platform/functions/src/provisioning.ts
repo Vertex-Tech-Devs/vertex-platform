@@ -1136,6 +1136,16 @@ export const provisionStore = onCall<CreateStorePayload>(
         isNewShard,
         includeMockData: hasMockData,
         status: 'provisioning',
+        // Inicializar suscripción con período de prueba (14 días de acceso completo)
+        subscription: {
+          status: 'trial',
+          trialDays: 14,
+          trialStartDate: new Date(),
+          trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          billingCycle: 'monthly',
+          amount: 50000,
+        },
         // Política de versiones: las tiendas nuevas NACEN ESTABLES (autoUpdate = false).
         // Solo se actualizan automáticamente si el dueño lo habilita explícitamente
         // o se aplica una versión a mano desde el selector.
