@@ -12,3 +12,5 @@ export * from './monitoring';
 export * from './versioning';
 export * from './runtime';
 export * from './domains';
+export * from './subscriptions';
+

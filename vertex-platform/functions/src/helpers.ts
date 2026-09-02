@@ -401,10 +401,27 @@ export async function sendDirectEmail(
   text: string,
 ): Promise<void> {
   const secretsClient = new SecretManagerServiceClient();
-  const [pwVersion] = await secretsClient.accessSecretVersion({
-    name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
-  });
-  const smtpPassword = pwVersion.payload!.data!.toString().trim();
+  let smtpPassword = '';
+  try {
+    const [pwVersion] = await secretsClient.accessSecretVersion({
+      name: `projects/${PLATFORM_PROJECT}/secrets/ext-firestore-send-email-SMTP_PASSWORD/versions/latest`,
+    });
+    smtpPassword = pwVersion.payload!.data!.toString().trim();
+  } catch {
+    try {
+      const [pwVersion] = await secretsClient.accessSecretVersion({
+        name: `projects/${PLATFORM_PROJECT}/secrets/SMTP_PASSWORD/versions/latest`,
+      });
+      smtpPassword = pwVersion.payload!.data!.toString().trim();
+    } catch {
+      smtpPassword = process.env.SMTP_PASS || '';
+    }
+  }
+
+  if (!smtpPassword) {
+    console.warn('[sendDirectEmail] No se encontró contraseña SMTP en Secret Manager.');
+    return;
+  }
 
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -424,3 +441,121 @@ export async function sendDirectEmail(
     html,
   });
 }
+
+export interface NewStoreNotificationData {
+  storeId: string;
+  storeName: string;
+  slug: string;
+  ownerEmail: string;
+  verticalId?: string;
+  projectId?: string;
+  shardMode?: string;
+  siteUrl?: string;
+  tier?: string;
+  billingCycle?: string;
+  createdAt?: Date;
+}
+
+export async function notifyAdminNewStoreCreated(data: NewStoreNotificationData): Promise<void> {
+  const adminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'vertex.tech.dev@gmail.com';
+  const subject = `🚀 Nueva Tienda Creada: ${data.storeName} (${data.slug})`;
+  const storeUrl = data.siteUrl || `https://vtx-${data.slug}.web.app`;
+  const platformAdminUrl = 'https://vertex-platform.web.app/stores';
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+    .card { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .header { background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); padding: 24px; text-align: center; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .content { padding: 24px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; background: #22c55e; color: #000000; }
+    .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .table td { padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 14px; }
+    .table td.label { color: #94a3b8; font-weight: 500; width: 40%; }
+    .table td.value { color: #f1f5f9; font-weight: 600; }
+    .btn-container { text-align: center; margin-top: 24px; }
+    .btn { display: inline-block; padding: 12px 24px; background: #6366f1; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 0 6px; font-size: 14px; }
+    .btn-secondary { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+    .footer { padding: 16px 24px; background: #0f172a; text-align: center; font-size: 12px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>🚀 ¡Nueva Tienda Creada en Producción!</h1>
+    </div>
+    <div class="content">
+      <p style="margin-top: 0; font-size: 15px; color: #cbd5e1; line-height: 1.5;">Se ha completado el aprovisionamiento y despliegue de una nueva tienda en la plataforma Vertex Commerce.</p>
+      
+      <table class="table">
+        <tr>
+          <td class="label">Nombre de la Tienda</td>
+          <td class="value">${data.storeName}</td>
+        </tr>
+        <tr>
+          <td class="label">Slug / Subdominio</td>
+          <td class="value"><code style="color: #38bdf8;">${data.slug}</code></td>
+        </tr>
+        <tr>
+          <td class="label">Email del Propietario</td>
+          <td class="value">${data.ownerEmail}</td>
+        </tr>
+        <tr>
+          <td class="label">Rubro Comercial</td>
+          <td class="value">${data.verticalId || 'General'}</td>
+        </tr>
+        <tr>
+          <td class="label">Proyecto Firebase / Shard</td>
+          <td class="value"><code style="color: #a78bfa;">${data.projectId || 'shared-shard'}</code></td>
+        </tr>
+        <tr>
+          <td class="label">Modo de Aprovisionamiento</td>
+          <td class="value">${data.shardMode === 'dedicated' ? '💎 Shard Dedicado' : '⚡ Shard Compartido'}</td>
+        </tr>
+        <tr>
+          <td class="label">Plan Inicial</td>
+          <td class="value"><span class="badge">${data.tier || 'PRO'}</span> (${data.billingCycle === 'annual' ? 'Facturación Anual' : 'Facturación Mensual'})</td>
+        </tr>
+        <tr>
+          <td class="label">Fecha de Creación</td>
+          <td class="value">${(data.createdAt || new Date()).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</td>
+        </tr>
+      </table>
+
+      <div class="btn-container">
+        <a href="${storeUrl}" class="btn" target="_blank">🌐 Visitar Tienda</a>
+        <a href="${platformAdminUrl}" class="btn btn-secondary" target="_blank">⚙️ Abrir Panel Vertex</a>
+      </div>
+    </div>
+    <div class="footer">
+      Vertex Commerce Platform • Notificación Automática de Infraestructura
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Nueva Tienda Creada en Vertex:
+- Tienda: ${data.storeName} (${data.slug})
+- Propietario: ${data.ownerEmail}
+- Rubro: ${data.verticalId || 'General'}
+- Proyecto: ${data.projectId || 'shared-shard'}
+- URL: ${storeUrl}
+- Plan: ${data.tier || 'PRO'} (${data.billingCycle || 'monthly'})
+- Fecha: ${(data.createdAt || new Date()).toISOString()}
+`;
+
+  try {
+    await sendDirectEmail(adminEmail, subject, html, text);
+    console.info(`[notifyAdminNewStoreCreated] Email de notificación enviado a ${adminEmail} para la tienda ${data.slug}`);
+  } catch (err) {
+    console.error(`[notifyAdminNewStoreCreated] Error al enviar notificación a ${adminEmail}:`, err);
+  }
+}
+

@@ -25,6 +25,7 @@ import {
   pickBillingAccount,
   listProvisioningOwnerCandidates,
   sendDirectEmail,
+  notifyAdminNewStoreCreated,
   getPlatformServiceAccountOAuthClient,
 } from './helpers';
 import { seedStoreData } from './seeds';
@@ -3641,6 +3642,21 @@ export const completeStoreDeployment = onCall<{
         );
       }
     }
+
+    // Notificación por email al administrador central de la plataforma
+    void notifyAdminNewStoreCreated({
+      storeId,
+      storeName: storeData['name'] || storeId,
+      slug: storeData['slug'] || storeId,
+      ownerEmail: storeData['ownerEmail'] || '',
+      verticalId: storeData['verticalId'],
+      projectId: storeData['projectId'],
+      shardMode: storeData['runtimeMode'] || (storeData['shardId'] ? 'shared' : 'dedicated'),
+      siteUrl: storeData['siteUrl'] || `https://${storeData['slug'] ? `vtx-${storeData['slug']}` : storeId}.web.app`,
+      tier: storeData['tier'] || 'PRO',
+      billingCycle: storeData['billingCycle'] || 'monthly',
+      createdAt: (storeData['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() || new Date(),
+    });
   } else {
     await storeRef.update({
       'provisioningSteps.triggerDeploy.status': 'error',
