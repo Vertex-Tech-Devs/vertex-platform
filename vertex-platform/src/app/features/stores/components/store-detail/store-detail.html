@@ -1485,8 +1485,8 @@
                     </div>
                   }
 
-                  <!-- Subscription Details & Pricing -->
-                  <div class="sub-pricing-summary p-3 mb-3">
+                  <!-- Subscription Details & Pricing Card -->
+                  <div class="sub-pricing-summary p-3 mb-4">
                     <div class="d-flex align-items-baseline justify-content-between">
                       <div>
                         <span class="text-muted d-block text-xs uppercase font-weight-bold"
@@ -1565,11 +1565,10 @@
                   </div>
 
                   @if (subLinkGenerated()) {
-                    <div class="alert alert--success mb-3">
+                    <div class="alert alert--success mb-4">
                       <div class="d-flex align-items-center justify-content-between mb-2">
                         <span
-                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago
-                          generado:</span
+                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago generado:</span
                         >
                         <a
                           [href]="subLinkGenerated()"
@@ -1590,39 +1589,37 @@
                   }
 
                   @if (subLinkError()) {
-                    <div class="alert alert--error mb-3">
+                    <div class="alert alert--error mb-4">
                       <i class="bi bi-exclamation-triangle-fill"></i> {{ subLinkError() }}
                     </div>
                   }
 
                   <!-- Platform Admin Subscription & Pricing Controls -->
-                  <div class="master-sub-controls border-top pt-3 mt-3">
-                    <div class="master-badge mb-2">
-                      <i class="bi bi-shield-lock-fill"></i>
-                      <span>Gestión de Planes y Tarifas Especiales</span>
+                  <div class="master-sub-controls">
+                    <div class="master-sub-controls__header">
+                      <div class="master-badge">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Gestión y Facturación de la Tienda</span>
+                      </div>
+                      <span class="master-sub-controls__tag">Master Admin</span>
                     </div>
 
                     @if (discountSaveSuccess()) {
-                      <div class="alert alert--success text-xs py-2 mb-2">
+                      <div class="alert alert--success text-xs py-2 mb-3">
                         <i class="bi bi-check-circle-fill"></i> {{ discountSaveSuccess() }}
                       </div>
                     }
 
                     <!-- Public Checkout Link for Client -->
-                    <div
-                      class="public-checkout-link-card p-3 mb-3 bg-dark rounded border border-secondary"
-                    >
-                      <div
-                        class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2"
-                      >
-                        <span class="text-xs font-weight-bold text-white">
+                    <div class="payment-subcard mb-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                        <span class="text-xs font-weight-bold text-white d-flex align-items-center gap-1">
                           <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago
-                          para el Cliente
                         </span>
                         <div class="d-flex gap-2">
                           <button
                             type="button"
-                            class="btn btn-outline-secondary btn-sm"
+                            class="btn btn-secondary btn-sm"
                             (click)="copyPublicCheckoutUrl()"
                           >
                             <i
@@ -1630,13 +1627,13 @@
                               [class.bi-check-lg]="copiedPublicLink()"
                               [class.bi-clipboard]="!copiedPublicLink()"
                             ></i>
-                            <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar Link' }}</span>
+                            <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar' }}</span>
                           </button>
                           <a
                             [href]="whatsAppShareUrl()"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                            class="btn btn-sm btn-whatsapp d-flex align-items-center gap-1"
                             title="Compartir enlace de cobro por WhatsApp"
                           >
                             <i class="bi bi-whatsapp"></i>
@@ -1663,40 +1660,38 @@
                     </div>
 
                     <!-- Quick Trial & Free Store Grant Controls -->
-                    <div class="trial-quick-grant mb-3 p-2 bg-dark rounded border border-secondary">
-                      <label
-                        class="form-label text-xs mb-2 d-flex align-items-center justify-content-between"
-                      >
-                        <span
-                          ><i class="bi bi-gift-fill text-warning"></i> Acciones Rápidas de
-                          Bonificación</span
-                        >
-                        <small class="text-muted">100% Bonificado</small>
-                      </label>
+                    <div class="payment-subcard mb-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-xs font-weight-bold text-white d-flex align-items-center gap-1">
+                          <i class="bi bi-gift-fill text-warning"></i> Acciones de Bonificación
+                        </span>
+                        <span class="text-xxs text-muted font-weight-semibold">100% Bonificado</span>
+                      </div>
+
                       <div class="d-flex gap-2 mb-2">
                         <button
                           type="button"
-                          class="btn btn-outline-warning btn-sm flex-1"
+                          class="btn btn-pill-option flex-1"
                           (click)="grantTrial(7)"
                           [disabled]="isGrantingTrial()"
                         >
-                          Prueba 7 Días
+                          7 Días
                         </button>
                         <button
                           type="button"
-                          class="btn btn-outline-warning btn-sm flex-1"
+                          class="btn btn-pill-option flex-1"
                           (click)="grantTrial(14)"
                           [disabled]="isGrantingTrial()"
                         >
-                          Prueba 14 Días
+                          14 Días
                         </button>
                         <button
                           type="button"
-                          class="btn btn-outline-warning btn-sm flex-1"
+                          class="btn btn-pill-option flex-1"
                           (click)="grantTrial(30)"
                           [disabled]="isGrantingTrial()"
                         >
-                          Prueba 30 Días
+                          30 Días
                         </button>
                       </div>
 
@@ -1716,108 +1711,114 @@
                         />
                         <button
                           type="button"
-                          class="btn btn-outline-warning btn-sm text-nowrap"
+                          class="btn btn-secondary btn-sm text-nowrap"
                           (click)="grantTrial(trialDaysInput())"
                           [disabled]="isGrantingTrial() || !trialDaysInput()"
                         >
-                          Aplicar Días Custom
+                          Aplicar Días
                         </button>
                       </div>
 
                       <button
                         type="button"
-                        class="btn btn-outline-success btn-sm w-100"
+                        class="btn btn-grant-free btn-sm w-100"
                         (click)="grantFreeStore()"
                         [disabled]="isGrantingTrial()"
                       >
-                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente
-                        (Cortesía)
+                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente (Cortesía)
                       </button>
                     </div>
 
-                    <div class="row g-2 mb-2">
-                      <div class="col-6">
-                        <label class="form-label text-xs">Estado Suscripción</label>
-                        <select
-                          class="form-control text-xs"
-                          [ngModel]="subscriptionStatusSelect()"
-                          (ngModelChange)="subscriptionStatusSelect.set($event)"
-                        >
-                          <option value="active">Activa</option>
-                          <option value="complimentary">Cortesía (Sin cobro)</option>
-                          <option value="trial">Período de Prueba</option>
-                          <option value="past_due">Período de Gracia</option>
-                          <option value="suspended">Suspendida</option>
-                        </select>
+                    <!-- Custom Plan & Rate Settings -->
+                    <div class="payment-subcard mb-3">
+                      <div class="text-xs font-weight-bold text-white mb-2 d-flex align-items-center gap-1">
+                        <i class="bi bi-sliders text-primary"></i> Tarifas Especiales y Estado
                       </div>
-                      <div class="col-6">
-                        <label class="form-label text-xs">Descuento (%)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="ej. 20"
-                          [value]="discountPercentInput()"
-                          (input)="
-                            discountPercentInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                    </div>
 
-                    <div class="row g-2 mb-3">
-                      <div class="col-6">
-                        <label class="form-label text-xs">Precio Mensual Custom (ARS)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="Dejar vacío para default"
-                          [value]="customMonthlyPriceInput()"
-                          (input)="
-                            customMonthlyPriceInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                        />
+                      <div class="row g-2 mb-2">
+                        <div class="col-6">
+                          <label class="form-label text-xs">Estado de Cuenta</label>
+                          <select
+                            class="form-control text-xs"
+                            [ngModel]="subscriptionStatusSelect()"
+                            (ngModelChange)="subscriptionStatusSelect.set($event)"
+                          >
+                            <option value="active">Activa</option>
+                            <option value="complimentary">Cortesía (Sin cobro)</option>
+                            <option value="trial">Período de Prueba</option>
+                            <option value="past_due">Período de Gracia</option>
+                            <option value="suspended">Suspendida</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label text-xs">Descuento (%)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="ej. 20"
+                            [value]="discountPercentInput()"
+                            (input)="
+                              discountPercentInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                            min="0"
+                            max="100"
+                          />
+                        </div>
                       </div>
-                      <div class="col-6">
-                        <label class="form-label text-xs">Precio Anual Custom (ARS)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="Dejar vacío para default"
-                          [value]="customAnnualPriceInput()"
-                          (input)="
-                            customAnnualPriceInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                        />
-                      </div>
-                    </div>
 
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm w-100"
-                      (click)="saveCustomSubscriptionPricing()"
-                      [disabled]="isSavingDiscount()"
-                    >
-                      <i
-                        class="bi"
-                        [class.bi-check2]="!isSavingDiscount()"
-                        [class.bi-arrow-repeat]="isSavingDiscount()"
-                        [class.spin]="isSavingDiscount()"
-                      ></i>
-                      <span>{{
-                        isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Cliente'
-                      }}</span>
-                    </button>
+                      <div class="row g-2 mb-3">
+                        <div class="col-6">
+                          <label class="form-label text-xs">Mensual Custom (ARS)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="Default ($50.000)"
+                            [value]="customMonthlyPriceInput()"
+                            (input)="
+                              customMonthlyPriceInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                          />
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label text-xs">Anual Custom (ARS)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="Default ($500.000)"
+                            [value]="customAnnualPriceInput()"
+                            (input)="
+                              customAnnualPriceInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm w-100"
+                        (click)="saveCustomSubscriptionPricing()"
+                        [disabled]="isSavingDiscount()"
+                      >
+                        <i
+                          class="bi"
+                          [class.bi-check2]="!isSavingDiscount()"
+                          [class.bi-arrow-repeat]="isSavingDiscount()"
+                          [class.spin]="isSavingDiscount()"
+                        ></i>
+                        <span>{{
+                          isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Facturación'
+                        }}</span>
+                      </button>
+                    </div>
 
                     <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
-                    <div class="qa-simulation-box mt-3 pt-3 border-top border-secondary">
+                    <div class="qa-simulation-box">
                       <div class="d-flex align-items-center justify-content-between mb-2">
                         <button
                           type="button"
@@ -1825,9 +1826,9 @@
                           (click)="showSimulationTools.set(!showSimulationTools())"
                           title="Herramienta oculta para simular vencimientos en DEV y PROD"
                         >
-                          <i class="bi bi-radioactive text-danger"></i>
+                          <i class="bi bi-radioactive text-warning"></i>
                           <span class="font-weight-bold text-muted"
-                            >Simulador de Vencimientos (QA / Prod Lab)</span
+                            >Simulador de Vencimientos (QA / Lab)</span
                           >
                           <i
                             class="bi text-muted"
@@ -1835,11 +1836,11 @@
                             [class.bi-chevron-up]="showSimulationTools()"
                           ></i>
                         </button>
-                        <span class="badge badge--dark text-muted text-xxs">Testing Directo</span>
+                        <span class="badge badge--neutral text-xxs">Testing Directo</span>
                       </div>
 
                       @if (showSimulationTools()) {
-                        <div class="qa-tools-content p-2 rounded bg-black-50 border border-dark">
+                        <div class="qa-tools-content p-3 rounded">
                           <p class="text-xs text-muted mb-2">
                             Probá instantáneamente cómo responde la plataforma y el storefront ante
                             distintos estados de vencimiento sin esperar días:
