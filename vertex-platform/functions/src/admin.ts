@@ -4,7 +4,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as functions from 'firebase-functions/v1';
 import type { ManageAdminPayload, AdminInfo } from './types';
-import { ALLOWED_ORIGINS } from './helpers';
+import { ALLOWED_ORIGINS, sendDirectEmail } from './helpers';
 import { checkRateLimit, logAuditAction } from './stores';
 import { z } from 'zod';
 
@@ -96,6 +96,40 @@ export const manageAdmin = onCall<ManageAdminPayload>(
           if (err.code !== 'auth/user-not-found') {
             console.error('Error syncing claims in manageAdmin (add):', err);
           }
+        }
+
+        // Send invitation email
+        const roleLabel = effectiveRole === 'superAdmin' ? 'Super Administrador' : 'Administrador de Plataforma';
+        const loginUrl = 'https://vertex-platform.web.app';
+        const subject = 'Invitación a Vertex Platform - Acceso de Administrador';
+        const html = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #0b0f19; color: #f8fafc; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="margin-bottom: 24px;">
+              <span style="font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VERTEX PLATFORM</span>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">Invitación de Administrador</h2>
+            <p style="font-size: 15px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
+              Hola, fuiste invitado como <strong>${roleLabel}</strong> al panel de control de <strong>Vertex Commerce Platform</strong>.
+            </p>
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+              <p style="margin: 0 0 8px; font-size: 14px; color: #cbd5e1;"><strong>Tu email autorizado:</strong> ${normalizedEmail}</p>
+              <p style="margin: 0; font-size: 14px; color: #cbd5e1;"><strong>Rol asignado:</strong> ${roleLabel}</p>
+            </div>
+            <div style="text-align: center; margin-bottom: 32px;">
+              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                Ingresar a Vertex Platform
+              </a>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+              Iniciá sesión utilizando tu cuenta de Google con el correo <strong>${normalizedEmail}</strong>. Si no solicitaste este acceso, podés ignorar este correo.
+            </p>
+          </div>
+        `;
+        const text = `Hola, fuiste invitado como ${roleLabel} a Vertex Platform (${loginUrl}) con el correo ${normalizedEmail}.`;
+        try {
+          await sendDirectEmail(normalizedEmail, subject, html, text);
+        } catch (mailErr) {
+          console.error('[manageAdmin:add] Error enviando email de invitación:', mailErr);
         }
       } else {
         // Revoke/Delete from Firestore platformAdmins collection
@@ -216,6 +250,43 @@ export const resendAdminInvite = onCall<{ email: string }>(
       lastResentAt: new Date(),
       resentBy: request.auth.token.email || request.auth.uid,
     });
+
+    const adminData = doc.data() || {};
+    const role = adminData['role'] || 'platformAdmin';
+    const roleLabel = role === 'superAdmin' ? 'Super Administrador' : 'Administrador de Plataforma';
+    const loginUrl = 'https://vertex-platform.web.app';
+
+    const subject = 'Invitación a Vertex Platform - Acceso de Administrador';
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #0b0f19; color: #f8fafc; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="margin-bottom: 24px;">
+          <span style="font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VERTEX PLATFORM</span>
+        </div>
+        <h2 style="font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">Acceso de Administrador Concedido</h2>
+        <p style="font-size: 15px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
+          Hola, se ha reenviado tu invitación para acceder como <strong>${roleLabel}</strong> al panel de control de <strong>Vertex Commerce Platform</strong>.
+        </p>
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+          <p style="margin: 0 0 8px; font-size: 14px; color: #cbd5e1;"><strong>Tu email autorizado:</strong> ${email}</p>
+          <p style="margin: 0; font-size: 14px; color: #cbd5e1;"><strong>Rol asignado:</strong> ${roleLabel}</p>
+        </div>
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+            Ingresar a Vertex Platform
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+          Iniciá sesión utilizando tu cuenta de Google con el correo <strong>${email}</strong>. Si no solicitaste este acceso, podés ignorar este correo.
+        </p>
+      </div>
+    `;
+    const text = `Hola, se ha reenviado tu invitación para acceder como ${roleLabel} a Vertex Platform (${loginUrl}) con el correo ${email}.`;
+
+    try {
+      await sendDirectEmail(email, subject, html, text);
+    } catch (mailErr) {
+      console.error('[resendAdminInvite] Error enviando email de invitación:', mailErr);
+    }
 
     await logAuditAction(
       request.auth.uid,

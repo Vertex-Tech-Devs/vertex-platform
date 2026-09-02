@@ -166,10 +166,16 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
               </div>
 
               <div class="store-card__footer">
-                <span class="store-card__vertical-tag">
-                  <i class="bi bi-tag-fill"></i>
-                  {{ formatVertical(store.businessVertical || store.verticalId) }}
-                </span>
+                <div class="store-card__tags">
+                  <span class="store-card__vertical-tag">
+                    <i class="bi bi-tag-fill"></i>
+                    {{ formatVertical(store.businessVertical || store.verticalId) }}
+                  </span>
+                  <span class="store-card__sub-tag store-card__sub-tag--{{ getSubscriptionBadge(store).style }}">
+                    <i class="bi {{ getSubscriptionBadge(store).icon }}"></i>
+                    {{ getSubscriptionBadge(store).label }}
+                  </span>
+                </div>
                 <span class="store-card__arrow">
                   <i class="bi bi-arrow-right"></i>
                 </span>
@@ -325,5 +331,31 @@ export class StoresList {
     }
 
     return 'Provisioning completado, esperando validación final';
+  }
+
+  getSubscriptionBadge(store: Store): { label: string; style: string; icon: string } {
+    const sub = store.subscription;
+    const status = sub?.status;
+
+    if (status === 'complimentary') {
+      return { label: 'Cortesía (100% Bonificada)', style: 'complimentary', icon: 'bi-gift-fill' };
+    }
+    if (status === 'trial') {
+      const remaining = sub?.trialDaysRemaining ?? sub?.trialDays;
+      const daysText = remaining !== undefined && remaining !== null ? ` (${remaining}d)` : '';
+      return { label: `Prueba${daysText}`, style: 'trial', icon: 'bi-hourglass-split' };
+    }
+    if (status === 'active') {
+      const cycle = sub?.billingCycle === 'annual' ? 'Anual' : 'Mensual';
+      return { label: `Plan ${cycle}`, style: 'active', icon: 'bi-check-circle-fill' };
+    }
+    if (status === 'past_due') {
+      return { label: 'Gracia (+2% mora)', style: 'past-due', icon: 'bi-exclamation-triangle-fill' };
+    }
+    if (status === 'suspended') {
+      return { label: 'Suspendida', style: 'suspended', icon: 'bi-x-circle-fill' };
+    }
+
+    return { label: 'Prueba estándar', style: 'trial', icon: 'bi-hourglass-split' };
   }
 }
