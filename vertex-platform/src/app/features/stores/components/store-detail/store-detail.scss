@@ -548,6 +548,19 @@
   margin-right: 0.25rem;
 }
 
+.btn-outline-success {
+  background: rgba(37, 211, 102, 0.1);
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  color: #4ade80;
+  text-decoration: none;
+
+  &:hover {
+    background: rgba(37, 211, 102, 0.2);
+    color: #86efac;
+    border-color: rgba(37, 211, 102, 0.5);
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
