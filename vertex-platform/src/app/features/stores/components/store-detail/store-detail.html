@@ -1369,11 +1369,193 @@
               </div>
             } @else {
               <div class="payments-grid">
+                <!-- SaaS Subscription Vertex Card -->
+                <div class="detail-card">
+                  <div class="detail-card__header mb-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <h2 class="detail-card__title">
+                        <i class="bi bi-stars text-primary"></i> Suscripción SaaS Vertex
+                      </h2>
+                      @switch (storeSubscription()?.subscription?.status || 'active') {
+                        @case ('active') {
+                          <span class="badge badge--success"><i class="bi bi-check-circle-fill"></i> Suscripción Activa</span>
+                        }
+                        @case ('complimentary') {
+                          <span class="badge badge--primary"><i class="bi bi-gift-fill"></i> Cortesía / Bonificada</span>
+                        }
+                        @case ('past_due') {
+                          <span class="badge badge--warning"><i class="bi bi-clock-history"></i> En Período de Gracia</span>
+                        }
+                        @case ('suspended') {
+                          <span class="badge badge--danger"><i class="bi bi-slash-circle-fill"></i> Suspendida por Pago</span>
+                        }
+                        @default {
+                          <span class="badge badge--neutral">En Período de Prueba</span>
+                        }
+                      }
+                    </div>
+                    <p class="detail-card__subtitle">
+                      Facturación del servicio SaaS de la tienda con recaudación directa a Vertex (Mercado Pago).
+                    </p>
+                  </div>
+
+                  <!-- Subscription Details & Pricing -->
+                  <div class="sub-pricing-summary p-3 mb-3">
+                    <div class="d-flex align-items-baseline justify-content-between">
+                      <div>
+                        <span class="text-muted d-block text-xs uppercase font-weight-bold">Tarifa Vigente</span>
+                        <strong class="h4 mb-0 text-white">
+                          @if (storeSubscription()?.subscription?.billingCycle === 'annual') {
+                            ${{ (storeSubscription()?.subscription?.customAnnualPrice || storeSubscription()?.basePricing?.annualPrice || 500000) | number }} ARS
+                            <small class="text-xs text-muted">/ año</small>
+                          } @else {
+                            ${{ (storeSubscription()?.subscription?.customMonthlyPrice || storeSubscription()?.basePricing?.monthlyPrice || 50000) | number }} ARS
+                            <small class="text-xs text-muted">/ mes</small>
+                          }
+                        </strong>
+                        @if (storeSubscription()?.subscription?.discountPercent) {
+                          <span class="badge badge--success ml-2">{{ storeSubscription()?.subscription?.discountPercent }}% OFF Asignado</span>
+                        }
+                      </div>
+
+                      @if (storeSubscription()?.subscription?.currentPeriodEnd) {
+                        <div class="text-right">
+                          <span class="text-muted d-block text-xs uppercase font-weight-bold">Próximo Vencimiento</span>
+                          <span class="text-sm font-weight-medium text-white">
+                            {{ storeSubscription()?.subscription?.currentPeriodEnd?.toDate() | date:'dd/MM/yyyy' }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Subscription Link Generator Buttons -->
+                  <div class="sub-link-actions mb-4">
+                    <span class="form-label d-block mb-2">Generar Enlace de Cobro al Cliente</span>
+                    <div class="d-flex gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        class="btn btn-secondary flex-1"
+                        (click)="generateSubscriptionLink('monthly')"
+                        [disabled]="isGeneratingSubLink()"
+                      >
+                        <i class="bi bi-arrow-repeat"></i>
+                        <span>Débito Mensual ($50k)</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-primary flex-1"
+                        (click)="generateSubscriptionLink('annual')"
+                        [disabled]="isGeneratingSubLink()"
+                      >
+                        <i class="bi bi-tag-fill"></i>
+                        <span>Pago Anual ($500k · 2m OFF)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (subLinkGenerated()) {
+                    <div class="alert alert--success mb-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago generado:</span>
+                        <a [href]="subLinkGenerated()" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                          Abrir Checkout <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                      </div>
+                      <input type="text" class="form-control text-xs" [value]="subLinkGenerated()" readonly />
+                    </div>
+                  }
+
+                  @if (subLinkError()) {
+                    <div class="alert alert--error mb-3">
+                      <i class="bi bi-exclamation-triangle-fill"></i> {{ subLinkError() }}
+                    </div>
+                  }
+
+                  <!-- Master Admin Custom Discounts / Override (Solo Juan) -->
+                  @if (storeSubscription()?.isMasterAdmin) {
+                    <div class="master-sub-controls border-top pt-3 mt-3">
+                      <div class="master-badge mb-2">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Ajuste de Tarifas y Descuentos (Solo Juan)</span>
+                      </div>
+
+                      @if (discountSaveSuccess()) {
+                        <div class="alert alert--success text-xs py-2 mb-2">
+                          <i class="bi bi-check-circle-fill"></i> {{ discountSaveSuccess() }}
+                        </div>
+                      }
+
+                      <div class="row g-2 mb-2">
+                        <div class="col-6">
+                          <label class="form-label text-xs">Estado Suscripción</label>
+                          <select
+                            class="form-control text-xs"
+                            [ngModel]="subscriptionStatusSelect()"
+                            (ngModelChange)="subscriptionStatusSelect.set($event)"
+                          >
+                            <option value="active">Activa</option>
+                            <option value="complimentary">Cortesía (Sin cobro)</option>
+                            <option value="trial">Período de Prueba</option>
+                            <option value="past_due">Período de Gracia</option>
+                            <option value="suspended">Suspendida</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label text-xs">Descuento (%)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="ej. 20"
+                            [value]="discountPercentInput()"
+                            (input)="discountPercentInput.set($any($event.target).value ? +$any($event.target).value : null)"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row g-2 mb-3">
+                        <div class="col-6">
+                          <label class="form-label text-xs">Precio Mensual Custom (ARS)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="Dejar vacío para default"
+                            [value]="customMonthlyPriceInput()"
+                            (input)="customMonthlyPriceInput.set($any($event.target).value ? +$any($event.target).value : null)"
+                          />
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label text-xs">Precio Anual Custom (ARS)</label>
+                          <input
+                            type="number"
+                            class="form-control text-xs"
+                            placeholder="Dejar vacío para default"
+                            [value]="customAnnualPriceInput()"
+                            (input)="customAnnualPriceInput.set($any($event.target).value ? +$any($event.target).value : null)"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm w-100"
+                        (click)="saveCustomSubscriptionPricing()"
+                        [disabled]="isSavingDiscount()"
+                      >
+                        <i class="bi" [class.bi-check2]="!isSavingDiscount()" [class.bi-arrow-repeat]="isSavingDiscount()" [class.spin]="isSavingDiscount()"></i>
+                        <span>{{ isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Cliente' }}</span>
+                      </button>
+                    </div>
+                  }
+                </div>
+
                 <!-- Mercado Pago Card -->
                 <div class="detail-card">
                   <div class="detail-card__header mb-3">
                     <h2 class="detail-card__title">
-                      <i class="bi bi-credit-card text-primary"></i> Mercado Pago
+                      <i class="bi bi-credit-card text-primary"></i> Pasarela Mercado Pago (Tienda)
                     </h2>
                     <p class="detail-card__subtitle">
                       Configurá las credenciales de Mercado Pago para procesar cobros automáticos en

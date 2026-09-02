@@ -1173,3 +1173,208 @@
     }
   }
 }
+
+/* -------------------------------------------------------------
+   SaaS Subscriptions & Pricing Styles
+------------------------------------------------------------- */
+.subscriptions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sub-hero-card {
+  background: var(--platform-surface, #1e293b);
+  border: 1px solid var(--platform-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+  &__header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 2.5rem;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 20px;
+    color: #818cf8;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+  }
+
+  &__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--platform-text-main, #f8fafc);
+    margin: 0 0 0.5rem;
+  }
+
+  &__sub {
+    font-size: 0.95rem;
+    color: var(--platform-text-muted, #94a3b8);
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.pricing-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.pricing-plan-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--platform-border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  padding: 1.75rem;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+  }
+
+  &--featured {
+    border-color: rgba(99, 102, 241, 0.5);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%);
+  }
+
+  &__badge-save {
+    position: absolute;
+    top: -10px;
+    right: 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    font-size: 0.725rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    letter-spacing: 0.5px;
+  }
+
+  &__tag {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #818cf8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+  }
+
+  &__price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+
+    .currency {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--platform-text-muted, #94a3b8);
+    }
+    .amount {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--platform-text-main, #f8fafc);
+      letter-spacing: -0.5px;
+    }
+    .period {
+      font-size: 0.875rem;
+      color: var(--platform-text-muted, #94a3b8);
+      font-weight: 500;
+    }
+  }
+
+  &__desc {
+    font-size: 0.875rem;
+    color: var(--platform-text-muted, #94a3b8);
+    line-height: 1.45;
+    margin-bottom: 1.25rem;
+  }
+
+  &__features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--platform-text-main, #e2e8f0);
+
+      i {
+        color: #10b981;
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+.master-pricing-editor {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+
+  &__header {
+    margin-bottom: 1.25rem;
+  }
+
+  .master-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fbbf24;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .master-desc {
+    font-size: 0.85rem;
+    color: var(--platform-text-muted, #94a3b8);
+    margin: 0;
+  }
+}
+
+.restricted-pricing-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--platform-text-muted, #94a3b8);
+  font-size: 0.85rem;
+  justify-content: center;
+
+  i {
+    color: #fbbf24;
+  }
+}
+

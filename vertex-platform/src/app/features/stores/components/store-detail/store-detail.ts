@@ -11,9 +11,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { StoresService } from '@core/services/stores';
+import { StoresService, type StoreSubscriptionInfo } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
 
@@ -41,6 +41,7 @@ import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store
   imports: [
     RouterLink,
     DatePipe,
+    DecimalPipe,
     FormsModule,
     ReactiveFormsModule,
     AppSpinner,
@@ -188,6 +189,20 @@ export class StoreDetail implements OnInit {
   readonly mpAccountEmail = signal('');
   readonly mpTokenMasked = signal('');
 
+  // ── SaaS Subscription Vertex ──────────────────────────────────────────────
+  readonly storeSubscription = signal<StoreSubscriptionInfo | null>(null);
+  readonly isLoadingSubscription = signal(false);
+  readonly isGeneratingSubLink = signal(false);
+  readonly subLinkGenerated = signal<string | null>(null);
+  readonly subLinkError = signal<string | null>(null);
+  readonly isSavingDiscount = signal(false);
+  readonly discountSaveSuccess = signal<string | null>(null);
+
+  readonly customMonthlyPriceInput = signal<number | null>(null);
+  readonly customAnnualPriceInput = signal<number | null>(null);
+  readonly discountPercentInput = signal<number | null>(null);
+  readonly subscriptionStatusSelect = signal<'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'>('active');
+
   readonly statusLabel = statusLabelUtil;
   readonly stepIcon = stepIconUtil;
   readonly formatDate = formatDateUtil;
@@ -328,6 +343,7 @@ export class StoreDetail implements OnInit {
     }
     if (tab === 'pagos' && s) {
       void this.loadPaymentConfig(s.id);
+      void this.loadStoreSubscription(s.id);
     }
   }
 
@@ -457,6 +473,74 @@ export class StoreDetail implements OnInit {
   copyWebhookUrl(storeId: string): Promise<void> {
     const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
+  }
+
+  async loadStoreSubscription(storeId: string): Promise<void> {
+    this.isLoadingSubscription.set(true);
+    try {
+      const subInfo = await this.storesService.getStoreSubscription(storeId);
+      this.storeSubscription.set(subInfo);
+      if (subInfo.subscription) {
+        this.subscriptionStatusSelect.set(subInfo.subscription.status || 'active');
+        this.customMonthlyPriceInput.set(subInfo.subscription.customMonthlyPrice ?? null);
+        this.customAnnualPriceInput.set(subInfo.subscription.customAnnualPrice ?? null);
+        this.discountPercentInput.set(subInfo.subscription.discountPercent ?? null);
+      }
+    } catch (err) {
+      console.warn('[loadStoreSubscription] Error:', err);
+    } finally {
+      this.isLoadingSubscription.set(false);
+    }
+  }
+
+  async generateSubscriptionLink(billingCycle: 'monthly' | 'annual'): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isGeneratingSubLink.set(true);
+    this.subLinkGenerated.set(null);
+    this.subLinkError.set(null);
+
+    try {
+      const result = await this.storesService.createStoreSubscriptionLink(s.id, billingCycle);
+      if (result.checkoutUrl) {
+        this.subLinkGenerated.set(result.checkoutUrl);
+      }
+      await this.loadStoreSubscription(s.id);
+    } catch (err) {
+      this.subLinkError.set(
+        errorMessage(err, 'Error al generar enlace de pago de suscripción.'),
+      );
+    } finally {
+      this.isGeneratingSubLink.set(false);
+    }
+  }
+
+  async saveCustomSubscriptionPricing(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isSavingDiscount.set(true);
+    this.discountSaveSuccess.set(null);
+
+    try {
+      await this.storesService.updateStoreSubscriptionStatus({
+        storeId: s.id,
+        status: this.subscriptionStatusSelect(),
+        customMonthlyPrice: this.customMonthlyPriceInput(),
+        customAnnualPrice: this.customAnnualPriceInput(),
+        discountPercent: this.discountPercentInput(),
+      });
+      this.discountSaveSuccess.set('Parámetros de suscripción actualizados con éxito.');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3000);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al guardar parámetros.'));
+    } finally {
+      this.isSavingDiscount.set(false);
+    }
   }
 
   openEdit(): void {

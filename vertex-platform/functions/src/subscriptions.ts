@@ -1,160 +1,216 @@
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as logger from 'firebase-functions/logger';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { ALLOWED_ORIGINS } from './helpers';
+import { logAuditAction } from './stores';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { ALLOWED_ORIGINS, PLATFORM_PROJECT, sendDirectEmail } from './helpers';
-import { checkRateLimit, logAuditAction } from './stores';
-
-// ============================================================================
-// 1. DEFINICIÓN DE PLANES SAAS Y MODELO DE DATOS
-// ============================================================================
-
-export interface SubscriptionPlan {
-  id: 'starter' | 'pro' | 'enterprise';
-  name: string;
-  description: string;
-  monthlyPrice: number; // en ARS
-  annualPrice: number; // en ARS (incluye descuento de ~2 meses gratis)
-  features: string[];
-}
-
-export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
-  starter: {
-    id: 'starter',
-    name: 'Starter / Emprendedor',
-    description: 'Ideal para negocios iniciales con catálogo estándar.',
-    monthlyPrice: 15000,
-    annualPrice: 150000,
-    features: ['Hasta 100 productos', '1 sucursal de retiro', 'Subdominio .web.app', 'Soporte estándar'],
-  },
-  pro: {
-    id: 'pro',
-    name: 'Pro / Crecimiento',
-    description: 'Para marcas y comercios en expansión con alto volumen.',
-    monthlyPrice: 29000,
-    annualPrice: 290000,
-    features: [
-      'Catálogo y productos ilimitados',
-      'Hasta 5 sucursales',
-      'Dominio personalizado',
-      'Notificaciones email automáticas',
-      'Soporte prioritario',
-    ],
-  },
-  enterprise: {
-    id: 'enterprise',
-    name: 'Enterprise / Escala',
-    description: 'Infraestructura dedicada GCP con máximo rendimiento.',
-    monthlyPrice: 59000,
-    annualPrice: 590000,
-    features: [
-      'Shard dedicado en Google Cloud',
-      'Sucursales ilimitadas',
-      'SLA de 99.9%',
-      'Account Manager dedicado',
-    ],
-  },
-};
-
-export interface StoreSubscriptionDoc {
-  id: string;
-  storeId: string;
-  storeName: string;
-  ownerEmail: string;
-  planId: 'starter' | 'pro' | 'enterprise';
-  billingCycle: 'monthly' | 'annual';
-  amount: number;
-  currency: 'ARS';
-  status: 'pending' | 'authorized' | 'paused' | 'cancelled' | 'past_due' | 'complimentary';
-  mpPreapprovalId?: string;
-  mpPreferenceId?: string;
-  mpPayerId?: string;
-  initPoint?: string;
-  currentPeriodStart?: Timestamp;
-  currentPeriodEnd?: Timestamp;
-  nextBillingDate?: Timestamp;
-  gracePeriodEnd?: Timestamp;
-  history: Array<{
-    date: Timestamp;
-    event: string;
-    amount?: number;
-    paymentId?: string;
-    status: string;
-    notes?: string;
-  }>;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-// ============================================================================
-// 2. RESOLUCIÓN DE CREDENCIALES DE MERCADO PAGO CENTRAL DE LA PLATAFORMA
-// ============================================================================
 
 const secretsClient = new SecretManagerServiceClient();
-let cachedPlatformMpToken = '';
 
-async function resolvePlatformMpAccessToken(): Promise<string> {
-  if (cachedPlatformMpToken) return cachedPlatformMpToken;
+/**
+ * Precios base por defecto de la suscripción SaaS única de Vertex.
+ */
+export const DEFAULT_SUBSCRIPTION_PRICING = {
+  name: 'Plan Único Vertex Store',
+  description: 'Acceso completo a la plataforma de comercio multi-tenant de Vertex.',
+  monthlyPrice: 50000,
+  annualPrice: 500000,
+};
 
-  const candidateSecrets = [
-    'mp-platform-access-token',
-    'MP_PLATFORM_ACCESS_TOKEN',
-    'mp-access-token-default',
+/**
+ * Identifica si el usuario autenticado es el Administrador Principal (Juan)
+ * con permisos exclusivos para modificar tarifas y credenciales de recaudación.
+ */
+export function isJuanMasterAdmin(authEmail?: string): boolean {
+  if (!authEmail) return false;
+  const masterEmails = [
+    'juan.l.espeche@gmail.com',
+    'vertex.tech.dev@gmail.com',
   ];
+  return masterEmails.includes(authEmail.toLowerCase().trim());
+}
 
-  for (const secretName of candidateSecrets) {
-    try {
-      const [version] = await secretsClient.accessSecretVersion({
-        name: `projects/${PLATFORM_PROJECT}/secrets/${secretName}/versions/latest`,
-      });
-      const token = version.payload?.data?.toString().trim();
-      if (token && (token.startsWith('TEST-') || token.startsWith('APP_USR-'))) {
-        cachedPlatformMpToken = token;
-        return token;
-      }
-    } catch {
-      // Intenta siguiente secreto
+/**
+ * Obtiene la configuración de precios y tarifas desde Firestore (o defaults).
+ */
+export async function getEffectivePricing(): Promise<{
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
+}> {
+  try {
+    const db = getFirestore();
+    const configSnap = await db.collection('platform_config').doc('billing').get();
+    if (configSnap.exists) {
+      const data = configSnap.data() || {};
+      return {
+        name: data['name'] || DEFAULT_SUBSCRIPTION_PRICING.name,
+        description: data['description'] || DEFAULT_SUBSCRIPTION_PRICING.description,
+        monthlyPrice: Number(data['monthlyPrice']) || DEFAULT_SUBSCRIPTION_PRICING.monthlyPrice,
+        annualPrice: Number(data['annualPrice']) || DEFAULT_SUBSCRIPTION_PRICING.annualPrice,
+      };
     }
+  } catch (err) {
+    console.warn('[getEffectivePricing] Could not read platform_config/billing, using defaults:', err);
+  }
+  return { ...DEFAULT_SUBSCRIPTION_PRICING };
+}
+
+/**
+ * Resuelve el token de acceso central de Mercado Pago de la plataforma.
+ */
+async function getPlatformMercadoPagoAccessToken(): Promise<string> {
+  const envToken = process.env['MP_PLATFORM_ACCESS_TOKEN'] || process.env['MERCADOPAGO_ACCESS_TOKEN'];
+  if (envToken) return envToken;
+
+  const projectId = process.env['GCLOUD_PROJECT'] || process.env['GOOGLE_CLOUD_PROJECT'] || 'vertex-platform-app';
+
+  try {
+    const [version] = await secretsClient.accessSecretVersion({
+      name: `projects/${projectId}/secrets/mp-platform-access-token/versions/latest`,
+    });
+    const secretValue = version.payload?.data?.toString();
+    if (secretValue) return secretValue;
+  } catch (err) {
+    console.warn('[getPlatformMercadoPagoAccessToken] Failed to read Secret Manager, checking fallback in platform_config:', err);
   }
 
-  // Fallback a variable de entorno o token de prueba de la plataforma
-  const envToken =
-    process.env.MERCADOPAGO_PLATFORM_ACCESS_TOKEN ||
-    process.env.MERCADOPAGO_ACCESSTOKEN ||
-    'TEST-5735100067673516-090122-383792037bb2eb85f3baef5369c3a9d9-1793264666';
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('platform_config').doc('billing').get();
+    if (snap.exists && snap.data()?.['mpAccessToken']) {
+      return snap.data()!['mpAccessToken'];
+    }
+  } catch {}
 
-  cachedPlatformMpToken = envToken.trim();
-  return cachedPlatformMpToken;
+  // Test token fallback para ambiente de desarrollo si aún no se configuró en producción
+  return 'TEST-5735100067673516-022718-d76249ff9359e19d77e48b81329a2444-245353597';
 }
 
-// ============================================================================
-// 3. GENERACIÓN DE LINKS DE PAGO / SUSCRIPCIÓN (CALLABLE)
-// ============================================================================
-
-export interface CreateSubscriptionPayload {
-  storeId: string;
-  planId: 'starter' | 'pro' | 'enterprise';
-  billingCycle: 'monthly' | 'annual';
-  payerEmail?: string;
-  payerName?: string;
-}
-
-export const createStoreSubscriptionLink = onCall<CreateSubscriptionPayload>(
+/**
+ * Consulta la configuración global de facturación y estado del token.
+ */
+export const getPlatformBillingConfig = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Debes iniciar sesión para contratar un plan.');
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
     }
 
-    const { storeId, planId, billingCycle, payerEmail, payerName } = request.data;
-    if (!storeId || !planId || !billingCycle) {
-      throw new HttpsError('invalid-argument', 'storeId, planId y billingCycle son requeridos.');
+    const email = request.auth.token.email;
+    const isMaster = isJuanMasterAdmin(email);
+    const pricing = await getEffectivePricing();
+    const token = await getPlatformMercadoPagoAccessToken();
+
+    // Enmascarar token para no exponer credenciales
+    const isConfigured = Boolean(token && !token.startsWith('TEST-'));
+    const maskedToken = token ? `${token.substring(0, 10)}...${token.slice(-4)}` : null;
+
+    return {
+      pricing,
+      isMasterAdmin: isMaster,
+      platformMercadoPago: {
+        isConfigured,
+        maskedToken,
+      },
+    };
+  },
+);
+
+/**
+ * Actualiza la configuración global de precios y credenciales de la plataforma.
+ * EXCLUSIVO: Solo Juan (Master Admin) puede ejecutar esta acción.
+ */
+export const updatePlatformBillingConfig = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
     }
 
-    const plan = SUBSCRIPTION_PLANS[planId];
-    if (!plan) {
-      throw new HttpsError('not-found', `El plan ${planId} no existe.`);
+    const email = request.auth.token.email;
+    if (!isJuanMasterAdmin(email)) {
+      throw new HttpsError(
+        'permission-denied',
+        'Acceso restringido: Esta configuración está protegida y solo puede ser modificada por el administrador principal.',
+      );
+    }
+
+    const { monthlyPrice, annualPrice, name, description, mpAccessToken } = request.data as {
+      monthlyPrice?: number;
+      annualPrice?: number;
+      name?: string;
+      description?: string;
+      mpAccessToken?: string;
+    };
+
+    const updates: Record<string, any> = {
+      updatedAt: new Date(),
+      updatedBy: email,
+    };
+
+    if (monthlyPrice !== undefined) {
+      if (typeof monthlyPrice !== 'number' || monthlyPrice < 0) {
+        throw new HttpsError('invalid-argument', 'El precio mensual debe ser un número positivo.');
+      }
+      updates['monthlyPrice'] = monthlyPrice;
+    }
+
+    if (annualPrice !== undefined) {
+      if (typeof annualPrice !== 'number' || annualPrice < 0) {
+        throw new HttpsError('invalid-argument', 'El precio anual debe ser un número positivo.');
+      }
+      updates['annualPrice'] = annualPrice;
+    }
+
+    if (name) updates['name'] = String(name).trim();
+    if (description) updates['description'] = String(description).trim();
+    if (mpAccessToken) updates['mpAccessToken'] = String(mpAccessToken).trim();
+
+    const db = getFirestore();
+    await db.collection('platform_config').doc('billing').set(updates, { merge: true });
+
+    await logAuditAction(
+      request.auth.uid,
+      email,
+      'updatePlatformBillingConfig',
+      'platform_config/billing',
+      'success',
+      {
+        monthlyPrice,
+        annualPrice,
+        updatedFields: Object.keys(updates),
+      },
+    );
+
+    return {
+      success: true,
+      message: 'Tarifas y configuración de plataforma actualizadas correctamente.',
+      pricing: await getEffectivePricing(),
+    };
+  },
+);
+
+/**
+ * Genera el enlace de pago/suscripción en Mercado Pago para una tienda específica.
+ * Soporta débito mensual automático (Preapproval) o pago único anual (Preference).
+ */
+export const createStoreSubscriptionLink = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+
+    const { storeId, billingCycle = 'monthly', payerEmail } = request.data as {
+      storeId: string;
+      billingCycle?: 'monthly' | 'annual';
+      payerEmail?: string;
+    };
+
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'El ID de la tienda es requerido.');
     }
 
     const db = getFirestore();
@@ -162,184 +218,153 @@ export const createStoreSubscriptionLink = onCall<CreateSubscriptionPayload>(
     const storeSnap = await storeRef.get();
 
     if (!storeSnap.exists) {
-      throw new HttpsError('not-found', `La tienda ${storeId} no fue encontrada.`);
+      throw new HttpsError('not-found', 'Tienda no encontrada.');
     }
 
-    const storeData = storeSnap.data()!;
-    const isPlatformAdmin = Boolean(request.auth.token['platformAdmin']);
-    const isOwner = storeData['ownerEmail'] === request.auth.token.email;
+    const storeData = storeSnap.data() || {};
+    const effectivePricing = await getEffectivePricing();
 
-    if (!isPlatformAdmin && !isOwner) {
-      throw new HttpsError('permission-denied', 'No tienes permisos para facturar esta tienda.');
+    // 1. Calcular precio final considerando descuentos o precios personalizados asignados por Juan
+    const subConfig = storeData['subscription'] || {};
+    let finalAmount = billingCycle === 'monthly' ? effectivePricing.monthlyPrice : effectivePricing.annualPrice;
+
+    if (billingCycle === 'monthly' && typeof subConfig['customMonthlyPrice'] === 'number') {
+      finalAmount = subConfig['customMonthlyPrice'];
+    } else if (billingCycle === 'annual' && typeof subConfig['customAnnualPrice'] === 'number') {
+      finalAmount = subConfig['customAnnualPrice'];
+    } else if (typeof subConfig['discountPercent'] === 'number' && subConfig['discountPercent'] > 0) {
+      const discount = (finalAmount * subConfig['discountPercent']) / 100;
+      finalAmount = Math.max(0, Math.round(finalAmount - discount));
     }
 
-    await checkRateLimit(request.auth.uid, 'createSubscriptionLink', 10, 15);
+    const targetEmail = payerEmail || storeData['ownerEmail'] || request.auth.token.email;
+    const mpAccessToken = await getPlatformMercadoPagoAccessToken();
+    const storeName = storeData['name'] || storeId;
 
-    const accessToken = await resolvePlatformMpAccessToken();
-    const amount = billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
-    const finalPayerEmail = (payerEmail || request.auth.token.email || storeData['ownerEmail'] || '').trim();
-    const subscriptionId = `sub_${storeId}_${Date.now()}`;
-    const platformBaseUrl = 'https://vertex-platform.web.app';
-
-    let initPointUrl = '';
-    let mpPreapprovalId: string | undefined;
-    let mpPreferenceId: string | undefined;
-
-    try {
-      if (billingCycle === 'monthly') {
-        // Débito automático recurrente vía Mercado Pago PreApproval REST API
-        const preapprovalRes = await fetch('https://api.mercadopago.com/preapproval', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            reason: `Suscripción Mensual Vertex - ${plan.name} (${storeData['name'] || storeId})`,
-            auto_recurring: {
-              frequency: 1,
-              frequency_type: 'months',
-              transaction_amount: amount,
-              currency_id: 'ARS',
-            },
-            payer_email: finalPayerEmail,
-            back_url: `${platformBaseUrl}/stores/${storeId}?subscription=success`,
-            external_reference: subscriptionId,
-            status: 'pending',
-          }),
-        });
-
-        const preapprovalData = (await preapprovalRes.json()) as any;
-        if (!preapprovalRes.ok) {
-          throw new Error(preapprovalData?.message || `HTTP ${preapprovalRes.status}`);
-        }
-
-        initPointUrl =
-          (accessToken.startsWith('TEST-')
-            ? preapprovalData.sandbox_init_point
-            : preapprovalData.init_point) ||
-          preapprovalData.init_point ||
-          preapprovalData.sandbox_init_point ||
-          '';
-        mpPreapprovalId = preapprovalData.id;
-      } else {
-        // Facturación anual (pago único adelantado por 12 meses) vía Mercado Pago Preference REST API
-        const preferenceRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            items: [
-              {
-                id: `plan_${plan.id}_annual`,
-                title: `Plan Anual Vertex - ${plan.name} (${storeData['name'] || storeId})`,
-                description: `Acceso por 12 meses con descuento a la plataforma Vertex Commerce para ${storeData['name'] || storeId}`,
-                quantity: 1,
-                unit_price: amount,
-                currency_id: 'ARS',
-              },
-            ],
-            payer: {
-              email: finalPayerEmail,
-              name: payerName || storeData['name'] || 'Cliente Vertex',
-            },
-            external_reference: subscriptionId,
-            back_urls: {
-              success: `${platformBaseUrl}/stores/${storeId}?subscription=success`,
-              failure: `${platformBaseUrl}/stores/${storeId}?subscription=failure`,
-              pending: `${platformBaseUrl}/stores/${storeId}?subscription=pending`,
-            },
-            auto_return: 'approved',
-          }),
-        });
-
-        const preferenceData = (await preferenceRes.json()) as any;
-        if (!preferenceRes.ok) {
-          throw new Error(preferenceData?.message || `HTTP ${preferenceRes.status}`);
-        }
-
-        initPointUrl =
-          (accessToken.startsWith('TEST-')
-            ? preferenceData.sandbox_init_point
-            : preferenceData.init_point) ||
-          preferenceData.init_point ||
-          preferenceData.sandbox_init_point ||
-          '';
-        mpPreferenceId = preferenceData.id;
-      }
-
-      if (!initPointUrl) {
-        throw new Error('Mercado Pago no retornó una URL de pago válida.');
-      }
-
-      const now = Timestamp.now();
-      const subDoc: StoreSubscriptionDoc = {
-        id: subscriptionId,
-        storeId,
-        storeName: storeData['name'] || storeId,
-        ownerEmail: finalPayerEmail,
-        planId,
-        billingCycle,
-        amount,
-        currency: 'ARS',
-        status: 'pending',
-        mpPreapprovalId,
-        mpPreferenceId,
-        initPoint: initPointUrl,
-        history: [
-          {
-            date: now,
-            event: 'created',
-            amount,
-            status: 'pending',
-            notes: `Link de suscripción ${billingCycle} generado por ${request.auth.token.email}`,
-          },
-        ],
-        createdAt: now,
-        updatedAt: now,
+    if (billingCycle === 'monthly') {
+      // MERCADO PAGO PREAPPROVAL API (Débito mensual automático)
+      const payload = {
+        payer_email: targetEmail,
+        back_url: `https://vertex-platform.web.app/stores/${storeId}?subscription=success`,
+        reason: `Vertex Store — ${storeName} (Mensual)`,
+        external_reference: storeId,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: finalAmount,
+          currency_id: 'ARS',
+        },
       };
 
-      await db.collection('subscriptions').doc(subscriptionId).set(subDoc);
+      const response = await fetch('https://api.mercadopago.com/preapproval', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${mpAccessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        console.error('[createStoreSubscriptionLink:monthly] MP Error:', errBody);
+        throw new HttpsError('internal', `Error al crear suscripción en Mercado Pago: ${errBody?.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+      const initPoint = result.init_point || result.sandbox_init_point;
+
       await storeRef.update({
-        'subscription.id': subscriptionId,
-        'subscription.planId': planId,
-        'subscription.billingCycle': billingCycle,
-        'subscription.status': 'pending',
-        'subscription.initPoint': initPointUrl,
+        'subscription.billingCycle': 'monthly',
+        'subscription.lastGeneratedLink': initPoint,
+        'subscription.preapprovalId': result.id,
+        'subscription.amount': finalAmount,
         'subscription.updatedAt': new Date(),
       });
 
-      logger.info(`[createStoreSubscriptionLink] Suscripción ${subscriptionId} creada para ${storeId}. URL: ${initPointUrl}`);
+      return {
+        success: true,
+        checkoutUrl: initPoint,
+        preapprovalId: result.id,
+        billingCycle: 'monthly',
+        amount: finalAmount,
+      };
+    } else {
+      // MERCADO PAGO PREFERENCE API (Pago Anual Adelantado)
+      const payload = {
+        items: [
+          {
+            id: `vertex-store-annual-${storeId}`,
+            title: `Vertex Store — ${storeName} (Suscripción Anual)`,
+            description: `Suscripción anual para la tienda ${storeName} con 2 meses bonificados.`,
+            quantity: 1,
+            unit_price: finalAmount,
+            currency_id: 'ARS',
+          },
+        ],
+        payer: {
+          email: targetEmail,
+        },
+        back_urls: {
+          success: `https://vertex-platform.web.app/stores/${storeId}?subscription=success`,
+          pending: `https://vertex-platform.web.app/stores/${storeId}?subscription=pending`,
+          failure: `https://vertex-platform.web.app/stores/${storeId}?subscription=failure`,
+        },
+        auto_return: 'approved',
+        external_reference: `annual_${storeId}`,
+        notification_url: 'https://us-central1-vertex-platform-app.cloudfunctions.net/platformMercadoPagoWebhook',
+      };
+
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${mpAccessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        console.error('[createStoreSubscriptionLink:annual] MP Error:', errBody);
+        throw new HttpsError('internal', `Error al crear preferencia en Mercado Pago: ${errBody?.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+      const initPoint = result.init_point || result.sandbox_init_point;
+
+      await storeRef.update({
+        'subscription.billingCycle': 'annual',
+        'subscription.lastGeneratedLink': initPoint,
+        'subscription.preferenceId': result.id,
+        'subscription.amount': finalAmount,
+        'subscription.updatedAt': new Date(),
+      });
 
       return {
-        subscriptionId,
-        initPoint: initPointUrl,
-        plan,
-        amount,
+        success: true,
+        checkoutUrl: initPoint,
+        preferenceId: result.id,
+        billingCycle: 'annual',
+        amount: finalAmount,
       };
-    } catch (err: any) {
-      logger.error(`[createStoreSubscriptionLink] Error al generar suscripción para ${storeId}:`, err);
-      throw new HttpsError('internal', `Error al conectar con Mercado Pago: ${err?.message || 'Error desconocido'}`);
     }
   },
 );
 
-// ============================================================================
-// 4. CONSULTA Y GESTIÓN DE SUSCRIPCIONES (CALLABLE)
-// ============================================================================
-
-export const getStoreSubscription = onCall<{ storeId: string }>(
+/**
+ * Consulta el estado de suscripción y descuentos de una tienda.
+ */
+export const getStoreSubscription = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Autenticación requerida.');
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
     }
 
-    const { storeId } = request.data;
+    const { storeId } = request.data as { storeId: string };
     if (!storeId) {
-      throw new HttpsError('invalid-argument', 'storeId es requerido.');
+      throw new HttpsError('invalid-argument', 'El ID de la tienda es requerido.');
     }
 
     const db = getFirestore();
@@ -348,47 +373,62 @@ export const getStoreSubscription = onCall<{ storeId: string }>(
       throw new HttpsError('not-found', 'Tienda no encontrada.');
     }
 
-    const storeData = storeSnap.data()!;
-    const isPlatformAdmin = Boolean(request.auth.token['platformAdmin']);
-    const isOwner = storeData['ownerEmail'] === request.auth.token.email;
+    const storeData = storeSnap.data() || {};
+    const subscription = storeData['subscription'] || {
+      status: 'active',
+      billingCycle: 'monthly',
+    };
 
-    if (!isPlatformAdmin && !isOwner) {
-      throw new HttpsError('permission-denied', 'No tienes acceso a la facturación de esta tienda.');
-    }
-
-    const subSnap = await db
-      .collection('subscriptions')
-      .where('storeId', '==', storeId)
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get();
-
-    const subscription = !subSnap.empty ? subSnap.docs[0].data() : null;
+    const effectivePricing = await getEffectivePricing();
+    const email = request.auth.token.email;
+    const isMaster = isJuanMasterAdmin(email);
 
     return {
       storeId,
       subscription,
-      availablePlans: SUBSCRIPTION_PLANS,
-      storeStatus: storeData['status'] || 'active',
+      basePricing: effectivePricing,
+      isMasterAdmin: isMaster,
     };
   },
 );
 
-export const updateStoreSubscriptionStatus = onCall<{
-  storeId: string;
-  status: 'active' | 'complimentary' | 'paused' | 'cancelled';
-  planId?: 'starter' | 'pro' | 'enterprise';
-  notes?: string;
-}>(
+/**
+ * Permite cambiar el estado de suscripción o aplicar descuentos/precios especiales a una tienda.
+ * Restringido a Juan (Master Admin) o SuperAdmins.
+ */
+export const updateStoreSubscriptionStatus = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
-    if (!request.auth?.token['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Solo los administradores de la plataforma pueden modificar suscripciones manualmente.');
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
     }
 
-    const { storeId, status, planId, notes } = request.data;
-    if (!storeId || !status) {
-      throw new HttpsError('invalid-argument', 'storeId y status son requeridos.');
+    const email = request.auth.token.email;
+    const isMaster = isJuanMasterAdmin(email);
+
+    const {
+      storeId,
+      status,
+      customMonthlyPrice,
+      customAnnualPrice,
+      discountPercent,
+      notes,
+    } = request.data as {
+      storeId: string;
+      status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
+      customMonthlyPrice?: number | null;
+      customAnnualPrice?: number | null;
+      discountPercent?: number | null;
+      notes?: string;
+    };
+
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'El ID de la tienda es requerido.');
+    }
+
+    // Solo Juan puede modificar precios personalizados o descuentos
+    if ((customMonthlyPrice !== undefined || customAnnualPrice !== undefined || discountPercent !== undefined) && !isMaster) {
+      throw new HttpsError('permission-denied', 'Solo el administrador principal puede otorgar descuentos o precios especiales.');
     }
 
     const db = getFirestore();
@@ -399,149 +439,213 @@ export const updateStoreSubscriptionStatus = onCall<{
     }
 
     const updates: Record<string, any> = {
-      'subscription.status': status,
       'subscription.updatedAt': new Date(),
+      'subscription.updatedBy': email,
     };
 
-    if (planId) {
-      updates['subscription.planId'] = planId;
+    if (status) {
+      updates['subscription.status'] = status;
+      if (status === 'complimentary' || status === 'active') {
+        const oneYearAhead = new Date();
+        oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+        updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(oneYearAhead);
+        updates['status'] = 'active'; // Garantizar que la tienda esté operativa
+      } else if (status === 'suspended') {
+        updates['status'] = 'suspended'; // Suspender actividad de la tienda
+      }
     }
 
-    if (status === 'complimentary' || status === 'active') {
-      const oneYearAhead = new Date();
-      oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
-      updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(oneYearAhead);
-      updates['subscription.nextBillingDate'] = Timestamp.fromDate(oneYearAhead);
-      updates['status'] = 'active';
+    if (customMonthlyPrice !== undefined) {
+      updates['subscription.customMonthlyPrice'] = customMonthlyPrice;
     }
+    if (customAnnualPrice !== undefined) {
+      updates['subscription.customAnnualPrice'] = customAnnualPrice;
+    }
+    if (discountPercent !== undefined) {
+      updates['subscription.discountPercent'] = discountPercent;
+    }
+    if (notes) {
+      updates['subscription.notes'] = notes;
+    }
+
+    await storeRef.update(updates);
 
     await logAuditAction(
       request.auth.uid,
-      request.auth.token.email,
-      'updateSubscriptionStatus',
+      email,
+      'updateStoreSubscriptionStatus',
       storeId,
       'success',
-      {
-        status,
-        planId,
-        notes,
-      },
+      { status, customMonthlyPrice, customAnnualPrice, discountPercent, notes },
     );
 
-    return { success: true, status, storeId };
+    return { success: true, storeId, status, updates };
   },
 );
 
-// ============================================================================
-// 5. WEBHOOK CENTRAL DE PAGOS SAAS DE LA PLATAFORMA (HTTP ENDPOINT)
-// ============================================================================
-
+/**
+ * Webhook de Mercado Pago para procesar eventos de suscripciones y pagos SaaS.
+ * Automatiza la activación, renovación y levantamiento de suspensiones.
+ */
 export const platformMercadoPagoWebhook = onRequest(
-  { maxInstances: 5, cors: true, invoker: 'public' },
-  async (request, response) => {
-    const action = String(request.body?.action ?? request.query.topic ?? '');
-    const dataId = String(request.body?.data?.id ?? request.query.id ?? '');
-    const type = String(request.body?.type ?? '');
-
-    logger.info(`[platformMercadoPagoWebhook] Evento recibido: action=${action}, type=${type}, id=${dataId}`);
-
-    const db = getFirestore();
-    const now = Timestamp.now();
-
+  { cors: true, invoker: 'public' },
+  async (req, res) => {
     try {
-      const accessToken = await resolvePlatformMpAccessToken();
+      const body = req.body || {};
+      const type = body.type || req.query['type'] || body.action;
+      const dataId = body.data?.id || req.query['data.id'] || req.query['id'];
 
-      if (action.includes('preapproval') || type === 'subscription_preapproval') {
-        const preapprovalRes = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(dataId)}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+      console.info(`[platformMercadoPagoWebhook] Event received: type=${type}, id=${dataId}`);
+
+      if (!dataId) {
+        res.status(200).send({ received: true, ignored: 'no_id' });
+        return;
+      }
+
+      const mpAccessToken = await getPlatformMercadoPagoAccessToken();
+      const db = getFirestore();
+
+      // Procesar eventos de Suscripción Recurrente (Preapproval)
+      if (type === 'subscription_preapproval' || type === 'preapproval') {
+        const mpRes = await fetch(`https://api.mercadopago.com/preapproval/${dataId}`, {
+          headers: { Authorization: `Bearer ${mpAccessToken}` },
         });
-        const preapproval = (await preapprovalRes.json()) as any;
-        const externalRef = preapproval?.external_reference;
 
-        if (externalRef) {
-          const subRef = db.collection('subscriptions').doc(externalRef);
-          const subSnap = await subRef.get();
+        if (mpRes.ok) {
+          const subData = await mpRes.json();
+          const storeId = subData.external_reference;
+          const status = subData.status; // 'authorized', 'paused', 'cancelled', 'pending'
 
-          if (subSnap.exists) {
-            const subData = subSnap.data() as StoreSubscriptionDoc;
-            const newStatus = preapproval.status === 'authorized' ? 'authorized' : 'pending';
-            const nextPaymentDate = preapproval.next_payment_date
-              ? Timestamp.fromDate(new Date(preapproval.next_payment_date))
-              : Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+          if (storeId) {
+            const storeRef = db.collection('stores').doc(storeId);
+            const nextPaymentDate = subData.next_payment_date ? new Date(subData.next_payment_date) : null;
+            const periodEnd = nextPaymentDate || new Date(Date.now() + 32 * 24 * 60 * 60 * 1000);
 
-            await subRef.update({
-              status: newStatus,
-              mpPreapprovalId: preapproval.id,
-              mpPayerId: preapproval.payer_id ? String(preapproval.payer_id) : undefined,
-              currentPeriodStart: now,
-              currentPeriodEnd: nextPaymentDate,
-              nextBillingDate: nextPaymentDate,
-              updatedAt: now,
-              history: FieldValue.arrayUnion({
-                date: now,
-                event: `preapproval_${preapproval.status}`,
-                status: newStatus,
-                notes: `Mercado Pago Preapproval actualizado a ${preapproval.status}`,
-              }),
-            });
-
-            await db.collection('stores').doc(subData.storeId).update({
-              'subscription.status': newStatus === 'authorized' ? 'active' : newStatus,
-              'subscription.nextBillingDate': nextPaymentDate.toDate(),
+            const updates: Record<string, any> = {
+              'subscription.status': status === 'authorized' ? 'active' : status,
+              'subscription.preapprovalId': dataId,
+              'subscription.payerEmail': subData.payer_email,
+              'subscription.currentPeriodEnd': Timestamp.fromDate(periodEnd),
+              'subscription.lastPaymentDate': new Date(),
               'subscription.updatedAt': new Date(),
-              status: newStatus === 'authorized' ? 'active' : 'pending',
-            });
+            };
 
-            logger.info(`[platformMercadoPagoWebhook] Suscripción ${externalRef} de ${subData.storeId} actualizada a ${newStatus}`);
+            // Reactivación inmediata si estaba suspendida
+            if (status === 'authorized') {
+              updates['status'] = 'active';
+            }
+
+            await storeRef.update(updates);
+            console.info(`[platformMercadoPagoWebhook] Updated preapproval for store ${storeId}: status=${status}`);
           }
         }
       }
-    } catch (err) {
-      logger.error('[platformMercadoPagoWebhook] Error al procesar webhook de suscripción:', err);
-    }
 
-    response.status(200).send({ received: true });
+      // Procesar eventos de Pago Único Anual
+      if (type === 'payment') {
+        const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, {
+          headers: { Authorization: `Bearer ${mpAccessToken}` },
+        });
+
+        if (mpRes.ok) {
+          const paymentData = await mpRes.json();
+          const extRef = String(paymentData.external_reference || '');
+
+          if (extRef.startsWith('annual_')) {
+            const storeId = extRef.replace('annual_', '');
+            const isApproved = paymentData.status === 'approved';
+
+            if (storeId && isApproved) {
+              const storeRef = db.collection('stores').doc(storeId);
+              const oneYearAhead = new Date();
+              oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+
+              await storeRef.update({
+                'subscription.status': 'active',
+                'subscription.billingCycle': 'annual',
+                'subscription.currentPeriodEnd': Timestamp.fromDate(oneYearAhead),
+                'subscription.lastPaymentId': String(dataId),
+                'subscription.lastPaymentDate': new Date(),
+                'subscription.updatedAt': new Date(),
+                status: 'active', // Reactivación automática inmediata
+              });
+
+              console.info(`[platformMercadoPagoWebhook] Annual payment approved for store ${storeId}. Renewed for 1 year.`);
+            }
+          }
+        }
+      }
+
+      res.status(200).send({ received: true });
+    } catch (err) {
+      console.error('[platformMercadoPagoWebhook] Error processing webhook:', err);
+      res.status(500).send({ error: 'Internal Error' });
+    }
   },
 );
 
-// ============================================================================
-// 6. TAREA PROGRAMADA: MONITOREO DE PERÍODOS DE GRACIA Y EXPIRACIONES
-// ============================================================================
-
+/**
+ * Tarea programada diaria: Gestiona el ciclo de vida, período de gracia (5 días)
+ * y suspensión preventiva automática de tiendas con pago vencido.
+ */
 export const checkSubscriptionExpirations = onSchedule(
-  { schedule: 'every day 04:00', timeZone: 'America/Argentina/Buenos_Aires' },
+  {
+    schedule: '0 4 * * *', // Todos los días a las 04:00 UTC
+    timeZone: 'America/Argentina/Buenos_Aires',
+  },
   async () => {
-    logger.info('[checkSubscriptionExpirations] Iniciando verificación diaria de suscripciones...');
+    console.info('[checkSubscriptionExpirations] Checking store subscriptions expiration...');
     const db = getFirestore();
     const now = new Date();
+    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
 
-    const expiredSnap = await db
-      .collection('stores')
-      .where('subscription.status', '==', 'past_due')
-      .where('subscription.gracePeriodEnd', '<=', now)
-      .get();
+    const storesSnap = await db.collection('stores').get();
+    let verified = 0;
+    let gracePeriodCount = 0;
+    let suspendedCount = 0;
 
-    for (const doc of expiredSnap.docs) {
-      const storeId = doc.id;
-      const storeData = doc.data();
+    for (const doc of storesSnap.docs) {
+      const data = doc.data();
+      verified++;
+      const sub = data['subscription'] || {};
 
-      await doc.ref.update({
-        'subscription.status': 'suspended',
-        status: 'suspended',
-        updatedAt: new Date(),
-      });
-
-      if (storeData['ownerEmail']) {
-        const subject = `⚠️ Suspensión de Servicio: Tu tienda ${storeData['name'] || storeId} requiere regularización`;
-        const text = `Hola,\n\nTu período de gracia para la suscripción de ${storeData['name'] || storeId} ha finalizado sin recibir el pago. Tu tienda se encuentra temporalmente en pausa.\n\nPor favor, ingresa a tu panel para regularizar tu suscripción: https://vertex-platform.web.app/stores/${storeId}`;
-        const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>⚠️ Suspensión de Servicio</h2><p>El período de gracia para <strong>${storeData['name'] || storeId}</strong> ha vencido sin recibir el cobro de tu plan.</p><p><a href="https://vertex-platform.web.app/stores/${storeId}" style="background: #6366f1; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Regularizar Suscripción</a></p></div>`;
-
-        void sendDirectEmail(storeData['ownerEmail'], subject, html, text);
+      // Tiendas en cortesía o de prueba no se suspenden
+      if (sub.status === 'complimentary' || sub.status === 'trial') {
+        continue;
       }
 
-      logger.warn(`[checkSubscriptionExpirations] Tienda ${storeId} suspendida por falta de pago.`);
+      const periodEndTs: Timestamp | undefined = sub.currentPeriodEnd;
+      if (!periodEndTs) continue;
+
+      const periodEnd = periodEndTs.toDate();
+
+      if (now > periodEnd) {
+        const overdueMs = now.getTime() - periodEnd.getTime();
+
+        if (overdueMs <= fiveDaysInMs) {
+          // Dentro de los 5 días de gracia: past_due
+          if (sub.status !== 'past_due') {
+            await doc.ref.update({
+              'subscription.status': 'past_due',
+              'subscription.updatedAt': new Date(),
+            });
+            gracePeriodCount++;
+          }
+        } else {
+          // Excedió los 5 días de gracia: suspensión automática
+          if (data['status'] !== 'suspended' || sub.status !== 'suspended') {
+            await doc.ref.update({
+              status: 'suspended',
+              'subscription.status': 'suspended',
+              'subscription.suspendedAt': new Date(),
+              'subscription.updatedAt': new Date(),
+            });
+            suspendedCount++;
+          }
+        }
+      }
     }
+
+    console.info(`[checkSubscriptionExpirations] Done. Verified: ${verified}, Grace period: ${gracePeriodCount}, Suspended: ${suspendedCount}`);
   },
 );
