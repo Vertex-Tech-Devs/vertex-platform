@@ -287,17 +287,22 @@
           </div>
 
           <div class="trial-projection-banner mt-3">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <div class="d-flex align-items-center gap-2 text-xs">
-                <i class="bi bi-calendar-check text-warning"></i>
-                <span class="text-white font-weight-medium">
-                  Fin de prueba estimado:
-                  <strong>{{ projectedTrialEndDate() | date: 'dd/MM/yyyy' }}</strong>
-                </span>
+            <div class="trial-projection-content">
+              <div class="trial-projection-main">
+                <div class="trial-projection-icon">
+                  <i class="bi bi-calendar-event-fill"></i>
+                </div>
+                <div class="trial-projection-details">
+                  <span class="trial-projection-label">Período de validez estimado</span>
+                  <span class="trial-projection-date">
+                    Finaliza el <strong>{{ projectedTrialEndDate() | date: 'd MMMM, y' }}</strong>
+                  </span>
+                </div>
               </div>
-              <span class="text-xs text-muted">
-                + 5 días de gracia para regularizar suscripción
-              </span>
+              <div class="trial-grace-pill">
+                <i class="bi bi-shield-check"></i>
+                <span>+5 días de gracia para regularizar</span>
+              </div>
             </div>
           </div>
         </div>

@@ -100,12 +100,15 @@ export class StoreCreate implements OnInit {
   }
 
   onCustomTrialDaysChange(event: Event): void {
-    const rawVal = (event.target as HTMLInputElement).value;
+    const inputEl = event.target as HTMLInputElement;
+    const rawVal = inputEl.value;
     let numVal = parseInt(rawVal, 10);
     if (isNaN(numVal) || numVal < 1) {
       numVal = 1;
+      inputEl.value = '1';
     } else if (numVal > 365) {
       numVal = 365;
+      inputEl.value = '365';
     }
     this.form.get('trialDays')?.setValue(numVal);
   }
