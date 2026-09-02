@@ -6,6 +6,7 @@ import {
   StoresService,
   type PlatformBillingConfig,
 } from '@core/services/stores';
+import type { Store } from '@core/models/store';
 import { errorMessage } from '@core/utils/error.util';
 
 @Component({
@@ -21,6 +22,7 @@ export class Subscriptions implements OnInit {
   readonly platformBillingConfig = signal<PlatformBillingConfig | null>(null);
   readonly isLoading = signal(true);
   readonly isSavingPricing = signal(false);
+  readonly showMasterConfig = signal(false);
   readonly pricingSaveSuccess = signal<string | null>(null);
   readonly pricingSaveError = signal<string | null>(null);
 
@@ -28,8 +30,27 @@ export class Subscriptions implements OnInit {
   readonly editAnnualPrice = signal<number>(500000);
   readonly editMpAccessToken = signal<string>('');
 
+  // Store search & payment links
+  readonly storeSearchQuery = signal<string>('');
+  readonly copiedStoreId = signal<string | null>(null);
+
   // Store subscription breakdown
   readonly stores = this.storesSvc.stores;
+
+  readonly filteredStores = computed(() => {
+    const list = this.stores() || [];
+    const q = this.storeSearchQuery().toLowerCase().trim();
+    if (!q) {
+      return list.slice(0, 10);
+    }
+    return list.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.slug.toLowerCase().includes(q) ||
+        s.ownerEmail.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q),
+    );
+  });
 
   readonly activeSubscriptionsCount = computed(() => {
     const list = this.stores() || [];
@@ -53,6 +74,36 @@ export class Subscriptions implements OnInit {
 
   ngOnInit(): void {
     void this.loadPlatformBillingConfig();
+  }
+
+  toggleMasterConfig(): void {
+    this.showMasterConfig.update((v) => !v);
+  }
+
+  getPublicCheckoutUrl(storeId: string): string {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/pay/${storeId}`;
+    }
+    return `https://vertex-platform-app.web.app/pay/${storeId}`;
+  }
+
+  getWhatsAppShareUrl(store: Store): string {
+    const url = this.getPublicCheckoutUrl(store.id);
+    const text = encodeURIComponent(
+      `¡Hola! Te comparto el enlace seguro para activar la suscripción de tu tienda ${store.name} en Vertex: ${url}`,
+    );
+    return `https://wa.me/?text=${text}`;
+  }
+
+  copyStorePaymentLink(storeId: string): void {
+    const url = this.getPublicCheckoutUrl(storeId);
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+    }
+    this.copiedStoreId.set(storeId);
+    setTimeout(() => {
+      this.copiedStoreId.set(null);
+    }, 2500);
   }
 
   async loadPlatformBillingConfig(): Promise<void> {

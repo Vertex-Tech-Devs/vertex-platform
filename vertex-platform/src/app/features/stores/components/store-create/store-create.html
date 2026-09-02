@@ -156,11 +156,11 @@
         <p class="section-subtitle">Definí cómo iniciará la tienda del cliente.</p>
       </div>
 
-      <div class="subscription-options-grid mb-3">
+      <div class="option-cards-grid option-cards-grid--3col mb-3">
         <!-- Option 1: Trial -->
         <div
           class="option-card"
-          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'trial'"
+          [class.is-selected]="form.get('initialSubscriptionStatus')?.value === 'trial'"
           (click)="setInitialSubscription('trial')"
         >
           <div class="option-card__header">
@@ -176,7 +176,7 @@
         <!-- Option 2: Gratis Permanente -->
         <div
           class="option-card"
-          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'complimentary'"
+          [class.is-selected]="form.get('initialSubscriptionStatus')?.value === 'complimentary'"
           (click)="setInitialSubscription('complimentary')"
         >
           <div class="option-card__header">
@@ -186,13 +186,13 @@
             </div>
           </div>
           <h3 class="option-card__title">Tienda Gratis (Cortesía)</h3>
-          <p class="option-card__desc">100% bonificada de forma permanente sin cargos ni vencimientos.</p>
+          <p class="option-card__desc">100% bonificada permanente sin cargos ni vencimientos.</p>
         </div>
 
         <!-- Option 3: Estándar Comercial -->
         <div
           class="option-card"
-          [class.option-card--active]="form.get('initialSubscriptionStatus')?.value === 'active'"
+          [class.is-selected]="form.get('initialSubscriptionStatus')?.value === 'active'"
           (click)="setInitialSubscription('active')"
         >
           <div class="option-card__header">
@@ -202,55 +202,75 @@
             </div>
           </div>
           <h3 class="option-card__title">Suscripción Directa</h3>
-          <p class="option-card__desc">Cobro activo según plan mensual ($50k) o anual ($500k).</p>
+          <p class="option-card__desc">Cobro regular según plan mensual ($50k) o anual ($500k).</p>
         </div>
       </div>
 
       <!-- Trial Days Customizer (visible if trial is selected) -->
       @if (form.get('initialSubscriptionStatus')?.value === 'trial') {
-        <div class="trial-days-customizer p-3 rounded bg-dark border border-secondary mb-3">
-          <label class="form-label text-xs d-block mb-2">Duración de la Prueba (Días)</label>
-          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+        <div class="trial-customizer-panel">
+          <div class="trial-customizer-panel__header">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-clock-history text-warning"></i>
+              <span class="trial-customizer-panel__title">Duración de la Prueba Gratuita</span>
+            </div>
+            <span class="badge badge--warning">{{ form.get('trialDays')?.value || 14 }} días configurados</span>
+          </div>
+
+          <div class="trial-chips-row">
             <button
               type="button"
-              class="btn btn-sm"
-              [class.btn-warning]="form.get('trialDays')?.value === 7"
-              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 7"
+              class="trial-chip"
+              [class.trial-chip--active]="form.get('trialDays')?.value === 7"
               (click)="form.get('trialDays')?.setValue(7)"
             >
               7 Días
             </button>
             <button
               type="button"
-              class="btn btn-sm"
-              [class.btn-warning]="form.get('trialDays')?.value === 14"
-              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 14"
+              class="trial-chip"
+              [class.trial-chip--active]="form.get('trialDays')?.value === 14"
               (click)="form.get('trialDays')?.setValue(14)"
             >
               14 Días (Recomendado)
             </button>
             <button
               type="button"
-              class="btn btn-sm"
-              [class.btn-warning]="form.get('trialDays')?.value === 30"
-              [class.btn-outline-secondary]="form.get('trialDays')?.value !== 30"
+              class="trial-chip"
+              [class.trial-chip--active]="form.get('trialDays')?.value === 30"
               (click)="form.get('trialDays')?.setValue(30)"
             >
               30 Días
             </button>
+            
+            <div class="trial-custom-input-wrap">
+              <span class="trial-custom-input-label">Personalizado:</span>
+              <div class="trial-custom-input-box">
+                <input
+                  type="number"
+                  class="trial-custom-input"
+                  placeholder="Días"
+                  min="1"
+                  max="365"
+                  [value]="form.get('trialDays')?.value"
+                  (input)="form.get('trialDays')?.setValue(+$any($event.target).value)"
+                />
+                <span class="trial-custom-suffix">días</span>
+              </div>
+            </div>
           </div>
 
-          <div class="d-flex align-items-center gap-2 mt-2" style="max-width: 260px;">
-            <input
-              type="number"
-              formControlName="trialDays"
-              class="form-control text-xs"
-              placeholder="Ej. 21"
-              min="1"
-              max="365"
-            />
-            <span class="text-xs text-muted">días de prueba</span>
-          </div>
+          <p class="trial-customizer-hint">
+            <i class="bi bi-info-circle-fill"></i>
+            Al finalizar los <strong>{{ form.get('trialDays')?.value || 14 }} días</strong>, el cliente dispondrá de un período de gracia de 5 días para abonar su suscripción antes de suspender preventivamente la tienda.
+          </p>
+        </div>
+      }
+
+      @if (form.get('initialSubscriptionStatus')?.value === 'complimentary') {
+        <div class="complimentary-notice">
+          <i class="bi bi-star-fill text-warning"></i>
+          <span>Esta tienda quedará exenta de cobros de suscripción de forma permanente.</span>
         </div>
       }
     </section>
