@@ -20,9 +20,9 @@ describe('Single SaaS Subscription Engine & Access Control', () => {
 
   it('isMasterBillingAdmin should strictly authorize root billing accounts', () => {
     expect(isMasterBillingAdmin('juan.l.espeche@gmail.com')).toBe(true);
-    expect(isMasterBillingAdmin('vertex.tech.dev@gmail.com')).toBe(true);
     expect(isMasterBillingAdmin('JUAN.L.ESPECHE@GMAIL.COM')).toBe(true);
 
+    expect(isMasterBillingAdmin('vertex.tech.dev@gmail.com')).toBe(false);
     expect(isMasterBillingAdmin('random@customer.com')).toBe(false);
     expect(isMasterBillingAdmin(undefined)).toBe(false);
   });
