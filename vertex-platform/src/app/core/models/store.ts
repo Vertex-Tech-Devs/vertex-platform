@@ -62,6 +62,12 @@ export interface Store {
   verticalId?: string;
   businessVertical?: BusinessVertical;
   provisioningMode?: ProvisioningMode;
+  subscription?: {
+    status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
+    currentPeriodEnd?: string;
+    trialDaysRemaining?: number;
+    billingCycle?: 'monthly' | 'annual';
+  };
 }
 
 export type ProvisioningMode = 'EMPTY' | 'CATALOG_ONLY' | 'FULL_DEMO';

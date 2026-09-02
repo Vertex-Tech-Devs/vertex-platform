@@ -41,18 +41,15 @@ export class ShardStatusModal {
         return 'Billing no vinculado';
       case 'status':
         return 'Estado no utilizable';
-      default:
-        return reason;
     }
   }
 
-  async copy(text: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(text);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 1500);
-    } catch {
-      /* clipboard no disponible */
+  copy(value: string | undefined): void {
+    if (!value) {
+      return;
     }
+    void navigator.clipboard.writeText(value);
+    this.copied.set(true);
+    setTimeout(() => this.copied.set(false), 2000);
   }
 }
