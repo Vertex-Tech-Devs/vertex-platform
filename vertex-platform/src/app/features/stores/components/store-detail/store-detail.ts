@@ -330,7 +330,7 @@ export class StoreDetail implements OnInit {
       this.store()?.templateVersion ||
       latest?.version ||
       this.availableVersions()[0]?.version ||
-      '0.5.0';
+      '0.8.5';
     this.selectedVersion.set(defaultVer);
   }
 
@@ -532,7 +532,7 @@ export class StoreDetail implements OnInit {
   }
 
   copyWebhookUrl(storeId: string): Promise<void> {
-    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=${storeId}`;
+    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
   }
 
