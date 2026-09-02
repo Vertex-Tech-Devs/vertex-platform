@@ -336,7 +336,7 @@
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h2 class="detail-card__title mb-0">Publicación y Despliegue de Plantilla</h2>
                   <span class="badge badge--primary px-2 py-1">
-                    Versión activa: v{{ store()!.templateVersion || '0.4.0' }}
+                    Versión activa: v{{ store()!.templateVersion || '0.8.5' }}
                   </span>
                 </div>
                 <p class="detail-card__desc">
@@ -1370,7 +1370,7 @@
             } @else {
               <div class="payments-grid">
                 <!-- SaaS Subscription Vertex Card -->
-                <div class="detail-card">
+                <div class="detail-card detail-card--saas">
                   <div class="detail-card__header mb-3">
                     <div class="d-flex align-items-center justify-content-between">
                       <h2 class="detail-card__title">
@@ -1906,7 +1906,7 @@
                 </div>
 
                 <!-- Mercado Pago Card -->
-                <div class="detail-card">
+                <div class="detail-card detail-card--gateway">
                   <div class="detail-card__header mb-3">
                     <h2 class="detail-card__title">
                       <i class="bi bi-credit-card text-primary"></i> Pasarela Mercado Pago (Tienda)
@@ -2025,7 +2025,7 @@
                           class="form-control form-control--readonly"
                           type="text"
                           [value]="
-                            'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhook?tenant=' +
+                            'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=' +
                             (store()!.slug || store()!.id)
                           "
                           readonly
@@ -2063,7 +2063,7 @@
                 </div>
 
                 <!-- Info Card: Cómo usar -->
-                <div class="detail-card">
+                <div class="detail-card detail-card--info">
                   <div class="detail-card__header mb-3">
                     <h2 class="detail-card__title">
                       <i class="bi bi-info-circle text-info"></i> ¿Cómo funciona?

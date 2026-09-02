@@ -2569,6 +2569,26 @@
   padding: 0;
 }
 
+.detail-card--saas,
+.detail-card--gateway,
+.detail-card--info {
+  border: 0;
+  border-radius: 1.25rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.14);
+}
+
+.detail-card--saas {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(16, 185, 129, 0.1));
+}
+
+.detail-card--gateway {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(37, 99, 235, 0.08));
+}
+
+.detail-card--info {
+  background: rgba(255, 255, 255, 0.045);
+}
+
 .payments-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);

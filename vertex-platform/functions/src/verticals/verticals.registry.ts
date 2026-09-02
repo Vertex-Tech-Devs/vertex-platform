@@ -278,7 +278,7 @@ export function buildCustomVerticalDefinition(
         : [
             'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&auto=format&fit=crop&q=80',
           ],
-    featuredCategories: categories.slice(0, 4).map((c) => ({
+    featuredCategories: categories.slice(0, 3).map((c) => ({
       categoryId: c.id,
       name: c.name,
       slug: c.slug,
