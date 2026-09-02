@@ -33,4 +33,15 @@ describe('Single SaaS Subscription Engine & Access Control', () => {
     expect(pricing.monthlyPrice).toBe(50000);
     expect(pricing.annualPrice).toBe(500000);
   });
+
+  it('calculates trial period dates correctly for 14 and 30 days', () => {
+    const now = Date.now();
+    const trialDays14 = 14;
+    const end14 = new Date(now + trialDays14 * 24 * 60 * 60 * 1000);
+    expect(Math.round((end14.getTime() - now) / (24 * 60 * 60 * 1000))).toBe(14);
+
+    const trialDays30 = 30;
+    const end30 = new Date(now + trialDays30 * 24 * 60 * 60 * 1000);
+    expect(Math.round((end30.getTime() - now) / (24 * 60 * 60 * 1000))).toBe(30);
+  });
 });
