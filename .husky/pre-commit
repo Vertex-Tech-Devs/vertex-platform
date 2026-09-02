@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+echo "Running platform pre-commit quality checks (Coverage threshold >=95%, 100% ideal)..."
+npm run lint
+npm run test
+node vertex-platform/scripts/verify-coverage.js

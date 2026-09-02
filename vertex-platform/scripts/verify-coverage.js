@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const THRESHOLD = 85;
+const THRESHOLD = 95;
 
 const paths = [
   {

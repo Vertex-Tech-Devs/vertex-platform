@@ -2,6 +2,18 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    server: {
+      deps: {
+        inline: [
+          '@firebase/auth',
+          'firebase/auth',
+          '@firebase/functions',
+          'firebase/functions',
+          '@firebase/app',
+          'firebase/app',
+        ],
+      },
+    },
     deps: {
       optimizer: {
         web: {
@@ -11,21 +23,13 @@ export default defineConfig({
           enabled: false,
         },
       },
-      inline: [
-        '@firebase/auth',
-        'firebase/auth',
-        '@firebase/functions',
-        'firebase/functions',
-        '@firebase/app',
-        'firebase/app',
-      ],
     },
     coverage: {
       thresholds: {
-        statements: 80,
-        lines: 80,
-        functions: 80,
-        branches: 70,
+        statements: 95,
+        lines: 95,
+        functions: 95,
+        branches: 95,
       },
     },
     exclude: [

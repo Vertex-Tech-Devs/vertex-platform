@@ -4,12 +4,17 @@
 .checkout-layout {
   min-height: 100vh;
   background-color: #0b0f19;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.12) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(234, 179, 8, 0.08) 0px, transparent 50%);
   color: #f8fafc;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -514,5 +519,7 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

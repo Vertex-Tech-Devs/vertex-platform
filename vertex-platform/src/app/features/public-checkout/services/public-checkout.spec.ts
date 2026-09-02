@@ -41,7 +41,10 @@ describe('PublicCheckoutService', () => {
     mocks.mockHttpsCallable.mockReturnValue(mockCallable);
 
     const result = await service.getPublicStoreInfo('tienda-mock');
-    expect(mocks.mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getPublicStoreSubscriptionInfo');
+    expect(mocks.mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'getPublicStoreSubscriptionInfo',
+    );
     expect(mockCallable).toHaveBeenCalledWith({ storeIdOrSlug: 'tienda-mock' });
     expect(result.name).toBe('Tienda Mock');
   });
@@ -63,7 +66,10 @@ describe('PublicCheckoutService', () => {
       payerEmail: 'test@example.com',
     });
 
-    expect(mocks.mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'createStoreSubscriptionLink');
+    expect(mocks.mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'createStoreSubscriptionLink',
+    );
     expect(mockCallable).toHaveBeenCalledWith({
       storeId: 'store-1',
       billingCycle: 'annual',

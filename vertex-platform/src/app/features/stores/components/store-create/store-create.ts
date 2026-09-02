@@ -1,7 +1,8 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed } from '@angular/core';
 import type { OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
@@ -25,7 +26,7 @@ export interface ProvisioningModeOption {
 @Component({
   selector: 'app-store-create',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, RubroSelector, CustomVerticalModal],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, RubroSelector, CustomVerticalModal],
   templateUrl: './store-create.html',
   styleUrl: './store-create.scss',
 })
@@ -82,6 +83,13 @@ export class StoreCreate implements OnInit {
     dedicatedProject: [false],
     initialSubscriptionStatus: ['trial', Validators.required],
     trialDays: [14, [Validators.min(1), Validators.max(365)]],
+  });
+
+  readonly projectedTrialEndDate = computed(() => {
+    const days = +(this.form.get('trialDays')?.value || 14);
+    const d = new Date();
+    d.setDate(d.getDate() + (isNaN(days) ? 14 : days));
+    return d;
   });
 
   setInitialSubscription(status: 'trial' | 'complimentary' | 'active', days?: number): void {
@@ -212,8 +220,7 @@ export class StoreCreate implements OnInit {
       const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
       const mode = val.provisioningMode || 'FULL_DEMO';
       const subStatus = val.initialSubscriptionStatus || 'trial';
-      const days =
-        subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
+      const days = subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
       const payload = {
         ...val,
         verticalId: vertical,

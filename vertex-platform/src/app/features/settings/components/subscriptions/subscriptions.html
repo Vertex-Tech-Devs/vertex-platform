@@ -7,7 +7,8 @@
       </div>
       <h1 class="page-title">Suscripciones & Recaudación</h1>
       <p class="page-sub">
-        Gestión comercial de tarifas, pasarela central de tesorería y portales de pago de las tiendas.
+        Gestión comercial de tarifas, pasarela central de tesorería y portales de pago de las
+        tiendas.
       </p>
     </div>
     <div class="d-flex gap-2 align-items-center">
@@ -74,7 +75,8 @@
       </div>
 
       <p class="master-desc">
-        Configura los precios comerciales base del Plan Único y la credencial de Mercado Pago donde se acreditarán los pagos.
+        Configura los precios comerciales base del Plan Único y la credencial de Mercado Pago donde
+        se acreditarán los pagos.
       </p>
 
       @if (pricingSaveSuccess()) {
@@ -124,7 +126,9 @@
           <label class="form-label">
             Token Central de Mercado Pago (Recaudación Vertex)
             @if (platformBillingConfig()?.platformMercadoPago?.maskedToken) {
-              <span class="badge badge--success ml-2">Activo: {{ platformBillingConfig()?.platformMercadoPago?.maskedToken }}</span>
+              <span class="badge badge--success ml-2"
+                >Activo: {{ platformBillingConfig()?.platformMercadoPago?.maskedToken }}</span
+              >
             }
           </label>
           <input
@@ -135,7 +139,8 @@
             (input)="editMpAccessToken.set($any($event.target).value)"
           />
           <span class="form-hint">
-            Todas las suscripciones de los clientes impactarán directamente en esta cuenta central de Mercado Pago.
+            Todas las suscripciones de los clientes impactarán directamente en esta cuenta central
+            de Mercado Pago.
           </span>
         </div>
 
@@ -145,8 +150,15 @@
             (click)="savePlatformPricing()"
             [disabled]="isSavingPricing()"
           >
-            <i class="bi" [class.bi-check-lg]="!isSavingPricing()" [class.bi-arrow-repeat]="isSavingPricing()" [class.spin]="isSavingPricing()"></i>
-            <span>{{ isSavingPricing() ? 'Guardando Tarifas…' : 'Guardar y Aplicar Tarifas' }}</span>
+            <i
+              class="bi"
+              [class.bi-check-lg]="!isSavingPricing()"
+              [class.bi-arrow-repeat]="isSavingPricing()"
+              [class.spin]="isSavingPricing()"
+            ></i>
+            <span>{{
+              isSavingPricing() ? 'Guardando Tarifas…' : 'Guardar y Aplicar Tarifas'
+            }}</span>
           </button>
         </div>
       </div>
@@ -172,7 +184,9 @@
         <div class="pricing-plan-card__tag">Mensual Recurrente</div>
         <div class="pricing-plan-card__price">
           <span class="currency">$</span>
-          <span class="amount">{{ (platformBillingConfig()?.pricing?.monthlyPrice || 50000) | number }}</span>
+          <span class="amount">{{
+            platformBillingConfig()?.pricing?.monthlyPrice || 50000 | number
+          }}</span>
           <span class="period">ARS / mes</span>
         </div>
         <p class="pricing-plan-card__desc">
@@ -192,7 +206,9 @@
         <div class="pricing-plan-card__tag">Anual Anticipado</div>
         <div class="pricing-plan-card__price">
           <span class="currency">$</span>
-          <span class="amount">{{ (platformBillingConfig()?.pricing?.annualPrice || 500000) | number }}</span>
+          <span class="amount">{{
+            platformBillingConfig()?.pricing?.annualPrice || 500000 | number
+          }}</span>
           <span class="period">ARS / año</span>
         </div>
         <p class="pricing-plan-card__desc">
@@ -217,7 +233,8 @@
           Portales de Pago de Clientes
         </h2>
         <p class="store-links-panel__sub">
-          Compartí el enlace directo de suscripción con tus clientes por WhatsApp o e-mail para que abonen su tienda de forma segura.
+          Compartí el enlace directo de suscripción con tus clientes por WhatsApp o e-mail para que
+          abonen su tienda de forma segura.
         </p>
       </div>
 
@@ -286,7 +303,11 @@
                       (click)="copyStorePaymentLink(st.id)"
                       [title]="'Copiar link de pago: ' + getPublicCheckoutUrl(st.id)"
                     >
-                      <i class="bi" [class.bi-check2]="copiedStoreId() === st.id" [class.bi-link-45deg]="copiedStoreId() !== st.id"></i>
+                      <i
+                        class="bi"
+                        [class.bi-check2]="copiedStoreId() === st.id"
+                        [class.bi-link-45deg]="copiedStoreId() !== st.id"
+                      ></i>
                       <span>{{ copiedStoreId() === st.id ? '¡Copiado!' : 'Copiar Link' }}</span>
                     </button>
 

@@ -21,10 +21,7 @@ describe('PlatformLayout', () => {
 
     await TestBed.configureTestingModule({
       imports: [PlatformLayout],
-      providers: [
-        provideRouter([]),
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [provideRouter([]), { provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
     router = TestBed.inject(Router);
@@ -62,10 +59,24 @@ describe('PlatformLayout', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('closes sidebar on resize when window is large', () => {
+  it('closes sidebar on resize when window is large and keeps open when small', () => {
     component.isSidebarOpen.set(true);
     Object.defineProperty(window, 'innerWidth', { value: 1200, writable: true });
     component.onResize();
     expect(component.isSidebarOpen()).toBe(false);
+
+    component.isSidebarOpen.set(true);
+    Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });
+    component.onResize();
+    expect(component.isSidebarOpen()).toBe(true);
+  });
+
+  it('handles closeSidebar when already closed and empty email in userInitial', () => {
+    component.isSidebarOpen.set(false);
+    component.closeSidebar();
+    expect(component.isSidebarOpen()).toBe(false);
+
+    mockAuthService.user.set({ email: '' });
+    expect(component.userInitial()).toBe('?');
   });
 });

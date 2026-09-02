@@ -32,8 +32,12 @@
 }
 
 @keyframes spinRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .page-top {
@@ -436,7 +440,9 @@
     cursor: pointer;
     padding: 2px 4px;
     font-size: 0.8rem;
-    &:hover { color: var(--platform-text-primary); }
+    &:hover {
+      color: var(--platform-text-primary);
+    }
   }
 
   &__capacity {
@@ -468,8 +474,12 @@
   font-size: 0.75rem;
   font-weight: 500;
 
-  &--ok { color: #34d399; }
-  &--fail { color: #fbbf24; }
+  &--ok {
+    color: #34d399;
+  }
+  &--fail {
+    color: #fbbf24;
+  }
 }
 
 .progress-bar {
@@ -485,8 +495,12 @@
     border-radius: 3px;
     transition: width 0.3s ease;
 
-    &--warning { background: #f59e0b; }
-    &--full { background: #ef4444; }
+    &--warning {
+      background: #f59e0b;
+    }
+    &--full {
+      background: #ef4444;
+    }
   }
 }
 
@@ -586,7 +600,9 @@
     font-size: 0.85rem;
     outline: none;
 
-    &:focus { border-color: #6366f1; }
+    &:focus {
+      border-color: #6366f1;
+    }
   }
 
   .form-actions {
@@ -646,7 +662,19 @@
   display: flex;
   gap: 0.75rem;
 
-  i { font-size: 1.25rem; }
-  strong { color: var(--platform-text-primary); font-size: 0.85rem; display: block; margin-bottom: 0.2rem; }
-  p { color: var(--platform-text-muted); font-size: 0.8rem; margin: 0; line-height: 1.4; }
+  i {
+    font-size: 1.25rem;
+  }
+  strong {
+    color: var(--platform-text-primary);
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  p {
+    color: var(--platform-text-muted);
+    font-size: 0.8rem;
+    margin: 0;
+    line-height: 1.4;
+  }
 }

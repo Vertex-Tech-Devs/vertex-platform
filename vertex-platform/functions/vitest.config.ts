@@ -11,10 +11,10 @@ export default defineConfig({
       include: ['src/runtime.ts'],
       exclude: ['src/**/*.spec.ts'],
       thresholds: {
-        statements: 85,
+        statements: 95,
         branches: 85,
-        functions: 85,
-        lines: 85,
+        functions: 95,
+        lines: 95,
       },
     },
   },

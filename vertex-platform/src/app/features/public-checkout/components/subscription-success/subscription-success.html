@@ -11,7 +11,8 @@
     <h1 class="success-title">¡Tu Tienda Vertex está Activa!</h1>
 
     <p class="success-desc">
-      El pago de tu suscripción fue confirmado correctamente por Mercado Pago. Tu tienda ya se encuentra 100% operativa y disponible para vender online.
+      El pago de tu suscripción fue confirmado correctamente por Mercado Pago. Tu tienda ya se
+      encuentra 100% operativa y disponible para vender online.
     </p>
 
     @if (storeInfo()) {
@@ -22,7 +23,12 @@
         </div>
         <div class="store-row">
           <span class="label">Dirección Web</span>
-          <a [href]="storeInfo()?.defaultUrl" target="_blank" rel="noopener noreferrer" class="link">
+          <a
+            [href]="storeInfo()?.defaultUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link"
+          >
             {{ storeInfo()?.defaultUrl }} <i class="bi bi-box-arrow-up-right"></i>
           </a>
         </div>
@@ -35,11 +41,21 @@
 
     <div class="action-buttons">
       @if (storeInfo()) {
-        <a [href]="storeInfo()?.defaultUrl + '/admin'" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+        <a
+          [href]="storeInfo()?.defaultUrl + '/admin'"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-primary"
+        >
           <i class="bi bi-speedometer2"></i>
           <span>Ir a mi Panel de Control (/admin)</span>
         </a>
-        <a [href]="storeInfo()?.defaultUrl + '/shop'" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+        <a
+          [href]="storeInfo()?.defaultUrl + '/shop'"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-secondary"
+        >
           <i class="bi bi-shop"></i>
           <span>Ver mi Tienda Online (/shop)</span>
         </a>
@@ -50,7 +66,10 @@
 
     <div class="support-footer">
       <i class="bi bi-info-circle"></i>
-      <span>Te enviamos el comprobante de compra por email. ¿Tenés dudas? Nuestro equipo de soporte está disponible 24/7.</span>
+      <span
+        >Te enviamos el comprobante de compra por email. ¿Tenés dudas? Nuestro equipo de soporte
+        está disponible 24/7.</span
+      >
     </div>
   </div>
 </div>

@@ -32,9 +32,30 @@ describe('Subscriptions Component', () => {
     stores: signal([
       mockStore1,
       mockStore2,
-      { id: '3', name: 'Tienda 3', slug: 't3', ownerEmail: 't3@test.com', status: 'active', subscription: { status: 'complimentary' as const } } as unknown as Store,
-      { id: '4', name: 'Tienda 4', slug: 't4', ownerEmail: 't4@test.com', status: 'suspended', subscription: { status: 'past_due' as const } } as unknown as Store,
-      { id: '5', name: 'Tienda 5', slug: 't5', ownerEmail: 't5@test.com', status: 'suspended', subscription: { status: 'suspended' as const } } as unknown as Store,
+      {
+        id: '3',
+        name: 'Tienda 3',
+        slug: 't3',
+        ownerEmail: 't3@test.com',
+        status: 'active',
+        subscription: { status: 'complimentary' as const },
+      } as unknown as Store,
+      {
+        id: '4',
+        name: 'Tienda 4',
+        slug: 't4',
+        ownerEmail: 't4@test.com',
+        status: 'suspended',
+        subscription: { status: 'past_due' as const },
+      } as unknown as Store,
+      {
+        id: '5',
+        name: 'Tienda 5',
+        slug: 't5',
+        ownerEmail: 't5@test.com',
+        status: 'suspended',
+        subscription: { status: 'suspended' as const },
+      } as unknown as Store,
     ]),
     getPlatformBillingConfig: vi.fn().mockResolvedValue({
       pricing: {
@@ -54,10 +75,7 @@ describe('Subscriptions Component', () => {
 
     await TestBed.configureTestingModule({
       imports: [Subscriptions],
-      providers: [
-        provideRouter([]),
-        { provide: StoresService, useValue: mockStoresService },
-      ],
+      providers: [provideRouter([]), { provide: StoresService, useValue: mockStoresService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Subscriptions);
@@ -165,5 +183,31 @@ describe('Subscriptions Component', () => {
     mockStoresService.updatePlatformBillingConfig.mockRejectedValueOnce(new Error('Unauthorized'));
     await component.savePlatformPricing();
     expect(component.pricingSaveError()).toBe('Unauthorized');
+  });
+
+  it('filters stores by slug, ownerEmail, id and clears copy / success timers', async () => {
+    vi.useFakeTimers();
+    mockStoresService.stores.set([mockStore1, mockStore2]);
+
+    component.storeSearchQuery.set('beta');
+    expect(component.filteredStores().length).toBe(1);
+
+    component.storeSearchQuery.set('alpha@test.com');
+    expect(component.filteredStores().length).toBe(1);
+
+    component.storeSearchQuery.set('store-1');
+    expect(component.filteredStores().length).toBe(1);
+
+    component.copyStorePaymentLink('store-1');
+    expect(component.copiedStoreId()).toBe('store-1');
+    vi.advanceTimersByTime(2600);
+    expect(component.copiedStoreId()).toBeNull();
+
+    await component.savePlatformPricing();
+    expect(component.pricingSaveSuccess()).toBeDefined();
+    vi.advanceTimersByTime(4100);
+    expect(component.pricingSaveSuccess()).toBeNull();
+
+    vi.useRealTimers();
   });
 });

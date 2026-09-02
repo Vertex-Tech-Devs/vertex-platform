@@ -1,7 +1,7 @@
 .success-layout {
   min-height: 100vh;
   background-color: #0b0f19;
-  background-image: 
+  background-image:
     radial-gradient(at 50% 20%, rgba(16, 185, 129, 0.15) 0px, transparent 60%),
     radial-gradient(at 0% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
   color: #f8fafc;
@@ -9,7 +9,12 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 .success-card {
@@ -184,7 +189,16 @@
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0; }
-  100% { transform: scale(0.95); opacity: 0; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
 }

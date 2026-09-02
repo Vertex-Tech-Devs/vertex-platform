@@ -19,13 +19,17 @@ describe('FormatLabelPipe', () => {
     expect(pipe.transform('beta')).toBe('Beta');
   });
 
-  it('should capitalize plain text words', () => {
+  it('should capitalize plain text words and handle multiple underscores or spaces', () => {
     expect(pipe.transform('ropa de hombre')).toBe('Ropa De Hombre');
+    expect(pipe.transform('__custom__slug__')).toBe('Custom Slug');
+    expect(pipe.transform('1.2')).toBe('1.2');
   });
 
-  it('should handle empty/null/undefined', () => {
+  it('should handle empty/null/undefined and whitespace strings', () => {
     expect(pipe.transform('')).toBe('');
+    expect(pipe.transform('   ')).toBe('');
     expect(pipe.transform(null)).toBe('');
     expect(pipe.transform(undefined)).toBe('');
+    expect(pipe.transform('v2.0.1-alpha')).toBe('v2.0.1-alpha');
   });
 });

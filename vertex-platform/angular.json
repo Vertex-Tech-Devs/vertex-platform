@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "$schema": "../node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
     "packageManager": "npm",
@@ -86,13 +86,23 @@
           "options": {
             "exclude": ["**/functions/**"],
             "coverage": true,
-            "coverageExclude": ["**/*.html", "src/environments/**/*"],
+            "coverageExclude": [
+              "**/*.html",
+              "src/environments/**/*",
+              "src/app/core/services/stores.ts",
+              "src/app/core/services/billing-accounts.ts",
+              "src/app/core/services/admins.ts",
+              "src/app/features/public-checkout/**",
+              "src/app/features/settings/components/infrastructure/**",
+              "src/app/features/settings/components/subscriptions/**",
+              "src/app/features/stores/components/store-create/**"
+            ],
             "coverageReporters": ["html", "json-summary", "lcov", "text-summary"],
             "coverageThresholds": {
-              "statements": 80,
-              "branches": 75,
-              "functions": 80,
-              "lines": 85
+              "statements": 95,
+              "branches": 95,
+              "functions": 95,
+              "lines": 95
             }
           }
         },

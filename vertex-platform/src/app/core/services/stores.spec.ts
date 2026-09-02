@@ -17,6 +17,9 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
   updateDoc: vi.fn(),
   serverTimestamp: vi.fn(),
+  query: vi.fn((ref) => ref),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
 }));
 
 vi.mock('firebase/functions', () => ({
@@ -624,5 +627,297 @@ describe('StoresService', () => {
       categories: ['Cat 1', 'Cat 2'],
     });
     expect(result.success).toBe(true);
+  });
+
+  it('getStoreSubscription calls the getStoreSubscription callable', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        storeId: 'store-1',
+        subscription: { status: 'active' },
+        basePricing: {
+          name: 'Plan',
+          description: 'Desc',
+          monthlyPrice: 50000,
+          annualPrice: 500000,
+        },
+        isMasterAdmin: true,
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.getStoreSubscription('store-1');
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'getStoreSubscription');
+    expect(mockFn).toHaveBeenCalledWith({ storeId: 'store-1' });
+    expect(result.storeId).toBe('store-1');
+  });
+
+  it('createStoreSubscriptionLink calls the callable with monthly and annual options', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        checkoutUrl: 'https://mp.com/checkout',
+        billingCycle: 'monthly',
+        amount: 50000,
+      },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.createStoreSubscriptionLink(
+      'store-1',
+      'monthly',
+      'buyer@test.com',
+    );
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'createStoreSubscriptionLink',
+    );
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      billingCycle: 'monthly',
+      payerEmail: 'buyer@test.com',
+    });
+    expect(result.checkoutUrl).toBe('https://mp.com/checkout');
+  });
+
+  it('updateStoreSubscriptionStatus calls updateStoreSubscriptionStatus callable', async () => {
+    const mockFn = vi.fn().mockResolvedValue({
+      data: { success: true, message: 'Updated' },
+    });
+    mockHttpsCallable.mockReturnValue(mockFn);
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const result = await service.updateStoreSubscriptionStatus({
+      storeId: 'store-1',
+      status: 'complimentary',
+      simulateExpiration: 'imminent',
+    });
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      expect.anything(),
+      'updateStoreSubscriptionStatus',
+    );
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      status: 'complimentary',
+      simulateExpiration: 'imminent',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('getPlatformBillingConfig and updatePlatformBillingConfig call respective callables', async () => {
+    const mockGetFn = vi.fn().mockResolvedValue({
+      data: {
+        pricing: { monthlyPrice: 50000, annualPrice: 500000 },
+        isMasterAdmin: true,
+      },
+    });
+    const mockUpdateFn = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        message: 'Saved',
+        pricing: { monthlyPrice: 55000, annualPrice: 550000 },
+      },
+    });
+
+    mockHttpsCallable.mockReturnValueOnce(mockGetFn).mockReturnValueOnce(mockUpdateFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const config = await service.getPlatformBillingConfig();
+    expect(config.isMasterAdmin).toBe(true);
+
+    const updated = await service.updatePlatformBillingConfig({ monthlyPrice: 55000 });
+    expect(updated.success).toBe(true);
+  });
+
+  it('listTemplateVersions, updateStoreVersion, seedStore, getStoreConfig, verifyDomain, generatePasswordResetLink, inviteStaff, listStaff', async () => {
+    const mockFn = vi.fn().mockImplementation((_name: unknown) => {
+      return vi.fn().mockResolvedValue({
+        data: {
+          versions: [{ version: '0.8.0', isCurrent: true }],
+          config: { storeName: 'Config 1' },
+          status: 'LIVE',
+          dnsRecords: [{ domainName: 'test.com', type: 'A', value: '1.2.3.4' }],
+          actionLink: 'https://auth.reset',
+          inviteEmailSent: true,
+          staff: [{ email: 'staff@test.com' }],
+          invitations: [],
+          success: true,
+        },
+      });
+    });
+    mockHttpsCallable.mockImplementation(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    const versions = await service.listTemplateVersions();
+    expect(versions.length).toBe(1);
+
+    await service.updateStoreVersion('store-1', '0.8.0');
+    await service.seedStore('store-1', true, 'EMPTY', 'TECNOLOGIA');
+    const cfg = await service.getStoreConfig('store-1');
+    expect(cfg?.storeName).toBe('Config 1');
+
+    const domain = await service.verifyDomain('store-1', 'test.com');
+    expect(domain.status).toBe('live');
+    expect(domain.dnsRecords.length).toBe(1);
+
+    const reset = await service.generatePasswordResetLink('store-1', 'user@test.com');
+    expect(reset.actionLink).toBe('https://auth.reset');
+
+    const staffInvite = await service.inviteStaff('store-1', 'user@test.com', 'admin');
+    expect(staffInvite.inviteEmailSent).toBe(true);
+
+    const staffList = await service.getStoreStaff('store-1');
+    expect(staffList.staff.length).toBe(1);
+  });
+
+  it('covers store actions: redeploy, history, delete, domain, update, status, reset, suspend, activate, retry, shard readiness', async () => {
+    const mockFn = vi.fn().mockImplementation(() =>
+      vi.fn().mockResolvedValue({
+        data: {
+          success: true,
+          dnsRecords: [{ domainName: 'custom.com', type: 'CNAME', value: 'ghs.googlehosted.com' }],
+          shards: [],
+          checkedAt: new Date().toISOString(),
+        },
+      }),
+    );
+    mockHttpsCallable.mockImplementation(mockFn);
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    await service.redeployStore('store-1');
+    await service.deleteStore('store-1');
+    const domain = await service.connectDomain('store-1', 'custom.com');
+    expect(domain.dnsRecords.length).toBe(1);
+
+    await service.updateStore('store-1', { name: 'Updated' });
+    await service.setStatus('store-1', 'active');
+    await service.resetStoreDeployStatus('store-1');
+    await service.suspendStore('store-1');
+    await service.activateStore('store-1');
+    await service.retryProvisioning('store-1');
+
+    const readiness = await service.getShardReadiness(true);
+    expect(readiness.checkedAt).toBeDefined();
+
+    // Deployment history observable test
+    const historyObs = service.getStoreDeploymentHistory('store-1');
+    let historyReceived: unknown = null;
+    historyObs.subscribe((val) => {
+      historyReceived = val;
+    });
+
+    const deployHistoryCall = mockOnSnapshot.mock.calls.find(
+      (c) => c[0] && typeof c[0] === 'object',
+    );
+    if (deployHistoryCall) {
+      const snapCb = deployHistoryCall[1] as (snap: unknown) => void;
+      snapCb({ docs: [{ id: 'dep-1', data: () => ({ commit: 'abc' }) }] });
+      expect(historyReceived).toEqual([{ id: 'dep-1', commit: 'abc' }]);
+
+      const errCb = deployHistoryCall[2] as (err: unknown) => void;
+      if (errCb) {
+        errCb(new Error('deploy hist fail'));
+      }
+    }
+  });
+
+  it('handles auth user undefined, null, and onSnapshot error handlers for stores and custom verticals', async () => {
+    let storeErrCb: ((err: unknown) => void) | null = null;
+    let customVertSnapCb: ((snap: unknown) => void) | null = null;
+    let customVertErrCb: ((err: unknown) => void) | null = null;
+
+    mockOnSnapshot.mockImplementation(
+      (ref: { id?: string }, onNext: (s: unknown) => void, onError?: (e: unknown) => void) => {
+        if (ref?.id === 'stores') {
+          storeErrCb = onError || null;
+        } else if (ref?.id === 'business_verticals') {
+          customVertSnapCb = onNext;
+          customVertErrCb = onError || null;
+        }
+        return mockUnsub;
+      },
+    );
+
+    const userSignal = signal<{ email: string } | null | undefined>(undefined);
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            user: userSignal,
+            isSuperAdmin: signal(false),
+            isLoggedIn: signal(true),
+            isLoading: signal(false),
+          },
+        },
+      ],
+    });
+
+    const { StoresService } = await import('./stores');
+    TestBed.configureTestingModule({ providers: [StoresService] });
+    const service = TestBed.inject(StoresService);
+
+    // Auth resolving (undefined)
+    userSignal.set(undefined);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(service.stores()).toEqual([]);
+
+    // Auth logged out (null)
+    userSignal.set(null);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(service.stores()).toEqual([]);
+
+    // Auth logged in
+    userSignal.set({ email: 'admin@test.com' });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Store error handling
+    if (storeErrCb) {
+      (storeErrCb as (err: { code: string }) => void)({ code: 'unavailable' });
+      (storeErrCb as (err: { code: string }) => void)({ code: 'permission-denied' });
+    }
+
+    // Custom verticals snapshot with defaults
+    if (customVertSnapCb) {
+      (customVertSnapCb as (snap: unknown) => void)({
+        docs: [
+          {
+            id: 'VERT_1',
+            data: () => ({
+              name: '',
+              icon: '',
+              description: '',
+              categories: null,
+              themeColors: { primary: '#fff' },
+            }),
+          },
+        ],
+      });
+      expect(service.customVerticals().length).toBe(1);
+      expect(service.allVerticals().length).toBeGreaterThan(1);
+    }
+
+    // Custom verticals error handling
+    if (customVertErrCb) {
+      (customVertErrCb as (err: unknown) => void)(new Error('Failed loading verticals'));
+    }
   });
 });

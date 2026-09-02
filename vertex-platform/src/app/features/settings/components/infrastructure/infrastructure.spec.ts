@@ -42,8 +42,12 @@ class MockBillingAccountsService {
   toastMessage = signal<string | null>(null);
 
   activeAccountsCount = computed(() => this.accounts().filter((a) => a.active).length);
-  totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
-  totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
+  totalGcpLimit = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0),
+  );
+  totalGcpUsed = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0),
+  );
   totalGcpRemaining = computed(() => Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()));
   usagePercent = computed(() =>
     this.totalGcpLimit() > 0 ? Math.round((this.totalGcpUsed() / this.totalGcpLimit()) * 100) : 0,
@@ -314,5 +318,36 @@ describe('Infrastructure Component', () => {
   it('should copy shard ID to clipboard', () => {
     component.copyToClipboard('shard-prod-01');
     expect(component.copiedId()).toBe('shard-prod-01');
+  });
+
+  it('toggleAccountStatus toggles status and handles error', async () => {
+    await component.toggleAccountStatus(mockAccount1);
+    expect(mockBillingSvc.updateAccount).toHaveBeenCalledWith({
+      id: '016AC2-299E39-51C8BF',
+      active: false,
+    });
+
+    mockBillingSvc.updateAccount.mockRejectedValueOnce(new Error('Toggle fail'));
+    await component.toggleAccountStatus(mockAccount1);
+    expect(mockBillingSvc.error()).toBe('Toggle fail');
+  });
+
+  it('computes fallbacks and warning states when shards list is empty', () => {
+    mockStoresSvc.getRuntimeCapacitySummary.mockResolvedValueOnce({
+      environment: 'production',
+      sharedShardCount: 0,
+      activeSharedShardCount: 0,
+      availableSharedSlots: 0,
+      recommendedRuntimeMode: 'shared-shard',
+      shards: [],
+    });
+    component.runtimeSummary.set(null);
+    component.readiness.set(null);
+
+    expect(component.totalAvailableStores()).toBe(150);
+    expect(component.activeAvailableStores()).toBe(120);
+    expect(component.standbyAvailableStores()).toBe(30);
+    expect(component.activeShardsCount()).toBe(4);
+    expect(component.pendingShardsCount()).toBe(0);
   });
 });

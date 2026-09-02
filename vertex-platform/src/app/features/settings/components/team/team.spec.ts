@@ -150,7 +150,8 @@ describe('Team Component', () => {
     expect(component.removingUid()).toBe(null);
   });
 
-  it('copia el email al portapapeles', () => {
+  it('copia el email al portapapeles y limpia el estado después de 3000ms', () => {
+    vi.useFakeTimers();
     const writeTextSpy = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: {
@@ -165,5 +166,22 @@ describe('Team Component', () => {
     expect(writeTextSpy).toHaveBeenCalledWith('juan@vertex.com');
     expect(component.copiedEmail()).toBe('juan@vertex.com');
     expect(mockAdminsService.showToast).toHaveBeenCalledWith('Email copiado: juan@vertex.com');
+
+    vi.advanceTimersByTime(3100);
+    expect(component.copiedEmail()).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('iv extrae el valor del input y maneja errores en resendInvite y removeAdmin', async () => {
+    const event = { target: { value: 'custom@test.com' } } as unknown as Event;
+    expect(component.iv(event)).toBe('custom@test.com');
+
+    mockAdminsService.resendInvite.mockRejectedValueOnce(new Error('Resend fail'));
+    await component.resendInvite('error@test.com');
+    expect(component.addError()).toBe('Resend fail');
+
+    mockAdminsService.removeAdmin.mockRejectedValueOnce(new Error('Remove fail'));
+    await component.removeAdmin('u2', 'other@test.com');
+    expect(component.addError()).toBe('Remove fail');
   });
 });

@@ -155,19 +155,54 @@ describe('summarizeShardCapacity', () => {
     expect(summary.shards[0]?.occupancyRatio).toBe(1);
   });
 
-  it('correctly sorts shards with active and inactive statuses', () => {
+  it('correctly sorts shards with active and inactive statuses and localeCompare', () => {
     const summary = summarizeShardCapacity([
-      makeShard({ id: 'shared-inactive', status: 'MAINTENANCE' }),
-      makeShard({ id: 'shared-active', status: 'ACTIVE' }),
+      makeShard({ id: 'shard-z', status: 'MAINTENANCE', maxCapacity: 10, currentStores: 5 }),
+      makeShard({ id: 'shard-b', status: 'ACTIVE', maxCapacity: 10, currentStores: 5 }),
+      makeShard({ id: 'shard-a', status: 'ACTIVE', maxCapacity: 10, currentStores: 5 }),
+      makeShard({
+        id: 'shard-c',
+        status: 'ACTIVE',
+        maxCapacity: 10,
+        currentStores: undefined as any,
+      }),
     ]);
-    expect(summary.shards[0]?.id).toBe('shared-active');
-    expect(summary.shards[1]?.id).toBe('shared-inactive');
+    expect(summary.shards[0]?.id).toBe('shard-a');
+    expect(summary.shards[1]?.id).toBe('shard-b');
+    expect(summary.shards[2]?.id).toBe('shard-c');
+    expect(summary.shards[3]?.id).toBe('shard-z');
+  });
+
+  it('covers local platform environment fallback with projectId containing local', () => {
+    expect(resolvePlatformEnvironment('vertex-local-test')).toBe('local');
+    expect(getAvailableShardSlots({} as any)).toBe(0);
   });
 });
 
 describe('reconcileActiveStores scheduler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('handles non-Error and Error instances thrown in reconcileActiveStores', async () => {
+    const getMock = vi
+      .fn()
+      .mockRejectedValueOnce('Fatal string error')
+      .mockRejectedValueOnce(new Error('Fatal Error object'));
+
+    const dbMock = {
+      collection: vi.fn(() => ({
+        where: vi.fn().mockReturnThis(),
+        get: getMock,
+        add: vi.fn().mockResolvedValue({ id: 'log-1' }),
+      })),
+    };
+    (getFirestore as any).mockReturnValue(dbMock);
+
+    const onRunHandler = reconcileActiveStores as any;
+    await onRunHandler({});
+    await onRunHandler({});
+    expect(dbMock.collection).toHaveBeenCalledWith('audit_logs');
   });
 
   it('detects mismatches and auto-corrects currentStores in Firestore', async () => {
@@ -189,6 +224,7 @@ describe('reconcileActiveStores scheduler', () => {
       { id: 'shard-2', projectId: 'vtx-sd-proj2', currentStores: 1 }, // Correct (1 physical store by projectId)
       { id: 'shard-3', projectId: 'vtx-sd-proj3', currentStores: 0 }, // Should be corrected to 1 (by projectId)
       { id: 'shard-4' }, // Undefined currentStores and 0 physical stores
+      { id: 'shard-unmatched', projectId: 'unmatched-proj', currentStores: 0 },
     ];
 
     const updatedShards: Record<string, number> = {};

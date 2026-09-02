@@ -1378,16 +1378,24 @@
                       </h2>
                       @switch (storeSubscription()?.subscription?.status || 'active') {
                         @case ('active') {
-                          <span class="badge badge--success"><i class="bi bi-check-circle-fill"></i> Suscripción Activa</span>
+                          <span class="badge badge--success"
+                            ><i class="bi bi-check-circle-fill"></i> Suscripción Activa</span
+                          >
                         }
                         @case ('complimentary') {
-                          <span class="badge badge--primary"><i class="bi bi-gift-fill"></i> Cortesía / Bonificada</span>
+                          <span class="badge badge--primary"
+                            ><i class="bi bi-gift-fill"></i> Cortesía / Bonificada</span
+                          >
                         }
                         @case ('past_due') {
-                          <span class="badge badge--warning"><i class="bi bi-clock-history"></i> En Período de Gracia</span>
+                          <span class="badge badge--warning"
+                            ><i class="bi bi-clock-history"></i> En Período de Gracia</span
+                          >
                         }
                         @case ('suspended') {
-                          <span class="badge badge--danger"><i class="bi bi-slash-circle-fill"></i> Suspendida por Pago</span>
+                          <span class="badge badge--danger"
+                            ><i class="bi bi-slash-circle-fill"></i> Suspendida por Pago</span
+                          >
                         }
                         @default {
                           <span class="badge badge--neutral">En Período de Prueba</span>
@@ -1395,7 +1403,8 @@
                       }
                     </div>
                     <p class="detail-card__subtitle">
-                      Facturación del servicio SaaS de la tienda con recaudación directa a Vertex (Mercado Pago).
+                      Facturación del servicio SaaS de la tienda con recaudación directa a Vertex
+                      (Mercado Pago).
                     </p>
                   </div>
 
@@ -1406,10 +1415,18 @@
                         <div class="d-flex align-items-center gap-2">
                           <i class="bi bi-stars text-warning fs-5"></i>
                           <div>
-                            <strong class="d-block text-white">Período de Prueba Activo ({{ trialRemainingDays() }} días restantes)</strong>
+                            <strong class="d-block text-white"
+                              >Período de Prueba Activo ({{ trialRemainingDays() }} días
+                              restantes)</strong
+                            >
                             <span class="text-xs text-muted">
                               Disfrutando de acceso completo sin cargo hasta el
-                              {{ (storeSubscription()?.subscription?.trialEndDate?.toDate ? storeSubscription()?.subscription?.trialEndDate?.toDate() : storeSubscription()?.subscription?.currentPeriodEnd?.toDate()) | date:'dd/MM/yyyy' }}.
+                              {{
+                                formatDate(
+                                  storeSubscription()?.subscription?.trialEndDate ||
+                                    storeSubscription()?.subscription?.currentPeriodEnd
+                                ) | date: 'dd/MM/yyyy'
+                              }}.
                             </span>
                           </div>
                         </div>
@@ -1422,28 +1439,50 @@
                   <div class="sub-pricing-summary p-3 mb-3">
                     <div class="d-flex align-items-baseline justify-content-between">
                       <div>
-                        <span class="text-muted d-block text-xs uppercase font-weight-bold">Tarifa Vigente</span>
+                        <span class="text-muted d-block text-xs uppercase font-weight-bold"
+                          >Tarifa Vigente</span
+                        >
                         <strong class="h4 mb-0 text-white">
                           @if (storeSubscription()?.subscription?.billingCycle === 'annual') {
-                            ${{ (storeSubscription()?.subscription?.customAnnualPrice || storeSubscription()?.basePricing?.annualPrice || 500000) | number }} ARS
+                            ${{
+                              storeSubscription()?.subscription?.customAnnualPrice ||
+                                storeSubscription()?.basePricing?.annualPrice ||
+                                500000 | number
+                            }}
+                            ARS
                             <small class="text-xs text-muted">/ año</small>
                           } @else {
-                            ${{ (storeSubscription()?.subscription?.customMonthlyPrice || storeSubscription()?.basePricing?.monthlyPrice || 50000) | number }} ARS
+                            ${{
+                              storeSubscription()?.subscription?.customMonthlyPrice ||
+                                storeSubscription()?.basePricing?.monthlyPrice ||
+                                50000 | number
+                            }}
+                            ARS
                             <small class="text-xs text-muted">/ mes</small>
                           }
                         </strong>
                         @if (storeSubscription()?.subscription?.discountPercent) {
-                          <span class="badge badge--success ml-2">{{ storeSubscription()?.subscription?.discountPercent }}% OFF Asignado</span>
+                          <span class="badge badge--success ml-2"
+                            >{{ storeSubscription()?.subscription?.discountPercent }}% OFF
+                            Asignado</span
+                          >
                         }
                       </div>
 
                       @if (storeSubscription()?.subscription?.currentPeriodEnd) {
                         <div class="text-right">
                           <span class="text-muted d-block text-xs uppercase font-weight-bold">
-                            {{ storeSubscription()?.subscription?.status === 'trial' ? 'Fin de Prueba' : 'Próximo Vencimiento' }}
+                            {{
+                              storeSubscription()?.subscription?.status === 'trial'
+                                ? 'Fin de Prueba'
+                                : 'Próximo Vencimiento'
+                            }}
                           </span>
                           <span class="text-sm font-weight-medium text-white">
-                            {{ storeSubscription()?.subscription?.currentPeriodEnd?.toDate() | date:'dd/MM/yyyy' }}
+                            {{
+                              formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
+                                | date: 'dd/MM/yyyy'
+                            }}
                           </span>
                         </div>
                       }
@@ -1478,12 +1517,25 @@
                   @if (subLinkGenerated()) {
                     <div class="alert alert--success mb-3">
                       <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago generado:</span>
-                        <a [href]="subLinkGenerated()" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                        <span
+                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago
+                          generado:</span
+                        >
+                        <a
+                          [href]="subLinkGenerated()"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-sm btn-primary"
+                        >
                           Abrir Checkout <i class="bi bi-box-arrow-up-right"></i>
                         </a>
                       </div>
-                      <input type="text" class="form-control text-xs" [value]="subLinkGenerated()" readonly />
+                      <input
+                        type="text"
+                        class="form-control text-xs"
+                        [value]="subLinkGenerated()"
+                        readonly
+                      />
                     </div>
                   }
 
@@ -1507,10 +1559,15 @@
                     }
 
                     <!-- Public Checkout Link for Client -->
-                    <div class="public-checkout-link-card p-3 mb-3 bg-dark rounded border border-secondary">
-                      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                    <div
+                      class="public-checkout-link-card p-3 mb-3 bg-dark rounded border border-secondary"
+                    >
+                      <div
+                        class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2"
+                      >
                         <span class="text-xs font-weight-bold text-white">
-                          <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago para el Cliente
+                          <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago
+                          para el Cliente
                         </span>
                         <div class="d-flex gap-2">
                           <button
@@ -1518,7 +1575,11 @@
                             class="btn btn-outline-secondary btn-sm"
                             (click)="copyPublicCheckoutUrl()"
                           >
-                            <i class="bi" [class.bi-check-lg]="copiedPublicLink()" [class.bi-clipboard]="!copiedPublicLink()"></i>
+                            <i
+                              class="bi"
+                              [class.bi-check-lg]="copiedPublicLink()"
+                              [class.bi-clipboard]="!copiedPublicLink()"
+                            ></i>
                             <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar Link' }}</span>
                           </button>
                           <a
@@ -1534,8 +1595,18 @@
                         </div>
                       </div>
                       <div class="d-flex gap-2">
-                        <input type="text" class="form-control text-xs" [value]="publicCheckoutUrl()" readonly />
-                        <a [href]="publicCheckoutUrl()" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm text-nowrap">
+                        <input
+                          type="text"
+                          class="form-control text-xs"
+                          [value]="publicCheckoutUrl()"
+                          readonly
+                        />
+                        <a
+                          [href]="publicCheckoutUrl()"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-secondary btn-sm text-nowrap"
+                        >
                           Abrir <i class="bi bi-arrow-up-right"></i>
                         </a>
                       </div>
@@ -1543,8 +1614,13 @@
 
                     <!-- Quick Trial & Free Store Grant Controls -->
                     <div class="trial-quick-grant mb-3 p-2 bg-dark rounded border border-secondary">
-                      <label class="form-label text-xs mb-2 d-flex align-items-center justify-content-between">
-                        <span><i class="bi bi-gift-fill text-warning"></i> Acciones Rápidas de Bonificación</span>
+                      <label
+                        class="form-label text-xs mb-2 d-flex align-items-center justify-content-between"
+                      >
+                        <span
+                          ><i class="bi bi-gift-fill text-warning"></i> Acciones Rápidas de
+                          Bonificación</span
+                        >
                         <small class="text-muted">100% Bonificado</small>
                       </label>
                       <div class="d-flex gap-2 mb-2">
@@ -1580,7 +1656,11 @@
                           class="form-control text-xs"
                           placeholder="Días libres (ej. 45)"
                           [value]="trialDaysInput()"
-                          (input)="trialDaysInput.set($any($event.target).value ? +$any($event.target).value : 14)"
+                          (input)="
+                            trialDaysInput.set(
+                              $any($event.target).value ? +$any($event.target).value : 14
+                            )
+                          "
                           min="1"
                           max="365"
                         />
@@ -1600,72 +1680,166 @@
                         (click)="grantFreeStore()"
                         [disabled]="isGrantingTrial()"
                       >
-                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente (Cortesía)
+                        <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente
+                        (Cortesía)
                       </button>
                     </div>
 
-                      <div class="row g-2 mb-2">
-                        <div class="col-6">
-                          <label class="form-label text-xs">Estado Suscripción</label>
-                          <select
-                            class="form-control text-xs"
-                            [ngModel]="subscriptionStatusSelect()"
-                            (ngModelChange)="subscriptionStatusSelect.set($event)"
+                    <div class="row g-2 mb-2">
+                      <div class="col-6">
+                        <label class="form-label text-xs">Estado Suscripción</label>
+                        <select
+                          class="form-control text-xs"
+                          [ngModel]="subscriptionStatusSelect()"
+                          (ngModelChange)="subscriptionStatusSelect.set($event)"
+                        >
+                          <option value="active">Activa</option>
+                          <option value="complimentary">Cortesía (Sin cobro)</option>
+                          <option value="trial">Período de Prueba</option>
+                          <option value="past_due">Período de Gracia</option>
+                          <option value="suspended">Suspendida</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label text-xs">Descuento (%)</label>
+                        <input
+                          type="number"
+                          class="form-control text-xs"
+                          placeholder="ej. 20"
+                          [value]="discountPercentInput()"
+                          (input)="
+                            discountPercentInput.set(
+                              $any($event.target).value ? +$any($event.target).value : null
+                            )
+                          "
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label text-xs">Precio Mensual Custom (ARS)</label>
+                        <input
+                          type="number"
+                          class="form-control text-xs"
+                          placeholder="Dejar vacío para default"
+                          [value]="customMonthlyPriceInput()"
+                          (input)="
+                            customMonthlyPriceInput.set(
+                              $any($event.target).value ? +$any($event.target).value : null
+                            )
+                          "
+                        />
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label text-xs">Precio Anual Custom (ARS)</label>
+                        <input
+                          type="number"
+                          class="form-control text-xs"
+                          placeholder="Dejar vacío para default"
+                          [value]="customAnnualPriceInput()"
+                          (input)="
+                            customAnnualPriceInput.set(
+                              $any($event.target).value ? +$any($event.target).value : null
+                            )
+                          "
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm w-100"
+                      (click)="saveCustomSubscriptionPricing()"
+                      [disabled]="isSavingDiscount()"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-check2]="!isSavingDiscount()"
+                        [class.bi-arrow-repeat]="isSavingDiscount()"
+                        [class.spin]="isSavingDiscount()"
+                      ></i>
+                      <span>{{
+                        isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Cliente'
+                      }}</span>
+                    </button>
+
+                    <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
+                    <div class="qa-simulation-box mt-3 pt-3 border-top border-secondary">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <button
+                          type="button"
+                          class="btn-qa-toggle d-flex align-items-center gap-2 text-xs"
+                          (click)="showSimulationTools.set(!showSimulationTools())"
+                          title="Herramienta oculta para simular vencimientos en DEV y PROD"
+                        >
+                          <i class="bi bi-radioactive text-danger"></i>
+                          <span class="font-weight-bold text-muted"
+                            >Simulador de Vencimientos (QA / Prod Lab)</span
                           >
-                            <option value="active">Activa</option>
-                            <option value="complimentary">Cortesía (Sin cobro)</option>
-                            <option value="trial">Período de Prueba</option>
-                            <option value="past_due">Período de Gracia</option>
-                            <option value="suspended">Suspendida</option>
-                          </select>
-                        </div>
-                        <div class="col-6">
-                          <label class="form-label text-xs">Descuento (%)</label>
-                          <input
-                            type="number"
-                            class="form-control text-xs"
-                            placeholder="ej. 20"
-                            [value]="discountPercentInput()"
-                            (input)="discountPercentInput.set($any($event.target).value ? +$any($event.target).value : null)"
-                            min="0"
-                            max="100"
-                          />
-                        </div>
+                          <i
+                            class="bi text-muted"
+                            [class.bi-chevron-down]="!showSimulationTools()"
+                            [class.bi-chevron-up]="showSimulationTools()"
+                          ></i>
+                        </button>
+                        <span class="badge badge--dark text-muted text-xxs">Testing Directo</span>
                       </div>
 
-                      <div class="row g-2 mb-3">
-                        <div class="col-6">
-                          <label class="form-label text-xs">Precio Mensual Custom (ARS)</label>
-                          <input
-                            type="number"
-                            class="form-control text-xs"
-                            placeholder="Dejar vacío para default"
-                            [value]="customMonthlyPriceInput()"
-                            (input)="customMonthlyPriceInput.set($any($event.target).value ? +$any($event.target).value : null)"
-                          />
+                      @if (showSimulationTools()) {
+                        <div class="qa-tools-content p-2 rounded bg-black-50 border border-dark">
+                          <p class="text-xs text-muted mb-2">
+                            Probá instantáneamente cómo responde la plataforma y el storefront ante
+                            distintos estados de vencimiento sin esperar días:
+                          </p>
+                          <div class="d-flex flex-column gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('imminent')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-alarm"></i>
+                                <span>Vence en 1 Hora</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('grace_period')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>Período de Gracia (5 días)</span>
+                              </button>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('expired_suspended')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-slash-circle-fill"></i>
+                                <span>Expirado y Suspendido</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-success btn-sm flex-1 text-xs"
+                                (click)="simulateStoreExpiration('reset_trial')"
+                                [disabled]="isSimulatingExpiration()"
+                              >
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                                <span>Restablecer Trial (14d)</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div class="col-6">
-                          <label class="form-label text-xs">Precio Anual Custom (ARS)</label>
-                          <input
-                            type="number"
-                            class="form-control text-xs"
-                            placeholder="Dejar vacío para default"
-                            [value]="customAnnualPriceInput()"
-                            (input)="customAnnualPriceInput.set($any($event.target).value ? +$any($event.target).value : null)"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-sm w-100"
-                        (click)="saveCustomSubscriptionPricing()"
-                        [disabled]="isSavingDiscount()"
-                      >
-                        <i class="bi" [class.bi-check2]="!isSavingDiscount()" [class.bi-arrow-repeat]="isSavingDiscount()" [class.spin]="isSavingDiscount()"></i>
-                        <span>{{ isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Cliente' }}</span>
-                      </button>
+                      }
                     </div>
+                  </div>
                 </div>
 
                 <!-- Mercado Pago Card -->

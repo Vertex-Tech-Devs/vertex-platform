@@ -211,40 +211,65 @@
         <div class="trial-customizer-panel">
           <div class="trial-customizer-panel__header">
             <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-clock-history text-warning"></i>
-              <span class="trial-customizer-panel__title">Duración de la Prueba Gratuita</span>
+              <div class="trial-icon-wrap">
+                <i class="bi bi-clock-history"></i>
+              </div>
+              <div>
+                <span class="trial-customizer-panel__title">Duración de la Prueba Gratuita</span>
+                <span class="trial-customizer-panel__subtitle d-block"
+                  >Sin costo para el cliente durante este período</span
+                >
+              </div>
             </div>
-            <span class="badge badge--warning">{{ form.get('trialDays')?.value || 14 }} días configurados</span>
+            <span class="badge badge--warning">
+              {{ form.get('trialDays')?.value || 14 }} días configurados
+            </span>
           </div>
 
-          <div class="trial-chips-row">
+          <div class="trial-presets-grid">
             <button
               type="button"
-              class="trial-chip"
-              [class.trial-chip--active]="form.get('trialDays')?.value === 7"
+              class="trial-preset-card"
+              [class.trial-preset-card--active]="form.get('trialDays')?.value === 7"
               (click)="form.get('trialDays')?.setValue(7)"
             >
-              7 Días
+              <span class="trial-preset-days">7</span>
+              <span class="trial-preset-label">Días</span>
+              <span class="trial-preset-note">Prueba rápida</span>
             </button>
+
             <button
               type="button"
-              class="trial-chip"
-              [class.trial-chip--active]="form.get('trialDays')?.value === 14"
+              class="trial-preset-card trial-preset-card--recommended"
+              [class.trial-preset-card--active]="form.get('trialDays')?.value === 14"
               (click)="form.get('trialDays')?.setValue(14)"
             >
-              14 Días (Recomendado)
+              <div class="trial-card-badge">Recomendado</div>
+              <span class="trial-preset-days">14</span>
+              <span class="trial-preset-label">Días</span>
+              <span class="trial-preset-note">Estándar Vertex</span>
             </button>
+
             <button
               type="button"
-              class="trial-chip"
-              [class.trial-chip--active]="form.get('trialDays')?.value === 30"
+              class="trial-preset-card"
+              [class.trial-preset-card--active]="form.get('trialDays')?.value === 30"
               (click)="form.get('trialDays')?.setValue(30)"
             >
-              30 Días
+              <span class="trial-preset-days">30</span>
+              <span class="trial-preset-label">Días</span>
+              <span class="trial-preset-note">1 mes completo</span>
             </button>
-            
-            <div class="trial-custom-input-wrap">
-              <span class="trial-custom-input-label">Personalizado:</span>
+
+            <div
+              class="trial-custom-card"
+              [class.trial-custom-card--active]="
+                form.get('trialDays')?.value !== 7 &&
+                form.get('trialDays')?.value !== 14 &&
+                form.get('trialDays')?.value !== 30
+              "
+            >
+              <span class="trial-custom-card__title">Personalizado</span>
               <div class="trial-custom-input-box">
                 <input
                   type="number"
@@ -257,13 +282,24 @@
                 />
                 <span class="trial-custom-suffix">días</span>
               </div>
+              <span class="trial-preset-note">1 a 365 días</span>
             </div>
           </div>
 
-          <p class="trial-customizer-hint">
-            <i class="bi bi-info-circle-fill"></i>
-            Al finalizar los <strong>{{ form.get('trialDays')?.value || 14 }} días</strong>, el cliente dispondrá de un período de gracia de 5 días para abonar su suscripción antes de suspender preventivamente la tienda.
-          </p>
+          <div class="trial-projection-banner mt-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2 text-xs">
+                <i class="bi bi-calendar-check text-warning"></i>
+                <span class="text-white font-weight-medium">
+                  Fin de prueba estimado:
+                  <strong>{{ projectedTrialEndDate() | date: 'dd/MM/yyyy' }}</strong>
+                </span>
+              </div>
+              <span class="text-xs text-muted">
+                + 5 días de gracia para regularizar suscripción
+              </span>
+            </div>
+          </div>
         </div>
       }
 

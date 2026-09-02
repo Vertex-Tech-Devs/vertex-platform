@@ -10,17 +10,17 @@ export const routes: Routes = [
     path: 'pay/:id',
     title: 'Suscripción de Tienda — Vertex',
     loadComponent: () =>
-      import(
-        './features/public-checkout/components/subscription-checkout/subscription-checkout'
-      ).then((m) => m.SubscriptionCheckout),
+      import('./features/public-checkout/components/subscription-checkout/subscription-checkout').then(
+        (m) => m.SubscriptionCheckout,
+      ),
   },
   {
     path: 'pay/:id/success',
     title: 'Suscripción Activada — Vertex',
     loadComponent: () =>
-      import(
-        './features/public-checkout/components/subscription-success/subscription-success'
-      ).then((m) => m.SubscriptionSuccess),
+      import('./features/public-checkout/components/subscription-success/subscription-success').then(
+        (m) => m.SubscriptionSuccess,
+      ),
   },
   {
     path: 'subscribe/:id',
@@ -74,17 +74,17 @@ export const routes: Routes = [
             path: 'subscriptions',
             title: 'Suscripciones SaaS — Vertex',
             loadComponent: () =>
-              import(
-                './features/settings/components/subscriptions/subscriptions'
-              ).then((m) => m.Subscriptions),
+              import('./features/settings/components/subscriptions/subscriptions').then(
+                (m) => m.Subscriptions,
+              ),
           },
           {
             path: 'infrastructure',
             title: 'Infraestructura GCP — Vertex',
             loadComponent: () =>
-              import(
-                './features/settings/components/infrastructure/infrastructure'
-              ).then((m) => m.Infrastructure),
+              import('./features/settings/components/infrastructure/infrastructure').then(
+                (m) => m.Infrastructure,
+              ),
           },
           {
             path: 'team',

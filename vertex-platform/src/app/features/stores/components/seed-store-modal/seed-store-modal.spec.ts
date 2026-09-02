@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SeedStoreModal } from './seed-store-modal';
 import { StoresService } from '@core/services/stores';
 import { signal } from '@angular/core';
-import { PLATFORM_BUSINESS_VERTICALS } from '@core/constants/business-verticals.constants';
+import {
+  PLATFORM_BUSINESS_VERTICALS,
+  type VerticalOption,
+} from '@core/constants/business-verticals.constants';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('SeedStoreModal', () => {
@@ -73,7 +76,7 @@ describe('SeedStoreModal', () => {
     expect(closed).toBe(true);
   });
 
-  it('should handle onCustomVerticalCreated', () => {
+  it('should handle onCustomVerticalCreated and null vertical', () => {
     component.onCustomVerticalCreated({
       id: 'CERVECERIA',
       name: 'Cervecería',
@@ -83,5 +86,38 @@ describe('SeedStoreModal', () => {
 
     expect(component.selectedVerticalId()).toBe('CERVECERIA');
     expect(component.showCustomVerticalModal()).toBe(false);
+
+    component.onCustomVerticalCreated(null as unknown as VerticalOption);
+    expect(component.showCustomVerticalModal()).toBe(false);
+  });
+
+  it('does not emit onConfirm if purgeConfirmed is false', () => {
+    component.purgeConfirmed.set(false);
+    let emitted = false;
+    component.seedConfirmed.subscribe(() => (emitted = true));
+    component.onConfirm();
+    expect(emitted).toBe(false);
+  });
+
+  it('does not emit onCancel if isSeeding is true', () => {
+    fixture.componentRef.setInput('isSeeding', true);
+    let closed = false;
+    component.close.subscribe(() => (closed = true));
+    component.onCancel();
+    expect(closed).toBe(false);
+  });
+
+  it('emits with includeMockData false for CATALOG_ONLY and EMPTY', () => {
+    let emittedPayload: unknown = null;
+    component.seedConfirmed.subscribe((p) => (emittedPayload = p));
+
+    component.selectMode('EMPTY');
+    component.onConfirm();
+
+    expect(emittedPayload).toEqual({
+      verticalId: 'TECNOLOGIA_ELECTRONICA',
+      provisioningMode: 'EMPTY',
+      includeMockData: false,
+    });
   });
 });

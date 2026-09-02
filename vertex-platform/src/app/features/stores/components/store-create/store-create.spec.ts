@@ -247,5 +247,53 @@ describe('StoreCreate', () => {
 
     component.setInitialSubscription('active');
     expect(component.form.get('initialSubscriptionStatus')?.value).toBe('active');
+
+    // Test projectedTrialEndDate calculation
+    component.form.patchValue({ trialDays: 10 });
+    const projected = component.projectedTrialEndDate();
+    const expectedDiffDays = Math.round((projected.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(expectedDiffDays).toBe(10);
+  });
+
+  it('onSubmit does not call createStore if form is invalid', async () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+    component.form.patchValue({ name: '' });
+    await component.onSubmit();
+    expect(storesService.createStore).not.toHaveBeenCalled();
+  });
+
+  it('onSubmit calls createStore when form is valid and handles error', async () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+    component.form.patchValue({
+      name: 'Tienda Test',
+      slug: 'tienda-test',
+      ownerEmail: 'test@example.com',
+      verticalId: 'TECNOLOGIA',
+      provisioningMode: 'FULL_DEMO',
+      dedicatedProject: false,
+    });
+
+    await component.onSubmit();
+    expect(storesService.createStore).toHaveBeenCalled();
+
+    storesService.createStore.mockRejectedValueOnce(new Error('Creation failed'));
+    await component.onSubmit();
+    expect(component.errorMessage()).toBe('Creation failed');
+  });
+
+  it('onCustomVerticalCreated updates vertical value in form', () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+    component.onCustomVerticalCreated({
+      id: 'CUSTOM_RUBRO',
+      name: 'Custom Rubro',
+      icon: '✨',
+      description: 'Desc',
+      categories: [],
+    });
+    expect(component.form.get('verticalId')?.value).toBe('CUSTOM_RUBRO');
+    expect(component.showCustomVerticalModal()).toBe(false);
   });
 });
