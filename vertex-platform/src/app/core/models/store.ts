@@ -66,6 +66,7 @@ export interface Store {
     status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
     currentPeriodEnd?: string;
     trialDaysRemaining?: number;
+    trialDays?: number | null;
     billingCycle?: 'monthly' | 'annual';
   };
 }
