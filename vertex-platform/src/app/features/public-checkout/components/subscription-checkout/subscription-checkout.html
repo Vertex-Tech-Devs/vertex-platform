@@ -1,0 +1,192 @@
+<div class="checkout-layout">
+  <div class="checkout-bg-glow"></div>
+
+  <!-- Header Branding -->
+  <header class="checkout-header">
+    <div class="checkout-container">
+      <div class="brand-bar">
+        <div class="brand-logo">
+          <span class="brand-v">V</span>
+          <span class="brand-text">VERTEX</span>
+        </div>
+        <div class="security-badge">
+          <i class="bi bi-shield-check"></i>
+          <span>Pago 100% Seguro · 256-Bit SSL</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="checkout-main">
+    <div class="checkout-container">
+      @if (isLoading()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Cargando información de la tienda…</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="error-card">
+          <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+          <h2>Tienda no encontrada</h2>
+          <p>{{ errorMessage() }}</p>
+          <a routerLink="/" class="btn btn-secondary">Volver al inicio</a>
+        </div>
+      } @else if (storeInfo()) {
+        <div class="checkout-grid">
+          <!-- Left Column: Store Summary & Plan Selector -->
+          <div class="checkout-panel">
+            <div class="store-badge-card">
+              <div class="store-avatar">
+                @if (storeInfo()?.logoUrl) {
+                  <img [src]="storeInfo()?.logoUrl" [alt]="storeInfo()?.name" />
+                } @else {
+                  <span>{{ storeInfo()?.name?.charAt(0)?.toUpperCase() }}</span>
+                }
+              </div>
+              <div class="store-meta">
+                <span class="store-eyebrow">Suscripción para la tienda</span>
+                <h1 class="store-title">{{ storeInfo()?.name }}</h1>
+                <span class="store-slug">{{ storeInfo()?.defaultUrl }}</span>
+              </div>
+              @if (storeInfo()?.subscriptionStatus === 'trial') {
+                <div class="trial-pill">
+                  <i class="bi bi-stars"></i> {{ storeInfo()?.trialDaysRemaining }} días de prueba restantes
+                </div>
+              }
+            </div>
+
+            <!-- Billing Cycle Switcher -->
+            <div class="cycle-selector">
+              <h2 class="section-title">Elegí tu frecuencia de facturación</h2>
+              <div class="cycle-tabs">
+                <button
+                  type="button"
+                  class="cycle-tab"
+                  [class.is-active]="billingCycle() === 'annual'"
+                  (click)="selectCycle('annual')"
+                >
+                  <div class="tab-badge">Ahorrá $100.000 (2 meses gratis)</div>
+                  <div class="tab-header">
+                    <span class="tab-name">Plan Anual</span>
+                    <strong class="tab-price">${{ storeInfo()?.annualPrice | number }} <small>/año</small></strong>
+                  </div>
+                  <span class="tab-sub">Un solo pago al año · Máximo ahorro</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="cycle-tab"
+                  [class.is-active]="billingCycle() === 'monthly'"
+                  (click)="selectCycle('monthly')"
+                >
+                  <div class="tab-header">
+                    <span class="tab-name">Plan Mensual</span>
+                    <strong class="tab-price">${{ storeInfo()?.monthlyPrice | number }} <small>/mes</small></strong>
+                  </div>
+                  <span class="tab-sub">Débito automático en tarjeta · Cancelá cuando quieras</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- What's included checklist -->
+            <div class="features-card">
+              <h3 class="features-title">Todo lo que incluye tu tienda Vertex:</h3>
+              <ul class="features-list">
+                <li><i class="bi bi-check-circle-fill"></i> Storefront de alta velocidad optimizado para celulares</li>
+                <li><i class="bi bi-check-circle-fill"></i> Panel de control y gestión en tiempo real (/admin)</li>
+                <li><i class="bi bi-check-circle-fill"></i> Catálogo, productos, variantes y stock sincronizados</li>
+                <li><i class="bi bi-check-circle-fill"></i> Integración directa con Mercado Pago para cobrar ventas</li>
+                <li><i class="bi bi-check-circle-fill"></i> Notificaciones automáticas por email de pedidos</li>
+                <li><i class="bi bi-check-circle-fill"></i> Dominio propio y certificado SSL gratis de por vida</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Right Column: Checkout Summary & Payment CTA -->
+          <div class="checkout-sidebar">
+            <div class="order-summary-card">
+              <h2 class="summary-title">Resumen de Suscripción</h2>
+
+              <div class="summary-line">
+                <span>Plan Vertex SaaS ({{ billingCycle() === 'annual' ? 'Anual' : 'Mensual' }})</span>
+                <span>${{ effectivePrice() | number }} ARS</span>
+              </div>
+
+              @if (storeInfo()?.discountPercent) {
+                <div class="summary-line discount-line">
+                  <span>Descuento Especial Aplicado</span>
+                  <span>-{{ storeInfo()?.discountPercent }}%</span>
+                </div>
+              }
+
+              @if (billingCycle() === 'annual' && savingsAmount() > 0) {
+                <div class="savings-pill">
+                  <i class="bi bi-gift-fill"></i> Estás ahorrando ${{ savingsAmount() | number }} ARS al año
+                </div>
+              }
+
+              <div class="summary-divider"></div>
+
+              <div class="summary-total">
+                <span>Total a Pagar</span>
+                <strong>${{ effectivePrice() | number }} <small>ARS</small></strong>
+              </div>
+
+              <!-- Payer Email Input -->
+              <div class="payer-email-box">
+                <label class="form-label text-xs">Email para factura y comprobantes de Mercado Pago</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  [value]="payerEmail()"
+                  (input)="payerEmail.set($any($event.target).value)"
+                  placeholder="tu-email@ejemplo.com"
+                  [disabled]="isProcessingPayment()"
+                />
+              </div>
+
+              @if (paymentError()) {
+                <div class="alert alert--error">
+                  <i class="bi bi-exclamation-octagon-fill"></i> {{ paymentError() }}
+                </div>
+              }
+
+              <!-- Mercado Pago CTA -->
+              <button
+                type="button"
+                class="btn-checkout-mp"
+                (click)="proceedToPayment()"
+                [disabled]="isProcessingPayment() || !payerEmail().trim()"
+              >
+                @if (isProcessingPayment()) {
+                  <span class="spinner-sm"></span> Conectando con Mercado Pago…
+                } @else {
+                  <i class="bi bi-lightning-charge-fill"></i>
+                  <span>Pagar con Mercado Pago</span>
+                  <i class="bi bi-arrow-right"></i>
+                }
+              </button>
+
+              <div class="mp-guarantee">
+                <div class="mp-logo-badge">
+                  <i class="bi bi-shield-lock-fill"></i>
+                  <span>Procesado de forma segura por Mercado Pago</span>
+                </div>
+                <p class="guarantee-text">
+                  Podrás abonar con tarjeta de crédito, débito, dinero en cuenta de Mercado Pago o saldo disponible.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </main>
+
+  <footer class="checkout-footer">
+    <div class="checkout-container">
+      <p>© Vertex Commerce Platform. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

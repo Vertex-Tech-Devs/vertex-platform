@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_SUBSCRIPTION_PRICING,
-  isJuanMasterAdmin,
+  isMasterBillingAdmin,
   getEffectivePricing,
 } from './subscriptions';
 
@@ -18,14 +18,13 @@ describe('Single SaaS Subscription Engine & Access Control', () => {
     expect(annualSavings).toBe(DEFAULT_SUBSCRIPTION_PRICING.monthlyPrice * 2);
   });
 
-  it('isJuanMasterAdmin should only authorize Juan emails', () => {
-    expect(isJuanMasterAdmin('juan.l.espeche@gmail.com')).toBe(true);
-    expect(isJuanMasterAdmin('vertex.tech.dev@gmail.com')).toBe(true);
-    expect(isJuanMasterAdmin('JUAN.L.ESPECHE@GMAIL.COM')).toBe(true);
+  it('isMasterBillingAdmin should strictly authorize root billing accounts', () => {
+    expect(isMasterBillingAdmin('juan.l.espeche@gmail.com')).toBe(true);
+    expect(isMasterBillingAdmin('vertex.tech.dev@gmail.com')).toBe(true);
+    expect(isMasterBillingAdmin('JUAN.L.ESPECHE@GMAIL.COM')).toBe(true);
 
-    expect(isJuanMasterAdmin('leivalihue@gmail.com')).toBe(false);
-    expect(isJuanMasterAdmin('random@customer.com')).toBe(false);
-    expect(isJuanMasterAdmin(undefined)).toBe(false);
+    expect(isMasterBillingAdmin('random@customer.com')).toBe(false);
+    expect(isMasterBillingAdmin(undefined)).toBe(false);
   });
 
   it('getEffectivePricing should return default prices when Firestore is empty', async () => {

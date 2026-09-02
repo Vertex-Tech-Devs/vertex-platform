@@ -854,6 +854,10 @@ export const provisionStore = onCall<CreateStorePayload>(
       provisioningMode,
       includeMockData,
       dedicatedProject,
+      initialSubscriptionStatus,
+      trialDays,
+      customMonthlyPrice,
+      customAnnualPrice,
     } = request.data;
 
     const effectiveVertical = businessVertical || verticalId || 'INDUMENTARIA_MODA';
@@ -1136,15 +1140,29 @@ export const provisionStore = onCall<CreateStorePayload>(
         isNewShard,
         includeMockData: hasMockData,
         status: 'provisioning',
-        // Inicializar suscripción con período de prueba (14 días de acceso completo)
+        // Inicializar suscripción (Prueba, Cortesía / Gratis 100%, o Estándar)
         subscription: {
-          status: 'trial',
-          trialDays: 14,
-          trialStartDate: new Date(),
-          trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          status: initialSubscriptionStatus || 'trial',
+          trialDays:
+            initialSubscriptionStatus === 'complimentary' || initialSubscriptionStatus === 'active'
+              ? undefined
+              : trialDays || 14,
+          trialStartDate:
+            initialSubscriptionStatus === 'trial' || !initialSubscriptionStatus
+              ? new Date()
+              : undefined,
+          trialEndDate:
+            initialSubscriptionStatus === 'complimentary'
+              ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+              : new Date(Date.now() + (trialDays || 14) * 24 * 60 * 60 * 1000),
+          currentPeriodEnd:
+            initialSubscriptionStatus === 'complimentary'
+              ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+              : new Date(Date.now() + (trialDays || 14) * 24 * 60 * 60 * 1000),
           billingCycle: 'monthly',
-          amount: 50000,
+          amount: initialSubscriptionStatus === 'complimentary' ? 0 : 50000,
+          ...(customMonthlyPrice !== undefined && { customMonthlyPrice }),
+          ...(customAnnualPrice !== undefined && { customAnnualPrice }),
         },
         // Política de versiones: las tiendas nuevas NACEN ESTABLES (autoUpdate = false).
         // Solo se actualizan automáticamente si el dueño lo habilita explícitamente

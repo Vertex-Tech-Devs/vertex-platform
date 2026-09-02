@@ -546,6 +546,22 @@
   }
 }
 
+.subscription-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trial-days-customizer {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
 @media (max-width: 768px) {
   .option-cards-grid--2col,
   .option-cards-grid--3col {
@@ -558,3 +574,4 @@
     flex-direction: column;
   }
 }
+

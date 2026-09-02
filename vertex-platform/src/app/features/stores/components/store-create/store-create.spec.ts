@@ -230,4 +230,22 @@ describe('StoreCreate', () => {
     expect(component.logoFileName()).toBe('');
     expect(component.form.get('logoUrl')?.value).toBe('');
   });
+
+  it('allows customizing initial subscription modality and trial days', () => {
+    const fixture = TestBed.createComponent(StoreCreate);
+    const component = fixture.componentInstance;
+
+    expect(component.form.get('initialSubscriptionStatus')?.value).toBe('trial');
+    expect(component.form.get('trialDays')?.value).toBe(14);
+
+    component.setInitialSubscription('complimentary');
+    expect(component.form.get('initialSubscriptionStatus')?.value).toBe('complimentary');
+
+    component.setInitialSubscription('trial', 30);
+    expect(component.form.get('initialSubscriptionStatus')?.value).toBe('trial');
+    expect(component.form.get('trialDays')?.value).toBe(30);
+
+    component.setInitialSubscription('active');
+    expect(component.form.get('initialSubscriptionStatus')?.value).toBe('active');
+  });
 });

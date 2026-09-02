@@ -80,7 +80,16 @@ export class StoreCreate implements OnInit {
     verticalId: [DEFAULT_STORE_VERTICAL],
     includeMockData: [true],
     dedicatedProject: [false],
+    initialSubscriptionStatus: ['trial', Validators.required],
+    trialDays: [14, [Validators.min(1), Validators.max(365)]],
   });
+
+  setInitialSubscription(status: 'trial' | 'complimentary' | 'active', days?: number): void {
+    this.form.get('initialSubscriptionStatus')?.setValue(status);
+    if (days !== undefined) {
+      this.form.get('trialDays')?.setValue(days);
+    }
+  }
 
   ngOnInit(): void {
     void (async () => {
@@ -202,12 +211,17 @@ export class StoreCreate implements OnInit {
       const val = this.form.value;
       const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
       const mode = val.provisioningMode || 'FULL_DEMO';
+      const subStatus = val.initialSubscriptionStatus || 'trial';
+      const days =
+        subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
       const payload = {
         ...val,
         verticalId: vertical,
         businessVertical: vertical,
         provisioningMode: mode,
         includeMockData: mode === 'FULL_DEMO',
+        initialSubscriptionStatus: subStatus,
+        trialDays: days,
       };
       const id = await this.storesService.createStore(
         payload as Parameters<typeof this.storesService.createStore>[0],
