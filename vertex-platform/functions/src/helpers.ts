@@ -435,10 +435,16 @@ export async function sendDirectEmail(
 
   await transporter.sendMail({
     from: '"Vertex Platform" <vertex.tech.dev@gmail.com>',
+    replyTo: 'vertex.tech.dev@gmail.com',
     to,
     subject,
     text,
     html,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      Importance: 'High',
+    },
   });
 }
 
@@ -453,6 +459,8 @@ export interface NewStoreNotificationData {
   siteUrl?: string;
   tier?: string;
   billingCycle?: string;
+  subscriptionStatus?: string;
+  trialDays?: number | null;
   createdAt?: Date;
 }
 
@@ -461,6 +469,13 @@ export async function notifyAdminNewStoreCreated(data: NewStoreNotificationData)
   const subject = `🚀 Nueva Tienda Creada: ${data.storeName} (${data.slug})`;
   const storeUrl = data.siteUrl || `https://vtx-${data.slug}.web.app`;
   const platformAdminUrl = 'https://vertex-platform.web.app/stores';
+
+  let planDisplay = `${data.tier || 'PRO'} (${data.billingCycle === 'annual' ? 'Facturación Anual' : 'Facturación Mensual'})`;
+  if (data.subscriptionStatus === 'complimentary') {
+    planDisplay = `🎁 PRO — Bonificado / Gratuito (100% Cortesía)`;
+  } else if (data.subscriptionStatus === 'trial') {
+    planDisplay = `⏳ Período de Prueba (${data.trialDays || 14} días)`;
+  }
 
   const html = `
 <!DOCTYPE html>
@@ -518,8 +533,8 @@ export async function notifyAdminNewStoreCreated(data: NewStoreNotificationData)
           <td class="value">${data.shardMode === 'dedicated' ? '💎 Shard Dedicado' : '⚡ Shard Compartido'}</td>
         </tr>
         <tr>
-          <td class="label">Plan Inicial</td>
-          <td class="value"><span class="badge">${data.tier || 'PRO'}</span> (${data.billingCycle === 'annual' ? 'Facturación Anual' : 'Facturación Mensual'})</td>
+          <td class="label">Plan / Modalidad</td>
+          <td class="value">${planDisplay}</td>
         </tr>
         <tr>
           <td class="label">Fecha de Creación</td>
