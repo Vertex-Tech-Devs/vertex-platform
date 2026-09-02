@@ -256,4 +256,53 @@ describe('BillingAccountsService', () => {
     const fn = mocks.mockHttpsCallable.mock.results[0].value;
     expect(fn).toHaveBeenCalledWith({ id: 'acc-1' });
   });
+
+  it('initFirestoreListener maneja errores en listeners primario y fallback', () => {
+    if (primaryErrorCb) {
+      primaryErrorCb(new Error('primary fail'));
+      expect(svc.isLoading()).toBe(false);
+    }
+    if (primarySnapshotCb) {
+      primarySnapshotCb({ empty: true, docs: [] });
+      if (fallbackErrorCb) {
+        fallbackErrorCb(new Error('fallback fail'));
+        expect(svc.isLoading()).toBe(false);
+      }
+    }
+  });
+
+  it('procesa snapshot de shards actualizando recuentos en cuentas existentes', () => {
+    const shardsCall = mocks.mockOnSnapshot.mock.calls.find(
+      (c) => (c[0] as { name: string }).name === 'infrastructure_shards',
+    );
+    expect(shardsCall).toBeDefined();
+    const shardsCb = shardsCall![1] as (snap: unknown) => void;
+
+    svc.accounts.set([
+      {
+        id: 'acc-1',
+        name: 'Account 1',
+        maxProjects: 5,
+        active: true,
+        addedAt: null,
+        usedProjects: 0,
+        gcpProjectLimit: 5,
+        gcpUsedProjects: 0,
+        gcpRemaining: 5,
+        gcpUsageRatio: 0,
+      },
+    ]);
+
+    shardsCb({
+      docs: [
+        { data: () => ({ billingAccountId: 'acc-1' }) },
+        { data: () => ({ billingAccountId: 'acc-1' }) },
+        { data: () => ({ billingAccountId: '' }) },
+      ],
+    });
+
+    expect(svc.accounts()[0].gcpUsedProjects).toBe(2);
+    expect(svc.accounts()[0].gcpRemaining).toBe(3);
+    expect(svc.accounts()[0].gcpUsageRatio).toBe(0.4);
+  });
 });
