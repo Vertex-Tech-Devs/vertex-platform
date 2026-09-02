@@ -1,28 +1,36 @@
 import { describe, it, expect } from 'vitest';
-import { SUBSCRIPTION_PLANS } from './subscriptions';
+import {
+  DEFAULT_SUBSCRIPTION_PRICING,
+  isJuanMasterAdmin,
+  getEffectivePricing,
+} from './subscriptions';
 
-describe('Subscriptions SaaS Engine', () => {
-  it('should have all 3 plans properly configured with monthly and annual pricing', () => {
-    expect(SUBSCRIPTION_PLANS.starter).toBeDefined();
-    expect(SUBSCRIPTION_PLANS.starter.monthlyPrice).toBe(15000);
-    expect(SUBSCRIPTION_PLANS.starter.annualPrice).toBe(150000);
-
-    expect(SUBSCRIPTION_PLANS.pro).toBeDefined();
-    expect(SUBSCRIPTION_PLANS.pro.monthlyPrice).toBe(29000);
-    expect(SUBSCRIPTION_PLANS.pro.annualPrice).toBe(290000);
-
-    expect(SUBSCRIPTION_PLANS.enterprise).toBeDefined();
-    expect(SUBSCRIPTION_PLANS.enterprise.monthlyPrice).toBe(59000);
-    expect(SUBSCRIPTION_PLANS.enterprise.annualPrice).toBe(590000);
+describe('Single SaaS Subscription Engine & Access Control', () => {
+  it('should have correct default pricing: $50.000/mo and $500.000/yr', () => {
+    expect(DEFAULT_SUBSCRIPTION_PRICING.monthlyPrice).toBe(50000);
+    expect(DEFAULT_SUBSCRIPTION_PRICING.annualPrice).toBe(500000);
   });
 
-  it('annual plan should offer a significant discount compared to 12 months', () => {
-    for (const plan of Object.values(SUBSCRIPTION_PLANS)) {
-      const full12Months = plan.monthlyPrice * 12;
-      expect(plan.annualPrice).toBeLessThan(full12Months);
-      // Discount is ~2 months free (approx 15-20%)
-      const savings = full12Months - plan.annualPrice;
-      expect(savings).toBeGreaterThanOrEqual(plan.monthlyPrice);
-    }
+  it('annual plan should offer 2 months free ($100.000 discount)', () => {
+    const full12Months = DEFAULT_SUBSCRIPTION_PRICING.monthlyPrice * 12; // 600.000
+    const annualSavings = full12Months - DEFAULT_SUBSCRIPTION_PRICING.annualPrice; // 100.000
+    expect(annualSavings).toBe(100000);
+    expect(annualSavings).toBe(DEFAULT_SUBSCRIPTION_PRICING.monthlyPrice * 2);
+  });
+
+  it('isJuanMasterAdmin should only authorize Juan emails', () => {
+    expect(isJuanMasterAdmin('juan.l.espeche@gmail.com')).toBe(true);
+    expect(isJuanMasterAdmin('vertex.tech.dev@gmail.com')).toBe(true);
+    expect(isJuanMasterAdmin('JUAN.L.ESPECHE@GMAIL.COM')).toBe(true);
+
+    expect(isJuanMasterAdmin('leivalihue@gmail.com')).toBe(false);
+    expect(isJuanMasterAdmin('random@customer.com')).toBe(false);
+    expect(isJuanMasterAdmin(undefined)).toBe(false);
+  });
+
+  it('getEffectivePricing should return default prices when Firestore is empty', async () => {
+    const pricing = await getEffectivePricing();
+    expect(pricing.monthlyPrice).toBe(50000);
+    expect(pricing.annualPrice).toBe(500000);
   });
 });

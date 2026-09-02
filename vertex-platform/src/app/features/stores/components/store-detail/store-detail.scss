@@ -2896,3 +2896,29 @@
     }
   }
 }
+
+/* -------------------------------------------------------------
+   SaaS Subscription Card & Master Pricing Controls
+------------------------------------------------------------- */
+.sub-pricing-summary {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--platform-border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+}
+
+.master-sub-controls {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px dashed rgba(251, 191, 36, 0.3);
+  border-radius: 10px;
+  padding: 1rem;
+
+  .master-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #fbbf24;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+}
+
