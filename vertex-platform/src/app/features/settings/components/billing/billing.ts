@@ -41,7 +41,7 @@ export class Billing implements OnInit {
   readonly selectedShard = signal<ShardReadiness | null>(null);
   readonly copiedId = signal<string | null>(null);
   readonly showCapacityGuide = signal(false);
-  readonly activeTab = signal<'subscriptions' | 'accounts' | 'shards' | 'guide'>('subscriptions');
+  readonly activeTab = signal<'subscriptions' | 'accounts' | 'shards' | 'guide'>('accounts');
   readonly shardSearchQuery = signal('');
 
   // SaaS Subscription Pricing signals

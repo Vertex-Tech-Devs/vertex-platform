@@ -76,6 +76,29 @@ class MockStoresService {
       },
     ],
   });
+  getPlatformBillingConfig = vi.fn().mockResolvedValue({
+    pricing: {
+      name: 'Suscripción Única Vertex Store',
+      description: 'Plan único',
+      monthlyPrice: 50000,
+      annualPrice: 500000,
+    },
+    isMasterAdmin: false,
+    platformMercadoPago: {
+      isConfigured: true,
+      maskedToken: 'APP_USR-****',
+    },
+  });
+  updatePlatformBillingConfig = vi.fn().mockResolvedValue({
+    success: true,
+    message: 'Tarifas actualizadas correctamente.',
+    pricing: {
+      name: 'Suscripción Única Vertex Store',
+      description: 'Plan único',
+      monthlyPrice: 50000,
+      annualPrice: 500000,
+    },
+  });
 }
 
 function makeAccount(overrides: Partial<BillingAccount> = {}): BillingAccount {
@@ -646,6 +669,46 @@ describe('Billing', () => {
     await component.addAccount();
     expect(component.addAccountError()).toContain('Quota exceeded');
     expect(component.isAdding()).toBe(false);
+  });
+
+  it('gestiona la pestaña de suscripciones SaaS y guarda precios cuando es admin maestro', async () => {
+    storesSvc.getPlatformBillingConfig.mockResolvedValueOnce({
+      pricing: {
+        name: 'Suscripción Única Vertex Store',
+        description: 'Plan único',
+        monthlyPrice: 50000,
+        annualPrice: 500000,
+      },
+      isMasterAdmin: true,
+      platformMercadoPago: {
+        isConfigured: true,
+        maskedToken: 'APP_USR-****',
+      },
+    });
+
+    await component.loadPlatformBillingConfig();
+    expect(component.platformBillingConfig()?.isMasterAdmin).toBe(true);
+    expect(component.editMonthlyPrice()).toBe(50000);
+    expect(component.editAnnualPrice()).toBe(500000);
+
+    storesSvc.updatePlatformBillingConfig.mockResolvedValueOnce({
+      success: true,
+      message: 'Tarifas actualizadas correctamente.',
+      pricing: {
+        name: 'Suscripción Única Vertex Store',
+        description: 'Plan único',
+        monthlyPrice: 55000,
+        annualPrice: 550000,
+      },
+    });
+
+    component.editMonthlyPrice.set(55000);
+    component.editAnnualPrice.set(550000);
+    component.editMpAccessToken.set('TEST-123456');
+
+    await component.savePlatformPricing();
+    expect(component.pricingSaveSuccess()).toContain('Tarifas actualizadas');
+    expect(component.editMpAccessToken()).toBe('');
   });
 });
 
