@@ -201,7 +201,23 @@ export class StoreDetail implements OnInit {
   readonly customMonthlyPriceInput = signal<number | null>(null);
   readonly customAnnualPriceInput = signal<number | null>(null);
   readonly discountPercentInput = signal<number | null>(null);
+  readonly trialDaysInput = signal<number>(14);
+  readonly isGrantingTrial = signal(false);
   readonly subscriptionStatusSelect = signal<'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'>('active');
+
+  readonly trialRemainingDays = computed(() => {
+    const sub = this.storeSubscription()?.subscription;
+    if (sub?.status !== 'trial') {
+      return 0;
+    }
+    const endTs = sub.trialEndDate || sub.currentPeriodEnd;
+    if (!endTs) {
+      return 0;
+    }
+    const end = typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
+    const diffMs = end.getTime() - Date.now();
+    return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+  });
 
   readonly statusLabel = statusLabelUtil;
   readonly stepIcon = stepIconUtil;
@@ -540,6 +556,30 @@ export class StoreDetail implements OnInit {
       this.discountSaveSuccess.set(errorMessage(err, 'Error al guardar parámetros.'));
     } finally {
       this.isSavingDiscount.set(false);
+    }
+  }
+
+  async grantTrial(days: number): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isGrantingTrial.set(true);
+    this.discountSaveSuccess.set(null);
+
+    try {
+      await this.storesService.updateStoreSubscriptionStatus({
+        storeId: s.id,
+        status: 'trial',
+        trialDays: days,
+      });
+      this.discountSaveSuccess.set(`Período de prueba de ${days} días activado exitosamente.`);
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al activar período de prueba.'));
+    } finally {
+      this.isGrantingTrial.set(false);
     }
   }
 

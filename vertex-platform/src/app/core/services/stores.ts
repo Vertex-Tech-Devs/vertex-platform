@@ -447,6 +447,7 @@ export class StoresService {
     customMonthlyPrice?: number | null;
     customAnnualPrice?: number | null;
     discountPercent?: number | null;
+    trialDays?: number | null;
     notes?: string;
   }): Promise<{ success: boolean; storeId: string; status?: string }> {
     const fn = httpsCallable<typeof payload, { success: boolean; storeId: string; status?: string }>(
@@ -479,6 +480,9 @@ export interface StoreSubscriptionInfo {
     billingCycle?: 'monthly' | 'annual';
     amount?: number;
     currentPeriodEnd?: { toDate?: () => Date; seconds?: number } | null;
+    trialDays?: number;
+    trialStartDate?: { toDate?: () => Date; seconds?: number } | null;
+    trialEndDate?: { toDate?: () => Date; seconds?: number } | null;
     customMonthlyPrice?: number;
     customAnnualPrice?: number;
     discountPercent?: number;
