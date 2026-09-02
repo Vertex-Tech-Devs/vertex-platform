@@ -7,14 +7,22 @@
       </div>
       <h1 class="page-title">Suscripciones & Recaudación</h1>
       <p class="page-sub">
-        Gestión comercial de tarifas, pasarela de recaudación central y estado de planes de las tiendas.
+        Gestión comercial de tarifas, pasarela central de tesorería y portales de pago de las tiendas.
       </p>
     </div>
-    <div class="d-flex gap-2">
-      <a routerLink="/settings/infrastructure" class="btn btn-secondary">
-        <i class="bi bi-server"></i>
-        <span>Ver Infraestructura GCP</span>
-      </a>
+    <div class="d-flex gap-2 align-items-center">
+      @if (platformBillingConfig()?.isMasterAdmin) {
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="showMasterConfig()"
+          [class.btn-secondary]="!showMasterConfig()"
+          (click)="toggleMasterConfig()"
+        >
+          <i class="bi bi-sliders"></i>
+          <span>{{ showMasterConfig() ? 'Ocultar Ajustes' : 'Ajustar Tarifas & Pasarela' }}</span>
+        </button>
+      }
       <a routerLink="/stores" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i>
         <span>Volver a Tiendas</span>
@@ -49,16 +57,112 @@
     </div>
   </div>
 
-  <!-- Main Pricing & Treasury Hero Card -->
-  <div class="sub-hero-card">
+  <!-- Master Admin Configuration Drawer / Panel (Toggled cleanly) -->
+  @if (platformBillingConfig()?.isMasterAdmin && showMasterConfig()) {
+    <div class="master-config-panel animate-fade-in mb-4">
+      <div class="master-config-panel__header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="master-badge">
+            <i class="bi bi-shield-lock-fill"></i>
+            <span>Administración de Tesorería & Tarifas</span>
+          </div>
+          <span class="badge badge--success">Acceso Maestro</span>
+        </div>
+        <button type="button" class="btn-icon" (click)="toggleMasterConfig()" title="Cerrar panel">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <p class="master-desc">
+        Configura los precios comerciales base del Plan Único y la credencial de Mercado Pago donde se acreditarán los pagos.
+      </p>
+
+      @if (pricingSaveSuccess()) {
+        <div class="alert alert--success mb-3">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{{ pricingSaveSuccess() }}</span>
+        </div>
+      }
+
+      @if (pricingSaveError()) {
+        <div class="alert alert--error mb-3">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ pricingSaveError() }}</span>
+        </div>
+      }
+
+      <div class="master-pricing-form">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Precio Mensual Base (ARS)</label>
+            <input
+              type="number"
+              class="form-control"
+              [value]="editMonthlyPrice()"
+              (input)="editMonthlyPrice.set(+$any($event.target).value)"
+              min="0"
+              step="1000"
+            />
+            <span class="form-hint">Tarifa facturada mes a mes vía débito automático.</span>
+          </div>
+
+          <div class="form-group flex-1">
+            <label class="form-label">Precio Anual Base (ARS)</label>
+            <input
+              type="number"
+              class="form-control"
+              [value]="editAnnualPrice()"
+              (input)="editAnnualPrice.set(+$any($event.target).value)"
+              min="0"
+              step="5000"
+            />
+            <span class="form-hint">Tarifa anual con 2 meses bonificados por pago único.</span>
+          </div>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">
+            Token Central de Mercado Pago (Recaudación Vertex)
+            @if (platformBillingConfig()?.platformMercadoPago?.maskedToken) {
+              <span class="badge badge--success ml-2">Activo: {{ platformBillingConfig()?.platformMercadoPago?.maskedToken }}</span>
+            }
+          </label>
+          <input
+            type="password"
+            class="form-control"
+            placeholder="Ingresá nuevo Access Token para actualizar (APP_USR-...)"
+            [value]="editMpAccessToken()"
+            (input)="editMpAccessToken.set($any($event.target).value)"
+          />
+          <span class="form-hint">
+            Todas las suscripciones de los clientes impactarán directamente en esta cuenta central de Mercado Pago.
+          </span>
+        </div>
+
+        <div class="form-actions mt-4">
+          <button
+            class="btn btn-primary"
+            (click)="savePlatformPricing()"
+            [disabled]="isSavingPricing()"
+          >
+            <i class="bi" [class.bi-check-lg]="!isSavingPricing()" [class.bi-arrow-repeat]="isSavingPricing()" [class.spin]="isSavingPricing()"></i>
+            <span>{{ isSavingPricing() ? 'Guardando Tarifas…' : 'Guardar y Aplicar Tarifas' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Main Pricing Presentation Hero Card -->
+  <div class="sub-hero-card mb-4">
     <div class="sub-hero-card__header">
       <div class="sub-hero-card__badge">
         <i class="bi bi-stars"></i>
         <span>Plan Único Vertex Store</span>
       </div>
-      <h2 class="sub-hero-card__title">Tarifas y Recaudación de la Plataforma</h2>
+      <h2 class="sub-hero-card__title">Tarifas Comerciales Oficiales</h2>
       <p class="sub-hero-card__sub">
-        Todos los cobros mensuales y anuales de los clientes se procesan y acreditan directamente en la cuenta central de recaudación de Mercado Pago.
+        Estructura de precios simple y transparente para todas las tiendas del ecosistema.
       </p>
     </div>
 
@@ -72,12 +176,12 @@
           <span class="period">ARS / mes</span>
         </div>
         <p class="pricing-plan-card__desc">
-          Débito automático mensual en tarjeta con Mercado Pago Preapproval API.
+          Débito automático mensual en tarjeta mediante Mercado Pago Preapproval API.
         </p>
         <ul class="pricing-plan-card__features">
           <li><i class="bi bi-check2-circle"></i> Tienda online completa y Backoffice</li>
-          <li><i class="bi bi-check2-circle"></i> Catálogo, pedidos y sucursales</li>
-          <li><i class="bi bi-check2-circle"></i> Pasarela Mercado Pago del cliente</li>
+          <li><i class="bi bi-check2-circle"></i> Catálogo, pedidos, sucursales y stock</li>
+          <li><i class="bi bi-check2-circle"></i> Pasarela de pagos propia del comerciante</li>
           <li><i class="bi bi-check2-circle"></i> Notificaciones automáticas por e-mail</li>
         </ul>
       </div>
@@ -92,7 +196,7 @@
           <span class="period">ARS / año</span>
         </div>
         <p class="pricing-plan-card__desc">
-          Pago único anual con descuento. Incluye $100.000 de ahorro directo para el cliente.
+          Pago anual por adelantado. Incluye $100.000 de ahorro directo para el cliente.
         </p>
         <ul class="pricing-plan-card__features">
           <li><i class="bi bi-check2-circle"></i> 12 meses de servicio ininterrumpido</li>
@@ -102,98 +206,119 @@
         </ul>
       </div>
     </div>
+  </div>
 
-    <!-- Master Admin Management Form -->
-    @if (platformBillingConfig()?.isMasterAdmin) {
-      <div class="master-pricing-editor">
-        <div class="master-pricing-editor__header">
-          <div class="master-badge">
-            <i class="bi bi-shield-lock-fill"></i>
-            <span>Administración de Tesorería & Tarifas</span>
-          </div>
-          <p class="master-desc">
-            Modifica las tarifas comerciales base o el Access Token central de recaudación de Mercado Pago.
-          </p>
-        </div>
+  <!-- Store Payment Links & Checkout Directory -->
+  <div class="store-links-panel">
+    <div class="store-links-panel__header">
+      <div>
+        <h2 class="store-links-panel__title">
+          <i class="bi bi-credit-card-2-front text-primary mr-2"></i>
+          Portales de Pago de Clientes
+        </h2>
+        <p class="store-links-panel__sub">
+          Compartí el enlace directo de suscripción con tus clientes por WhatsApp o e-mail para que abonen su tienda de forma segura.
+        </p>
+      </div>
 
-        @if (pricingSaveSuccess()) {
-          <div class="alert alert--success mb-3">
-            <i class="bi bi-check-circle-fill"></i>
-            <span>{{ pricingSaveSuccess() }}</span>
-          </div>
+      <div class="store-search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          class="store-search-input"
+          placeholder="Buscar tienda por nombre, slug o email…"
+          [value]="storeSearchQuery()"
+          (input)="storeSearchQuery.set($any($event.target).value)"
+        />
+        @if (storeSearchQuery()) {
+          <button type="button" class="btn-clear" (click)="storeSearchQuery.set('')">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
         }
+      </div>
+    </div>
 
-        @if (pricingSaveError()) {
-          <div class="alert alert--error mb-3">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>{{ pricingSaveError() }}</span>
-          </div>
-        }
-
-        <div class="master-pricing-form">
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="form-label">Precio Mensual Base (ARS)</label>
-              <input
-                type="number"
-                class="form-control"
-                [value]="editMonthlyPrice()"
-                (input)="editMonthlyPrice.set(+$any($event.target).value)"
-                min="0"
-                step="1000"
-              />
-              <span class="form-hint">Tarifa estándar cobrada mes a mes a las tiendas.</span>
-            </div>
-
-            <div class="form-group flex-1">
-              <label class="form-label">Precio Anual Base (ARS)</label>
-              <input
-                type="number"
-                class="form-control"
-                [value]="editAnnualPrice()"
-                (input)="editAnnualPrice.set(+$any($event.target).value)"
-                min="0"
-                step="5000"
-              />
-              <span class="form-hint">Tarifa anual con descuento por pago anticipado.</span>
-            </div>
-          </div>
-
-          <div class="form-group mt-3">
-            <label class="form-label">
-              Token Central de Mercado Pago (Recaudación)
-              @if (platformBillingConfig()?.platformMercadoPago?.maskedToken) {
-                <span class="badge badge--success ml-2">Activo: {{ platformBillingConfig()?.platformMercadoPago?.maskedToken }}</span>
-              }
-            </label>
-            <input
-              type="password"
-              class="form-control"
-              placeholder="Ingresá nuevo Access Token para actualizar (APP_USR-...)"
-              [value]="editMpAccessToken()"
-              (input)="editMpAccessToken.set($any($event.target).value)"
-            />
-            <span class="form-hint">
-              Las suscripciones de las tiendas se cobrarán con este token y se acreditarán en la cuenta central de Mercado Pago.
-            </span>
-          </div>
-
-          <div class="form-actions mt-4">
-            <button
-              class="btn btn-primary"
-              (click)="savePlatformPricing()"
-              [disabled]="isSavingPricing()"
-            >
-              <i class="bi" [class.bi-check-lg]="!isSavingPricing()" [class.bi-arrow-repeat]="isSavingPricing()" [class.spin]="isSavingPricing()"></i>
-              <span>{{ isSavingPricing() ? 'Guardando Tarifas…' : 'Guardar y Aplicar Tarifas' }}</span>
-            </button>
-          </div>
-        </div>
+    @if (filteredStores().length === 0) {
+      <div class="empty-stores-notice">
+        <i class="bi bi-inboxes"></i>
+        <p>No se encontraron tiendas que coincidan con la búsqueda.</p>
       </div>
     } @else {
-      <div class="restricted-pricing-notice mt-4">
-        <i class="bi bi-shield-shaded"></i>
-        <span>Tarifas globales gestionadas y protegidas por la administración principal de Vertex.</span>
+      <div class="store-links-table-wrap">
+        <table class="store-links-table">
+          <thead>
+            <tr>
+              <th>Tienda</th>
+              <th>Contacto</th>
+              <th>Estado Suscripción</th>
+              <th class="text-right">Acciones de Cobro</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (st of filteredStores(); track st.id) {
+              <tr>
+                <td>
+                  <div class="store-identity">
+                    <span class="store-name">{{ st.name }}</span>
+                    <span class="store-slug">/{{ st.slug }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="store-email">{{ st.ownerEmail }}</span>
+                </td>
+                <td>
+                  @if (st.subscription?.status === 'complimentary') {
+                    <span class="badge badge--warning">⭐ Cortesía (Gratis)</span>
+                  } @else if (st.subscription?.status === 'active') {
+                    <span class="badge badge--success">✓ Activa (Al día)</span>
+                  } @else if (st.subscription?.status === 'trial' || !st.subscription?.status) {
+                    <span class="badge badge--primary">🎁 En Prueba</span>
+                  } @else {
+                    <span class="badge badge--danger">⚠️ Vencida / Gracia</span>
+                  }
+                </td>
+                <td>
+                  <div class="d-flex align-items-center justify-content-end gap-2">
+                    <!-- Copy Link -->
+                    <button
+                      type="button"
+                      class="btn-action"
+                      (click)="copyStorePaymentLink(st.id)"
+                      [title]="'Copiar link de pago: ' + getPublicCheckoutUrl(st.id)"
+                    >
+                      <i class="bi" [class.bi-check2]="copiedStoreId() === st.id" [class.bi-link-45deg]="copiedStoreId() !== st.id"></i>
+                      <span>{{ copiedStoreId() === st.id ? '¡Copiado!' : 'Copiar Link' }}</span>
+                    </button>
+
+                    <!-- WhatsApp Share -->
+                    <a
+                      [href]="getWhatsAppShareUrl(st)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn-action btn-action--whatsapp"
+                      title="Compartir enlace de pago por WhatsApp"
+                    >
+                      <i class="bi bi-whatsapp"></i>
+                      <span>WhatsApp</span>
+                    </a>
+
+                    <!-- Open Portal -->
+                    <a
+                      [href]="getPublicCheckoutUrl(st.id)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn-action btn-action--open"
+                      title="Abrir formulario de pago"
+                    >
+                      <i class="bi bi-box-arrow-up-right"></i>
+                      <span>Abrir</span>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
     }
   </div>

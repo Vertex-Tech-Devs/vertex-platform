@@ -228,6 +228,18 @@ export class StoreDetail implements OnInit {
     return `${origin}/pay/${s.id}`;
   });
 
+  readonly whatsAppShareUrl = computed(() => {
+    const s = this.store();
+    const url = this.publicCheckoutUrl();
+    if (!s || !url) {
+      return '';
+    }
+    const text = encodeURIComponent(
+      `¡Hola! Te comparto el enlace seguro para abonar la suscripción de tu tienda ${s.name} en Vertex: ${url}`,
+    );
+    return `https://wa.me/?text=${text}`;
+  });
+
   readonly copiedPublicLink = signal(false);
 
   copyPublicCheckoutUrl(): void {
@@ -235,7 +247,9 @@ export class StoreDetail implements OnInit {
     if (!url) {
       return;
     }
-    void navigator.clipboard.writeText(url);
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+    }
     this.copiedPublicLink.set(true);
     setTimeout(() => this.copiedPublicLink.set(false), 2500);
   }

@@ -1508,18 +1508,30 @@
 
                     <!-- Public Checkout Link for Client -->
                     <div class="public-checkout-link-card p-3 mb-3 bg-dark rounded border border-secondary">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
+                      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                         <span class="text-xs font-weight-bold text-white">
                           <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público de Pago para el Cliente
                         </span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary btn-sm"
-                          (click)="copyPublicCheckoutUrl()"
-                        >
-                          <i class="bi" [class.bi-check-lg]="copiedPublicLink()" [class.bi-clipboard]="!copiedPublicLink()"></i>
-                          <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar Link' }}</span>
-                        </button>
+                        <div class="d-flex gap-2">
+                          <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            (click)="copyPublicCheckoutUrl()"
+                          >
+                            <i class="bi" [class.bi-check-lg]="copiedPublicLink()" [class.bi-clipboard]="!copiedPublicLink()"></i>
+                            <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar Link' }}</span>
+                          </button>
+                          <a
+                            [href]="whatsAppShareUrl()"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                            title="Compartir enlace de cobro por WhatsApp"
+                          >
+                            <i class="bi bi-whatsapp"></i>
+                            <span>WhatsApp</span>
+                          </a>
+                        </div>
                       </div>
                       <div class="d-flex gap-2">
                         <input type="text" class="form-control text-xs" [value]="publicCheckoutUrl()" readonly />
