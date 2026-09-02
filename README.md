@@ -181,7 +181,7 @@ npm run validate:rules
 # Ejecutar verificación de linter, compilación estricta de TypeScript y reglas de Firestore
 npm run qa:global
 
-# Ejecutar tests unitarios completos (111 Frontend + 64 Backend)
+# Ejecutar tests unitarios completos (153 Frontend + 73 Backend)
 npm test
 
 # Ejecutar verificación de 0 vulnerabilidades

@@ -71,18 +71,43 @@ export const routes: Routes = [
         path: 'settings',
         children: [
           {
+            path: 'subscriptions',
+            title: 'Suscripciones SaaS — Vertex',
+            loadComponent: () =>
+              import(
+                './features/settings/components/subscriptions/subscriptions'
+              ).then((m) => m.Subscriptions),
+          },
+          {
+            path: 'infrastructure',
+            title: 'Infraestructura GCP — Vertex',
+            loadComponent: () =>
+              import(
+                './features/settings/components/infrastructure/infrastructure'
+              ).then((m) => m.Infrastructure),
+          },
+          {
             path: 'team',
-            title: 'Equipo',
+            title: 'Equipo — Vertex',
             loadComponent: () =>
               import('./features/settings/components/team/team').then((m) => m.Team),
           },
           {
             path: 'billing',
-            title: 'Facturación',
-            loadComponent: () =>
-              import('./features/settings/components/billing/billing').then((m) => m.Billing),
+            redirectTo: 'subscriptions',
+            pathMatch: 'full',
           },
         ],
+      },
+      {
+        path: 'billing',
+        redirectTo: 'settings/subscriptions',
+        pathMatch: 'full',
+      },
+      {
+        path: 'infrastructure',
+        redirectTo: 'settings/infrastructure',
+        pathMatch: 'full',
       },
     ],
   },
