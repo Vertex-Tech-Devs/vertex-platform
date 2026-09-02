@@ -1433,6 +1433,56 @@
                         <span class="badge badge--warning">Trial</span>
                       </div>
                     </div>
+                  } @else if (storeSubscription()?.subscription?.status === 'past_due') {
+                    <div class="grace-alert-banner p-3 mb-3">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-clock-history text-warning fs-5"></i>
+                          <div>
+                            <strong class="d-block text-warning"
+                              >Período de Gracia Activo (Día
+                              {{ storeSubscription()?.overdueDetails?.overdueDays || 1 }}/5)</strong
+                            >
+                            <span class="text-xs text-muted">
+                              Recargo acumulado por mora:
+                              <strong
+                                >{{ storeSubscription()?.overdueDetails?.surchargePercent || 0 }}%
+                                (+${{
+                                  storeSubscription()?.overdueDetails?.surchargeAmount || 0 | number
+                                }}
+                                ARS)</strong
+                              >. Al vencer el día 5 la tienda pasará automáticamente a corte
+                              preventivo (suspendida).
+                            </span>
+                          </div>
+                        </div>
+                        <span class="badge badge--warning"
+                          >+{{ storeSubscription()?.overdueDetails?.surchargePercent || 0 }}%
+                          Mora</span
+                        >
+                      </div>
+                    </div>
+                  } @else if (storeSubscription()?.subscription?.status === 'suspended') {
+                    <div class="suspended-alert-banner p-3 mb-3">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-slash-circle-fill text-danger fs-5"></i>
+                          <div>
+                            <strong class="d-block text-danger"
+                              >Tienda Suspendida por Falta de Pago</strong
+                            >
+                            <span class="text-xs text-muted">
+                              Superó los 5 días de gracia. Requiere regularizar con el 10% de
+                              recargo por mora (+${{
+                                storeSubscription()?.overdueDetails?.surchargeAmount || 0 | number
+                              }}
+                              ARS) para restaurar el servicio.
+                            </span>
+                          </div>
+                        </div>
+                        <span class="badge badge--danger">+10% Mora</span>
+                      </div>
+                    </div>
                   }
 
                   <!-- Subscription Details & Pricing -->

@@ -182,10 +182,11 @@ const secretCache = new Map<string, string>();
 ### 💳 Motor de Suscripciones SaaS, Selector de Trial y QA Lab
 
 - **Selector de Trial en Creación**: Grid interactivo en `StoreCreate` con presets de 7, 14 (recomendado), 30 días y opción personalizada, proyectando en tiempo real la fecha exacta de expiración y avisando sobre los 5 días de gracia.
+- **Período de Gracia & Recargo por Mora (2% Diario)**: Si una tienda no abona a su fecha de vencimiento, entra en período de gracia de 5 días (`past_due`). Se computa un recargo del **2% diario acumulativo por cada día transcurrido** (hasta 10% al día 5) sobre el importe base. Al exceder los 5 días, la tienda se suspende de forma automática y requiere regularizar con el 10% de recargo. El desglose se detalla de forma transparente en el checkout público (`/pay/:id`) y en el tab Pagos de la tienda (`/stores/:id`).
 - **Herramientas de Simulación / QA Lab (DEV y PROD)**: Disponible en `/stores/:id` (tab Pagos) para Master Admins mediante un panel colapsable discreto. Permite simular:
   - Expira en 1 hora (`imminent`).
-  - En período de gracia (`grace_period`, vencido hace 2 días).
-  - Suspensión preventiva (`expired_suspended`, vencido hace 7 días).
+  - En período de gracia (`grace_period`, vencido hace 2 días, aplicando 4% de mora).
+  - Suspensión preventiva (`expired_suspended`, vencido hace 7 días, aplicando 10% de mora).
   - Restablecer período de prueba (`reset_trial`, 14 días limpios).
 - **Manejo Resiliente de Fechas**: `parseDateToMillis` y `formatDateUtil` aceptan instancias Date, Timestamps con `.toDate()`, `{ seconds }`, `{ _seconds }` o strings ISO, evitando `TypeError` en Angular.
 

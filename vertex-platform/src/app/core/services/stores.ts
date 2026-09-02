@@ -509,4 +509,11 @@ export interface StoreSubscriptionInfo {
     annualPrice: number;
   };
   isMasterAdmin: boolean;
+  overdueDetails?: {
+    isOverdue: boolean;
+    overdueDays: number;
+    surchargePercent: number;
+    surchargeAmount: number;
+    totalAmount: number;
+  };
 }

@@ -135,4 +135,43 @@ describe('SubscriptionCheckout Component', () => {
     expect(component.effectivePrice()).toBe(0);
     expect(component.savingsAmount()).toBe(0);
   });
+
+  it('calculates basePrice, surchargeAmount and effectivePrice correctly when store is overdue', async () => {
+    component.storeInfo.set({
+      storeId: 'store-overdue',
+      name: 'Tienda En Mora',
+      slug: 'tienda-en-mora',
+      logoUrl: null,
+      defaultUrl: 'https://tienda-en-mora.web.app',
+      ownerEmail: 'mora@test.com',
+      status: 'active',
+      subscriptionStatus: 'past_due',
+      trialDaysRemaining: 0,
+      trialEndDate: null,
+      currentPeriodEnd: '2026-08-30T00:00:00.000Z',
+      monthlyPrice: 50000,
+      annualPrice: 500000,
+      baseMonthlyPrice: 50000,
+      baseAnnualPrice: 500000,
+      discountPercent: null,
+      isOverdue: true,
+      overdueDays: 3,
+      overdueSurchargePercent: 6,
+      overdueMonthlySurchargeAmount: 3000,
+      overdueAnnualSurchargeAmount: 30000,
+    });
+
+    // Default is annual
+    expect(component.billingCycle()).toBe('annual');
+    expect(component.basePrice()).toBe(500000);
+    expect(component.surchargeAmount()).toBe(30000);
+    expect(component.effectivePrice()).toBe(530000);
+
+    // Switch to monthly
+    component.selectCycle('monthly');
+    expect(component.billingCycle()).toBe('monthly');
+    expect(component.basePrice()).toBe(50000);
+    expect(component.surchargeAmount()).toBe(3000);
+    expect(component.effectivePrice()).toBe(53000);
+  });
 });

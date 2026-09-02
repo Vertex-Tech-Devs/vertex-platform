@@ -184,6 +184,38 @@
     align-items: center;
     gap: 0.35rem;
   }
+
+  .grace-pill {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #f59e0b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .suspended-pill {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
 }
 
 /* Cycle Selector */
@@ -346,6 +378,44 @@
     &.discount-line {
       color: #10b981;
       font-weight: 600;
+    }
+
+    &.surcharge-line {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+  }
+
+  .overdue-notice-card {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin: 0.85rem 0;
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+
+    i {
+      color: #f59e0b;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    strong {
+      display: block;
+      color: #f59e0b;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.76rem;
+      line-height: 1.35;
+      color: #cbd5e1;
     }
   }
 
