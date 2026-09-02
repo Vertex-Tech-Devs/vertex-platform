@@ -203,7 +203,9 @@ export class StoreDetail implements OnInit {
   readonly discountPercentInput = signal<number | null>(null);
   readonly trialDaysInput = signal<number>(14);
   readonly isGrantingTrial = signal(false);
-  readonly subscriptionStatusSelect = signal<'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'>('active');
+  readonly subscriptionStatusSelect = signal<
+    'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'
+  >('active');
 
   readonly trialRemainingDays = computed(() => {
     const sub = this.storeSubscription()?.subscription;
@@ -214,7 +216,8 @@ export class StoreDetail implements OnInit {
     if (!endTs) {
       return 0;
     }
-    const end = typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
+    const end =
+      typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
     const diffMs = end.getTime() - Date.now();
     return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
   });
@@ -560,9 +563,7 @@ export class StoreDetail implements OnInit {
       }
       await this.loadStoreSubscription(s.id);
     } catch (err) {
-      this.subLinkError.set(
-        errorMessage(err, 'Error al generar enlace de pago de suscripción.'),
-      );
+      this.subLinkError.set(errorMessage(err, 'Error al generar enlace de pago de suscripción.'));
     } finally {
       this.isGeneratingSubLink.set(false);
     }

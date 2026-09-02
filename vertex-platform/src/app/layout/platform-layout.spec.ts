@@ -21,10 +21,7 @@ describe('PlatformLayout', () => {
 
     await TestBed.configureTestingModule({
       imports: [PlatformLayout],
-      providers: [
-        provideRouter([]),
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [provideRouter([]), { provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
     router = TestBed.inject(Router);

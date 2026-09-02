@@ -450,10 +450,10 @@ export class StoresService {
     trialDays?: number | null;
     notes?: string;
   }): Promise<{ success: boolean; storeId: string; status?: string }> {
-    const fn = httpsCallable<typeof payload, { success: boolean; storeId: string; status?: string }>(
-      this.fns,
-      'updateStoreSubscriptionStatus',
-    );
+    const fn = httpsCallable<
+      typeof payload,
+      { success: boolean; storeId: string; status?: string }
+    >(this.fns, 'updateStoreSubscriptionStatus');
     const result = await fn(payload);
     return result.data;
   }
@@ -497,4 +497,3 @@ export interface StoreSubscriptionInfo {
   };
   isMasterAdmin: boolean;
 }
-

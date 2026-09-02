@@ -3680,7 +3680,9 @@ export const completeStoreDeployment = onCall<{
       verticalId: storeData['verticalId'],
       projectId: storeData['projectId'],
       shardMode: storeData['runtimeMode'] || (storeData['shardId'] ? 'shared' : 'dedicated'),
-      siteUrl: storeData['siteUrl'] || `https://${storeData['slug'] ? `vtx-${storeData['slug']}` : storeId}.web.app`,
+      siteUrl:
+        storeData['siteUrl'] ||
+        `https://${storeData['slug'] ? `vtx-${storeData['slug']}` : storeId}.web.app`,
       tier: storeData['tier'] || 'PRO',
       billingCycle: storeData['billingCycle'] || 'monthly',
       createdAt: (storeData['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() || new Date(),

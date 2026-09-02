@@ -51,7 +51,8 @@
               </div>
               @if (storeInfo()?.subscriptionStatus === 'trial') {
                 <div class="trial-pill">
-                  <i class="bi bi-stars"></i> {{ storeInfo()?.trialDaysRemaining }} días de prueba restantes
+                  <i class="bi bi-stars"></i> {{ storeInfo()?.trialDaysRemaining }} días de prueba
+                  restantes
                 </div>
               }
             </div>
@@ -69,7 +70,9 @@
                   <div class="tab-badge">Ahorrá $100.000 (2 meses gratis)</div>
                   <div class="tab-header">
                     <span class="tab-name">Plan Anual</span>
-                    <strong class="tab-price">${{ storeInfo()?.annualPrice | number }} <small>/año</small></strong>
+                    <strong class="tab-price"
+                      >${{ storeInfo()?.annualPrice | number }} <small>/año</small></strong
+                    >
                   </div>
                   <span class="tab-sub">Un solo pago al año · Máximo ahorro</span>
                 </button>
@@ -82,7 +85,9 @@
                 >
                   <div class="tab-header">
                     <span class="tab-name">Plan Mensual</span>
-                    <strong class="tab-price">${{ storeInfo()?.monthlyPrice | number }} <small>/mes</small></strong>
+                    <strong class="tab-price"
+                      >${{ storeInfo()?.monthlyPrice | number }} <small>/mes</small></strong
+                    >
                   </div>
                   <span class="tab-sub">Débito automático en tarjeta · Cancelá cuando quieras</span>
                 </button>
@@ -93,12 +98,30 @@
             <div class="features-card">
               <h3 class="features-title">Todo lo que incluye tu tienda Vertex:</h3>
               <ul class="features-list">
-                <li><i class="bi bi-check-circle-fill"></i> Storefront de alta velocidad optimizado para celulares</li>
-                <li><i class="bi bi-check-circle-fill"></i> Panel de control y gestión en tiempo real (/admin)</li>
-                <li><i class="bi bi-check-circle-fill"></i> Catálogo, productos, variantes y stock sincronizados</li>
-                <li><i class="bi bi-check-circle-fill"></i> Integración directa con Mercado Pago para cobrar ventas</li>
-                <li><i class="bi bi-check-circle-fill"></i> Notificaciones automáticas por email de pedidos</li>
-                <li><i class="bi bi-check-circle-fill"></i> Dominio propio y certificado SSL gratis de por vida</li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Storefront de alta velocidad optimizado
+                  para celulares
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Panel de control y gestión en tiempo real
+                  (/admin)
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Catálogo, productos, variantes y stock
+                  sincronizados
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Integración directa con Mercado Pago para
+                  cobrar ventas
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Notificaciones automáticas por email de
+                  pedidos
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Dominio propio y certificado SSL gratis de
+                  por vida
+                </li>
               </ul>
             </div>
           </div>
@@ -109,7 +132,9 @@
               <h2 class="summary-title">Resumen de Suscripción</h2>
 
               <div class="summary-line">
-                <span>Plan Vertex SaaS ({{ billingCycle() === 'annual' ? 'Anual' : 'Mensual' }})</span>
+                <span
+                  >Plan Vertex SaaS ({{ billingCycle() === 'annual' ? 'Anual' : 'Mensual' }})</span
+                >
                 <span>${{ effectivePrice() | number }} ARS</span>
               </div>
 
@@ -122,7 +147,10 @@
 
               @if (billingCycle() === 'annual' && savingsAmount() > 0) {
                 <div class="savings-pill">
-                  <i class="bi bi-gift-fill"></i> Estás ahorrando ${{ savingsAmount() | number }} ARS al año
+                  <i class="bi bi-gift-fill"></i> Estás ahorrando ${{
+                    savingsAmount() | number
+                  }}
+                  ARS al año
                 </div>
               }
 
@@ -135,7 +163,9 @@
 
               <!-- Payer Email Input -->
               <div class="payer-email-box">
-                <label class="form-label text-xs">Email para factura y comprobantes de Mercado Pago</label>
+                <label class="form-label text-xs"
+                  >Email para factura y comprobantes de Mercado Pago</label
+                >
                 <input
                   type="email"
                   class="form-control"
@@ -174,7 +204,8 @@
                   <span>Procesado de forma segura por Mercado Pago</span>
                 </div>
                 <p class="guarantee-text">
-                  Podrás abonar con tarjeta de crédito, débito, dinero en cuenta de Mercado Pago o saldo disponible.
+                  Podrás abonar con tarjeta de crédito, débito, dinero en cuenta de Mercado Pago o
+                  saldo disponible.
                 </p>
               </div>
             </div>

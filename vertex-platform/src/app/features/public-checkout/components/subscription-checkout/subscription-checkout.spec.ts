@@ -101,7 +101,9 @@ describe('SubscriptionCheckout Component', () => {
 
   it('handles payment error gracefully', async () => {
     await component.loadStore('store-123');
-    checkoutServiceMock.createCheckoutLink.mockRejectedValueOnce(new Error('Payment gateway error'));
+    checkoutServiceMock.createCheckoutLink.mockRejectedValueOnce(
+      new Error('Payment gateway error'),
+    );
     await component.proceedToPayment();
     expect(component.paymentError()).toBe('Payment gateway error');
   });
@@ -109,18 +111,25 @@ describe('SubscriptionCheckout Component', () => {
   it('handles non-Error thrown in loadStore', async () => {
     checkoutServiceMock.getPublicStoreInfo.mockRejectedValueOnce('string error');
     await component.loadStore('unknown');
-    expect(component.errorMessage()).toBe('No se pudo encontrar la tienda o el enlace no es válido.');
+    expect(component.errorMessage()).toBe(
+      'No se pudo encontrar la tienda o el enlace no es válido.',
+    );
   });
 
   it('handles missing checkoutUrl, non-Error payment failure, and null storeInfo calculations', async () => {
     await component.loadStore('store-123');
-    checkoutServiceMock.createCheckoutLink.mockResolvedValueOnce({ success: false, checkoutUrl: '' });
+    checkoutServiceMock.createCheckoutLink.mockResolvedValueOnce({
+      success: false,
+      checkoutUrl: '',
+    });
     await component.proceedToPayment();
     expect(component.paymentError()).toBe('No se pudo generar el enlace de pago de Mercado Pago.');
 
     checkoutServiceMock.createCheckoutLink.mockRejectedValueOnce('network error');
     await component.proceedToPayment();
-    expect(component.paymentError()).toBe('Ocurrió un error al conectar con Mercado Pago. Intente nuevamente.');
+    expect(component.paymentError()).toBe(
+      'Ocurrió un error al conectar con Mercado Pago. Intente nuevamente.',
+    );
 
     component.storeInfo.set(null);
     expect(component.effectivePrice()).toBe(0);

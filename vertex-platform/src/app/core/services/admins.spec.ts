@@ -45,8 +45,22 @@ describe('AdminsService', () => {
 
   it('should load admins successfully', async () => {
     const mockAdmins: AdminInfo[] = [
-      { uid: 'admin-1', email: 'admin1@vertex.com', displayName: 'Admin 1', photoURL: undefined, role: 'superAdmin', status: 'active' },
-      { uid: 'admin-2', email: 'admin2@vertex.com', displayName: 'Admin 2', photoURL: undefined, role: 'platformAdmin', status: 'pending' },
+      {
+        uid: 'admin-1',
+        email: 'admin1@vertex.com',
+        displayName: 'Admin 1',
+        photoURL: undefined,
+        role: 'superAdmin',
+        status: 'active',
+      },
+      {
+        uid: 'admin-2',
+        email: 'admin2@vertex.com',
+        displayName: 'Admin 2',
+        photoURL: undefined,
+        role: 'platformAdmin',
+        status: 'pending',
+      },
     ];
 
     const callableFn = vi.fn().mockResolvedValue({ data: { admins: mockAdmins } });

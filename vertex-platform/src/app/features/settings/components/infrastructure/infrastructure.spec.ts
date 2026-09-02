@@ -42,8 +42,12 @@ class MockBillingAccountsService {
   toastMessage = signal<string | null>(null);
 
   activeAccountsCount = computed(() => this.accounts().filter((a) => a.active).length);
-  totalGcpLimit = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0));
-  totalGcpUsed = computed(() => this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0));
+  totalGcpLimit = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpProjectLimit || 5), 0),
+  );
+  totalGcpUsed = computed(() =>
+    this.accounts().reduce((sum, a) => sum + (a.gcpUsedProjects || 0), 0),
+  );
   totalGcpRemaining = computed(() => Math.max(0, this.totalGcpLimit() - this.totalGcpUsed()));
   usagePercent = computed(() =>
     this.totalGcpLimit() > 0 ? Math.round((this.totalGcpUsed() / this.totalGcpLimit()) * 100) : 0,

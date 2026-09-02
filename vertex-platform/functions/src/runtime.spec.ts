@@ -160,7 +160,12 @@ describe('summarizeShardCapacity', () => {
       makeShard({ id: 'shard-z', status: 'MAINTENANCE', maxCapacity: 10, currentStores: 5 }),
       makeShard({ id: 'shard-b', status: 'ACTIVE', maxCapacity: 10, currentStores: 5 }),
       makeShard({ id: 'shard-a', status: 'ACTIVE', maxCapacity: 10, currentStores: 5 }),
-      makeShard({ id: 'shard-c', status: 'ACTIVE', maxCapacity: 10, currentStores: undefined as any }),
+      makeShard({
+        id: 'shard-c',
+        status: 'ACTIVE',
+        maxCapacity: 10,
+        currentStores: undefined as any,
+      }),
     ]);
     expect(summary.shards[0]?.id).toBe('shard-a');
     expect(summary.shards[1]?.id).toBe('shard-b');
@@ -194,7 +199,7 @@ describe('reconcileActiveStores scheduler', () => {
     };
     (getFirestore as any).mockReturnValue(dbMock);
 
-    const onRunHandler = (reconcileActiveStores as any);
+    const onRunHandler = reconcileActiveStores as any;
     await onRunHandler({});
     await onRunHandler({});
     expect(dbMock.collection).toHaveBeenCalledWith('audit_logs');

@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SeedStoreModal } from './seed-store-modal';
 import { StoresService } from '@core/services/stores';
 import { signal } from '@angular/core';
-import { PLATFORM_BUSINESS_VERTICALS, type VerticalOption } from '@core/constants/business-verticals.constants';
+import {
+  PLATFORM_BUSINESS_VERTICALS,
+  type VerticalOption,
+} from '@core/constants/business-verticals.constants';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('SeedStoreModal', () => {
