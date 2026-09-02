@@ -25,9 +25,11 @@ describe('FormatLabelPipe', () => {
     expect(pipe.transform('1.2')).toBe('1.2');
   });
 
-  it('should handle empty/null/undefined', () => {
+  it('should handle empty/null/undefined and whitespace strings', () => {
     expect(pipe.transform('')).toBe('');
+    expect(pipe.transform('   ')).toBe('');
     expect(pipe.transform(null)).toBe('');
     expect(pipe.transform(undefined)).toBe('');
+    expect(pipe.transform('v2.0.1-alpha')).toBe('v2.0.1-alpha');
   });
 });

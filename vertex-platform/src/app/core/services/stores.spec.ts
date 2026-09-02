@@ -713,7 +713,7 @@ describe('StoresService', () => {
   });
 
   it('listTemplateVersions, updateStoreVersion, seedStore, getStoreConfig, verifyDomain, generatePasswordResetLink, inviteStaff, listStaff', async () => {
-    const mockFn = vi.fn().mockImplementation((name: unknown) => {
+    const mockFn = vi.fn().mockImplementation((_name: unknown) => {
       return vi.fn().mockResolvedValue({
         data: {
           versions: [{ version: '0.8.0', isCurrent: true }],

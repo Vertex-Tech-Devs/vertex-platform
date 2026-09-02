@@ -112,9 +112,18 @@ describe('SubscriptionCheckout Component', () => {
     expect(component.errorMessage()).toBe('No se pudo encontrar la tienda o el enlace no es válido.');
   });
 
-  it('proceedToPayment returns early if storeInfo is null', async () => {
-    component.storeInfo.set(null);
+  it('handles missing checkoutUrl, non-Error payment failure, and null storeInfo calculations', async () => {
+    await component.loadStore('store-123');
+    checkoutServiceMock.createCheckoutLink.mockResolvedValueOnce({ success: false, checkoutUrl: '' });
     await component.proceedToPayment();
-    expect(checkoutServiceMock.createCheckoutLink).not.toHaveBeenCalled();
+    expect(component.paymentError()).toBe('No se pudo generar el enlace de pago de Mercado Pago.');
+
+    checkoutServiceMock.createCheckoutLink.mockRejectedValueOnce('network error');
+    await component.proceedToPayment();
+    expect(component.paymentError()).toBe('Ocurrió un error al conectar con Mercado Pago. Intente nuevamente.');
+
+    component.storeInfo.set(null);
+    expect(component.effectivePrice()).toBe(0);
+    expect(component.savingsAmount()).toBe(0);
   });
 });
