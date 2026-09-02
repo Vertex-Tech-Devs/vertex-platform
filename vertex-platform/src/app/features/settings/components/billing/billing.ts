@@ -1,5 +1,6 @@
 import type { OnInit } from '@angular/core';
 import { Component, inject, signal, computed } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import {
@@ -8,6 +9,7 @@ import {
   type ShardReadiness,
   type ShardReadinessReport,
   type RuntimeShardCapacity,
+  type PlatformBillingConfig,
 } from '@core/services/stores';
 import type { BillingAccount } from '@core/models/billing-account';
 import { errorMessage } from '@core/utils/error.util';
@@ -25,7 +27,7 @@ export interface MergedShard extends ShardReadiness {
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [RouterLink, ShardStatusModal],
+  imports: [RouterLink, ShardStatusModal, DecimalPipe],
   templateUrl: './billing.html',
   styleUrl: './billing.scss',
 })
@@ -39,8 +41,19 @@ export class Billing implements OnInit {
   readonly selectedShard = signal<ShardReadiness | null>(null);
   readonly copiedId = signal<string | null>(null);
   readonly showCapacityGuide = signal(false);
-  readonly activeTab = signal<'accounts' | 'shards' | 'guide'>('accounts');
+  readonly activeTab = signal<'subscriptions' | 'accounts' | 'shards' | 'guide'>('accounts');
   readonly shardSearchQuery = signal('');
+
+  // SaaS Subscription Pricing signals
+  readonly platformBillingConfig = signal<PlatformBillingConfig | null>(null);
+  readonly isLoadingPlatformBilling = signal(false);
+  readonly isSavingPricing = signal(false);
+  readonly pricingSaveSuccess = signal<string | null>(null);
+  readonly pricingSaveError = signal<string | null>(null);
+
+  readonly editMonthlyPrice = signal<number>(50000);
+  readonly editAnnualPrice = signal<number>(500000);
+  readonly editMpAccessToken = signal<string>('');
 
   // Add Account form signals
   readonly isAddingAccount = signal(false);
@@ -180,6 +193,49 @@ export class Billing implements OnInit {
     void this.svc.loadAccounts();
     void this.loadRuntime();
     void this.checkShards();
+    void this.loadPlatformBillingConfig();
+  }
+
+  async loadPlatformBillingConfig(): Promise<void> {
+    this.isLoadingPlatformBilling.set(true);
+    try {
+      const config = await this.storesSvc.getPlatformBillingConfig();
+      this.platformBillingConfig.set(config);
+      if (config.pricing) {
+        this.editMonthlyPrice.set(config.pricing.monthlyPrice);
+        this.editAnnualPrice.set(config.pricing.annualPrice);
+      }
+    } catch {
+      /* silent catch */
+    } finally {
+      this.isLoadingPlatformBilling.set(false);
+    }
+  }
+
+  async savePlatformPricing(): Promise<void> {
+    this.isSavingPricing.set(true);
+    this.pricingSaveSuccess.set(null);
+    this.pricingSaveError.set(null);
+
+    try {
+      const payload: { monthlyPrice?: number; annualPrice?: number; mpAccessToken?: string } = {
+        monthlyPrice: this.editMonthlyPrice(),
+        annualPrice: this.editAnnualPrice(),
+      };
+      if (this.editMpAccessToken().trim()) {
+        payload.mpAccessToken = this.editMpAccessToken().trim();
+      }
+
+      const res = await this.storesSvc.updatePlatformBillingConfig(payload);
+      this.pricingSaveSuccess.set(res.message || 'Tarifas actualizadas correctamente.');
+      await this.loadPlatformBillingConfig();
+      this.editMpAccessToken.set('');
+      setTimeout(() => this.pricingSaveSuccess.set(null), 4000);
+    } catch (err) {
+      this.pricingSaveError.set(errorMessage(err));
+    } finally {
+      this.isSavingPricing.set(false);
+    }
   }
 
   private async loadRuntime(): Promise<void> {

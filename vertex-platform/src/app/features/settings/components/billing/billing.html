@@ -241,6 +241,15 @@
   <div class="tab-nav">
     <button
       class="tab-btn"
+      [class.tab-btn--active]="activeTab() === 'subscriptions'"
+      (click)="activeTab.set('subscriptions')"
+    >
+      <i class="bi bi-cash-stack"></i>
+      <span>Tarifas & Suscripciones SaaS</span>
+      <span class="tab-badge tab-badge--primary">Vertex</span>
+    </button>
+    <button
+      class="tab-btn"
       [class.tab-btn--active]="activeTab() === 'accounts'"
       (click)="activeTab.set('accounts')"
     >
@@ -266,6 +275,158 @@
       <span>Arquitectura y Capacidad</span>
     </button>
   </div>
+
+  <!-- TAB 0: Tarifas & Suscripciones SaaS Vertex -->
+  @if (activeTab() === 'subscriptions') {
+    <div class="subscriptions-section">
+      <!-- Pricing Card Header -->
+      <div class="sub-hero-card">
+        <div class="sub-hero-card__header">
+          <div class="sub-hero-card__badge">
+            <i class="bi bi-stars"></i>
+            <span>Suscripción Única Vertex Store</span>
+          </div>
+          <h2 class="sub-hero-card__title">Tarifas y Recaudación de la Plataforma</h2>
+          <p class="sub-hero-card__sub">
+            Todos los cobros mensuales y anuales de los clientes se procesan y acreditan directamente en tu cuenta de Mercado Pago.
+          </p>
+        </div>
+
+        <div class="pricing-cards-grid">
+          <!-- Monthly Card -->
+          <div class="pricing-plan-card">
+            <div class="pricing-plan-card__tag">Mensual Recurrente</div>
+            <div class="pricing-plan-card__price">
+              <span class="currency">$</span>
+              <span class="amount">{{ (platformBillingConfig()?.pricing?.monthlyPrice || 50000) | number }}</span>
+              <span class="period">ARS / mes</span>
+            </div>
+            <p class="pricing-plan-card__desc">
+              Débito automático mensual en tarjeta con Mercado Pago Preapproval API.
+            </p>
+            <ul class="pricing-plan-card__features">
+              <li><i class="bi bi-check2-circle"></i> Tienda online completa y Backoffice</li>
+              <li><i class="bi bi-check2-circle"></i> Catálogo, pedidos y sucursales</li>
+              <li><i class="bi bi-check2-circle"></i> Pasarela Mercado Pago del cliente</li>
+            </ul>
+          </div>
+
+          <!-- Annual Card -->
+          <div class="pricing-plan-card pricing-plan-card--featured">
+            <div class="pricing-plan-card__badge-save">2 MESES BONIFICADOS (17% OFF)</div>
+            <div class="pricing-plan-card__tag">Anual Anticipado</div>
+            <div class="pricing-plan-card__price">
+              <span class="currency">$</span>
+              <span class="amount">{{ (platformBillingConfig()?.pricing?.annualPrice || 500000) | number }}</span>
+              <span class="period">ARS / año</span>
+            </div>
+            <p class="pricing-plan-card__desc">
+              Pago único anual con descuento. Incluye $100.000 de ahorro directo para el cliente.
+            </p>
+            <ul class="pricing-plan-card__features">
+              <li><i class="bi bi-check2-circle"></i> 12 meses de servicio ininterrumpido</li>
+              <li><i class="bi bi-check2-circle"></i> Dominio y hosting prioritario</li>
+              <li><i class="bi bi-check2-circle"></i> Soporte técnico extendido</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Master Admin Management Form -->
+        @if (platformBillingConfig()?.isMasterAdmin) {
+          <div class="master-pricing-editor">
+            <div class="master-pricing-editor__header">
+              <div class="master-badge">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>Panel Maestro de Tarifas (Exclusivo Juan)</span>
+              </div>
+              <p class="master-desc">
+                Modifica los precios base o el token central de Mercado Pago de la plataforma. Los cambios impactarán en los nuevos enlaces de pago generados.
+              </p>
+            </div>
+
+            @if (pricingSaveSuccess()) {
+              <div class="alert alert--success mb-3">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>{{ pricingSaveSuccess() }}</span>
+              </div>
+            }
+
+            @if (pricingSaveError()) {
+              <div class="alert alert--error mb-3">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>{{ pricingSaveError() }}</span>
+              </div>
+            }
+
+            <div class="master-pricing-form">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label class="form-label">Precio Mensual Base (ARS)</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    [value]="editMonthlyPrice()"
+                    (input)="editMonthlyPrice.set(+$any($event.target).value)"
+                    min="0"
+                    step="1000"
+                  />
+                  <span class="form-hint">Tarifa estándar cobrada mes a mes.</span>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label class="form-label">Precio Anual Base (ARS)</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    [value]="editAnnualPrice()"
+                    (input)="editAnnualPrice.set(+$any($event.target).value)"
+                    min="0"
+                    step="5000"
+                  />
+                  <span class="form-hint">Tarifa anual con descuento por pago anticipado.</span>
+                </div>
+              </div>
+
+              <div class="form-group mt-3">
+                <label class="form-label">
+                  Token de Mercado Pago de la Plataforma (Recaudación)
+                  @if (platformBillingConfig()?.platformMercadoPago?.maskedToken) {
+                    <span class="badge badge--success ml-2">Activo: {{ platformBillingConfig()?.platformMercadoPago?.maskedToken }}</span>
+                  }
+                </label>
+                <input
+                  type="password"
+                  class="form-control"
+                  placeholder="Ingresá nuevo Access Token para actualizar (APP_USR-...)"
+                  [value]="editMpAccessToken()"
+                  (input)="editMpAccessToken.set($any($event.target).value)"
+                />
+                <span class="form-hint">
+                  Las suscripciones de las tiendas se cobrarán con este token y se acreditarán en tu cuenta de Mercado Pago.
+                </span>
+              </div>
+
+              <div class="form-actions mt-4">
+                <button
+                  class="btn btn-primary"
+                  (click)="savePlatformPricing()"
+                  [disabled]="isSavingPricing()"
+                >
+                  <i class="bi" [class.bi-check-lg]="!isSavingPricing()" [class.bi-arrow-repeat]="isSavingPricing()" [class.spin]="isSavingPricing()"></i>
+                  <span>{{ isSavingPricing() ? 'Guardando Tarifas…' : 'Guardar y Aplicar Tarifas' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="restricted-pricing-notice mt-4">
+            <i class="bi bi-shield-shaded"></i>
+            <span>Tarifas globales gestionadas y protegidas por la administración principal de Vertex.</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
 
   <!-- TAB 1: Cuentas de Facturación -->
   @if (activeTab() === 'accounts') {

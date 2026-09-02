@@ -394,4 +394,103 @@ export class StoresService {
     const result = await fn(payload);
     return result.data;
   }
+
+  async getPlatformBillingConfig(): Promise<PlatformBillingConfig> {
+    const fn = httpsCallable<void, PlatformBillingConfig>(this.fns, 'getPlatformBillingConfig');
+    const result = await fn();
+    return result.data;
+  }
+
+  async updatePlatformBillingConfig(payload: {
+    monthlyPrice?: number;
+    annualPrice?: number;
+    mpAccessToken?: string;
+  }): Promise<{ success: boolean; message: string; pricing: PlatformBillingConfig['pricing'] }> {
+    const fn = httpsCallable<
+      typeof payload,
+      { success: boolean; message: string; pricing: PlatformBillingConfig['pricing'] }
+    >(this.fns, 'updatePlatformBillingConfig');
+    const result = await fn(payload);
+    return result.data;
+  }
+
+  async getStoreSubscription(storeId: string): Promise<StoreSubscriptionInfo> {
+    const fn = httpsCallable<{ storeId: string }, StoreSubscriptionInfo>(
+      this.fns,
+      'getStoreSubscription',
+    );
+    const result = await fn({ storeId });
+    return result.data;
+  }
+
+  async createStoreSubscriptionLink(
+    storeId: string,
+    billingCycle: 'monthly' | 'annual',
+    payerEmail?: string,
+  ): Promise<{
+    success: boolean;
+    checkoutUrl: string;
+    billingCycle: string;
+    amount: number;
+  }> {
+    const fn = httpsCallable<
+      { storeId: string; billingCycle: 'monthly' | 'annual'; payerEmail?: string },
+      { success: boolean; checkoutUrl: string; billingCycle: string; amount: number }
+    >(this.fns, 'createStoreSubscriptionLink');
+    const result = await fn({ storeId, billingCycle, payerEmail });
+    return result.data;
+  }
+
+  async updateStoreSubscriptionStatus(payload: {
+    storeId: string;
+    status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
+    customMonthlyPrice?: number | null;
+    customAnnualPrice?: number | null;
+    discountPercent?: number | null;
+    notes?: string;
+  }): Promise<{ success: boolean; storeId: string; status?: string }> {
+    const fn = httpsCallable<typeof payload, { success: boolean; storeId: string; status?: string }>(
+      this.fns,
+      'updateStoreSubscriptionStatus',
+    );
+    const result = await fn(payload);
+    return result.data;
+  }
 }
+
+export interface PlatformBillingConfig {
+  pricing: {
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    annualPrice: number;
+  };
+  isMasterAdmin: boolean;
+  platformMercadoPago: {
+    isConfigured: boolean;
+    maskedToken: string | null;
+  };
+}
+
+export interface StoreSubscriptionInfo {
+  storeId: string;
+  subscription: {
+    status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
+    billingCycle?: 'monthly' | 'annual';
+    amount?: number;
+    currentPeriodEnd?: { toDate?: () => Date; seconds?: number } | null;
+    customMonthlyPrice?: number;
+    customAnnualPrice?: number;
+    discountPercent?: number;
+    notes?: string;
+    lastGeneratedLink?: string;
+  };
+  basePricing: {
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    annualPrice: number;
+  };
+  isMasterAdmin: boolean;
+}
+
