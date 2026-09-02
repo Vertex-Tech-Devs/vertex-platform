@@ -25,6 +25,7 @@ import { StoreDetailOrchestrationService } from './services/store-detail-orchest
 import type { PendingInvitation, Store } from '@core/models/store';
 import {
   formatDateUtil,
+  parseDateToMillis,
   statusLabelUtil,
   stepIconUtil,
   formatDeployHistoryUtil,
@@ -216,11 +217,17 @@ export class StoreDetail implements OnInit {
     if (!endTs) {
       return 0;
     }
-    const end =
-      typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
-    const diffMs = end.getTime() - Date.now();
+    const endMs = parseDateToMillis(endTs);
+    if (!endMs) {
+      return 0;
+    }
+    const diffMs = endMs - Date.now();
     return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
   });
+
+  // QA Lab & Expiration Simulation
+  readonly showSimulationTools = signal(false);
+  readonly isSimulatingExpiration = signal(false);
 
   readonly publicCheckoutUrl = computed(() => {
     const s = this.store();
@@ -639,6 +646,39 @@ export class StoreDetail implements OnInit {
       this.discountSaveSuccess.set(errorMessage(err, 'Error al activar tienda bonificada.'));
     } finally {
       this.isGrantingTrial.set(false);
+    }
+  }
+
+  async simulateStoreExpiration(
+    mode: 'imminent' | 'grace_period' | 'expired_suspended' | 'reset_trial',
+  ): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isSimulatingExpiration.set(true);
+    this.discountSaveSuccess.set(null);
+
+    const labels: Record<string, string> = {
+      imminent: 'Simulación aplicada: Expira en 1 hora.',
+      grace_period: 'Simulación aplicada: En período de gracia (vencido hace 2 días).',
+      expired_suspended:
+        'Simulación aplicada: Tienda suspendida por vencimiento (vencido hace 7 días).',
+      reset_trial: 'Simulación restablecida: Prueba renovada por 14 días.',
+    };
+
+    try {
+      await this.storesService.updateStoreSubscriptionStatus({
+        storeId: s.id,
+        simulateExpiration: mode,
+      });
+      this.discountSaveSuccess.set(labels[mode] || 'Simulación de vencimiento ejecutada.');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 4000);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al simular vencimiento.'));
+    } finally {
+      this.isSimulatingExpiration.set(false);
     }
   }
 

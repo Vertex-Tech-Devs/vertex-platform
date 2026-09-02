@@ -247,6 +247,12 @@ describe('StoreCreate', () => {
 
     component.setInitialSubscription('active');
     expect(component.form.get('initialSubscriptionStatus')?.value).toBe('active');
+
+    // Test projectedTrialEndDate calculation
+    component.form.patchValue({ trialDays: 10 });
+    const projected = component.projectedTrialEndDate();
+    const expectedDiffDays = Math.round((projected.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(expectedDiffDays).toBe(10);
   });
 
   it('onSubmit does not call createStore if form is invalid', async () => {

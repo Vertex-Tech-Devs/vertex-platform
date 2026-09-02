@@ -546,6 +546,7 @@ export const updateStoreSubscriptionStatus = onCall(
       discountPercent,
       trialDays,
       notes,
+      simulateExpiration,
     } = request.data as {
       storeId: string;
       status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
@@ -554,6 +555,7 @@ export const updateStoreSubscriptionStatus = onCall(
       discountPercent?: number | null;
       trialDays?: number | null;
       notes?: string;
+      simulateExpiration?: 'imminent' | 'grace_period' | 'expired_suspended' | 'reset_trial';
     };
 
     if (!storeId) {
@@ -572,7 +574,42 @@ export const updateStoreSubscriptionStatus = onCall(
       'subscription.updatedBy': email,
     };
 
-    if (status === 'trial' || (typeof trialDays === 'number' && trialDays > 0)) {
+    // Simulador de expiración para testing y QA
+    if (simulateExpiration) {
+      const now = Date.now();
+      if (simulateExpiration === 'imminent') {
+        // Expira en 1 hora
+        const oneHourAhead = new Date(now + 60 * 60 * 1000);
+        updates['subscription.status'] = 'trial';
+        updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(oneHourAhead);
+        updates['subscription.trialEndDate'] = Timestamp.fromDate(oneHourAhead);
+        updates['status'] = 'active';
+      } else if (simulateExpiration === 'grace_period') {
+        // Vencida hace 2 días (dentro del período de 5 días de gracia)
+        const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000);
+        updates['subscription.status'] = 'past_due';
+        updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(twoDaysAgo);
+        updates['subscription.trialEndDate'] = Timestamp.fromDate(twoDaysAgo);
+        updates['status'] = 'active';
+      } else if (simulateExpiration === 'expired_suspended') {
+        // Vencida hace 7 días (excede los 5 días de gracia -> suspendida)
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        updates['subscription.status'] = 'suspended';
+        updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(sevenDaysAgo);
+        updates['subscription.trialEndDate'] = Timestamp.fromDate(sevenDaysAgo);
+        updates['subscription.suspendedAt'] = new Date();
+        updates['status'] = 'suspended';
+      } else if (simulateExpiration === 'reset_trial') {
+        // Restablece 14 días limpios de prueba
+        const fourteenDays = new Date(now + 14 * 24 * 60 * 60 * 1000);
+        updates['subscription.status'] = 'trial';
+        updates['subscription.trialDays'] = 14;
+        updates['subscription.trialStartDate'] = new Date();
+        updates['subscription.trialEndDate'] = Timestamp.fromDate(fourteenDays);
+        updates['subscription.currentPeriodEnd'] = Timestamp.fromDate(fourteenDays);
+        updates['status'] = 'active';
+      }
+    } else if (status === 'trial' || (typeof trialDays === 'number' && trialDays > 0)) {
       const days = typeof trialDays === 'number' && trialDays > 0 ? trialDays : 14;
       const trialEndDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
       updates['subscription.status'] = 'trial';
@@ -614,10 +651,18 @@ export const updateStoreSubscriptionStatus = onCall(
       'updateStoreSubscriptionStatus',
       storeId,
       'success',
-      { status, customMonthlyPrice, customAnnualPrice, discountPercent, trialDays, notes },
+      {
+        status,
+        customMonthlyPrice,
+        customAnnualPrice,
+        discountPercent,
+        trialDays,
+        notes,
+        simulateExpiration,
+      },
     );
 
-    return { success: true, storeId, status, updates };
+    return { success: true, storeId, status: updates['subscription.status'] || status, updates };
   },
 );
 

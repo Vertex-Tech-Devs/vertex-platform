@@ -697,11 +697,17 @@ describe('StoresService', () => {
     const result = await service.updateStoreSubscriptionStatus({
       storeId: 'store-1',
       status: 'complimentary',
+      simulateExpiration: 'imminent',
     });
     expect(mockHttpsCallable).toHaveBeenCalledWith(
       expect.anything(),
       'updateStoreSubscriptionStatus',
     );
+    expect(mockFn).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      status: 'complimentary',
+      simulateExpiration: 'imminent',
+    });
     expect(result.success).toBe(true);
   });
 

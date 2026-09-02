@@ -449,6 +449,7 @@ export class StoresService {
     discountPercent?: number | null;
     trialDays?: number | null;
     notes?: string;
+    simulateExpiration?: 'imminent' | 'grace_period' | 'expired_suspended' | 'reset_trial';
   }): Promise<{ success: boolean; storeId: string; status?: string }> {
     const fn = httpsCallable<
       typeof payload,
@@ -479,10 +480,22 @@ export interface StoreSubscriptionInfo {
     status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
     billingCycle?: 'monthly' | 'annual';
     amount?: number;
-    currentPeriodEnd?: { toDate?: () => Date; seconds?: number } | null;
+    currentPeriodEnd?:
+      | { toDate?: () => Date; seconds?: number; _seconds?: number }
+      | string
+      | Date
+      | null;
     trialDays?: number;
-    trialStartDate?: { toDate?: () => Date; seconds?: number } | null;
-    trialEndDate?: { toDate?: () => Date; seconds?: number } | null;
+    trialStartDate?:
+      | { toDate?: () => Date; seconds?: number; _seconds?: number }
+      | string
+      | Date
+      | null;
+    trialEndDate?:
+      | { toDate?: () => Date; seconds?: number; _seconds?: number }
+      | string
+      | Date
+      | null;
     customMonthlyPrice?: number;
     customAnnualPrice?: number;
     discountPercent?: number;
