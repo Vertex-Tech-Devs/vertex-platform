@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal, computed } from '@angular/core';
 import type { OnInit } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -85,10 +85,16 @@ export class StoreCreate implements OnInit {
     trialDays: [14, [Validators.min(1), Validators.max(365)]],
   });
 
+  readonly trialDaysSignal = toSignal(
+    this.form.get('trialDays')!.valueChanges,
+    { initialValue: 14 }
+  );
+
   readonly projectedTrialEndDate = computed(() => {
-    const days = +(this.form.get('trialDays')?.value || 14);
+    const raw = this.trialDaysSignal();
+    const days = +(raw || 14);
     const d = new Date();
-    d.setDate(d.getDate() + (isNaN(days) ? 14 : days));
+    d.setDate(d.getDate() + (isNaN(days) || days < 1 ? 14 : days));
     return d;
   });
 
