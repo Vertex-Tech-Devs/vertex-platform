@@ -1,7 +1,8 @@
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { ALLOWED_ORIGINS } from './helpers';
+import { ALLOWED_ORIGINS, PLATFORM_PROJECT } from './helpers';
+import { resolvePlatformEnvironment } from './runtime';
 import { logAuditAction } from './stores';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
@@ -18,16 +19,15 @@ export const DEFAULT_SUBSCRIPTION_PRICING = {
 };
 
 /**
- * Identifica si el usuario autenticado es el Administrador Principal (Juan)
- * con permisos exclusivos para modificar tarifas y credenciales de recaudación.
+ * Identifica si el usuario autenticado cuenta con el rol de Administrador de Recaudación Principal
+ * para la configuración segura de credenciales de pago y tesorería.
  */
-export function isJuanMasterAdmin(authEmail?: string): boolean {
+export function isMasterBillingAdmin(authEmail?: string): boolean {
   if (!authEmail) return false;
-  const masterEmails = [
-    'juan.l.espeche@gmail.com',
-    'vertex.tech.dev@gmail.com',
-  ];
-  return masterEmails.includes(authEmail.toLowerCase().trim());
+  const configuredMasters = process.env['MASTER_BILLING_ADMIN_EMAILS']
+    ? process.env['MASTER_BILLING_ADMIN_EMAILS'].split(',').map((e) => e.trim().toLowerCase())
+    : ['juan.l.espeche@gmail.com', 'vertex.tech.dev@gmail.com'];
+  return configuredMasters.includes(authEmail.toLowerCase().trim());
 }
 
 /**
@@ -99,7 +99,7 @@ export const getPlatformBillingConfig = onCall(
     }
 
     const email = request.auth.token.email;
-    const isMaster = isJuanMasterAdmin(email);
+    const isMaster = isMasterBillingAdmin(email);
     const pricing = await getEffectivePricing();
     const token = await getPlatformMercadoPagoAccessToken();
 
@@ -120,7 +120,7 @@ export const getPlatformBillingConfig = onCall(
 
 /**
  * Actualiza la configuración global de precios y credenciales de la plataforma.
- * EXCLUSIVO: Solo Juan (Master Admin) puede ejecutar esta acción.
+ * NOTA: La credencial central de recaudación requiere privilegios de Administrador de Recaudación.
  */
 export const updatePlatformBillingConfig = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -130,12 +130,7 @@ export const updatePlatformBillingConfig = onCall(
     }
 
     const email = request.auth.token.email;
-    if (!isJuanMasterAdmin(email)) {
-      throw new HttpsError(
-        'permission-denied',
-        'Acceso restringido: Esta configuración está protegida y solo puede ser modificada por el administrador principal.',
-      );
-    }
+    const isMaster = isMasterBillingAdmin(email);
 
     const { monthlyPrice, annualPrice, name, description, mpAccessToken } = request.data as {
       monthlyPrice?: number;
@@ -144,6 +139,14 @@ export const updatePlatformBillingConfig = onCall(
       description?: string;
       mpAccessToken?: string;
     };
+
+    // SEGURIDAD CRÍTICA: Solo Administradores de Recaudación pueden configurar o actualizar el token central
+    if (mpAccessToken && !isMaster) {
+      throw new HttpsError(
+        'permission-denied',
+        'Acceso restringido: El token de recaudación central de pagos requiere privilegios de Administrador de Recaudación.',
+      );
+    }
 
     const updates: Record<string, any> = {
       updatedAt: new Date(),
@@ -166,7 +169,7 @@ export const updatePlatformBillingConfig = onCall(
 
     if (name) updates['name'] = String(name).trim();
     if (description) updates['description'] = String(description).trim();
-    if (mpAccessToken) updates['mpAccessToken'] = String(mpAccessToken).trim();
+    if (mpAccessToken && isMaster) updates['mpAccessToken'] = String(mpAccessToken).trim();
 
     const db = getFirestore();
     await db.collection('platform_config').doc('billing').set(updates, { merge: true });
@@ -180,6 +183,8 @@ export const updatePlatformBillingConfig = onCall(
       {
         monthlyPrice,
         annualPrice,
+        name,
+        hasToken: Boolean(mpAccessToken),
         updatedFields: Object.keys(updates),
       },
     );
@@ -195,14 +200,11 @@ export const updatePlatformBillingConfig = onCall(
 /**
  * Genera el enlace de pago/suscripción en Mercado Pago para una tienda específica.
  * Soporta débito mensual automático (Preapproval) o pago único anual (Preference).
+ * Accesible tanto para administradores como para clientes desde la vista pública de pago.
  */
 export const createStoreSubscriptionLink = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
-    if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
-    }
-
     const { storeId, billingCycle = 'monthly', payerEmail } = request.data as {
       storeId: string;
       billingCycle?: 'monthly' | 'annual';
@@ -237,15 +239,25 @@ export const createStoreSubscriptionLink = onCall(
       finalAmount = Math.max(0, Math.round(finalAmount - discount));
     }
 
-    const targetEmail = payerEmail || storeData['ownerEmail'] || request.auth.token.email;
+    const targetEmail =
+      payerEmail ||
+      storeData['ownerEmail'] ||
+      request.auth?.token?.email ||
+      'facturacion@vertexcommerce.com';
     const mpAccessToken = await getPlatformMercadoPagoAccessToken();
     const storeName = storeData['name'] || storeId;
+
+    const platformEnv = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const platformBaseUrl =
+      platformEnv === 'development'
+        ? 'https://vertex-platform-dev.web.app'
+        : 'https://vertex-platform-app.web.app';
 
     if (billingCycle === 'monthly') {
       // MERCADO PAGO PREAPPROVAL API (Débito mensual automático)
       const payload = {
         payer_email: targetEmail,
-        back_url: `https://vertex-platform.web.app/stores/${storeId}?subscription=success`,
+        back_url: `${platformBaseUrl}/pay/${storeId}/success`,
         reason: `Vertex Store — ${storeName} (Mensual)`,
         external_reference: storeId,
         auto_recurring: {
@@ -306,9 +318,9 @@ export const createStoreSubscriptionLink = onCall(
           email: targetEmail,
         },
         back_urls: {
-          success: `https://vertex-platform.web.app/stores/${storeId}?subscription=success`,
-          pending: `https://vertex-platform.web.app/stores/${storeId}?subscription=pending`,
-          failure: `https://vertex-platform.web.app/stores/${storeId}?subscription=failure`,
+          success: `${platformBaseUrl}/pay/${storeId}/success`,
+          pending: `${platformBaseUrl}/pay/${storeId}?status=pending`,
+          failure: `${platformBaseUrl}/pay/${storeId}?status=failure`,
         },
         auto_return: 'approved',
         external_reference: `annual_${storeId}`,
@@ -327,7 +339,7 @@ export const createStoreSubscriptionLink = onCall(
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         console.error('[createStoreSubscriptionLink:annual] MP Error:', errBody);
-        throw new HttpsError('internal', `Error al crear preferencia en Mercado Pago: ${errBody?.message || response.statusText}`);
+        throw new HttpsError('internal', `Error al crear preferencia anual en Mercado Pago: ${errBody?.message || response.statusText}`);
       }
 
       const result = await response.json();
@@ -349,6 +361,95 @@ export const createStoreSubscriptionLink = onCall(
         amount: finalAmount,
       };
     }
+  },
+);
+
+/**
+ * Consulta la información pública necesaria para renderizar el formulario y portal de pago seguro (/pay/:storeId).
+ * NO requiere autenticación de administrador (abierto para clientes de la tienda).
+ */
+export const getPublicStoreSubscriptionInfo = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    const { storeIdOrSlug } = request.data as { storeIdOrSlug: string };
+    if (!storeIdOrSlug || typeof storeIdOrSlug !== 'string') {
+      throw new HttpsError('invalid-argument', 'El identificador o slug de la tienda es requerido.');
+    }
+
+    const db = getFirestore();
+    let storeDoc = await db.collection('stores').doc(storeIdOrSlug.trim()).get();
+
+    if (!storeDoc.exists) {
+      // Intentar buscar por slug
+      const slugQuery = await db
+        .collection('stores')
+        .where('slug', '==', storeIdOrSlug.trim().toLowerCase())
+        .limit(1)
+        .get();
+      if (!slugQuery.empty) {
+        storeDoc = slugQuery.docs[0];
+      }
+    }
+
+    if (!storeDoc.exists) {
+      throw new HttpsError('not-found', 'Tienda no encontrada.');
+    }
+
+    const storeId = storeDoc.id;
+    const data = storeDoc.data() || {};
+    const effectivePricing = await getEffectivePricing();
+    const subConfig = data['subscription'] || {};
+
+    let monthlyPrice = effectivePricing.monthlyPrice;
+    let annualPrice = effectivePricing.annualPrice;
+
+    if (typeof subConfig['customMonthlyPrice'] === 'number') {
+      monthlyPrice = subConfig['customMonthlyPrice'];
+    }
+    if (typeof subConfig['customAnnualPrice'] === 'number') {
+      annualPrice = subConfig['customAnnualPrice'];
+    }
+    const discountPercent =
+      typeof subConfig['discountPercent'] === 'number' ? subConfig['discountPercent'] : 0;
+    if (discountPercent > 0) {
+      monthlyPrice = Math.max(0, Math.round(monthlyPrice * (1 - discountPercent / 100)));
+      annualPrice = Math.max(0, Math.round(annualPrice * (1 - discountPercent / 100)));
+    }
+
+    // Calcular días restantes de trial
+    let trialDaysRemaining = 0;
+    const status = subConfig['status'] || 'trial';
+    if (status === 'trial') {
+      const endTs = subConfig['trialEndDate'] || subConfig['currentPeriodEnd'];
+      if (endTs) {
+        const endDate =
+          typeof endTs.toDate === 'function' ? endTs.toDate() : new Date((endTs.seconds || 0) * 1000);
+        trialDaysRemaining = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+      }
+    }
+
+    return {
+      storeId,
+      name: data['name'] || storeId,
+      slug: data['slug'] || storeId,
+      logoUrl: data['logoUrl'] || null,
+      defaultUrl: data['defaultUrl'] || `https://${data['slug'] || storeId}.web.app`,
+      ownerEmail: data['ownerEmail'] || null,
+      status: data['status'] || 'active',
+      subscriptionStatus: status,
+      trialDaysRemaining,
+      trialEndDate: subConfig['trialEndDate']?.toDate
+        ? subConfig['trialEndDate'].toDate().toISOString()
+        : null,
+      currentPeriodEnd: subConfig['currentPeriodEnd']?.toDate
+        ? subConfig['currentPeriodEnd'].toDate().toISOString()
+        : null,
+      monthlyPrice,
+      annualPrice,
+      baseMonthlyPrice: effectivePricing.monthlyPrice,
+      baseAnnualPrice: effectivePricing.annualPrice,
+      discountPercent: discountPercent > 0 ? discountPercent : null,
+    };
   },
 );
 
@@ -381,7 +482,7 @@ export const getStoreSubscription = onCall(
 
     const effectivePricing = await getEffectivePricing();
     const email = request.auth.token.email;
-    const isMaster = isJuanMasterAdmin(email);
+    const isMaster = isMasterBillingAdmin(email);
 
     return {
       storeId,
@@ -393,8 +494,9 @@ export const getStoreSubscription = onCall(
 );
 
 /**
- * Permite cambiar el estado de suscripción o aplicar descuentos/precios especiales a una tienda.
- * Restringido a Juan (Master Admin) o SuperAdmins.
+ * Permite cambiar el estado de suscripción (Activa, Cortesía / Gratis, Período de Prueba, Suspendida),
+ * o aplicar montos específicos, descuentos o períodos de prueba a una tienda.
+ * Disponible para administradores de plataforma autorizados.
  */
 export const updateStoreSubscriptionStatus = onCall(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -404,7 +506,6 @@ export const updateStoreSubscriptionStatus = onCall(
     }
 
     const email = request.auth.token.email;
-    const isMaster = isJuanMasterAdmin(email);
 
     const {
       storeId,
@@ -426,20 +527,6 @@ export const updateStoreSubscriptionStatus = onCall(
 
     if (!storeId) {
       throw new HttpsError('invalid-argument', 'El ID de la tienda es requerido.');
-    }
-
-    // Solo Juan puede modificar precios personalizados, descuentos o extender trials custom
-    if (
-      (customMonthlyPrice !== undefined ||
-        customAnnualPrice !== undefined ||
-        discountPercent !== undefined ||
-        (trialDays !== undefined && trialDays !== null && trialDays > 30)) &&
-      !isMaster
-    ) {
-      throw new HttpsError(
-        'permission-denied',
-        'Solo el administrador principal puede otorgar descuentos, precios especiales o períodos de prueba extendidos.',
-      );
     }
 
     const db = getFirestore();

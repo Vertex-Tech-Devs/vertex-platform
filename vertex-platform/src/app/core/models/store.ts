@@ -83,6 +83,10 @@ export interface CreateStorePayload {
   provisioningMode?: ProvisioningMode;
   includeMockData?: boolean;
   dedicatedProject?: boolean;
+  initialSubscriptionStatus?: 'trial' | 'complimentary' | 'active';
+  trialDays?: number;
+  customMonthlyPrice?: number;
+  customAnnualPrice?: number;
 }
 
 export interface StoreShard {

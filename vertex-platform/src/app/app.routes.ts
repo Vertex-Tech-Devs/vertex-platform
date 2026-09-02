@@ -7,6 +7,32 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/components/login/login').then((m) => m.Login),
   },
   {
+    path: 'pay/:id',
+    title: 'Suscripción de Tienda — Vertex',
+    loadComponent: () =>
+      import(
+        './features/public-checkout/components/subscription-checkout/subscription-checkout'
+      ).then((m) => m.SubscriptionCheckout),
+  },
+  {
+    path: 'pay/:id/success',
+    title: 'Suscripción Activada — Vertex',
+    loadComponent: () =>
+      import(
+        './features/public-checkout/components/subscription-success/subscription-success'
+      ).then((m) => m.SubscriptionSuccess),
+  },
+  {
+    path: 'subscribe/:id',
+    redirectTo: 'pay/:id',
+    pathMatch: 'full',
+  },
+  {
+    path: 'subscribe/:id/success',
+    redirectTo: 'pay/:id/success',
+    pathMatch: 'full',
+  },
+  {
     path: '',
     loadComponent: () => import('./layout/platform-layout').then((m) => m.PlatformLayout),
     canActivate: [authGuard],
