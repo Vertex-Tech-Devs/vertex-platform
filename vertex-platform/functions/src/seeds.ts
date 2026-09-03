@@ -304,6 +304,7 @@ export async function seedStoreData(
   const emailTemplatesPayload = {
     storeId: activeStoreId,
     storeOwnerEmail: effectiveOwnerEmail,
+    storeSenderEmail: 'no-reply@vertex-ecommerce.com',
     storeWhatsappNumber: '+54 9 11 4567-8900',
     adminNotification: {
       subject: `¡Nueva venta recibida en ${sName}! - Pedido #{orderId}`,
@@ -360,6 +361,7 @@ export async function seedStoreData(
       parentId: null,
       filterableAttributes: mappedFilterable,
       imageUrl: categoryImageUrl,
+      isFeatured: i < 3,
       storeId: activeStoreId,
       createdAt: new Date(),
       updatedAt: new Date(),

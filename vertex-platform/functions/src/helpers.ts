@@ -56,6 +56,11 @@ let cachedOwnerCreds: { client_id: string; client_secret: string; refresh_token:
 let cachedOwnerPool: ProvisioningOwnerCredentials[] | null = null;
 export const secretsClient = new SecretManagerServiceClient();
 
+export const DEFAULT_SANDBOX_PUBLIC_KEY =
+  process.env.DEFAULT_SANDBOX_PUBLIC_KEY || 'TEST-a354ba2d-3a48-441b-8d83-0179ef8f14eb';
+export const DEFAULT_SANDBOX_ACCESS_TOKEN =
+  process.env.DEFAULT_SANDBOX_ACCESS_TOKEN || 'TEST-151675204666-090317-defaultsandboxsampletoken-123456';
+
 function isMissingSecretError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes('404') || msg.toLowerCase().includes('not found');
@@ -206,6 +211,98 @@ export async function getDeployToken(): Promise<string> {
   });
   cachedDeployToken = version.payload!.data!.toString().trim();
   return cachedDeployToken;
+}
+
+export async function ensureShardSecurityPolicies(
+  targetProjectId: string,
+  providedAuth?: OAuth2Client,
+): Promise<void> {
+  const platformProjectId = PLATFORM_PROJECT;
+  const defaultShardProjectId =
+    PLATFORM_PROJECT === 'vertex-platform-dev' ? 'ecommerce-vertex-dev' : 'ecommerce-vertex';
+
+  let activeAuth = providedAuth;
+  if (!activeAuth) {
+    activeAuth = await getPlatformServiceAccountOAuthClient();
+  }
+
+  const saList = [
+    `${targetProjectId}@appspot.gserviceaccount.com`,
+    `${platformProjectId}@appspot.gserviceaccount.com`,
+    `${defaultShardProjectId}@appspot.gserviceaccount.com`,
+    `firebase-adminsdk-fbsvc@${platformProjectId}.iam.gserviceaccount.com`,
+    `firebase-adminsdk-fbsvc@${defaultShardProjectId}.iam.gserviceaccount.com`,
+  ];
+
+  try {
+    const res = (await apiFetch(
+      activeAuth,
+      `https://cloudresourcemanager.googleapis.com/v1/projects/${targetProjectId}`,
+    )) as { projectNumber?: string } | undefined;
+    if (res?.projectNumber) {
+      saList.push(`${res.projectNumber}-compute@developer.gserviceaccount.com`);
+    }
+  } catch (err) {
+    console.warn(`[ensureShardSecurityPolicies] Failed to fetch projectNumber for ${targetProjectId}:`, err);
+  }
+
+  const serviceAccounts = Array.from(new Set(saList));
+
+  let policy: { bindings: Array<{ role: string; members: string[] }>; etag: string } | null = null;
+  try {
+    policy = (await apiFetch(
+      activeAuth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${targetProjectId}:getIamPolicy`,
+      { method: 'POST', body: {} },
+    )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+  } catch (authErr) {
+    console.warn(`[ensureShardSecurityPolicies] Initial getIamPolicy failed, trying platform SA auth:`, authErr);
+    const platformAuth = await getPlatformServiceAccountOAuthClient();
+    activeAuth = platformAuth;
+    policy = (await apiFetch(
+      platformAuth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${targetProjectId}:getIamPolicy`,
+      { method: 'POST', body: {} },
+    )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
+  }
+
+  if (!policy) throw new Error(`Could not fetch IAM policy for project ${targetProjectId}`);
+
+  const rolesToEnsure = [
+    'roles/owner',
+    'roles/editor',
+    'roles/firebasehosting.admin',
+    'roles/firebaserules.admin',
+    'roles/datastore.owner',
+    'roles/datastore.user',
+    'roles/secretmanager.secretAccessor',
+    'roles/logging.logWriter',
+  ];
+
+  let modified = false;
+  for (const roleName of rolesToEnsure) {
+    let binding = policy.bindings?.find((b) => b.role === roleName);
+    if (!binding) {
+      binding = { role: roleName, members: [] };
+      policy.bindings = [...(policy.bindings ?? []), binding];
+    }
+    for (const sa of serviceAccounts) {
+      const member = `serviceAccount:${sa}`;
+      if (!binding.members.includes(member)) {
+        binding.members.push(member);
+        modified = true;
+      }
+    }
+  }
+
+  if (modified) {
+    await apiFetch(
+      activeAuth,
+      `https://cloudresourcemanager.googleapis.com/v3/projects/${targetProjectId}:setIamPolicy`,
+      { method: 'POST', body: { policy } },
+    );
+    console.info(`[ensureShardSecurityPolicies] Defensively granted IAM roles on ${targetProjectId}`);
+  }
 }
 
 export async function apiFetch(
