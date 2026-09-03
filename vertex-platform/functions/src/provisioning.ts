@@ -27,6 +27,9 @@ import {
   sendDirectEmail,
   notifyAdminNewStoreCreated,
   getPlatformServiceAccountOAuthClient,
+  ensureShardSecurityPolicies,
+  DEFAULT_SANDBOX_PUBLIC_KEY,
+  DEFAULT_SANDBOX_ACCESS_TOKEN,
 } from './helpers';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
@@ -2138,6 +2141,37 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       await setStep('initFirestore', 'running', null, 'Escribiendo configuración de la tienda...');
 
       const now = new Date().toISOString();
+      const secretRef = `tenants/${tenantId}/mp_access_token`;
+
+      // Provisionar secreto de Mercado Pago Sandbox en Secret Manager (idempotente)
+      try {
+        const mpSecretId = `mp-access-token-${tenantId}`;
+        try {
+          await apiFetch(
+            auth,
+            `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets?secretId=${mpSecretId}`,
+            { method: 'POST', body: { replication: { automatic: {} } } },
+          );
+        } catch (sErr) {
+          const msg = sErr instanceof Error ? sErr.message : String(sErr);
+          if (!msg.includes('409') && !msg.toLowerCase().includes('already')) {
+            console.warn(`[provisioning:initFirestore] Secret creation non-fatal: ${msg}`);
+          }
+        }
+        await apiFetch(
+          auth,
+          `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${mpSecretId}:addVersion`,
+          {
+            method: 'POST',
+            body: { payload: { data: Buffer.from(DEFAULT_SANDBOX_ACCESS_TOKEN).toString('base64') } },
+          },
+        );
+      } catch (smErr) {
+        console.warn(
+          `[provisioning:initFirestore] MP sandbox token secret setup non-fatal fallback: ${smErr instanceof Error ? smErr.message : String(smErr)}`,
+        );
+      }
+
       // El sufijo de los docs singleton y el campo storeId usan el tenantId (slug),
       // que es el storeId que el storefront resuelve vía resolveTenantId().
       const configPath = `configuracion/store_${tenantId}`;
@@ -2203,21 +2237,27 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                     mapValue: {
                       fields: {
                         mercadoPagoPublicKey: {
-                          stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                          stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
                         },
                         mercadoPago: {
                           mapValue: {
                             fields: {
+                              enabled: { booleanValue: true },
+                              sandboxMode: { booleanValue: true },
                               publicKey: {
-                                stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                                stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
                               },
-                              accessTokenSecret: { stringValue: 'mp-access-token-default' },
-                              accessTokenMasked: { stringValue: 'APP_USR-1516****4666' },
+                              hasToken: { booleanValue: true },
+                              secretRef: { stringValue: secretRef },
+                              _sandboxFallbackToken: { stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN },
+                              accessTokenSecret: { stringValue: `mp-access-token-${tenantId}` },
+                              accessTokenMasked: { stringValue: 'TEST-1516****4666' },
                               webhookUrl: { stringValue: '' },
                               validationStatus: { stringValue: 'valid' },
                               validationMessage: {
                                 stringValue: 'Credenciales de prueba predeterminadas de Vertex.',
                               },
+                              updatedAt: { timestampValue: now },
                             },
                           },
                         },
@@ -2396,22 +2436,28 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                           mapValue: {
                             fields: {
                               mercadoPagoPublicKey: {
-                                stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                                stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
                               },
                               mercadoPago: {
                                 mapValue: {
                                   fields: {
+                                    enabled: { booleanValue: true },
+                                    sandboxMode: { booleanValue: true },
                                     publicKey: {
-                                      stringValue: 'APP_USR-a354ba2d-3a48-441b-8d83-0179ef8f14eb',
+                                      stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
                                     },
-                                    accessTokenSecret: { stringValue: 'mp-access-token-default' },
-                                    accessTokenMasked: { stringValue: 'APP_USR-1516****4666' },
+                                    hasToken: { booleanValue: true },
+                                    secretRef: { stringValue: `tenants/${tenantId}/mp_access_token` },
+                                    _sandboxFallbackToken: { stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN },
+                                    accessTokenSecret: { stringValue: `mp-access-token-${tenantId}` },
+                                    accessTokenMasked: { stringValue: 'TEST-1516****4666' },
                                     webhookUrl: { stringValue: '' },
                                     validationStatus: { stringValue: 'valid' },
                                     validationMessage: {
                                       stringValue:
                                         'Credenciales de prueba predeterminadas de Vertex.',
                                     },
+                                    updatedAt: { timestampValue: now },
                                   },
                                 },
                               },
@@ -2482,6 +2528,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 fields: {
                   storeId: { stringValue: tenantId },
                   storeOwnerEmail: { stringValue: ownerEmail },
+                  storeSenderEmail: { stringValue: 'no-reply@vertex-ecommerce.com' },
                   storeWhatsappNumber: { stringValue: '' },
                   storeName: { stringValue: name },
                   adminNotification: {
@@ -3103,6 +3150,12 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         { method: 'POST', body: { policy } },
       );
       console.info(`[ensureShardProjectIam] Defensively granted IAM roles on ${projectId}`);
+    }
+
+    try {
+      await ensureShardSecurityPolicies(projectId, activeAuth);
+    } catch (secErr) {
+      console.warn(`[ensureShardProjectIam] ensureShardSecurityPolicies non-fatal warning on ${projectId}:`, secErr);
     }
   }
 
