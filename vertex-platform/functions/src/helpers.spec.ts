@@ -1,4 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('@google-cloud/secret-manager', () => {
+  return {
+    SecretManagerServiceClient: class {
+      accessSecretVersion = vi.fn().mockRejectedValue(new Error('Secret not found in test'));
+    },
+  };
+});
+
 import { pickBillingAccount, retry } from './helpers';
 import type { Firestore } from 'firebase-admin/firestore';
 
