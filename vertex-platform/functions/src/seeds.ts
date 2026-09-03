@@ -64,7 +64,7 @@ export async function seedStoreData(
 
   const featuredCats = isModeEmpty
     ? []
-    : preset.featuredCategories.map((fc) => ({
+    : preset.featuredCategories.slice(0, 3).map((fc) => ({
         categoryId: categoryIdMap.get(fc.slug) ?? `${activeStoreId}-cat-${fc.slug}`,
         name: fc.name,
         slug: fc.slug,

@@ -1615,8 +1615,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         auth,
         `https://firebase.googleapis.com/v1beta1/projects/${projectId}:addFirebase`,
         { method: 'POST', body: {} },
-      )) as { name: string };
-      await pollOperation(auth, op.name, 'https://firebase.googleapis.com/v1beta1');
+      )) as { name?: string };
+      if (op?.name) {
+        await pollOperation(auth, op.name, 'https://firebase.googleapis.com/v1beta1');
+      }
 
       // Verificación de propagación: el proyecto recién creado debe estar disponible
       // en Firebase Management antes de continuar (evita 404 NOT_FOUND en webApps/sites).
