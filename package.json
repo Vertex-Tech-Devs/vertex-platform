@@ -1,6 +1,6 @@
 {
   "name": "vertex-monorepo",
-  "version": "0.8.0",
+  "version": "0.8.5",
   "private": true,
   "workspaces": [
     "vertex-platform",
@@ -52,7 +52,9 @@
   },
   "overrides": {
     "@babel/core": "^7.29.7",
-    "qs": "^6.15.2",
+    "qs": ">=6.16.0",
+    "browserslist": ">=4.28.8",
+    "fast-uri": ">=3.1.7",
     "quill": "2.0.2",
     "uuid": "^11.1.1",
     "ws": ">=8.20.1",
