@@ -158,6 +158,7 @@ async function ensureAuthorizedDomains(
   const projConfig = (await apiFetch(
     auth,
     `https://identitytoolkit.googleapis.com/admin/v2/projects/${targetProjectId}/config`,
+    { quotaProject: PLATFORM_PROJECT },
   )) as { authorizedDomains?: string[] };
 
   const existingDomains = (projConfig.authorizedDomains ?? [])
@@ -175,6 +176,7 @@ async function ensureAuthorizedDomains(
       {
         method: 'PATCH',
         body: { authorizedDomains: nextDomains },
+        quotaProject: PLATFORM_PROJECT,
       },
     );
     console.info(
@@ -3204,11 +3206,18 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         }
       }
 
-      await retry(
-        () => ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain }),
-        3,
-        5000,
-      );
+      try {
+        await retry(
+          () => ensureStoreAuthDomains(auth, { storeId, projectId, runtimeSiteId, customDomain }),
+          3,
+          5000,
+        );
+      } catch (authDomainErr) {
+        console.warn(
+          `[provisioning:triggerDeploy] ensureStoreAuthDomains non-fatal warning on ${projectId}:`,
+          authDomainErr,
+        );
+      }
 
       // Defensively ensure IAM permissions are granted on the target project before dispatching GitHub Action
       try {
