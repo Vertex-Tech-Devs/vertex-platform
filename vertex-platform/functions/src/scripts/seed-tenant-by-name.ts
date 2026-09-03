@@ -77,7 +77,7 @@ async function seedTechnologyStore(): Promise<void> {
     attributeIdMap.set(attr.code, `${storeId}-attr-${attr.code}`);
   });
 
-  const featuredCats = preset.featuredCategories.map((fc) => ({
+  const featuredCats = preset.featuredCategories.slice(0, 3).map((fc) => ({
     ...fc,
     categoryId: categoryIdMap.get(fc.slug) ?? `${storeId}-cat-${fc.slug}`,
   }));
