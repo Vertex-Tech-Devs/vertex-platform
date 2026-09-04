@@ -1528,6 +1528,22 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     }
   }
 
+  // ── Bootstrap IAM temprano (inversión de dependencias) ────────────────
+  // Otorgar al orchestrator/platform los roles sobre el shard INMEDIATAMENTE después
+  // de crear/seleccionar el proyecto (no esperar a grantAccess/initFirestore), para
+  // que pasos posteriores (enableApis, initFirestore → crear secretos) no fallen con
+  // 403 PERMISSION_DENIED por falta de propagación del binding.
+  try {
+    await ensureShardProjectIam(auth, projectId);
+  } catch (earlyIamErr) {
+    const earlyIamMsg =
+      earlyIamErr instanceof Error ? earlyIamErr.message : String(earlyIamErr);
+    console.warn(
+      `[provisioning:createProject] Early ensureShardProjectIam warning on ${projectId}: ${earlyIamMsg}. ` +
+        `initFirestore volverá a intentarlo (auto-heal).`,
+    );
+  }
+
   // ── Step 2: Link billing ───────────────────────────────────────────────
   if (!isDone('linkBilling')) {
     await setStep('linkBilling', 'running', null, 'Asignando cuenta de facturación activa...');
@@ -1686,6 +1702,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             serviceIds: [
               'firestore.googleapis.com',
               'identitytoolkit.googleapis.com',
+              'firebase.googleapis.com',
+              'iam.googleapis.com',
               'storage.googleapis.com',
               'firebasestorage.googleapis.com',
               'appengine.googleapis.com',
@@ -3137,8 +3155,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       // Firestore de cada shard (orden, catálogo, stock) → datastore.owner en el shard.
       'roles/datastore.owner',
       'roles/datastore.user',
-      // Secret Manager accessor para lectura de SMTP_PASSWORD y credenciales en Cloud Functions
+      // Secret Manager: accessor (lectura) + admin (crear secretos/versiones: el 403
+      // de initFirestore era en :addVersion, que secretAccessor NO permite).
       'roles/secretmanager.secretAccessor',
+      'roles/secretmanager.admin',
+      // Firebase Admin + Service Account User para el orchestrator del platform
+      'roles/firebase.admin',
+      'roles/iam.serviceAccountUser',
     ];
 
     let modified = false;
