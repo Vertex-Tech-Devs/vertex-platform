@@ -3195,3 +3195,127 @@
 .payments-container:has(#pagos-sub-gateway:checked) .payments-grid {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
 }
+
+/* ============================================================
+   Pagos & Facturación — Modernización Stripe/Linear (v0.8.7)
+   Scope: solo .payments-container. No toca otros tabs ni TS.
+   ============================================================ */
+.payments-container {
+  /* Jerarquía tipográfica */
+  .detail-card__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .form-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 0.4rem;
+  }
+
+  .text-xs {
+    font-size: 0.72rem;
+  }
+
+  /* Inputs y selects: fondo oscuro + foco índigo + esquinas suaves */
+  .form-control,
+  .form-select {
+    background: rgba(2, 6, 23, 0.55) !important;
+    border: 1px solid rgba(51, 65, 85, 0.7) !important;
+    color: #f1f5f9 !important;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:focus {
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
+      background: rgba(2, 6, 23, 0.75) !important;
+    }
+
+    &::placeholder {
+      color: #64748b;
+    }
+  }
+
+  .input-group-text {
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    color: #94a3b8;
+  }
+
+  /* Badges como pastillas sutiles */
+  .badge {
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .mp-validation-badge {
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.78rem;
+
+    &--valid {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+  }
+
+  /* Stat card ejecutiva (tarifa vigente) */
+  .sub-pricing-summary {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.85));
+    border: 1px solid rgba(51, 65, 85, 0.6);
+    border-radius: 0.9rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.18);
+
+    .h4 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  /* Herramientas de QA / laboratorio: card secundaria delineada */
+  .qa-tools-content,
+  .qa-simulation-box {
+    background: rgba(2, 6, 23, 0.45);
+    border: 1px dashed rgba(100, 116, 139, 0.45);
+    border-radius: 0.8rem;
+  }
+
+  .accordion-button {
+    background: transparent;
+    color: #e2e8f0;
+
+    &::after {
+      filter: invert(1) opacity(0.7);
+    }
+  }
+
+  /* Botones de acción rápidos: limpios, pill */
+  .sub-link-actions .btn {
+    border-radius: 999px;
+    font-weight: 600;
+    padding: 0.5rem 1.1rem;
+  }
+
+  /* Swatch + input de color alineados sin desbordes */
+  .input-copy-wrapper,
+  .input-password-wrapper {
+    max-width: 100%;
+  }
+
+  .form-control-color {
+    border-radius: 0.5rem;
+  }
+}
