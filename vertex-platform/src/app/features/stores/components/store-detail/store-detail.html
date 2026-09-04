@@ -1368,6 +1368,28 @@
                 <div class="skeleton skeleton--btn"></div>
               </div>
             } @else {
+              <!-- Sub-tabs segmentados: Suscripción SaaS | Pasarela Mercado Pago (CSS-only, sin TS) -->
+              <div class="payments-segment" role="tablist" aria-label="Secciones de Pagos y Facturación">
+                <input
+                  type="radio"
+                  id="pagos-sub-saas"
+                  class="payments-segment__radio"
+                  name="pagos-sub"
+                  checked
+                />
+                <label class="payments-segment__pill" for="pagos-sub-saas" role="tab">
+                  <i class="bi bi-box-seam"></i> Suscripción & Plan SaaS
+                </label>
+                <input
+                  type="radio"
+                  id="pagos-sub-gateway"
+                  class="payments-segment__radio"
+                  name="pagos-sub"
+                />
+                <label class="payments-segment__pill" for="pagos-sub-gateway" role="tab">
+                  <i class="bi bi-credit-card-2-front"></i> Pasarela del Comercio (Mercado Pago)
+                </label>
+              </div>
               <div class="payments-grid">
                 <!-- SaaS Subscription Vertex Card -->
                 <div class="detail-card detail-card--saas">
