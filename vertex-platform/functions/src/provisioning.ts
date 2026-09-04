@@ -2097,6 +2097,20 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
       // Auto-heal: asegurar que la API de Firestore esté habilitada antes de operar
       await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
 
+      // Auto-heal IAM: en shards NUEVOS el binding secretmanager para el caller del
+      // platform se otorga recién en grantAccess (paso 9), pero initFirestore (paso 6)
+      // ya crea el secreto mp-access-token-{storeId} en el shard → 403 PERMISSION_DENIED
+      // con reintentos que agotan el timeout y dejan el paso 'running' para siempre.
+      // Otorgar el binding acá (idempotente) evita el tildado en el primer shard.
+      try {
+        await ensureShardProjectIam(auth, projectId);
+      } catch (iamErr) {
+        const iamMsg = iamErr instanceof Error ? iamErr.message : String(iamErr);
+        console.warn(
+          `[provisioning:initFirestore] ensureShardProjectIam warning on ${projectId}: ${iamMsg}. Continuando...`,
+        );
+      }
+
       if (runtimeMode !== 'shared-shard') {
         await setStep('initFirestore', 'running', null, 'Inicializando base de datos...');
         try {
