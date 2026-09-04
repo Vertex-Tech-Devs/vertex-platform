@@ -236,8 +236,20 @@ export class StoresService {
       { storeId: string; domain: string },
       { success: boolean; dnsRecords: RawDnsRecord[] }
     >(this.fns, 'connectDomain');
-    const result = await fn({ storeId, domain });
+    // Sanitización determinista en el cliente (misma regla que el backend).
+    const clean = this.sanitizeDomain(domain);
+    const result = await fn({ storeId, domain: clean });
     return { dnsRecords: mapDnsRecords(result.data.dnsRecords) };
+  }
+
+  /** Normaliza un dominio ingresado por el usuario (protocolo/www/puertos/paths). */
+  private sanitizeDomain(raw: string): string {
+    let d = String(raw ?? '').trim().toLowerCase();
+    d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+    d = (d.split(/[/?#]/)[0] || d).trim();
+    d = d.replace(/:\d{1,5}$/, '');
+    d = d.replace(/^www\./, '');
+    return d.replace(/\.+$/, '').trim();
   }
 
   async updateStore(
