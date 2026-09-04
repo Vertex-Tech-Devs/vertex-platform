@@ -1382,6 +1382,20 @@ export const processRuntimeCleanupTask = onDocumentCreated(
   },
 );
 
+/**
+ * Sanitización universal de dominios (backend): quita protocolo, 'www.', barras,
+ * paths, puertos y normaliza a minúsculas. Permite ccTLDs (.com.ar) y subdominios.
+ */
+function sanitizeDomainName(raw: string): string {
+  let d = String(raw ?? '').trim().toLowerCase();
+  d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//i, ''); // http:// https://
+  d = (d.split(/[/?#]/)[0] || d).trim(); // quitar path/query/hash
+  d = d.replace(/:\d{1,5}$/, ''); // puerto
+  d = d.replace(/^www\./, ''); // www. inicial
+  d = d.replace(/\.+$/, ''); // puntos finales
+  return d.trim();
+}
+
 export const connectDomain = onCall<{ storeId: string; domain: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -1389,17 +1403,22 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       throw new HttpsError('permission-denied', 'Only platform admins can connect domains.');
     }
 
-    const { storeId, domain } = request.data;
+    const { storeId, domain: rawDomain } = request.data;
     if (!storeId || !/^[a-zA-Z0-9_-]{1,100}$/.test(storeId)) {
       throw new HttpsError('invalid-argument', 'Invalid storeId.');
     }
+    // Sanitización determinista + regex compatible con ccTLDs y subdominios.
+    const domain = sanitizeDomainName(rawDomain);
     if (
       !domain ||
-      !/^(?!.*\.\.)(?!.*\.$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(
+      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i.test(
         domain,
       )
     ) {
-      throw new HttpsError('invalid-argument', 'Invalid domain format.');
+      throw new HttpsError(
+        'invalid-argument',
+        'Formato de dominio inválido. Usá un dominio sin protocolo (ej.: miempresa.com.ar).',
+      );
     }
 
     await checkRateLimit(request.auth?.uid, 'connectDomain', 10, 15);
