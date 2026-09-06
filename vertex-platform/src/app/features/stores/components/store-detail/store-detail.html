@@ -2073,6 +2073,46 @@
                         >Token privado. Se guarda encriptado de forma segura en Google Cloud Secret
                         Manager.</span
                       >
+                      <div class="mp-ping mt-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-info btn-sm rounded-pill"
+                          (click)="testMpConnection()"
+                          [disabled]="mpPinging() || !mpAccessToken().trim()"
+                        >
+                          @if (mpPinging()) {
+                            <span class="spinner-border spinner-border-sm me-1"></span> Consultando…
+                          } @else {
+                            <i class="bi bi-activity me-1"></i> Probar Conexión con Mercado Pago
+                          }
+                        </button>
+                        @if (!mpTokenMasked()) {
+                          <span class="mp-master-badge"
+                            >Modo Sandbox — Token Maestro Vertex activo. El checkout usa las
+                            credenciales maestras de prueba hasta que cargues las del cliente.</span
+                          >
+                        }
+                      </div>
+                      @if (mpPingResult(); as ping) {
+                        <div
+                          class="mp-ping-result"
+                          [class.mp-ping-result--ok]="ping.ok"
+                          [class.mp-ping-result--err]="!ping.ok"
+                        >
+                          @if (ping.ok && ping.account) {
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span
+                              ><strong>Conexión exitosa:</strong>
+                              {{ ping.account.nickname || '—' }}
+                              ({{ ping.account.email || '—' }}) · collector
+                              {{ ping.account.id ?? '—' }}</span
+                            >
+                          } @else {
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>{{ ping.message }}</span>
+                          }
+                        </div>
+                      }
                     </div>
 
                     <!-- Sandbox Toggle -->

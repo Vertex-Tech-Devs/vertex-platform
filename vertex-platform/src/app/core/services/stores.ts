@@ -252,6 +252,19 @@ export class StoresService {
     return d.replace(/\.+$/, '').trim();
   }
 
+  /**
+   * pingMercadoPagoConnection — health check en vivo contra Mercado Pago.
+   * Devuelve el titular de la cuenta (nickname, email, collector) o el error de MP.
+   */
+  async pingMercadoPagoConnection(accessToken: string): Promise<MpPingResponse> {
+    const fn = httpsCallable<{ accessToken: string }, MpPingResponse>(
+      this.fns,
+      'pingMercadoPagoConnection',
+    );
+    const result = await fn({ accessToken });
+    return result.data;
+  }
+
   async updateStore(
     id: string,
     data: Partial<Pick<Store, 'name' | 'ownerEmail' | 'logoUrl' | 'autoUpdate'>>,
@@ -472,8 +485,14 @@ export class StoresService {
   }
 }
 
-export interface PlatformBillingConfig {
-  pricing: {
+export interface MpPingResponse {
+  ok: boolean;
+  account?: { id?: number | string | null; email?: string; nickname?: string };
+  message?: string;
+  status?: number;
+}
+
+export interface PlatformBillingConfig {  pricing: {
     name: string;
     description: string;
     monthlyPrice: number;

@@ -180,6 +180,13 @@ export class StoreDetail implements OnInit {
   // ── Mercado Pago ──────────────────────────────────────────────────────────
   readonly mpPublicKey = signal('');
   readonly mpAccessToken = signal('');
+  readonly mpPinging = signal(false);
+  readonly mpPingResult = signal<{
+    ok: boolean;
+    account?: { id?: number | string | null; email?: string; nickname?: string };
+    message?: string;
+    status?: number;
+  } | null>(null);
   readonly mpSandbox = signal(false);
   readonly showMpToken = signal(false);
   readonly isSavingPayment = signal(false);
@@ -534,6 +541,31 @@ export class StoreDetail implements OnInit {
   copyWebhookUrl(storeId: string): Promise<void> {
     const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
+  }
+
+  /** Health check en vivo: prueba el Access Token contra api.mercadopago.com/users/me. */
+  async testMpConnection(): Promise<void> {
+    const token = this.mpAccessToken().trim();
+    if (!token) {
+      this.mpPingResult.set({
+        ok: false,
+        message: 'Ingresá el Access Token para probar la conexión con Mercado Pago.',
+      });
+      return;
+    }
+    this.mpPinging.set(true);
+    this.mpPingResult.set(null);
+    try {
+      const result = await this.storesService.pingMercadoPagoConnection(token);
+      this.mpPingResult.set(result);
+    } catch (err) {
+      this.mpPingResult.set({
+        ok: false,
+        message: errorMessage(err, 'No se pudo conectar con Mercado Pago.'),
+      });
+    } finally {
+      this.mpPinging.set(false);
+    }
   }
 
   async loadStoreSubscription(storeId: string): Promise<void> {

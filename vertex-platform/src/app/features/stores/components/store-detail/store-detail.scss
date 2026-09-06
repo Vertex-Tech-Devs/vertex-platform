@@ -3319,3 +3319,46 @@
     border-radius: 0.5rem;
   }
 }
+
+/* Health check Mercado Pago + banner maestro (Bloque 3) */
+.mp-ping {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.mp-master-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+}
+
+.mp-ping-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  margin-top: 0.6rem;
+
+  &--ok {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+  }
+
+  &--err {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.28);
+  }
+}
