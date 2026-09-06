@@ -311,7 +311,27 @@ export async function apiFetch(
   options: { method?: string; body?: unknown; quotaProject?: string } = {},
 ): Promise<unknown> {
   const maxAttempts = 10;
+  const startedAt = Date.now();
+  const MAX_RETRY_MS = 60_000; // circuit breaker: máx 60s acumulados por sub-tarea
   let delayMs = 3000;
+  let lastIamError = '';
+  const canRetry = (i: number) => i < maxAttempts - 1 && Date.now() - startedAt < MAX_RETRY_MS;
+  const sleepBackoff = (i: number, msg: string) => {
+    const jitter = Math.floor(Math.random() * 1000);
+    const currentDelay = Math.min(delayMs + jitter, 45000);
+    console.warn(`[apiFetch] ${msg} Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`);
+    return new Promise((r) => setTimeout(r, currentDelay)).then(() => {
+      delayMs = Math.min(delayMs * 2, 45000);
+    });
+  };
+  const iamError = (detail: string) => {
+    const e = new Error(
+      `IAM_PROPAGATION_FAILED: permiso insuficiente o en propagación sobre el proyecto destino. ` +
+        `Revisar bindings del Orchestrator (secretmanager.admin, datastore.owner, firebase.admin, iam.serviceAccountUser). ${detail}`,
+    ) as Error & { code?: string };
+    e.code = 'IAM_PROPAGATION_FAILED';
+    return e;
+  };
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const tokenRes = await auth.getAccessToken();
@@ -327,56 +347,41 @@ export async function apiFetch(
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       });
-      if ((res.status === 429 || res.status === 503) && i < maxAttempts - 1) {
-        const jitter = Math.floor(Math.random() * 1000);
-        const currentDelay = delayMs + jitter;
-        console.warn(
-          `[apiFetch] Rate limited / Service unavailable (${res.status}) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
-        );
-        await new Promise((r) => setTimeout(r, currentDelay));
-        delayMs = Math.min(delayMs * 2, 45000);
+      if (res.status === 429 || res.status === 503) {
+        if (!canRetry(i)) break;
+        await sleepBackoff(i, `Rate limited / Service unavailable (${res.status}) on ${url}.`);
         continue;
       }
       if (!res.ok) {
         const text = await res.text();
-        if (
-          (res.status === 429 || text.includes('RESOURCE_EXHAUSTED') || text.includes('429')) &&
-          i < maxAttempts - 1
-        ) {
-          const jitter = Math.floor(Math.random() * 1000);
-          const currentDelay = delayMs + jitter;
-          console.warn(
-            `[apiFetch] Quota/Rate limit exhausted on ${url}: ${text}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
-          );
-          await new Promise((r) => setTimeout(r, currentDelay));
-          delayMs = Math.min(delayMs * 2, 45000);
+        if (res.status === 429 || text.includes('RESOURCE_EXHAUSTED') || text.includes('429')) {
+          if (!canRetry(i)) break;
+          await sleepBackoff(i, `Quota/Rate limit exhausted on ${url}: ${text}.`);
           continue;
         }
-        if (
+        const isIamPropagation =
           res.status === 403 &&
           (text.includes('CONSUMER_INVALID') ||
-            text.includes('Permission denied on resource project')) &&
-          i < maxAttempts - 1
-        ) {
-          const jitter = Math.floor(Math.random() * 1000);
-          const currentDelay = delayMs + jitter;
-          console.warn(
-            `[apiFetch] API propagation delay (CONSUMER_INVALID / 403) on ${url}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
-          );
-          await new Promise((r) => setTimeout(r, currentDelay));
-          delayMs = Math.min(delayMs * 2, 45000);
+            text.includes('Permission denied on resource project') ||
+            text.includes('UNAUTHORIZED') ||
+            text.toLowerCase().includes('secretmanager'));
+        if (isIamPropagation) {
+          lastIamError = text.slice(0, 300);
+          if (!canRetry(i)) throw iamError(text.slice(0, 200));
+          await sleepBackoff(i, `API propagation delay / IAM (403) on ${url}.`);
           continue;
         }
         if (
-          (text.includes('USER_PROJECT_DENIED') ||
-            (res.status === 403 && text.includes('serviceusage'))) &&
-          options.quotaProject
+          text.includes('USER_PROJECT_DENIED') ||
+          (res.status === 403 && text.includes('serviceusage'))
         ) {
-          console.warn(
-            `[apiFetch] USER_PROJECT_DENIED with quotaProject ${options.quotaProject}. Retrying without quota project header...`,
-          );
-          delete options.quotaProject;
-          continue;
+          if (options.quotaProject) {
+            console.warn(
+              `[apiFetch] USER_PROJECT_DENIED with quotaProject ${options.quotaProject}. Retrying without quota project header...`,
+            );
+            delete options.quotaProject;
+            continue;
+          }
         }
         throw new Error(`${res.status} ${res.statusText}: ${text}`);
       }
@@ -384,24 +389,21 @@ export async function apiFetch(
     } catch (err) {
       const errStr = String(err);
       if (
-        i < maxAttempts - 1 &&
+        canRetry(i) &&
         (errStr.includes('429') ||
           errStr.includes('RESOURCE_EXHAUSTED') ||
           errStr.includes('503') ||
           errStr.includes('CONSUMER_INVALID') ||
           errStr.includes('Permission denied on resource project'))
       ) {
-        const jitter = Math.floor(Math.random() * 1000);
-        const currentDelay = delayMs + jitter;
-        console.warn(
-          `[apiFetch] Transient/Propagation error on ${url}: ${errStr}. Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
-        );
-        await new Promise((r) => setTimeout(r, currentDelay));
-        delayMs = Math.min(delayMs * 2, 45000);
+        await sleepBackoff(i, `Transient/Propagation error on ${url}: ${errStr}.`);
         continue;
       }
       throw err;
     }
+  }
+  if (lastIamError) {
+    throw iamError(lastIamError);
   }
   throw new Error(`Max retry attempts reached for apiFetch: ${url}`);
 }

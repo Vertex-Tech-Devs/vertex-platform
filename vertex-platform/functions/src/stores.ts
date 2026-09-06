@@ -458,6 +458,56 @@ function maskToken(token: string): string {
   return `${trimmed.slice(0, 4)}****${trimmed.slice(-4)}`;
 }
 
+/**
+ * pingMercadoPagoConnection — Health check en vivo contra Mercado Pago.
+ * Llama a GET https://api.mercadopago.com/users/me con el token provisto y
+ * devuelve el titular de la cuenta (nickname, email, collector_id) o un error
+ * accionable. Nunca persiste el token.
+ */
+export const pingMercadoPagoConnection = onCall<{ accessToken: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can test MP credentials.');
+    }
+    const accessToken = String(request.data?.accessToken ?? '').trim();
+    if (!accessToken) {
+      throw new HttpsError('invalid-argument', 'El Access Token de Mercado Pago es obligatorio.');
+    }
+    try {
+      const res = await fetch('https://api.mercadopago.com/users/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+      });
+      if (!res.ok) {
+        const details = await res.text();
+        return {
+          ok: false,
+          status: res.status,
+          message: `Mercado Pago respondió ${res.status}: ${details.slice(0, 300)}`,
+        };
+      }
+      const user = (await res.json()) as {
+        id?: number | string;
+        email?: string;
+        nickname?: string;
+      };
+      return {
+        ok: true,
+        account: {
+          id: user.id ?? null,
+          email: user.email ?? '',
+          nickname: user.nickname ?? '',
+        },
+        prefix: maskToken(accessToken).slice(0, 12),
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ok: false, status: 0, message: `Error de conexión: ${msg}` };
+    }
+  },
+);
+
 async function validateMercadoPagoCredentials(
   accessToken: string,
   webhookUrl?: string,
