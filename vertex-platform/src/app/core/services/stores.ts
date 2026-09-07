@@ -265,6 +265,36 @@ export class StoresService {
     return result.data;
   }
 
+  /** Estado en vivo del dominio (getDomainStatus callable). */
+  async getDomainStatus(storeId: string, domain: string): Promise<DomainStatusResponse> {
+    const fn = httpsCallable<{ storeId: string; domain: string }, DomainStatusResponse>(
+      this.fns,
+      'getDomainStatus',
+    );
+    const result = await fn({ storeId, domain });
+    return result.data;
+  }
+
+  /** Desvincula el dominio (disconnectDomain callable). */
+  async disconnectDomain(storeId: string, domain: string): Promise<{ success: boolean }> {
+    const fn = httpsCallable<{ storeId: string; domain: string }, { success: boolean }>(
+      this.fns,
+      'disconnectDomain',
+    );
+    const result = await fn({ storeId, domain });
+    return result.data;
+  }
+
+  /** Auto-heal de shards (triggerHealShards callable). */
+  async triggerHealShards(): Promise<HealShardsReport> {
+    const fn = httpsCallable<Record<string, never>, HealShardsReport>(
+      this.fns,
+      'triggerHealShards',
+    );
+    const result = await fn({});
+    return result.data;
+  }
+
   async updateStore(
     id: string,
     data: Partial<Pick<Store, 'name' | 'ownerEmail' | 'logoUrl' | 'autoUpdate'>>,
@@ -483,6 +513,20 @@ export class StoresService {
     const result = await fn(payload);
     return result.data;
   }
+}
+
+export interface DomainStatusResponse {
+  success: boolean;
+  domain?: string;
+  status?: 'PENDING_DNS' | 'VALIDATING' | 'ACTIVE';
+  sslStatus?: string;
+  dnsRecords?: { aRecords: string[]; txtRecord?: string };
+}
+
+export interface HealShardsReport {
+  success: boolean;
+  shards: number;
+  results: Array<{ shard: string; apis: string; iam: string; status: string }>;
 }
 
 export interface MpPingResponse {
