@@ -30,7 +30,9 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": [
+              "src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {
@@ -84,7 +86,9 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "exclude": ["**/functions/**"],
+            "exclude": [
+              "**/functions/**"
+            ],
             "coverage": true,
             "coverageExclude": [
               "**/*.html",
@@ -97,19 +101,28 @@
               "src/app/features/settings/components/subscriptions/**",
               "src/app/features/stores/components/store-create/**"
             ],
-            "coverageReporters": ["html", "json-summary", "lcov", "text-summary"],
+            "coverageReporters": [
+              "html",
+              "json-summary",
+              "lcov",
+              "text-summary"
+            ],
             "coverageThresholds": {
               "statements": 95,
               "branches": 95,
               "functions": 95,
               "lines": 95
-            }
+            },
+            "isolate": true
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

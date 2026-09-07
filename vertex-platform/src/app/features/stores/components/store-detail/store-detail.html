@@ -1077,13 +1077,18 @@
                         <div class="dns-globe-details">
                           <span class="dns-domain-name">{{ store()!.customDomain }}</span>
 
-                          @if (domainStatus() === 'live') {
+                          @if (domainIsLive()) {
                             <span class="badge-dns badge-dns--live">
-                              <span class="pulse-dot-green"></span> Activo & Enrutado (SSL Listo)
+                              <span class="pulse-dot-green"></span> Activo & SSL Protegido
                             </span>
                           } @else {
                             <span class="badge-dns badge-dns--pending">
-                              <span class="pulse-dot-yellow"></span> Esperando propagación DNS
+                              <span class="pulse-dot-yellow"></span>
+                              {{
+                                domainBackendStatus() === 'PENDING_DNS'
+                                  ? 'Propagación DNS / Emitiendo Certificado SSL'
+                                  : 'Validando DNS / Emitiendo Certificado SSL'
+                              }}
                             </span>
                           }
                         </div>
@@ -1119,7 +1124,37 @@
                             <i class="bi bi-arrow-repeat"></i> Verificar Registros DNS
                           }
                         </button>
+                        <button
+                          class="btn btn-secondary"
+                          [disabled]="domainRefreshLoading() || isVerifyingDNS()"
+                          (click)="loadDomainStatus()"
+                          title="Consultar estado SSL/DNS en Firebase Hosting"
+                        >
+                          @if (domainRefreshLoading()) {
+                            <span class="spinner-sm"></span> Actualizando…
+                          } @else {
+                            <i class="bi bi-cloud-arrow-down"></i> Actualizar Estado
+                          }
+                        </button>
+                        <button
+                          class="btn btn-danger-ghost"
+                          [disabled]="isDisconnectingDomain()"
+                          (click)="openDisconnectDomainModal()"
+                        >
+                          <i class="bi bi-unlink"></i> Desvincular Dominio
+                        </button>
                       </div>
+                      @if (domainCheckError()) {
+                        <p
+                          style="
+                            margin-top: 0.75rem;
+                            font-size: 0.85rem;
+                            color: var(--platform-danger, #f87171);
+                          "
+                        >
+                          <i class="bi bi-exclamation-triangle me-1"></i>{{ domainCheckError() }}
+                        </p>
+                      }
                     </div>
                   }
                 </div>
@@ -1206,6 +1241,7 @@
                                 <th scope="col">Host / Nombre</th>
                                 <th scope="col">Valor</th>
                                 <th scope="col" class="text-end">Acción</th>
+                                <th scope="col" class="text-end">Copiar</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1227,6 +1263,19 @@
                                     <span class="badge-role badge-role--admin">{{
                                       record.requiredAction
                                     }}</span>
+                                  </td>
+                                  <td class="text-end">
+                                    @if (domainCopiedKey() === record.type + ':' + record.value) {
+                                      <span class="copied-feedback">¡Copiado!</span>
+                                    } @else {
+                                      <button
+                                        class="btn btn-secondary btn--sm"
+                                        title="Copiar {{ record.type }} al portapapeles"
+                                        (click)="copyDnsRecord(record.type, record.value)"
+                                      >
+                                        <i class="bi bi-clipboard"></i> Copiar
+                                      </button>
+                                    }
                                   </td>
                                 </tr>
                               }
@@ -2117,29 +2166,48 @@
 
                     <!-- Sandbox Toggle -->
                     <div class="sandbox-card">
-                      <div class="sandbox-card__info">
-                        <div class="sandbox-card__title-row">
-                          <i class="bi bi-shield-shaded"></i>
-                          <span class="form-label mb-0">Modo Sandbox (Pruebas)</span>
-                          <span
-                            class="badge ms-2"
-                            [class.bg-success]="!mpSandbox()"
-                            [class.bg-opacity-75]="!mpSandbox()"
-                            [class.text-white]="true"
-                            [class.bg-warning]="mpSandbox()"
-                          >
-                            <i
-                              class="bi me-1"
-                              [class.bi-check-circle-fill]="!mpSandbox()"
-                              [class.bi-shield-exclamation]="mpSandbox()"
-                            ></i>
-                            {{ mpSandbox() ? 'Sandbox Activo' : 'Producción' }}
-                          </span>
-                        </div>
-                        <span class="form-hint"
-                          >Activalo para operar en entorno de pruebas antes de procesar ventas
-                          reales.</span
-                        >
+                      <div class="mp-mode-banner" [class]="'mp-mode-banner--' + mpMode()">
+                        @switch (mpMode()) {
+                          @case ('prod') {
+                            <i class="bi bi-patch-check-fill mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO PRODUCCIÓN REAL ACTIVO (Ventas en Vivo)</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Cobros en vivo a la cuenta bancaria del cliente. IMPORTANTE: Los
+                                pagos deben realizarse con tarjetas y cuentas reales. Si intentás
+                                pagar con cuentas o tarjetas de prueba de Mercado Pago, la pasarela
+                                rechazará la transacción ('Una de las partes es de prueba').
+                              </p>
+                            </div>
+                          }
+                          @case ('test') {
+                            <i class="bi bi-patch-question-fill mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO PRUEBAS DEL CLIENTE ACTIVO</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Configurado con credenciales TEST propias del cliente. Solo admite
+                                tarjetas y usuarios de prueba de Mercado Pago.
+                              </p>
+                            </div>
+                          }
+                          @default {
+                            <i class="bi bi-shield-exclamation mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO SANDBOX DE PLATAFORMA ACTIVO</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Operando con la pasarela de prueba de Vertex. Únicamente admite
+                                pagos con tarjetas de test de Mercado Pago. Los pagos reales serán
+                                rechazados.
+                              </p>
+                            </div>
+                          }
+                        }
                       </div>
                       <label class="toggle-switch" [class.is-on]="mpSandbox()">
                         <input
@@ -2264,6 +2332,48 @@
 
   <!-- Edit modal -->
   @if (showEditModal()) {
+    @if (domainDisconnectOpen()) {
+      <div class="modal-overlay" (click)="cancelDisconnectDomainModal()">
+        <div class="modal glass-modal" (click)="$event.stopPropagation()">
+          <h3 class="modal__title">
+            <i class="bi bi-unlink me-2 text-danger"></i>Desvincular Dominio
+          </h3>
+          <p style="color: var(--platform-text-secondary); margin-bottom: 1.25rem">
+            Se eliminará el mapeo en Firebase Hosting y se quitará
+            <code>{{ store()?.customDomain }}</code> de la tienda. La propagación DNS y el
+            certificado SSL dejarán de apuntar a tu storefront.
+          </p>
+          @if (domainDisconnectError()) {
+            <p style="color: var(--platform-danger, #f87171); margin-bottom: 1rem">
+              {{ domainDisconnectError() }}
+            </p>
+          }
+          <div class="modal__actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="isDisconnectingDomain()"
+              (click)="cancelDisconnectDomainModal()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="isDisconnectingDomain()"
+              (click)="confirmDisconnectDomain()"
+            >
+              @if (isDisconnectingDomain()) {
+                <span class="spinner-sm"></span> Desvinculando…
+              } @else {
+                <i class="bi bi-trash"></i> Sí, desvincular
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     <div class="modal-overlay" (click)="showEditModal.set(false)">
       <div class="modal modal--edit glass-modal" (click)="$event.stopPropagation()">
         <h3 class="modal__title">Editar Info de Tienda</h3>

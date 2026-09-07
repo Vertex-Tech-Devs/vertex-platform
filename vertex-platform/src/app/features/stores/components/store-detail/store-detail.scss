@@ -3362,3 +3362,93 @@
     border: 1px solid rgba(239, 68, 68, 0.28);
   }
 }
+
+/* ── Modo MP: banners dinámicos (Pagos) ─────────────────────────────────── */
+.mp-mode-banner {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  margin-bottom: 1rem;
+
+  &__icon {
+    font-size: 1.35rem;
+    line-height: 1.4;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  &__title {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+  }
+
+  &__copy {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: inherit;
+    opacity: 0.92;
+  }
+
+  &--prod {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #6ee7b7;
+  }
+
+  &--test {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.45);
+    color: #93c5fd;
+  }
+
+  &--sandbox {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fcd34d;
+  }
+}
+
+/* ── Feedback de copiado en tabla DNS ───────────────────────────────────── */
+.copied-feedback {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #34d399;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.btn-danger-ghost {
+  color: #f87171;
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.1);
+    color: #fca5a5;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+}

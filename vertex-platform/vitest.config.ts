@@ -2,6 +2,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        isolate: true,
+        singleFork: false,
+      },
+    },
     server: {
       deps: {
         inline: [

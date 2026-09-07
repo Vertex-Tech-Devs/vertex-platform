@@ -197,6 +197,30 @@ export class StoreDetail implements OnInit {
   readonly mpAccountEmail = signal('');
   readonly mpTokenMasked = signal('');
 
+  // ── Dominios: estado desde callable getDomainStatus / disconnectDomain ────
+  readonly domainBackendStatus = signal<'ACTIVE' | 'VALIDATING' | 'PENDING_DNS' | ''>('');
+  readonly domainRefreshLoading = signal(false);
+  readonly domainCheckError = signal('');
+  readonly domainDisconnectOpen = signal(false);
+  readonly isDisconnectingDomain = signal(false);
+  readonly domainDisconnectError = signal('');
+  readonly domainCopiedKey = signal<string | null>(null);
+  readonly domainIsLive = computed(
+    () => this.domainStatus() === 'live' || this.domainBackendStatus() === 'ACTIVE',
+  );
+
+  // ── Mercado Pago: modo de operación según token resuelto (banners) ───────
+  readonly mpMode = computed<'sandbox' | 'test' | 'prod'>(() => {
+    const raw = this.mpAccessToken().trim() || this.mpTokenMasked() || '';
+    if (raw.startsWith('APP_USR-')) {
+      return 'prod';
+    }
+    if (raw.startsWith('TEST-')) {
+      return 'test';
+    }
+    return this.mpSandbox() ? 'sandbox' : 'sandbox';
+  });
+
   // ── SaaS Subscription Vertex ──────────────────────────────────────────────
   readonly storeSubscription = signal<StoreSubscriptionInfo | null>(null);
   readonly isLoadingSubscription = signal(false);
@@ -541,6 +565,74 @@ export class StoreDetail implements OnInit {
   copyWebhookUrl(storeId: string): Promise<void> {
     const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
+  }
+
+  /** Actualiza el estado del dominio consultando el callable getDomainStatus. */
+  async loadDomainStatus(): Promise<void> {
+    const s = this.store();
+    if (!s?.customDomain) {
+      return;
+    }
+    this.domainRefreshLoading.set(true);
+    this.domainCheckError.set('');
+    try {
+      const result = await this.storesService.getDomainStatus(s.id, s.customDomain);
+      this.domainBackendStatus.set((result.status as 'ACTIVE' | 'VALIDATING' | 'PENDING_DNS') || '');
+      if (result.status === 'ACTIVE') {
+        await this.verifyDNS(true);
+      }
+    } catch (err) {
+      this.domainCheckError.set(
+        errorMessage(err, 'No se pudo consultar el estado del dominio. Reintentá en unos segundos.'),
+      );
+    } finally {
+      this.domainRefreshLoading.set(false);
+    }
+  }
+
+  copyDnsRecord(type: string, value: string): void {
+    const key = `${type}:${value}`;
+    this.domainCopiedKey.set(key);
+    void this.staffService.copyToClipboard(value);
+    window.setTimeout(() => {
+      if (this.domainCopiedKey() === key) {
+        this.domainCopiedKey.set(null);
+      }
+    }, 1800);
+  }
+
+  openDisconnectDomainModal(): void {
+    this.domainDisconnectError.set('');
+    this.domainDisconnectOpen.set(true);
+  }
+
+  cancelDisconnectDomainModal(): void {
+    if (this.isDisconnectingDomain()) {
+      return;
+    }
+    this.domainDisconnectOpen.set(false);
+  }
+
+  /** Desvincula el dominio (disconnectDomain callable) y espera el onSnapshot. */
+  async confirmDisconnectDomain(): Promise<void> {
+    const s = this.store();
+    if (!s?.customDomain || this.isDisconnectingDomain()) {
+      return;
+    }
+    this.isDisconnectingDomain.set(true);
+    this.domainDisconnectError.set('');
+    try {
+      await this.storesService.disconnectDomain(s.id, s.customDomain);
+      this.domainDisconnectOpen.set(false);
+      this.domainBackendStatus.set('');
+      this.domainInput.set('');
+    } catch (err) {
+      this.domainDisconnectError.set(
+        errorMessage(err, 'No se pudo desvincular el dominio. Reintentá en unos segundos.'),
+      );
+    } finally {
+      this.isDisconnectingDomain.set(false);
+    }
   }
 
   /** Health check en vivo: prueba el Access Token contra api.mercadopago.com/users/me. */

@@ -198,3 +198,22 @@ npm audit
 ---
 
 📖 **Nota para Desarrolladores:** Para guías de desarrollo de agentes de IA y flujos específicos, consulta [agent.md](agent.md). Para la documentación técnica detallada de la consola Angular, consulta [vertex-platform/README.md](vertex-platform/README.md). Para la arquitectura, el aprovisionamiento, el modelo de datos y el CI/CD, consulta [vertex-platform/docs/](vertex-platform/docs/).
+
+
+---
+
+## Vertex Platform — SaaS Core & GCP Shard Orchestrator
+
+### Architecture
+Vertex Platform is the multi-tenant orchestrator that provisions and operates independent GCP tenant projects ("shards") — each shard owns its Firestore data, Firebase Hosting sites and Secret Manager entries for its stores. An orchestrator Service Account (owning the 7 canonical APIs + IAM roles) performs provisioning and healing; stores without their own Mercado Pago credentials operate under the platform master test token and are always kept out of production flows.
+
+### Custom Domains runbook
+- `connectDomain` is **idempotent**: connecting a domain that already exists in Firebase Hosting returns `200 OK` with the live DNS records instead of erroring (`ALREADY_EXISTS` → warn + continue).
+- `getDomainStatus(storeId, domain)` returns `PENDING_DNS | VALIDATING | ACTIVE` plus `sslStatus` and the required `A` / `TXT` records; in the store-detail **Dominios** tab, the connected-domain card shows the host, a live badge, copy-to-clipboard rows for each record, an **Actualizar Estado** action wired to the callable, and **Desvincular Dominio** behind a confirmation modal (calls `disconnectDomain`, which deletes the Hosting mapping and clears the store doc).
+- TLS/SSL issuance by Google typically takes **15 min – 4 h** after the records propagate; the UI surfaces that expectation so merchants can close the screen safely.
+
+### Payments mode clarity
+The **Pagos** tab renders an explicit mode banner derived from the resolved token prefix: Amber **MODO SANDBOX DE PLATAFORMA ACTIVO** (no client credentials, test cards only) · Blue **MODO PRUEBAS DEL CLIENTE ACTIVO** (`TEST-`) · Green **MODO PRODUCCIÓN REAL ACTIVO** (`APP_USR-`, real cards only — test users are rejected with *"Una de las partes es de prueba"*).
+
+### Infrastructure self-healing
+`triggerHealShards` (admin-guarded, 300 s / 512 MiB) audits the 7 canonical APIs and re-binds the orchestrator IAM roles on every registered shard and returns a per-shard report rendered in Operaciones Cloud → **Sanear Shards de Plataforma**. Runbook: on `IAM_PROPAGATION_FAILED`, re-run the heal (IAM can take ~60 s to propagate; the API circuit breaker retries); verify with the infrastructure tab's readiness table before provisioning new stores.
