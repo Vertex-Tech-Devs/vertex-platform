@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { PlatformLayout } from './platform-layout';
+import { PlatformLayout, isDevHostname } from './platform-layout';
 import { AuthService } from '@core/services/auth';
 import { signal } from '@angular/core';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -35,6 +35,7 @@ describe('PlatformLayout', () => {
   it('should create layout component', () => {
     expect(component).toBeTruthy();
   });
+
 
   it('computes user initial from email', () => {
     expect(component.userInitial()).toBe('A');
@@ -78,5 +79,25 @@ describe('PlatformLayout', () => {
 
     mockAuthService.user.set({ email: '' });
     expect(component.userInitial()).toBe('?');
+  });
+});
+
+describe('isDevHostname', () => {
+  it('marca localhost como DEV', () => {
+    expect(isDevHostname('localhost')).toBe(true);
+  });
+  it('marca hosts web.app de desarrollo como DEV', () => {
+    expect(isDevHostname('vertex-platform-dev.web.app')).toBe(true);
+  });
+  it('NO marca el host productivo vertex-platform-app como DEV', () => {
+    expect(isDevHostname('vertex-platform-app.web.app')).toBe(false);
+    expect(isDevHostname('vertex-platform-app')).toBe(false);
+  });
+  it('marca hosts firebaseapp de desarrollo como DEV', () => {
+    expect(isDevHostname('vertex-platform-dev.firebaseapp.com')).toBe(true);
+  });
+  it('maneja host vacío/desconocido como no-DEV', () => {
+    expect(isDevHostname('')).toBe(false);
+    expect(isDevHostname('ejemplo.com')).toBe(false);
   });
 });
