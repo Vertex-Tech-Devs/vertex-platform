@@ -9,16 +9,29 @@ import {
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth';
 
-/** Entorno no productivo: localhost o hosts web.app/firebaseapp que NO sean vertex-platform-app. */
+/** Hosts oficiales de producción de la plataforma (nunca DEV). */
+const PROD_HOSTS = new Set([
+  'vertex-platform.web.app',
+  'vertex-platform-app.web.app',
+  'vertex-platform.firebaseapp.com',
+]);
+
+/** Entorno no productivo: localhost o hosts web.app/firebaseapp.com de desarrollo. */
 export function isDevHostname(host: string): boolean {
   if (!host) {
     return false;
   }
+  const h = host.toLowerCase();
+  if (PROD_HOSTS.has(h)) {
+    return false;
+  }
   return (
-    (host === 'localhost' ||
-      host.endsWith('web.app') ||
-      host.endsWith('firebaseapp.com')) &&
-    !host.includes('vertex-platform-app')
+    h === 'localhost' ||
+    h === '127.0.0.1' ||
+    h.endsWith('.local') ||
+    h.includes('-dev.web.app') ||
+    h.includes('-dev.firebaseapp.com') ||
+    h.includes('dev.')
   );
 }
 
