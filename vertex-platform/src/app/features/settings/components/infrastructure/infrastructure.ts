@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { BillingAccountsService } from '@core/services/billing-accounts';
 import {
   StoresService,
+  type HealShardsReport,
   type RuntimeCapacitySummary,
   type ShardReadiness,
   type ShardReadinessReport,
@@ -37,6 +38,9 @@ export class Infrastructure implements OnInit {
   readonly runtimeSummary = signal<RuntimeCapacitySummary | null>(null);
   readonly readiness = signal<ShardReadinessReport | null>(null);
   readonly isCheckingShards = signal(false);
+  readonly isHealing = signal(false);
+  readonly healError = signal('');
+  readonly healReport = signal<HealShardsReport | null>(null);
   readonly selectedShard = signal<ShardReadiness | null>(null);
   readonly copiedId = signal<string | null>(null);
   readonly activeTab = signal<'shards' | 'accounts' | 'guide'>('shards');
@@ -192,6 +196,23 @@ export class Infrastructure implements OnInit {
 
   openShardModal(shard: ShardReadiness): void {
     this.selectedShard.set(shard);
+  }
+
+  /** Sanear shards de la plataforma (auto-heal nativo). */
+  async healShards(): Promise<void> {
+    this.isHealing.set(true);
+    this.healError.set('');
+    this.healReport.set(null);
+    try {
+      const report = await this.storesSvc.triggerHealShards();
+      this.healReport.set(report);
+    } catch (err) {
+      this.healError.set(
+        err instanceof Error ? err.message : 'No se pudo ejecutar el saneamiento de shards.',
+      );
+    } finally {
+      this.isHealing.set(false);
+    }
   }
 
   closeShardModal(): void {
