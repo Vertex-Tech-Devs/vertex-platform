@@ -2959,6 +2959,19 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         );
 
         const emailSubject = `Bienvenido a Vertex - Acceso habilitado para ${name}`;
+
+        // Segregación de entorno: detectar PROD vs DESARROLLO dinámicamente.
+        const isProd = PLATFORM_PROJECT === 'vertex-platform-app';
+        const envLabel = isProd ? 'PRODUCCIÓN' : 'DESARROLLO';
+        const emailSubjectFinal = isProd ? emailSubject : `[DEV] ${emailSubject}`;
+        // Política de silencio en dev: solo se envía a tiendas de prueba/QA.
+        const isTestStore = /(^|[-_])(test|qa|demo)([-_]|$)/i.test(storeId || '');
+        const allowEmail = isProd || isTestStore;
+        if (!allowEmail) {
+          console.log('[Mail Suppressed - DEV]', { storeId, envLabel, ownerEmail });
+        } else if (!isProd) {
+          console.log('[Mail Sent - DEV QA]', { storeId, envLabel, ownerEmail });
+        }
         const emailHtml = `
           <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
             <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
@@ -2992,15 +3005,16 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         try {
           // Always try SMTP first (works in both DEV and PROD without requiring
           // the firestore-send-email extension on the store's project).
-          try {
-            await sendDirectEmail(
-              ownerEmail,
-              emailSubject,
-              emailHtml,
-              `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
-            );
-            console.info(`[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`);
-          } catch (smtpErr) {
+          if (allowEmail) {
+            try {
+              await sendDirectEmail(
+                ownerEmail,
+                emailSubjectFinal,
+                emailHtml,
+                `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+              );
+              console.info(`[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`);
+            } catch (smtpErr) {
             // SMTP failed — try writing to the store's mail collection as fallback
             // (requires firestore-send-email extension to be installed in the store project)
             console.error(
@@ -3016,7 +3030,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               message: {
                 mapValue: {
                   fields: {
-                    subject: { stringValue: emailSubject },
+                    subject: { stringValue: emailSubjectFinal },
                     html: { stringValue: emailHtml },
                     text: {
                       stringValue: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
@@ -3041,6 +3055,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               `[provisioning:initAdmin] Welcome email queued in store ${projectId}'s mail collection.`,
             );
           }
+          } // fin allowEmail (supresión en DEV)
         } catch (mailErr) {
           console.error(
             `[provisioning:initAdmin] All email delivery methods failed for ${ownerEmail}, falling back to central platform mail queue:`,

@@ -39,8 +39,10 @@ const IAM_ROLES = [
 function parseArgs(): { env: 'dev' | 'prod' } {
   const args = process.argv.slice(2);
   const i = args.indexOf('--env');
-  const env = i >= 0 && args[i + 1] ? (args[i + 1] as 'dev' | 'prod') : 'dev';
-  if (env !== 'dev' && env !== 'prod') throw new Error(`--env debe ser 'dev' o 'prod'.`);
+  const env = i >= 0 && args[i + 1] ? (args[i + 1] as 'dev' | 'prod') : null;
+  if (!env || (env !== 'dev' && env !== 'prod')) {
+    throw new Error(`Argumento --env es OBLIGATORIO: --env dev | --env prod`);
+  }
   return { env };
 }
 
