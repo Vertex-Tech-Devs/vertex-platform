@@ -93,6 +93,14 @@ describe('isDevHostname', () => {
     expect(isDevHostname('vertex-platform-app.web.app')).toBe(false);
     expect(isDevHostname('vertex-platform-app')).toBe(false);
   });
+  it('NO marca los hosts oficiales de produccion como DEV', () => {
+    expect(isDevHostname('vertex-platform.web.app')).toBe(false);
+    expect(isDevHostname('vertex-platform.firebaseapp.com')).toBe(false);
+  });
+  it('marca 127.0.0.1 y hosts .local como DEV', () => {
+    expect(isDevHostname('127.0.0.1')).toBe(true);
+    expect(isDevHostname('mi-host.local')).toBe(true);
+  });
   it('marca hosts firebaseapp de desarrollo como DEV', () => {
     expect(isDevHostname('vertex-platform-dev.firebaseapp.com')).toBe(true);
   });
