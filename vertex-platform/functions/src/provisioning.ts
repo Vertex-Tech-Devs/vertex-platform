@@ -3817,3 +3817,97 @@ export const completeStoreDeployment = onCall<{
 
   return { success: true };
 });
+
+
+const HEAL_API_LIST = [
+  'identitytoolkit.googleapis.com',
+  'secretmanager.googleapis.com',
+  'firestore.googleapis.com',
+  'firebase.googleapis.com',
+  'cloudresourcemanager.googleapis.com',
+  'iam.googleapis.com',
+  'firebasehosting.googleapis.com',
+];
+
+const HEAL_IAM_ROLES = [
+  'roles/secretmanager.admin',
+  'roles/secretmanager.secretAccessor',
+  'roles/datastore.owner',
+  'roles/firebase.admin',
+  'roles/iam.serviceAccountUser',
+  'roles/editor',
+];
+
+/**
+ * triggerHealShards — Auto-heal nativo de shards (Operaciones Cloud).
+ * Solo el admin de plataforma (vertex.tech.dev@gmail.com o claim admin). Habilita
+ * las 7 APIs canónicas y asegura los roles IAM del orchestrator en cada shard
+ * registrado, devolviendo un reporte tabular JSON.
+ */
+export const triggerHealShards = onCall(
+  { timeoutSeconds: 300, memory: '512MiB', cors: ALLOWED_ORIGINS },
+  async (request) => {
+    const email = String(request.auth?.token?.email || '');
+    const isAdmin =
+      email === 'vertex.tech.dev@gmail.com' || Boolean(request.auth?.token?.['platformAdmin']);
+    if (!request.auth || !isAdmin) {
+      throw new HttpsError('permission-denied', 'Solo el admin de plataforma puede sanear shards.');
+    }
+    const db = getFirestore();
+    const shardsSnap = await db.collection('infrastructure_shards').get();
+    const projectIds = Array.from(
+      new Set(
+        shardsSnap.docs
+          .map((d) => {
+            const data = d.data();
+            return String(data['projectId'] || data['id'] || '').trim();
+          })
+          .filter((v) => v.length > 0),
+      ),
+    );
+    const auth = await getOwnerOAuthClient();
+    const platformSA = `${PLATFORM_PROJECT}@appspot.gserviceaccount.com`;
+    const results: Array<{ shard: string; apis: string; iam: string; status: string }> = [];
+
+    for (const projectId of projectIds) {
+      try {
+        for (const svc of HEAL_API_LIST) {
+          await ensureServiceEnabled(auth, projectId, svc);
+        }
+        // IAM idempotente vía Cloud Resource Manager v3
+        const crm = `https://cloudresourcemanager.googleapis.com/v3/projects/${projectId}`;
+        const policy = (await apiFetch(auth, `${crm}:getIamPolicy`, {
+          method: 'POST',
+          body: {},
+          quotaProject: projectId,
+        })) as { bindings?: Array<{ role: string; members: string[] }>; etag?: string };
+        const bindings = policy.bindings || [];
+        const member = `serviceAccount:${platformSA}`;
+        let modified = false;
+        for (const role of HEAL_IAM_ROLES) {
+          let b = bindings.find((x) => x.role === role);
+          if (!b) {
+            b = { role, members: [] };
+            bindings.push(b);
+          }
+          if (!b.members.includes(member)) {
+            b.members.push(member);
+            modified = true;
+          }
+        }
+        if (modified) {
+          await apiFetch(auth, `${crm}:setIamPolicy`, {
+            method: 'POST',
+            body: { policy: { ...policy, bindings, etag: policy.etag } },
+            quotaProject: projectId,
+          });
+        }
+        results.push({ shard: projectId, apis: 'OK', iam: 'OK', status: 'OK' });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        results.push({ shard: projectId, apis: 'ERROR', iam: 'ERROR', status: `ERROR: ${msg.slice(0, 140)}` });
+      }
+    }
+    return { success: true, shards: projectIds.length, results };
+  },
+);

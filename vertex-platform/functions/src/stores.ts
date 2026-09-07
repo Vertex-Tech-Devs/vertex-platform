@@ -1546,10 +1546,14 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       if (res.status === 403)
         throw new HttpsError('permission-denied', 'Insufficient permissions.');
       if (res.status === 404) throw new HttpsError('not-found', 'Site or project not found.');
-      if (res.status === 409) throw new HttpsError('already-exists', 'Domain already connected.');
-      throw new HttpsError('internal', 'Failed to connect domain.');
+      if (res.status === 409) {
+        // Idempotencia: el dominio ya está conectado (409/ALREADY_EXISTS). No es un
+        // error: continuamos para devolver los registros DNS vigentes (200 OK).
+        console.warn(`[connectDomain] Domain already connected (409) on ${domain} — idempotent OK.`);
+      } else {
+        throw new HttpsError('internal', 'Failed to connect domain.');
+      }
     }
-
     // La API de Hosting NO incluye requiredDnsUpdates en la respuesta del create;
     // se obtienen vía GET del recurso (provisioning.expectedIps) o el estándar de Firebase.
     let dnsRecords: { domainName: string; type: string; rdata: string; requiredAction: string }[] =
@@ -1629,6 +1633,131 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     );
 
     return { success: true, dnsRecords };
+  },
+);
+
+/**
+ * getDomainStatus — Estado en vivo del dominio en Firebase Hosting.
+ * Mapea dnsStatus/certStatus del provisioning a PENDING_DNS | VALIDATING | ACTIVE
+ * y devuelve registros A (expectedIps) y TXT (verificación de propiedad) si aplica.
+ */
+export const getDomainStatus = onCall<{ storeId: string; domain?: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can check domain status.');
+    }
+    const { storeId } = request.data;
+    if (!storeId || !/^[a-zA-Z0-9_-]{1,100}$/.test(storeId)) {
+      throw new HttpsError('invalid-argument', 'Invalid storeId.');
+    }
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+    const store = storeSnap.data() as {
+      customDomain?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+      firebaseProjectId?: string;
+      provisioningOwnerId?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = resolveRuntimeSiteId(store);
+    const domain = sanitizeDomainName(request.data?.domain || store.customDomain || '');
+    if (!domain || !projectId || !siteId) {
+      throw new HttpsError('failed-precondition', 'La tienda no posee dominio vinculado o sitio.');
+    }
+    const auth = await getOwnerOAuthClient(store.provisioningOwnerId as string | undefined);
+    const token = (await auth.getAccessToken()).token;
+    const res = await fetch(
+      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${encodeURIComponent(domain)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) {
+      throw new HttpsError(
+        res.status === 404 ? 'not-found' : 'internal',
+        `No se pudo consultar el dominio (${res.status}).`,
+      );
+    }
+    const data = (await res.json()) as {
+      provisioning?: { dnsStatus?: string; certStatus?: string; expectedIps?: string[] };
+      requiredDnsUpdates?: Array<{ domainName?: string; type?: string; rdata?: string }>;
+      status?: string;
+    };
+    const dnsReady =
+      (data.provisioning?.dnsStatus || '') === 'ACTIVE' ||
+      (data.status || '') === 'ACTIVE' ||
+      (data.status || '') === 'DOMAIN_ACTIVE';
+    const certReady =
+      (data.provisioning?.certStatus || '') === 'ACTIVE' ||
+      (data.status || '') === 'ACTIVE' ||
+      (data.status || '') === 'DOMAIN_ACTIVE';
+    const txt =
+      data.requiredDnsUpdates?.find((d) => (d.type || '').toUpperCase() === 'TXT')?.rdata || '';
+    const aRecords = (data.provisioning?.expectedIps || []).length
+      ? data.provisioning!.expectedIps!
+      : data.requiredDnsUpdates
+          ?.filter((d) => (d.type || '').toUpperCase() === 'A')
+          .map((d) => d.rdata || '')
+          .filter((v) => !!v) || [];
+    return {
+      success: true,
+      domain,
+      status: dnsReady && certReady ? 'ACTIVE' : txt ? 'PENDING_DNS' : 'VALIDATING',
+      sslStatus: certReady ? 'ACTIVE' : 'PENDING',
+      dnsRecords: { aRecords: aRecords as string[], txtRecord: txt || undefined },
+    };
+  },
+);
+
+/**
+ * disconnectDomain — Desvincula el dominio: elimina el mapeo en Firebase Hosting
+ * y limpia customDomain/domains en el documento de la tienda.
+ */
+export const disconnectDomain = onCall<{ storeId: string; domain?: string }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform admins can disconnect domains.');
+    }
+    const { storeId } = request.data;
+    if (!storeId || !/^[a-zA-Z0-9_-]{1,100}$/.test(storeId)) {
+      throw new HttpsError('invalid-argument', 'Invalid storeId.');
+    }
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+    const store = storeSnap.data() as {
+      customDomain?: string;
+      runtimeProjectId?: string;
+      runtimeSiteId?: string;
+      firebaseProjectId?: string;
+      domains?: string[];
+      provisioningOwnerId?: string;
+    };
+    const projectId = resolveRuntimeProjectId(store);
+    const siteId = resolveRuntimeSiteId(store);
+    const domain = sanitizeDomainName(request.data?.domain || store.customDomain || '');
+    if (!domain || !projectId || !siteId) {
+      throw new HttpsError('failed-precondition', 'La tienda no posee dominio vinculado o sitio.');
+    }
+    const auth = await getOwnerOAuthClient(store.provisioningOwnerId as string | undefined);
+    const token = (await auth.getAccessToken()).token;
+    try {
+      await fetch(
+        `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${encodeURIComponent(domain)}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+      );
+    } catch (delErr) {
+      const msg = delErr instanceof Error ? delErr.message : String(delErr);
+      if (!/404|not.?found/i.test(msg)) throw delErr;
+    }
+    const patch: Record<string, unknown> = { customDomain: null, updatedAt: new Date() };
+    if (Array.isArray(store.domains)) {
+      patch['domains'] = (store.domains || []).filter((d) => d !== domain);
+    }
+    await db.collection('stores').doc(storeId).update(patch);
+    return { success: true, domain, message: 'Dominio desvinculado correctamente.' };
   },
 );
 
