@@ -93,6 +93,12 @@ export const routes: Routes = [
               import('./features/settings/components/team/team').then((m) => m.Team),
           },
           {
+            path: 'alerts',
+            title: 'Centro de Alertas — Vertex',
+            loadComponent: () =>
+              import('./features/settings/components/alerts/alerts').then((m) => m.AlertsCenter),
+          },
+          {
             path: 'billing',
             redirectTo: 'subscriptions',
             pathMatch: 'full',

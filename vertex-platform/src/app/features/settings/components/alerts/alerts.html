@@ -1,0 +1,95 @@
+<div class="alerts-page">
+  <div class="alerts-header">
+    <div>
+      <h1 class="alerts-title"><i class="bi bi-shield-exclamation"></i> Centro de Alertas</h1>
+      <p class="alerts-sub">
+        Detección automática de problemas en el flujo de pagos, tiendas en riesgo y la
+        infraestructura. Las rondas corren cada 60 minutos.
+      </p>
+    </div>
+    <div class="alerts-header__right">
+      @if (openCount() > 0) {
+        <span class="alerts-open-badge">{{ openCount() }} abierta{{ openCount() === 1 ? '' : 's' }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="alerts-filters" role="tablist" aria-label="Filtrar alertas">
+    @for (f of filterOptions; track f) {
+      <button
+        type="button"
+        class="alerts-filter"
+        [class.is-active]="filter() === f"
+        (click)="setFilter(f)"
+      >
+        {{
+          f === 'open' ? 'Abiertas' : f === 'resolved' ? 'Resueltas' : 'Todas'
+        }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="alerts-skeleton" aria-busy="true">
+      <div class="skeleton skeleton--text mb-2"></div>
+      <div class="skeleton skeleton--text mb-2" style="width: 80%"></div>
+      <div class="skeleton skeleton--text" style="width: 55%"></div>
+    </div>
+  } @else if (visibleAlerts().length === 0) {
+    <div class="alerts-empty">
+      <i class="bi bi-check2-circle fs-2 d-block mb-2"></i>
+      <p class="mb-0">
+        {{
+          filter() === 'open'
+            ? 'Sin alertas abiertas. Todo en orden.'
+            : 'Sin alertas para este filtro.'
+        }}
+      </p>
+    </div>
+  } @else {
+    <div class="alerts-list">
+      @for (a of visibleAlerts(); track a.key) {
+        <div class="alerts-item" [class.is-resolved]="a.status === 'resolved'">
+          <span [class]="alertTone(a.severity)">{{ a.severity }}</span>
+          <div class="alerts-item__body">
+            <div class="alerts-item__title">
+              {{ a.title }}
+              @if (a.storeId) {
+                <span class="alerts-item__store">{{ a.storeId }}</span>
+              }
+              @if ((a.count ?? 1) > 1) {
+                <span class="alerts-item__count">×{{ a.count }}</span>
+              }
+            </div>
+            <p class="alerts-item__msg">{{ a.message }}</p>
+            <div class="alerts-item__meta">
+              @if (tsDate(a.lastSeen); as d) {
+                <span>{{ d | date: 'dd/MM HH:mm' }}</span>
+              }
+              <span>{{ a.kind }}</span>
+              @if (a.status === 'open') {
+                <button
+                  type="button"
+                  class="alerts-item__resolve"
+                  [disabled]="resolvingKey() === a.key"
+                  (click)="resolve(a.key)"
+                >
+                  {{ resolvingKey() === a.key ? 'Resolviendo…' : 'Marcar resuelta' }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (a.link) {
+            <a class="alerts-item__link" [href]="a.link" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

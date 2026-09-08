@@ -100,7 +100,8 @@
               "src/app/features/settings/components/infrastructure/**",
               "src/app/features/settings/components/subscriptions/**",
               "src/app/features/stores/components/store-create/**",
-              "src/app/core/services/theme.service.ts"
+              "src/app/core/services/theme.service.ts",
+              "src/app/features/settings/components/alerts/**"
             ],
             "coverageReporters": [
               "html",
