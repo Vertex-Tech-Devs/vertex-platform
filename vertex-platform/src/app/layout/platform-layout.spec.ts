@@ -5,6 +5,25 @@ import { AuthService } from '@core/services/auth';
 import { signal } from '@angular/core';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+vi.mock('firebase/firestore', () => {
+  const unsubSpy = vi.fn();
+  return {
+    getFirestore: vi.fn(() => ({})),
+    collection: vi.fn(() => ({})),
+    onSnapshot: vi.fn((_col: unknown, next: (snap: { forEach(cb: (d: { data(): { status?: string } }) => void): void }) => void) => {
+      next({
+        forEach: (cb) => {
+          cb({ data: () => ({ status: 'open' }) });
+          cb({ data: () => ({ status: 'resolved' }) });
+        },
+      });
+      return unsubSpy;
+    }),
+    __unsubSpy: unsubSpy,
+  };
+});
+
+
 describe('PlatformLayout', () => {
   let fixture: ComponentFixture<PlatformLayout>;
   let component: PlatformLayout;
@@ -36,6 +55,15 @@ describe('PlatformLayout', () => {
     expect(component).toBeTruthy();
   });
 
+
+
+  it('cuenta alertas abiertas desde el snapshot de firestore', () => {
+    expect(component.openAlertsCount()).toBe(1);
+  });
+
+  it('libera la suscripción de alertas en ngOnDestroy', () => {
+    expect(() => component.ngOnDestroy()).not.toThrow();
+  });
 
   it('computes user initial from email', () => {
     expect(component.userInitial()).toBe('A');

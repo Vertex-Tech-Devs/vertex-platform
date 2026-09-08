@@ -1,5 +1,7 @@
 import {
   ChangeDetectionStrategy,
+  type OnInit,
+  type OnDestroy,
   Component,
   HostListener,
   computed,
@@ -8,6 +10,7 @@ import {
 } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth';
+import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import { ThemeService } from '@core/services/theme.service';
 
 /** Hosts oficiales de producción de la plataforma (nunca DEV). */
@@ -44,7 +47,7 @@ export function isDevHostname(host: string): boolean {
   styleUrl: './platform-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PlatformLayout {
+export class PlatformLayout implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
@@ -54,6 +57,9 @@ export class PlatformLayout {
    *  La lógica vive en isDevHostname() (cubierta por unit tests); esta línea solo
    *  delega el hostname actual del navegador. */
   /* istanbul ignore next */
+  readonly openAlertsCount = signal(0);
+  private alertUnsub: (() => void) | null = null;
+
   readonly isDevEnv: boolean = isDevHostname(
     typeof window !== 'undefined' ? window.location.hostname : '',
   );
@@ -72,6 +78,35 @@ export class PlatformLayout {
   closeSidebar(): void {
     if (this.isSidebarOpen()) {
       this.isSidebarOpen.set(false);
+    }
+  }
+
+  ngOnInit(): void {
+    try {
+      this.alertUnsub = onSnapshot(
+        collection(getFirestore(), 'alerts'),
+        (snap) => {
+          let open = 0;
+          snap.forEach((d) => {
+            const data = d.data() as { status?: string };
+            if (data.status === 'open') {
+              open += 1;
+            }
+          });
+          this.openAlertsCount.set(open);
+        },
+        () => {
+          /* silencioso: sin permisos no se muestra contador */
+        },
+      );
+    } catch {
+      /* entorno sin Firebase (tests/layout) no debe romper */
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.alertUnsub) {
+      this.alertUnsub();
     }
   }
 
