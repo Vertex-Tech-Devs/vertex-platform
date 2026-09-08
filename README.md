@@ -248,3 +248,13 @@ Tema dual (claro/oscuro Material 3) con toggle persistente; todos los estilos se
 
 ### Calidad y entrega
 Gates por fase: `npm run typecheck && npm run lint && npm test && npm run build` + `npm --prefix functions run build && npm --prefix functions test`. Rama `develop` = `main` con **0 divergencia**; prohibido tocar `version` o crear tags; deploys monitoreados hasta `success`.
+
+
+### Reconciliación automática de órdenes (runbook)
+`sweepStoresOrdersReconcile` (cada 60 min, 540 s / 512 MiB, SA orquestadora) barre los Firestore de **todos los shards** y:
+- Órdenes `pending`/`PENDING_PAYMENT` con preferencia vencida (>25 h) y sin pago → `CANCELLED_UNPAID` (no toca stock).
+- Fantasmas legacy (`processing` + `stockDecremented:true` + sin `paymentDetails.paymentId`) → restaura stock y las cancela.
+- Backfill de clientes históricos (`clients/{slug}_{email}`) para órdenes pagadas.
+Cada ronda escribe `ops/reconcileRuns` y emite la alerta `reconcile-actions` cuando corrige algo. Para forzar una corrida:
+`gcloud scheduler jobs run firebase-schedule-sweepStoresOrdersReconcile-us-central1 --project=vertex-platform-app --location=us-central1`
+Los proyectos maestros internos (`ecommerce-vertex*`, `vertex-platform*`) se omiten automáticamente.
