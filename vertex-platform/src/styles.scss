@@ -465,3 +465,51 @@ html.theme-transition *::after {
 .glass-modal {
   background: var(--platform-glass-modal-bg);
 }
+
+/* ═══ Global moderno: tipografía, foco e interacción ═══ */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled),
+a.btn,
+a[class*='btn'] {
+  cursor: pointer;
+}
+
+/* Skeleton: respeta tema */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--platform-hover-overlay) 25%,
+    color-mix(in srgb, var(--platform-text-muted) 22%, transparent) 50%,
+    var(--platform-hover-overlay) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
