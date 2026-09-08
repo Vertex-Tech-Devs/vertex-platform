@@ -1881,7 +1881,12 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     if (mercadoPago) {
       mercadoPago['publicKey'] = String(mercadoPago['publicKey'] || '').trim();
       mercadoPago['accessToken'] = String(mercadoPago['accessToken'] || '').trim();
-      mercadoPago['webhookUrl'] = String(mercadoPago['webhookUrl'] || '').trim();
+      // Webhook SIEMPRE canónico del entorno real de ecommerce (los hosts por-shard vtx-*.cloudfunctions.net
+      // no tienen funciones; apuntar ahí = pagos nunca confirmados = sin mails ni stock).
+      const platformEnvIsProd = (process.env.GCLOUD_PROJECT || '').includes('vertex-platform-app');
+      mercadoPago['webhookUrl'] = platformEnvIsProd
+        ? 'https://us-central1-ecommerce-vertex.cloudfunctions.net/mercadoPagoWebhookHandler'
+        : 'https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler';
     }
 
     const db = getFirestore();

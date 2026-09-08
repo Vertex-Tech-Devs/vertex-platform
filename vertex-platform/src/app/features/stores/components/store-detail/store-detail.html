@@ -2349,7 +2349,7 @@
                           type="text"
                           [value]="
                             'https://us-central1-' +
-                            store()!.firebaseProjectId +
+                            (isDevPlatformEnv() ? 'ecommerce-vertex-dev' : 'ecommerce-vertex') +
                             '.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=' +
                             (store()!.slug || store()!.id)
                           "

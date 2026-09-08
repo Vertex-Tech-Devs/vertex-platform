@@ -205,6 +205,17 @@ export class StoreDetail implements OnInit {
   readonly isDisconnectingDomain = signal(false);
   readonly domainDisconnectError = signal('');
   readonly domainCopiedKey = signal<string | null>(null);
+  /** Entorno de la consola Platform (para URLs canónicas de ecommerce). */
+  isDevPlatformEnv(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.includes('-dev.web.app') ||
+        window.location.hostname.endsWith('.local'))
+    );
+  }
+
   readonly domainIsLive = computed(
     () => this.domainStatus() === 'live' || this.domainBackendStatus() === 'ACTIVE',
   );
@@ -647,7 +658,14 @@ export class StoreDetail implements OnInit {
   }
 
   copyWebhookUrl(storeId: string): Promise<void> {
-    const url = `https://us-central1-ecommerce-vertex-dev.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
+    const isDev =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname.includes('-dev.web.app') ||
+        window.location.hostname.endsWith('.local'));
+    const url = `https://us-central1-${
+      isDev ? 'ecommerce-vertex-dev' : 'ecommerce-vertex'
+    }.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
   }
 
