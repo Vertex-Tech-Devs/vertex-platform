@@ -4137,7 +4137,12 @@
     display: block;
     margin-top: 0.5rem;
     font-size: 0.75rem;
-    color: var(--platform-warning);
+    color: var(--platform-text-muted);
+
+    &--armed {
+      color: var(--platform-danger);
+      font-weight: 600;
+    }
   }
 }
 

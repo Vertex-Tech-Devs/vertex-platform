@@ -714,7 +714,11 @@
                             @if (itemRunning()) {
                               <span class="spinner-sm"></span> Eliminando…
                             } @else {
-                              {{ itemArmed() ? 'Confirmar borrado' : 'Eliminar' }}
+                              @if (itemArmed()) {
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Confirmar borrado
+                              } @else {
+                                Eliminar
+                              }
                             }
                           </button>
                         </div>
@@ -725,8 +729,14 @@
                           <span class="purge-item-delete__error">{{ itemError() }}</span>
                         }
                         @if (itemArmed()) {
+                          <span class="purge-item-delete__hint purge-item-delete__hint--armed">
+                            ⚠️ Esto es irreversible. Presioná el botón nuevamente para
+                            <strong>confirmar el borrado</strong>.
+                          </span>
+                        } @else {
                           <span class="purge-item-delete__hint">
-                            Esto es irreversible. Presioná nuevamente para confirmar.
+                            El borrado requiere confirmación: tocá el botón y luego
+                            <strong>Confirmar</strong>.
                           </span>
                         }
                       </div>
