@@ -34,12 +34,20 @@ export const sweepStoresOrdersReconcile = onSchedule(
 
     const projectOf = (d: { firebaseProjectId?: string; runtimeProjectId?: string; projectId?: string }) =>
       String(d.runtimeProjectId || d.firebaseProjectId || d.projectId || '').trim();
+    // Proyectos "maestros" internos (no son shards de tienda): se omiten para no
+    // generar ruido de 403 en cada ronda.
+    const SKIP_PROJECTS = new Set([
+      'ecommerce-vertex',
+      'ecommerce-vertex-dev',
+      'vertex-platform-app',
+      'vertex-platform-dev',
+    ]);
 
     for (const storeDoc of storesSnap.docs) {
       const data = storeDoc.data();
       const projectId = projectOf(data as never);
       const slug = String((data as { slug?: string }).slug || storeDoc.id);
-      if (!projectId) continue;
+      if (!projectId || SKIP_PROJECTS.has(projectId)) continue;
       summary.stores += 1;
       const root = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
       const ordersUrl = `${root}/orders?pageSize=300`;
