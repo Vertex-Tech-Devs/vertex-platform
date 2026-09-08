@@ -1,3 +1,4 @@
+/* eslint max-lines: off -- orquestador store-detail; la descomposición en subcomponentes se ejecuta en la fase de refactor dedicada (sin romper flujo actual) */
 import {
   ChangeDetectionStrategy,
   Component,
