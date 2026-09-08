@@ -3987,3 +3987,38 @@
   font-size: 0.72rem;
   color: var(--platform-text-muted);
 }
+
+/* ═══ Diagnóstico técnico colapsable ═══ */
+.diagnostics-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px dashed var(--platform-input-border);
+  background: transparent;
+  color: var(--platform-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--platform-text-secondary);
+    border-color: var(--platform-text-muted);
+  }
+}
+
+.diagnostics-panel {
+  margin-top: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--platform-input-bg);
+  border: 1px solid var(--platform-input-border);
+
+  .detail-dl--compact {
+    margin: 0;
+    font-size: 0.8rem;
+  }
+}

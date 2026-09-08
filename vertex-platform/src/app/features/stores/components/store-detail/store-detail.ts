@@ -138,6 +138,7 @@ export class StoreDetail implements OnInit {
   readonly domainActionState = signal<ActionProgressState>(IDLE_STATE);
   readonly retryActionState = signal<ActionProgressState>(IDLE_STATE);
 
+  readonly showDiagnostics = signal(false);
   readonly domainInput = this.domainsService.domainInput;
   readonly domainStatus = this.domainsService.domainStatus;
   readonly dnsRecords = this.domainsService.dnsRecords;

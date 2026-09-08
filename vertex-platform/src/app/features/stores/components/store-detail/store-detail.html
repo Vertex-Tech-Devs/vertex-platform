@@ -280,28 +280,13 @@
                 <dd>{{ store()!.slug }}</dd>
                 <dt>Cliente (Dueño)</dt>
                 <dd>{{ store()!.ownerEmail }}</dd>
-                <dt>Firebase Project</dt>
+                <dt>URL de la tienda</dt>
                 <dd>
-                  <a
-                    href="https://console.firebase.google.com/project/{{
-                      store()!.firebaseProjectId
-                    }}"
-                    target="_blank"
-                  >
-                    {{ store()!.firebaseProjectId }} ↗
-                  </a>
-                </dd>
-                <dt>URL Temporal</dt>
-                <dd>
-                  <a [href]="storeUrl()" target="_blank">{{ storeUrl() }}</a>
+                  <a [href]="storeUrl()" target="_blank">{{ store()!.customDomain || storeUrl() }}</a>
                 </dd>
                 @if (store()!.customDomain) {
                   <dt>Dominio Custom</dt>
                   <dd class="text-accent">{{ store()!.customDomain }}</dd>
-                }
-                @if (store()!.logoUrl) {
-                  <dt>Logo URL</dt>
-                  <dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
                 }
                 @if (store()!.verticalId) {
                   <dt>Rubro / Vertical</dt>
@@ -323,17 +308,9 @@
                     }
                   </dd>
                 }
-                @if (store()!.appVersion) {
-                  <dt>Versión app</dt>
-                  <dd class="text-accent">{{ store()!.appVersion }}</dd>
-                }
                 @if (store()!.targetChannel) {
                   <dt>Canal</dt>
                   <dd class="text-accent">{{ store()!.targetChannel | formatLabel }}</dd>
-                }
-                @if (store()!.schemaVersion) {
-                  <dt>Versión esquema</dt>
-                  <dd class="text-accent">{{ store()!.schemaVersion }}</dd>
                 }
                 <dt>Creada</dt>
                 <dd>{{ formatDate(store()!.createdAt) | date: 'dd/MM/yyyy HH:mm' }}</dd>
@@ -342,6 +319,53 @@
                   <dd>{{ formatDate(store()!.lastDeployedAt) | date: 'dd/MM/yyyy HH:mm' }}</dd>
                 }
               </dl>
+
+              <button
+                type="button"
+                class="diagnostics-toggle"
+                (click)="showDiagnostics.set(!showDiagnostics())"
+                aria-expanded="showDiagnostics()"
+              >
+                <i class="bi bi-bug"></i>
+                <span>Diagnóstico técnico</span>
+                <i
+                  class="bi"
+                  [class.bi-chevron-down]="!showDiagnostics()"
+                  [class.bi-chevron-up]="showDiagnostics()"
+                ></i>
+              </button>
+
+              @if (showDiagnostics()) {
+                <div class="diagnostics-panel">
+                  <dl class="detail-dl detail-dl--compact">
+                    @if (store()!.firebaseProjectId) {
+                      <dt>Firebase Project</dt>
+                      <dd>
+                        <a
+                          href="https://console.firebase.google.com/project/{{
+                            store()!.firebaseProjectId
+                          }}"
+                          target="_blank"
+                        >
+                          {{ store()!.firebaseProjectId }} ↗
+                        </a>
+                      </dd>
+                    }
+                    @if (store()!.logoUrl) {
+                      <dt>Logo URL</dt>
+                      <dd><a [href]="store()!.logoUrl" target="_blank">Ver imagen ↗</a></dd>
+                    }
+                    @if (store()!.appVersion) {
+                      <dt>Versión app</dt>
+                      <dd class="text-accent">{{ store()!.appVersion }}</dd>
+                    }
+                    @if (store()!.schemaVersion) {
+                      <dt>Versión esquema</dt>
+                      <dd class="text-accent">{{ store()!.schemaVersion }}</dd>
+                    }
+                  </dl>
+                </div>
+              }
             </div>
 
             <!-- Unified Version & Deployment Card -->
