@@ -213,12 +213,56 @@ export class StoreDetail implements OnInit {
   readonly mpMode = computed<'sandbox' | 'test' | 'prod'>(() => {
     const raw = this.mpAccessToken().trim() || this.mpTokenMasked() || '';
     if (raw.startsWith('APP_USR-')) {
-      return 'prod';
+      return 'prod'; // protege: nunca tratar credenciales reales como sandbox
     }
     if (raw.startsWith('TEST-')) {
       return 'test';
     }
-    return this.mpSandbox() ? 'sandbox' : 'sandbox';
+    // Sin token visible: la validación previa distingue producción real (APP) de pruebas.
+    if (this.mpValidationStatus() === 'valid' && !this.mpSandbox()) {
+      return 'prod';
+    }
+    if (this.mpValidationStatus() === 'valid') {
+      return 'test';
+    }
+    return 'sandbox';
+  });
+
+  readonly mpModeLabel = computed(() => {
+    switch (this.mpMode()) {
+      case 'prod':
+        return 'Producción Real (APP_USR-)';
+      case 'test':
+        return 'Pruebas (TEST-)';
+      default:
+        return 'Sandbox de Plataforma (sin credenciales propias)';
+    }
+  });
+
+  // ── SaaS: precios efectivos y gating de cobro ─────────────────────────────
+  readonly saasMonthly = computed(() => {
+    const sub = this.storeSubscription()?.subscription;
+    return Number(
+      sub?.customMonthlyPrice ?? this.storeSubscription()?.basePricing?.monthlyPrice ?? 50000,
+    );
+  });
+  readonly saasAnnual = computed(() => {
+    const sub = this.storeSubscription()?.subscription;
+    return Number(
+      sub?.customAnnualPrice ?? this.storeSubscription()?.basePricing?.annualPrice ?? 500000,
+    );
+  });
+  /** Meses que el plan anual "regala" respecto a pagar 12 meses sueltos. */
+  readonly saasAnnualMonthsFree = computed(() => {
+    if (!this.saasMonthly()) {
+      return 0;
+    }
+    return Math.max(0, Math.round((this.saasMonthly() * 12 - this.saasAnnual()) / this.saasMonthly()));
+  });
+  /** Estados en los que NO corresponde generar un cobro. */
+  readonly saasChargeBlocked = computed(() => {
+    const st = this.storeSubscription()?.subscription?.status;
+    return st === 'complimentary' || st === 'suspended' || st === 'trial';
   });
 
   // ── SaaS Subscription Vertex ──────────────────────────────────────────────

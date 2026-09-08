@@ -1612,27 +1612,62 @@
 
                   <!-- Subscription Link Generator Buttons -->
                   <div class="sub-link-actions mb-4">
-                    <span class="form-label d-block mb-2">Generar Enlace de Cobro al Cliente</span>
-                    <div class="d-flex gap-2 flex-wrap">
+                    <div class="sub-link-actions__heading">
+                      <span class="form-label d-block mb-1">Generar enlace de cobro</span>
+                      <span class="form-hint d-block"
+                        >Elegí la frecuencia. El cliente paga con su propia tarjeta en Mercado
+                        Pago.</span
+                      >
+                    </div>
+                    <div class="sub-link-grid">
                       <button
                         type="button"
-                        class="btn btn-secondary flex-1"
+                        class="sub-link-option sub-link-option--monthly"
                         (click)="generateSubscriptionLink('monthly')"
-                        [disabled]="isGeneratingSubLink()"
+                        [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
                       >
-                        <i class="bi bi-arrow-repeat"></i>
-                        <span>Débito Mensual ($50k)</span>
+                        <span class="sub-link-option__title">Débito Mensual</span>
+                        <span class="sub-link-option__price"
+                          >${{ saasMonthly() | number }} ARS / mes</span
+                        >
+                        <span class="sub-link-option__cta"
+                          ><i class="bi bi-link-45deg"></i>
+                          {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                        >
                       </button>
                       <button
                         type="button"
-                        class="btn btn-primary flex-1"
+                        class="sub-link-option sub-link-option--annual"
                         (click)="generateSubscriptionLink('annual')"
-                        [disabled]="isGeneratingSubLink()"
+                        [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
                       >
-                        <i class="bi bi-tag-fill"></i>
-                        <span>Pago Anual ($500k · 2m OFF)</span>
+                        <span class="sub-link-option__title">Pago Anual</span>
+                        <span class="sub-link-option__price"
+                          >${{ saasAnnual() | number }} ARS / año</span
+                        >
+                        @if (saasAnnualMonthsFree() > 0) {
+                          <span class="sub-link-option__bonus"
+                            >≈ {{ saasAnnualMonthsFree() }} meses gratis</span
+                          >
+                        }
+                        <span class="sub-link-option__cta"
+                          ><i class="bi bi-tag-fill"></i>
+                          {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                        >
                       </button>
                     </div>
+                    @if (saasChargeBlocked()) {
+                      <span class="form-hint d-block mt-2 text-warning">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {{
+                          storeSubscription()?.subscription?.status === 'complimentary'
+                            ? 'Tienda en cortesía: no corresponde emitir cobro.'
+                            : storeSubscription()?.subscription?.status === 'suspended'
+                              ? 'Tienda suspendida: regularizá la cuenta antes de generar cobros.'
+                              : 'En período de prueba: el cobro se emite al finalizar el trial.'
+                        }}
+                      </span>
+                    }
                   </div>
 
                   @if (subLinkGenerated()) {
@@ -1958,24 +1993,23 @@
 
                             <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
                             <div class="qa-simulation-box">
-                              <div class="d-flex align-items-center justify-content-between mb-2">
+                              <div class="qa-simulation-box__toggle">
                                 <button
                                   type="button"
                                   class="btn-qa-toggle d-flex align-items-center gap-2 text-xs"
                                   (click)="showSimulationTools.set(!showSimulationTools())"
-                                  title="Herramienta oculta para simular vencimientos en DEV y PROD"
+                                  title="Herramientas internas de soporte (QA/Lab)"
                                 >
-                                  <i class="bi bi-radioactive text-warning"></i>
-                                  <span class="font-weight-bold text-muted"
-                                    >Simulador de Vencimientos (QA / Lab)</span
+                                  <i class="bi bi-tools"></i>
+                                  <span class="font-weight-bold"
+                                    >Herramientas internas · Simulación de vencimientos</span
                                   >
                                   <i
-                                    class="bi text-muted"
+                                    class="bi"
                                     [class.bi-chevron-down]="!showSimulationTools()"
                                     [class.bi-chevron-up]="showSimulationTools()"
                                   ></i>
                                 </button>
-                                <span class="badge badge--neutral text-xxs">Testing Directo</span>
                               </div>
 
                               @if (showSimulationTools()) {
@@ -2047,6 +2081,66 @@
                       Configurá las credenciales de Mercado Pago para procesar cobros automáticos en
                       el checkout de la tienda.
                     </p>
+                  </div>
+
+                  <div class="mp-status-strip">
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="mpValidationStatus() === 'valid'"
+                      [class.mp-status-chip--warn]="mpValidationStatus() !== 'valid'"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-check-circle-fill]="mpValidationStatus() === 'valid'"
+                        [class.bi-circle]="mpValidationStatus() !== 'valid'"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Credenciales</span>
+                        <span class="mp-status-chip__value">
+                          {{
+                            mpValidationStatus() === 'valid'
+                              ? 'Guardadas y validadas'
+                              : mpValidationStatus() === 'invalid'
+                                ? 'Guardadas, pero inválidas'
+                                : 'Sin credenciales propias'
+                          }}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="!!mpAccountEmail()"
+                      [class.mp-status-chip--warn]="!mpAccountEmail()"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-person-check-fill]="!!mpAccountEmail()"
+                        [class.bi-person]="!mpAccountEmail()"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Cuenta Mercado Pago</span>
+                        <span class="mp-status-chip__value">
+                          {{ mpAccountEmail() || 'Sin cuenta vinculada' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="mpMode() === 'prod'"
+                      [class.mp-status-chip--info]="mpMode() === 'test'"
+                      [class.mp-status-chip--warn]="mpMode() === 'sandbox'"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-shield-check]="mpMode() === 'prod'"
+                        [class.bi-shield]="mpMode() === 'sandbox'"
+                        [class.bi-shield-shaded]="mpMode() === 'test'"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Modo pasarela</span>
+                        <span class="mp-status-chip__value">{{ mpModeLabel() }}</span>
+                      </div>
+                    </div>
                   </div>
 
                   @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
