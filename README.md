@@ -217,3 +217,34 @@ The **Pagos** tab renders an explicit mode banner derived from the resolved toke
 
 ### Infrastructure self-healing
 `triggerHealShards` (admin-guarded, 300 s / 512 MiB) audits the 7 canonical APIs and re-binds the orchestrator IAM roles on every registered shard and returns a per-shard report rendered in Operaciones Cloud → **Sanear Shards de Plataforma**. Runbook: on `IAM_PROPAGATION_FAILED`, re-run the heal (IAM can take ~60 s to propagate; the API circuit breaker retries); verify with the infrastructure tab's readiness table before provisioning new stores.
+
+
+---
+
+## Vertex Platform — Documentación operativa (Enterprise)
+
+### Orquestador de shards GCP
+Vertex Platform aprovisiona y opera tenants GCP independientes ("shards") con su propio Firestore, Hosting y Secret Manager. Una Service Account orquestadora posee las 7 APIs canónicas y los roles IAM de cada shard; el saneamiento se ejecuta con `triggerHealShards` (admin-only, 300 s / 512 MiB) y rinde un reporte por shard en Operaciones Cloud → Infraestructura.
+
+### Ciclo de vida de dominios
+`connectDomain` es idempotente (un dominio ya conectado responde 200 con los DNS vigentes). `getDomainStatus` devuelve `PENDING_DNS | VALIDATING | ACTIVE` + registros A/TXT; `disconnectDomain` limpia Hosting y el doc de la tienda. La pestaña Dominios de cada tienda muestra estado, registros con copiado y acciones.
+
+### Flujo de pagos y órdenes (integrado con ecommerce-vertex)
+- `createPaymentPreference` persiste la orden como `PENDING_PAYMENT` (`stockDecremented:false`, `isPaid:false`) — **el stock solo se descuenta en el webhook `approved`** (transacción idempotente con margen de seguridad no-negativo).
+- El `notification_url` viaja con `tenant` y `projectId` del shard; el webhook tolera `PERMISSION_DENIED` de Secret Manager y continúa con el token real espejado en Firestore del shard (nunca cae al master TEST si la tienda tiene credenciales).
+- Preferencias vencidas se regeneran (sin links muertos); rechazadas/canceladas/expiradas pasan a `CANCELLED_UNPAID` con stock devuelto y sin impacto en métricas.
+- Clientes se registran en el **shard** (no en el master) desde el webhook aprobado: la sección Clientes del dashboard refleja compras reales.
+
+### Monitor y logs por tienda
+La pestaña **Monitor** de cada tienda expone los logs de `ecommerce-vertex` (Cloud Logging) filtrados por slug/severidad/ventana vía el callable `getStoreLogs`. Runbook IAM:
+`gcloud projects add-iam-policy-binding ecommerce-vertex --member=serviceAccount:<PLATFORM_RUNTIME_SA> --role=roles/logging.viewer`
+(la SA runtime de platform se obtiene con `gcloud functions describe <fn> --project=vertex-platform-app --format='value(serviceConfig.serviceAccountEmail)'`).
+
+### Alertas en producción
+`watchdogPlatformAlerts` (cada 60 min) detecta errores del flujo de pagos en Cloud Logging y tiendas en estado de riesgo; persiste alertas deduplicadas en `alerts/{key}`. El **Centro de Alertas** (`/settings/alerts`) permite filtrarlas y marcarlas resueltas. Runbook: ante `IAM_PROPAGATION_FAILED` re-ejecutar `triggerHealShards`; los permisos de logs/SMTP se corrigen con los comandos IAM documentados arriba.
+
+### Tema y estilo
+Tema dual (claro/oscuro Material 3) con toggle persistente; todos los estilos se basan en tokens CSS (`--platform-*`) definidos en `src/styles.scss` para ambos `data-theme`.
+
+### Calidad y entrega
+Gates por fase: `npm run typecheck && npm run lint && npm test && npm run build` + `npm --prefix functions run build && npm --prefix functions test`. Rama `develop` = `main` con **0 divergencia**; prohibido tocar `version` o crear tags; deploys monitoreados hasta `success`.
