@@ -332,3 +332,36 @@
   border-radius: 999px;
   padding: 0.18rem 0.6rem;
 }
+
+/* ── Tema dual: toggle en header ─────────────────────────────────────────── */
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+  color: var(--platform-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base),
+    transform 0.15s ease;
+
+  &:hover {
+    color: var(--platform-accent);
+    border-color: var(--platform-accent);
+    transform: translateY(-1px);
+  }
+}

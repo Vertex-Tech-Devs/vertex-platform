@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth';
+import { ThemeService } from '@core/services/theme.service';
 
 /** Hosts oficiales de producción de la plataforma (nunca DEV). */
 const PROD_HOSTS = new Set([
@@ -45,6 +46,7 @@ export function isDevHostname(host: string): boolean {
 })
 export class PlatformLayout {
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   readonly isSidebarOpen = signal(false);
 

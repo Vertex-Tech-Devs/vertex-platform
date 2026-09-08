@@ -81,6 +81,20 @@
       @if (isDevEnv) {
         <span class="env-badge">ENTORNO DEV</span>
       }
+      <div class="header-actions">
+        <button
+          class="theme-toggle"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.resolved() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          [title]="theme.resolved() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+        >
+          @if (theme.resolved() === 'dark') {
+            <i class="bi bi-sun-fill"></i>
+          } @else {
+            <i class="bi bi-moon-stars-fill"></i>
+          }
+        </button>
+      </div>
     </header>
 
     <main class="platform-content">
