@@ -118,6 +118,15 @@ export class StoreDetail implements OnInit {
   readonly saveError = this.orchestrationService.saveError;
 
   readonly showDeleteConfirm = signal(false);
+  readonly purgeOpen = signal(false);
+  readonly purgeClients = signal(true);
+  readonly purgeOrders = signal(true);
+  readonly purgeCatalog = signal(false);
+  readonly purgeContent = signal(false);
+  readonly purgeRunning = signal(false);
+  readonly purgeError = signal('');
+  readonly purgeResult = signal<string>('');
+  readonly purgeConfirmInput = signal('');
   readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
@@ -864,6 +873,41 @@ export class StoreDetail implements OnInit {
     this.domainDisconnectOpen.set(false);
   }
 
+  async runPurge(): Promise<void> {
+    const s = this.store();
+    if (!s || this.purgeRunning()) {
+      return;
+    }
+    const typed = this.purgeConfirmInput().trim();
+    if (typed !== s.slug && typed !== s.id) {
+      this.purgeError.set('Escribí el slug o ID de la tienda para confirmar la limpieza.');
+      return;
+    }
+    this.purgeRunning.set(true);
+    this.purgeError.set('');
+    this.purgeResult.set('');
+    try {
+      const res = await this.storesService.purgeStoreData(s.id, {
+        deleteClients: this.purgeClients(),
+        deleteOrders: this.purgeOrders(),
+        deleteCatalog: this.purgeCatalog(),
+        deleteContent: this.purgeContent(),
+      });
+      const parts = Object.entries(res.deleted || {})
+        .filter(([, n]) => (n as number) > 0)
+        .map(([k, n]) => `${k}: ${n}`);
+      this.purgeResult.set(
+        res.success
+          ? 'Limpieza completada. ' + (parts.join(' · ') || 'Nada para borrar.')
+          : 'Limpieza con errores (revisá los logs de la plataforma).',
+      );
+      this.purgeOpen.set(false);
+    } catch (err) {
+      this.purgeError.set(errorMessage(err, 'No se pudo limpiar los datos de la tienda.'));
+    } finally {
+      this.purgeRunning.set(false);
+    }
+  }
   /** Desvincula el dominio (disconnectDomain callable) y espera el onSnapshot. */
   async confirmDisconnectDomain(): Promise<void> {
     const s = this.store();

@@ -285,6 +285,19 @@ export class StoresService {
     return result.data;
   }
 
+  /** Purga super-admin de datos de prueba (purgeStoreData callable). */
+  async purgeStoreData(
+    storeId: string,
+    opts: { deleteClients?: boolean; deleteOrders?: boolean; deleteCatalog?: boolean; deleteContent?: boolean },
+  ): Promise<PurgeStoreDataResult> {
+    const fn = httpsCallable<{ storeId: string } & typeof opts, PurgeStoreDataResult>(
+      this.fns,
+      'purgeStoreData',
+    );
+    const result = await fn({ storeId, ...opts });
+    return result.data;
+  }
+
   /** Logs por tienda (getStoreLogs callable). */
   async getStoreLogs(
     storeId: string,
@@ -534,6 +547,13 @@ export interface DomainStatusResponse {
   status?: 'PENDING_DNS' | 'VALIDATING' | 'ACTIVE';
   sslStatus?: string;
   dnsRecords?: { aRecords: string[]; txtRecord?: string };
+}
+
+export interface PurgeStoreDataResult {
+  success: boolean;
+  shardProjectId: string;
+  deleted: Record<string, number>;
+  errors: string[];
 }
 
 export interface StoreLogsResponse {

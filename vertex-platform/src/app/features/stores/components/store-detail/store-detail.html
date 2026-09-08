@@ -672,6 +672,58 @@
                   </div>
                 </div>
 
+                <!-- Super Admin: Limpieza de datos de prueba -->
+                @if (auth.isSuperAdmin()) {
+                  <div class="op-control-card op-control-card--purge">
+                    <div class="op-control-card__top">
+                      <div class="op-control-card__icon text-primary">
+                        <i class="bi bi-eraser-fill"></i>
+                      </div>
+                      <div class="op-control-card__meta">
+                        <h4 class="op-control-card__title">Limpieza de datos de prueba</h4>
+                        <span class="op-control-card__badge badge--warning">Super Admin</span>
+                      </div>
+                    </div>
+                    <div class="op-control-card__body">
+                      <p class="op-control-card__desc">
+                        Eliminá pedidos, clientes, catálogo o contenido de la tienda para dejarla
+                        limpia antes de entregarla. No toca configuración, credenciales ni la
+                        tienda misma.
+                      </p>
+                      <div class="purge-options">
+                        <label class="purge-option">
+                          <input type="checkbox" [ngModel]="purgeOrders()" (ngModelChange)="purgeOrders.set($event)" />
+                          <span>Pedidos</span>
+                        </label>
+                        <label class="purge-option">
+                          <input type="checkbox" [ngModel]="purgeClients()" (ngModelChange)="purgeClients.set($event)" />
+                          <span>Clientes</span>
+                        </label>
+                        <label class="purge-option">
+                          <input type="checkbox" [ngModel]="purgeCatalog()" (ngModelChange)="purgeCatalog.set($event)" />
+                          <span>Catálogo (productos/categorías)</span>
+                        </label>
+                        <label class="purge-option">
+                          <input type="checkbox" [ngModel]="purgeContent()" (ngModelChange)="purgeContent.set($event)" />
+                          <span>Contenido (banners/páginas)</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="op-control-card__footer">
+                      <button
+                        class="btn btn-outline-primary op-control-card__btn"
+                        [disabled]="purgeRunning() || (!purgeOrders() && !purgeClients() && !purgeCatalog() && !purgeContent())"
+                        (click)="purgeError.set(''); purgeConfirmInput.set(''); purgeOpen.set(true)"
+                      >
+                        <i class="bi bi-eraser me-1"></i> Eliminar datos seleccionados
+                      </button>
+                      @if (purgeResult()) {
+                        <span class="purge-result">{{ purgeResult() }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+
                 <!-- Danger Zone Control Card -->
                 @if (auth.isSuperAdmin()) {
                   <div class="op-control-card op-control-card--danger">
@@ -2629,6 +2681,52 @@
 
   <!-- Edit modal -->
   @if (showEditModal()) {
+    @if (purgeOpen()) {
+      <div class="modal-overlay" (click)="!purgeRunning() && purgeOpen.set(false)">
+        <div class="modal glass-modal" (click)="$event.stopPropagation()">
+          <h3 class="modal__title">
+            <i class="bi bi-eraser-fill me-2 text-danger"></i>Limpiar datos de la tienda
+          </h3>
+          <p style="color: var(--platform-text-secondary); margin-bottom: 1rem">
+            Esto es <strong>irreversible</strong> y afecta solo a los datos seleccionados de
+            <code>{{ store()!.slug }}</code>. Escribí el slug o ID para confirmar.
+          </p>
+          @if (purgeError()) {
+            <p style="color: var(--platform-danger); margin-bottom: 1rem">{{ purgeError() }}</p>
+          }
+          <input
+            class="form-control mb-3"
+            type="text"
+            placeholder="Escribí {{ store()!.slug }}"
+            [ngModel]="purgeConfirmInput()"
+            (ngModelChange)="purgeConfirmInput.set($event)"
+          />
+          <div class="modal__actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="purgeRunning()"
+              (click)="purgeOpen.set(false)"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="purgeRunning()"
+              (click)="runPurge()"
+            >
+              @if (purgeRunning()) {
+                <span class="spinner-sm"></span> Eliminando…
+              } @else {
+                <i class="bi bi-trash"></i> Eliminar datos
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (domainDisconnectOpen()) {
       <div class="modal-overlay" (click)="cancelDisconnectDomainModal()">
         <div class="modal glass-modal" (click)="$event.stopPropagation()">
