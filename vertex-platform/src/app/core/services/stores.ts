@@ -285,6 +285,19 @@ export class StoresService {
     return result.data;
   }
 
+  /** Logs por tienda (getStoreLogs callable). */
+  async getStoreLogs(
+    storeId: string,
+    opts: { severity?: string; query?: string; sinceMinutes?: number; limit?: number } = {},
+  ): Promise<StoreLogsResponse> {
+    const fn = httpsCallable<{ storeId: string } & typeof opts, StoreLogsResponse>(
+      this.fns,
+      'getStoreLogs',
+    );
+    const result = await fn({ storeId, ...opts });
+    return result.data;
+  }
+
   /** Auto-heal de shards (triggerHealShards callable). */
   async triggerHealShards(): Promise<HealShardsReport> {
     const fn = httpsCallable<Record<string, never>, HealShardsReport>(
@@ -521,6 +534,19 @@ export interface DomainStatusResponse {
   status?: 'PENDING_DNS' | 'VALIDATING' | 'ACTIVE';
   sslStatus?: string;
   dnsRecords?: { aRecords: string[]; txtRecord?: string };
+}
+
+export interface StoreLogsResponse {
+  success: boolean;
+  project: string;
+  entries: Array<{
+    timestamp: string;
+    severity: string;
+    function?: string;
+    message: string;
+    raw?: string;
+  }>;
+  truncated: boolean;
 }
 
 export interface HealShardsReport {
