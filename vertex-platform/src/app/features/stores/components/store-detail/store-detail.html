@@ -341,14 +341,7 @@
                     @if (store()!.firebaseProjectId) {
                       <dt>Firebase Project</dt>
                       <dd>
-                        <a
-                          href="https://console.firebase.google.com/project/{{
-                            store()!.firebaseProjectId
-                          }}"
-                          target="_blank"
-                        >
-                          {{ store()!.firebaseProjectId }} ↗
-                        </a>
+                        <code>{{ store()!.firebaseProjectId }}</code>
                       </dd>
                     }
                     @if (store()!.logoUrl) {
