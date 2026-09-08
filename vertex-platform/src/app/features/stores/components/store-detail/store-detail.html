@@ -1560,57 +1560,77 @@
                     </div>
                   }
 
-                  <!-- Subscription Details & Pricing Card -->
-                  <div class="sub-pricing-summary p-3 mb-4">
-                    <div class="d-flex align-items-baseline justify-content-between">
-                      <div>
-                        <span class="text-muted d-block text-xs uppercase font-weight-bold"
-                          >Tarifa Vigente</span
-                        >
-                        <strong class="h4 mb-0 text-white">
-                          @if (storeSubscription()?.subscription?.billingCycle === 'annual') {
-                            ${{
-                              storeSubscription()?.subscription?.customAnnualPrice ||
-                                storeSubscription()?.basePricing?.annualPrice ||
-                                500000 | number
-                            }}
-                            ARS
-                            <small class="text-xs text-muted">/ año</small>
-                          } @else {
-                            ${{
-                              storeSubscription()?.subscription?.customMonthlyPrice ||
-                                storeSubscription()?.basePricing?.monthlyPrice ||
-                                50000 | number
-                            }}
-                            ARS
-                            <small class="text-xs text-muted">/ mes</small>
-                          }
-                        </strong>
+                  <!-- Subscription Details & Pricing Card (grilla simétrica) -->
+                  <div class="sub-summary mb-4">
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Tarifa vigente</span>
+                      <span class="sub-summary__value">
+                        ${{ (storeSubscription()?.subscription?.billingCycle === 'annual'
+                          ? saasAnnual()
+                          : saasMonthly()) | number }}
+                        <span class="sub-summary__unit">ARS</span>
+                      </span>
+                      <span class="sub-summary__sub"
+                        >por
+                        {{
+                          storeSubscription()?.subscription?.billingCycle === 'annual'
+                            ? 'año'
+                            : 'mes'
+                        }}
                         @if (storeSubscription()?.subscription?.discountPercent) {
-                          <span class="badge badge--success ml-2"
-                            >{{ storeSubscription()?.subscription?.discountPercent }}% OFF
-                            Asignado</span
-                          >
+                          · {{ storeSubscription()?.subscription?.discountPercent }}% OFF
                         }
-                      </div>
-
+                      </span>
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Ciclo de cobro</span>
+                      <span class="sub-summary__value sub-summary__value--md">{{
+                        saasBillingCycleLabel()
+                      }}</span>
+                      <span class="sub-summary__sub"
+                        >{{
+                          saasBillingCycleLabel() === 'Anual' && saasAnnualMonthsFree() > 0
+                            ? '≈ ' + saasAnnualMonthsFree() + ' meses gratis vs. mensual'
+                            : 'Renovación automática mensual'
+                        }}</span
+                      >
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">{{
+                        storeSubscription()?.subscription?.status === 'trial'
+                          ? 'Fin de prueba'
+                          : 'Próximo vencimiento'
+                      }}</span>
                       @if (storeSubscription()?.subscription?.currentPeriodEnd) {
-                        <div class="text-right">
-                          <span class="text-muted d-block text-xs uppercase font-weight-bold">
-                            {{
-                              storeSubscription()?.subscription?.status === 'trial'
-                                ? 'Fin de Prueba'
-                                : 'Próximo Vencimiento'
-                            }}
-                          </span>
-                          <span class="text-sm font-weight-medium text-white">
-                            {{
-                              formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
-                                | date: 'dd/MM/yyyy'
-                            }}
-                          </span>
-                        </div>
+                        <span class="sub-summary__value sub-summary__value--md">
+                          {{
+                            formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
+                              | date: 'dd/MM/yyyy'
+                          }}
+                        </span>
+                        <span class="sub-summary__sub">Cierre del período actual</span>
+                      } @else {
+                        <span class="sub-summary__value sub-summary__value--md">—</span>
+                        <span class="sub-summary__sub">Sin período definido</span>
                       }
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Estado de cuenta</span>
+                      <span class="sub-summary__status" [class]="'sub-summary__status--' + saasStatusInfo().tone">
+                        <i class="bi" [class]="'bi-' + saasStatusInfo().icon"></i>
+                        {{ saasStatusInfo().label }}
+                      </span>
+                      <span class="sub-summary__sub">
+                        {{
+                          storeSubscription()?.subscription?.status === 'past_due'
+                            ? 'Día ' +
+                              (storeSubscription()?.overdueDetails?.overdueDays || 1) +
+                              ' de 5 de gracia'
+                            : storeSubscription()?.subscription?.status === 'complimentary'
+                              ? 'Sin costo para el cliente'
+                              : 'Cobro directo a la tienda'
+                        }}
+                      </span>
                     </div>
                   </div>
 

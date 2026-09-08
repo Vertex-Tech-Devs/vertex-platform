@@ -265,6 +265,27 @@ export class StoreDetail implements OnInit {
     return st === 'complimentary' || st === 'suspended' || st === 'trial';
   });
 
+  /** Presentación homogénea del estado de suscripción (grilla resumen). */
+  readonly saasStatusInfo = computed<{
+    label: string;
+    icon: string;
+    tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral';
+  }>(() => {
+    const map: Record<string, { label: string; icon: string; tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral' }> = {
+      active: { label: 'Activa', icon: 'check-circle-fill', tone: 'success' },
+      complimentary: { label: 'Cortesía / Bonificada', icon: 'gift-fill', tone: 'primary' },
+      trial: { label: 'Período de prueba', icon: 'stars', tone: 'warning' },
+      past_due: { label: 'Período de gracia', icon: 'clock-history', tone: 'warning' },
+      suspended: { label: 'Suspendida por pago', icon: 'slash-circle-fill', tone: 'danger' },
+    };
+    const st = String(this.storeSubscription()?.subscription?.status || '');
+    return map[st] ?? { label: 'En configuración', icon: 'question-circle', tone: 'neutral' };
+  });
+
+  readonly saasBillingCycleLabel = computed(() =>
+    this.storeSubscription()?.subscription?.billingCycle === 'annual' ? 'Anual' : 'Mensual',
+  );
+
   // ── SaaS Subscription Vertex ──────────────────────────────────────────────
   readonly storeSubscription = signal<StoreSubscriptionInfo | null>(null);
   readonly isLoadingSubscription = signal(false);
