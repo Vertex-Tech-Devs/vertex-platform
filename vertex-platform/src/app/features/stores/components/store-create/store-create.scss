@@ -850,3 +850,66 @@
     flex-direction: column;
   }
 }
+
+/* ═══ M3 polish (token-based, ambos temas) ═══ */
+.create-page {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.create-page__title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--platform-text-primary);
+}
+
+.create-page__sub {
+  color: var(--platform-text-muted);
+  font-size: 0.95rem;
+  max-width: 62ch;
+}
+
+.form-section {
+  background: var(--platform-card-bg);
+  border: 1px solid var(--platform-card-border);
+  border-radius: 1.1rem;
+  box-shadow: var(--platform-shadow-1);
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-section__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--platform-text-primary);
+}
+
+.section-header {
+  .section-title {
+    color: var(--platform-text-primary);
+  }
+}
+
+.option-card,
+.trial-preset-card,
+.trial-custom-card {
+  border-radius: 1rem;
+  border: 1px solid var(--platform-card-border);
+  transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--platform-shadow-1);
+  }
+}
+
+.logo-dropzone {
+  border-radius: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
