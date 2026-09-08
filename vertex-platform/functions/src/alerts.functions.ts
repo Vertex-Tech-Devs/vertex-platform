@@ -2,6 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { GoogleAuth } from 'google-auth-library';
+import * as nodemailer from 'nodemailer';
 
 interface AlertInput {
   key: string;
@@ -23,6 +24,57 @@ interface AlertInput {
  *  3) Persiste alertas deduplicadas en Firestore `alerts/{key}` (open) con conteo y
  *     primera/última vez; el Centro de Alertas (UI) las consumirá.
  */
+
+
+/** Envía correo institucional a los admins si hay credenciales SMTP (no bloqueante). */
+async function sendAlertEmails(findings: AlertInput[]): Promise<void> {
+  const criticals = findings.filter((f) => f.severity === 'critical');
+  if (criticals.length === 0) return;
+  const smtpUser = (process.env.SMTP_USER || 'vertex.tech.dev@gmail.com').trim();
+  const smtpPass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '').trim();
+  const toList = (process.env.ALERT_EMAILS || 'vertex.tech.dev@gmail.com')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!smtpPass || toList.length === 0) {
+    logger.warn('[Alerts] SMTP no configurado; alerta crítica sin correo (sigue en Centro de Alertas).');
+    return;
+  }
+  try {
+    const rows = criticals
+      .map(
+        (a) =>
+          `<li><strong>[${a.severity.toUpperCase()}]</strong> ${a.title} — ${a.message}` +
+          (a.link ? ` <a href="${a.link}">Ver en Monitor</a>` : '') +
+          '</li>',
+      )
+      .join('');
+    const html = `<div style="font-family:Arial,sans-serif;background:#0f172a;padding:24px">
+      <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:14px;padding:24px;border:1px solid #e2e8f0">
+        <div style="color:#4f46e5;font-weight:800;font-size:20px;margin-bottom:12px">Vertex Platform — Alerta en producción</div>
+        <p style="color:#0f172a">Se detectaron <strong>${criticals.length}</strong> alerta(s) crítica(s) en la última ronda del watchdog (60 min).</p>
+        <ul style="color:#334155">${rows}</ul>
+        <p style="font-size:12px;color:#64748b">Procesado de forma segura por Vertex Platform.</p>
+      </div>
+    </div>`;
+    const transporter = nodemailer.createTransport({
+      host: (process.env.SMTP_HOST || 'smtp.gmail.com').trim(),
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: Number(process.env.SMTP_PORT) === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+    await transporter.sendMail({
+      from: `"Vertex Platform" <${smtpUser}>`,
+      to: toList.join(', '),
+      subject: `Vertex Platform: ${criticals.length} alerta(s) crítica(s) — ver Monitor`,
+      html,
+    });
+    logger.info(`[Alerts] Correo crítico enviado a ${toList.join(', ')}.`);
+  } catch (err) {
+    logger.error('[Alerts] No se pudo enviar correo crítico:', err);
+  }
+}
+
 export const watchdogPlatformAlerts = onSchedule('every 60 minutes', async () => {
   logger.info('[Alerts] Inicio de la ronda de vigilancia.');
   const db = getFirestore();
@@ -134,4 +186,5 @@ export const watchdogPlatformAlerts = onSchedule('every 60 minutes', async () =>
   }
 
   logger.info(`[Alerts] Ronda finalizada: ${findings.length} hallazgo(s), ${created} nueva(s), ${updated} actualizada(s).`);
+  await sendAlertEmails(findings);
 });
