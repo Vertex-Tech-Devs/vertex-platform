@@ -1068,6 +1068,93 @@
         <!-- Tab 3: Dominios (DNS) -->
         @if (activeTab() === 'dominios') {
           <div class="dns-container">
+            <!-- Dirección gratuita .web.app -->
+            <div class="detail-card subdomain-card mb-3">
+              <div class="detail-card__header mb-3">
+                <h2 class="detail-card__title">
+                  <i class="bi bi-link-45deg text-primary"></i> Dirección Gratuita de la Tienda
+                  (.web.app)
+                </h2>
+                <p class="detail-card__subtitle">
+                  Personalizá la URL pública gratuita. El cambio se aplica sin corte de servicio
+                  y la URL anterior deja de responder.
+                </p>
+              </div>
+
+              <div class="subdomain-current">
+                <span class="subdomain-current__label">URL activa</span>
+                <a
+                  [href]="subCurrentUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="subdomain-current__url"
+                >
+                  {{ subCurrentUrl() || '—' }} <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn--sm"
+                  [disabled]="!subCurrentUrl()"
+                  (click)="copySubdomainUrl()"
+                >
+                  <i class="bi" [class.bi-check-lg]="subCopied()" [class.bi-clipboard]="!subCopied()"></i>
+                  {{ subCopied() ? '¡Copiado!' : 'Copiar enlace' }}
+                </button>
+              </div>
+
+              <div class="subdomain-editor">
+                <div
+                  class="subdomain-input-wrap"
+                  [class.is-available]="subAvailable()"
+                  [class.is-taken]="subTaken()"
+                >
+                  <input
+                    class="subdomain-input"
+                    type="text"
+                    placeholder="midireccion"
+                    spellcheck="false"
+                    [ngModel]="subInput()"
+                    (ngModelChange)="onSubInputChange($event)"
+                  />
+                  <span class="subdomain-input__suffix">.web.app</span>
+                </div>
+                <div class="subdomain-status">
+                  @if (subChecking()) {
+                    <span class="subdomain-spinner"><span class="spinner-sm"></span> Verificando disponibilidad en Google...</span>
+                  } @else if (subAvailable()) {
+                    <span class="badge badge--success">Disponible</span>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm"
+                      (click)="openSubModal()"
+                    >
+                      Cambiar Dirección
+                    </button>
+                  } @else if (subTaken()) {
+                    <span class="badge badge--error">Nombre no disponible</span>
+                  } @else if (subInput().length >= 4) {
+                    <span class="badge badge--neutral">Verificá disponibilidad</span>
+                  }
+                </div>
+                @if (subTaken() && subSuggestions().length > 0) {
+                  <div class="subdomain-suggestions">
+                    <span class="subdomain-suggestions__label">Sugerencias:</span>
+                    @for (sug of subSuggestions(); track sug) {
+                      <button type="button" class="chip-suggestion" (click)="pickSuggestion(sug)">
+                        {{ sug }}.web.app
+                      </button>
+                    }
+                  </div>
+                }
+                @if (subResult()) {
+                  <div class="alert alert--success">{{ subResult() }}</div>
+                }
+                @if (subError()) {
+                  <div class="alert alert--error">{{ subError() }}</div>
+                }
+              </div>
+            </div>
+
             @if (dnsVerificationError()) {
               <div
                 class="alert"
@@ -2732,6 +2819,38 @@
 
   <!-- Edit modal -->
   @if (showEditModal()) {
+    @if (subModalOpen()) {
+      <div class="modal-overlay" (click)="!subUpdating() && subModalOpen.set(false)">
+        <div class="modal glass-modal" (click)="$event.stopPropagation()">
+          <h3 class="modal__title">
+            <i class="bi bi-globe me-2 text-primary"></i>¿Cambiar la dirección gratuita?
+          </h3>
+          <p style="color: var(--platform-text-secondary); margin-bottom: 1rem">
+            Al cambiar la dirección, la URL anterior dejará de responder inmediatamente. Deberás
+            actualizar los enlaces en tus redes sociales y WhatsApp.
+            <br /><br />
+            Nueva URL:
+            <code>https://{{ subInput() || '...' }}.web.app</code>
+          </p>
+          @if (subError()) {
+            <p style="color: var(--platform-danger); margin-bottom: 1rem">{{ subError() }}</p>
+          }
+          <div class="modal__actions">
+            <button type="button" class="btn btn-secondary" [disabled]="subUpdating()" (click)="subModalOpen.set(false)">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" [disabled]="subUpdating()" (click)="confirmSubdomainChange()">
+              @if (subUpdating()) {
+                <span class="spinner-sm"></span> Cambiando…
+              } @else {
+                Confirmar Cambio
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (purgeOpen()) {
       <div class="modal-overlay" (click)="!purgeRunning() && purgeOpen.set(false)">
         <div class="modal glass-modal" (click)="$event.stopPropagation()">

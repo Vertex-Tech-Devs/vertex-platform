@@ -299,6 +299,33 @@ export class StoresService {
     return result.data;
   }
 
+  /** Chequea disponibilidad de un subdominio .web.app. */
+  async checkSubdomainAvailability(candidate: string): Promise<{
+    available: boolean;
+    sanitized: string;
+    suggestions?: string[];
+  }> {
+    const fn = httpsCallable<{ candidate: string }, { available: boolean; sanitized: string; suggestions?: string[] }>(
+      this.fns,
+      'checkSubdomainAvailability',
+    );
+    const result = await fn({ candidate });
+    return result.data;
+  }
+
+  /** Cambia la dirección gratuita .web.app de la tienda. */
+  async updateStoreSubdomain(
+    storeId: string,
+    newSubdomain: string,
+  ): Promise<{ success: boolean; subdomain: string; url?: string }> {
+    const fn = httpsCallable<{ storeId: string; newSubdomain: string }, { success: boolean; subdomain: string; url?: string }>(
+      this.fns,
+      'updateStoreSubdomain',
+    );
+    const result = await fn({ storeId, newSubdomain });
+    return result.data;
+  }
+
   /** Purga super-admin de datos de prueba (purgeStoreData callable). */
   async purgeStoreData(
     storeId: string,

@@ -4240,3 +4240,130 @@ html[data-theme='light'] {
     color: #92400e;
   }
 }
+
+/* ═══ Subdominio gratuito .web.app ═══ */
+.subdomain-card {
+  .subdomain-current {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.8rem;
+    background: var(--platform-input-bg);
+    border: 1px solid var(--platform-input-border);
+    margin-bottom: 1rem;
+
+    &__label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--platform-text-muted);
+    }
+
+    &__url {
+      color: var(--platform-accent);
+      font-weight: 600;
+      text-decoration: none;
+      word-break: break-all;
+    }
+  }
+
+  .subdomain-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .subdomain-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    max-width: 420px;
+    border: 1px solid var(--platform-input-border);
+    border-radius: 0.7rem;
+    overflow: hidden;
+    background: var(--platform-input-bg);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus-within {
+      border-color: var(--platform-accent);
+      box-shadow: 0 0 0 3px var(--platform-focus-ring);
+    }
+
+    &.is-available {
+      border-color: var(--platform-success);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-success) 25%, transparent);
+    }
+    &.is-taken {
+      border-color: var(--platform-danger);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-danger) 22%, transparent);
+    }
+  }
+
+  .subdomain-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--platform-text-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.65rem 0.85rem;
+    outline: none;
+  }
+
+  .subdomain-input__suffix {
+    padding: 0 0.85rem 0 0.2rem;
+    color: var(--platform-text-muted);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .subdomain-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    min-height: 2rem;
+  }
+
+  .subdomain-spinner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--platform-text-muted);
+  }
+
+  .subdomain-suggestions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    &__label {
+      font-size: 0.8rem;
+      color: var(--platform-text-muted);
+    }
+  }
+
+  .chip-suggestion {
+    border: 1px solid var(--platform-input-border);
+    background: var(--platform-card-bg);
+    color: var(--platform-accent);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: var(--platform-accent);
+      background: color-mix(in srgb, var(--platform-accent) 12%, transparent);
+    }
+  }
+}
