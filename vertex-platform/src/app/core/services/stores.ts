@@ -285,6 +285,20 @@ export class StoresService {
     return result.data;
   }
 
+  /** Borra un cliente o pedido puntual (super admin). */
+  async deleteStoreDataItem(
+    storeId: string,
+    kind: 'client' | 'order',
+    reference: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const fn = httpsCallable<
+      { storeId: string; kind: 'client' | 'order'; reference: string },
+      { success: boolean; message: string }
+    >(this.fns, 'deleteStoreDataItem');
+    const result = await fn({ storeId, kind, reference });
+    return result.data;
+  }
+
   /** Purga super-admin de datos de prueba (purgeStoreData callable). */
   async purgeStoreData(
     storeId: string,

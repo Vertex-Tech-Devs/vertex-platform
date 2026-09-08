@@ -158,3 +158,78 @@ export const purgeStoreData = onCall<PurgeStoreDataParams>(
     return { success: errors.length === 0, shardProjectId: projectId, deleted, errors };
   },
 );
+
+export interface DeleteStoreDataItemParams {
+  storeId: string;
+  kind: 'client' | 'order';
+  reference: string;
+}
+
+/**
+ * deleteStoreDataItem — Borrado puntual (super admin): un cliente (por email) o un pedido
+ * (por orderId) de UNA tienda. Valida pertenencia al tenant antes de borrar.
+ */
+export const deleteStoreDataItem = onCall<DeleteStoreDataItemParams>(
+  { timeoutSeconds: 60, cors: true, invoker: 'public' },
+  async (request) => {
+    if (!request.auth?.token?.['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Only platform super admins can delete store items.');
+    }
+    const { storeId, kind, reference } = request.data;
+    if (!storeId || !reference || !kind || (kind !== 'client' && kind !== 'order')) {
+      throw new HttpsError('invalid-argument', 'storeId, kind (client|order) y reference son requeridos.');
+    }
+
+    const db = getFirestore();
+    const storeSnap = await db.collection('stores').doc(storeId).get();
+    if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
+    const store = storeSnap.data() as Record<string, string | undefined>;
+    const projectId = String(store['runtimeProjectId'] || store['firebaseProjectId'] || store['projectId'] || '').trim();
+    const slug = String(store['slug'] || storeId);
+    if (!projectId) throw new HttpsError('failed-precondition', 'Tienda sin proyecto (shard).');
+
+    const auth = await getOwnerOAuthClient();
+    const root = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+    const ref = String(reference).trim();
+    const lowerEmail = ref.toLowerCase();
+    let targetName: string | null = null;
+
+    if (kind === 'client') {
+      // Buscar por email (campo) para no depender del formato del doc id.
+      const url = `${root}/clients?pageSize=300`;
+      const list = (await apiFetch(auth, url, { quotaProject: projectId })) as {
+        documents?: Array<{ name: string; fields?: Record<string, { stringValue?: string }> }>;
+      };
+      for (const d of list.documents || []) {
+        const email = d.fields?.['email']?.stringValue || '';
+        const sid = d.fields?.['storeId']?.stringValue || '';
+        if (sid === slug && email.toLowerCase() === lowerEmail) {
+          targetName = d.name;
+          break;
+        }
+      }
+    } else {
+      // Pedido: validar pertenencia (storeId) antes de borrar.
+      const orderUrl = `${root}/orders/${encodeURIComponent(ref)}`;
+      try {
+        const o = (await apiFetch(auth, orderUrl, { quotaProject: projectId })) as {
+          fields?: Record<string, { stringValue?: string }>;
+        };
+        if (o.fields?.['storeId']?.stringValue === slug) {
+          targetName = orderUrl;
+        }
+      } catch {
+        targetName = null;
+      }
+    }
+
+    if (!targetName) {
+      return { success: false, message: `No se encontró ${kind} '${ref}' en la tienda ${slug}.` };
+    }
+
+    await apiFetch(auth, targetName, { method: 'DELETE', quotaProject: projectId });
+    logger.info(`[PurgeItem] ${projectId}: ${kind} '${ref}' eliminado (${slug}).`);
+    return { success: true, message: `${kind === 'client' ? 'Cliente' : 'Pedido'} '${ref}' eliminado.` };
+  },
+);

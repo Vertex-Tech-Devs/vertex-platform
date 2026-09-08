@@ -127,6 +127,12 @@ export class StoreDetail implements OnInit {
   readonly purgeError = signal('');
   readonly purgeResult = signal<string>('');
   readonly purgeConfirmInput = signal('');
+  readonly itemKind = signal<'client' | 'order'>('order');
+  readonly itemReference = signal('');
+  readonly itemArmed = signal(false);
+  readonly itemRunning = signal(false);
+  readonly itemMessage = signal('');
+  readonly itemError = signal('');
   readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
@@ -871,6 +877,43 @@ export class StoreDetail implements OnInit {
       return;
     }
     this.domainDisconnectOpen.set(false);
+  }
+
+  async deleteItem(): Promise<void> {
+    const s = this.store();
+    const ref = this.itemReference().trim();
+    if (!s || this.itemRunning()) {
+      return;
+    }
+    if (!ref) {
+      this.itemError.set('Ingresá el ID del pedido o el email del cliente.');
+      return;
+    }
+    if (!this.itemArmed()) {
+      this.itemArmed.set(true);
+      this.itemError.set('');
+      this.itemMessage.set('');
+      return;
+    }
+    this.itemRunning.set(true);
+    this.itemError.set('');
+    this.itemMessage.set('');
+    try {
+      const res = await this.storesService.deleteStoreDataItem(s.id, this.itemKind(), ref);
+      this.itemMessage.set(res.message);
+      this.itemArmed.set(false);
+      this.itemReference.set('');
+    } catch (err) {
+      this.itemError.set(errorMessage(err, 'No se pudo eliminar el elemento.'));
+    } finally {
+      this.itemRunning.set(false);
+    }
+  }
+
+  resetItem(): void {
+    this.itemArmed.set(false);
+    this.itemError.set('');
+    this.itemMessage.set('');
   }
 
   async runPurge(): Promise<void> {

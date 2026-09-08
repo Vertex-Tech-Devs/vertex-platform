@@ -690,6 +690,54 @@
                         limpia antes de entregarla. No toca configuración, credenciales ni la
                         tienda misma.
                       </p>
+                      <div class="purge-item-delete">
+                        <span class="purge-item-delete__label"
+                          >Borrado puntual (pedido #ID o email de cliente)</span
+                        >
+                        <div class="purge-item-delete__row">
+                          <select
+                            class="form-control"
+                            [ngModel]="itemKind()"
+                            (ngModelChange)="itemKind.set($event); resetItem()"
+                          >
+                            <option value="order">Pedido</option>
+                            <option value="client">Cliente</option>
+                          </select>
+                          <input
+                            class="form-control"
+                            type="text"
+                            placeholder="{{
+                              itemKind() === 'order' ? 'ej. 4J26XEF7' : 'ej. cliente@mail.com'
+                            }}"
+                            [ngModel]="itemReference()"
+                            (ngModelChange)="itemReference.set($event); resetItem()"
+                          />
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger op-control-card__btn"
+                            [disabled]="itemRunning()"
+                            (click)="deleteItem()"
+                          >
+                            @if (itemRunning()) {
+                              <span class="spinner-sm"></span> Eliminando…
+                            } @else {
+                              {{ itemArmed() ? 'Confirmar borrado' : 'Eliminar' }}
+                            }
+                          </button>
+                        </div>
+                        @if (itemMessage()) {
+                          <span class="purge-result">{{ itemMessage() }}</span>
+                        }
+                        @if (itemError()) {
+                          <span class="purge-item-delete__error">{{ itemError() }}</span>
+                        }
+                        @if (itemArmed()) {
+                          <span class="purge-item-delete__hint">
+                            Esto es irreversible. Presioná nuevamente para confirmar.
+                          </span>
+                        }
+                      </div>
+
                       <div class="purge-options">
                         <label class="purge-option">
                           <input type="checkbox" [ngModel]="purgeOrders()" (ngModelChange)="purgeOrders.set($event)" />

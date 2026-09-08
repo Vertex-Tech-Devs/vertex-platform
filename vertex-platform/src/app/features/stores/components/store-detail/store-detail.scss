@@ -4100,3 +4100,43 @@
     color: var(--platform-success);
   }
 }
+
+/* Borrado puntual (pedido/cliente) */
+.purge-item-delete {
+  margin: 0.9rem 0 0.2rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--platform-input-border);
+
+  &__label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--platform-text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__error {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--platform-danger);
+  }
+
+  &__hint {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--platform-warning);
+  }
+}
