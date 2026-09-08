@@ -108,12 +108,13 @@ a {
   background: var(--platform-bg-alt);
 }
 ::-webkit-scrollbar-thumb {
-  background: hsla(0, 0%, 100%, 0.08);
+  background: var(--platform-scroll-thumb);
   border-radius: 99px;
   border: 2px solid var(--platform-bg-alt);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsla(0, 0%, 100%, 0.16);
+  background: var(--platform-scroll-thumb);
+  filter: brightness(1.2);
 }
 
 :focus-visible {
@@ -122,7 +123,7 @@ a {
 }
 
 ::selection {
-  background-color: hsla(244, 75%, 64%, 0.25);
+  background-color: var(--platform-focus-ring);
   color: inherit;
 }
 
