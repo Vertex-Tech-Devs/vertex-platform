@@ -2267,7 +2267,9 @@
                               : mpValidationStatus() === 'invalid'
                                 ? 'Guardadas, pero inválidas'
                                 : 'Sin credenciales propias'
-                          }}
+                          }}@if (mpValidationStatus() === 'valid' && mpTokenMasked()) {
+                            <span class="mp-status-chip__token">{{ mpTokenMasked() }}</span>
+                          }
                         </span>
                       </div>
                     </div>
@@ -2306,23 +2308,6 @@
                       </div>
                     </div>
                   </div>
-
-                  @if (mpValidationStatus() === 'valid' && mpAccountEmail()) {
-                    <div class="mp-validation-badge mp-validation-badge--valid">
-                      <div class="mp-validation-badge__main">
-                        <i class="bi bi-patch-check-fill"></i>
-                        <span
-                          >Cuenta validada: <strong>{{ mpAccountEmail() }}</strong></span
-                        >
-                      </div>
-                      @if (mpTokenMasked()) {
-                        <span class="mp-validation-badge__sep">·</span>
-                        <span class="mp-validation-badge__token"
-                          >Token: <code>{{ mpTokenMasked() }}</code></span
-                        >
-                      }
-                    </div>
-                  }
 
                   <div class="mp-form">
                     <!-- Public Key -->

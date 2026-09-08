@@ -3981,3 +3981,9 @@
     }
   }
 }
+
+.mp-status-chip__token {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--platform-text-muted);
+}
