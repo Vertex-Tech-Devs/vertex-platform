@@ -2534,61 +2534,53 @@ export const getStoreStaff = onCall<{ storeId: string }>(
         };
       });
 
-      // Marcar como "aceptadas" las invitaciones pendientes cuyo usuario ya existe en
-      // la lista de staff o en Firebase Auth del shard.
+      // Una invitación recién enviada queda PENDIENTE. Solo se considera ACEPTADA cuando el
+      // invitado inició sesión en la cuenta de la tienda DESPUÉS de la invitación
+      // (lastLoginAt >= createdAt). Que el rol esté pre-creado o que la cuenta exista en el
+      // shard NO significa que aceptó: eso producía "Aceptada" al instante de invitar.
       const pending = invitations.filter((i: any) => i.status === 'pending');
       for (const inv of pending) {
-        const invEmailLower = (inv.email || '').trim().toLowerCase();
-        // Si el usuario ya figura en users/staff (e.g. logueado o registrado en admin_roles con actividad)
-        const staffFound = users.find(
-          (u) => (u.email || '').trim().toLowerCase() === invEmailLower,
-        );
-        if (staffFound) {
-          inv.status = 'accepted';
-          await db
-            .collection('stores')
-            .doc(storeId)
-            .collection('invitations')
-            .doc(inv.id)
-            .update({ status: 'accepted', acceptedAt: new Date() })
-            .catch(() => {});
-          continue;
-        }
-
-        // Si no, intentar verificar en IdentityToolkit del shard
-        if (projectId) {
-          try {
-            const ownerAuth = await getOwnerOAuthClient(store.provisioningOwnerId);
-            const ownerToken = (await ownerAuth.getAccessToken()).token;
-            const lookup = await fetch(
-              `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${ownerToken}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email: [inv.email] }),
+        if (!projectId) continue;
+        const inviteMs = inv.createdAt ? Date.parse(String(inv.createdAt)) : 0;
+        if (!inviteMs) continue; // sin fecha no hay forma de verificar aceptación real
+        try {
+          const ownerAuth = await getOwnerOAuthClient(store.provisioningOwnerId);
+          const ownerToken = (await ownerAuth.getAccessToken()).token;
+          const lookup = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${ownerToken}`,
+                'Content-Type': 'application/json',
               },
-            );
-            if (lookup.ok) {
-              const body = (await lookup.json()) as { users?: unknown[] };
-              if (body.users && body.users.length > 0) {
-                inv.status = 'accepted';
-                await db
-                  .collection('stores')
-                  .doc(storeId)
-                  .collection('invitations')
-                  .doc(inv.id)
-                  .update({ status: 'accepted', acceptedAt: new Date() });
-              }
+              body: JSON.stringify({ email: [inv.email] }),
+            },
+          );
+          if (lookup.ok) {
+            const body = (await lookup.json()) as {
+              users?: Array<{ lastLoginAt?: string }>;
+            };
+            const lastLoginMs = Number((body.users || [])[0]?.lastLoginAt || 0);
+            const accepted = Number.isFinite(lastLoginMs) && lastLoginMs >= inviteMs;
+            if (accepted) {
+              inv.status = 'accepted';
+              await db
+                .collection('stores')
+                .doc(storeId)
+                .collection('invitations')
+                .doc(inv.id)
+                .update({ status: 'accepted', acceptedAt: new Date() })
+                .catch(() => {});
+            } else {
+              inv.status = 'pending'; // sin login posterior a la invitación => sigue pendiente
             }
-          } catch (lookupErr) {
-            console.warn(
-              `[getStoreStaff] No se pudo verificar aceptación de invitaciones en ${projectId}:`,
-              lookupErr,
-            );
           }
+        } catch (lookupErr) {
+          console.warn(
+            `[getStoreStaff] No se pudo verificar aceptación real de ${inv.email} en ${projectId}:`,
+            lookupErr,
+          );
         }
       }
     } catch (err) {
