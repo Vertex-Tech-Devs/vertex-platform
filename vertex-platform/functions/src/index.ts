@@ -15,3 +15,4 @@ export * from './domains';
 export * from './subscriptions';
 export * from './logs.functions';
 export * from './alerts.functions';
+export * from './reconcile.functions';
