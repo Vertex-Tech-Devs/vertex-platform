@@ -672,6 +672,14 @@ export class StoreDetail implements OnInit {
     return s ? this.staffService.sendInvitationFromForm(s.id).then(() => {}) : Promise.resolve();
   }
 
+  isStaffMemberEmail(email: string): boolean {
+    const e = String(email || '').trim().toLowerCase();
+    if (!e) {
+      return false;
+    }
+    return this.staff().some((m) => String(m.email || '').trim().toLowerCase() === e);
+  }
+
   async resendInvite(invite: PendingInvitation): Promise<void> {
     const s = this.store();
     if (!s || !invite?.email) {

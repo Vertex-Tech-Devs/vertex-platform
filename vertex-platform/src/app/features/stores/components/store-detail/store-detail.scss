@@ -4367,3 +4367,10 @@ html[data-theme='light'] {
     }
   }
 }
+
+.badge-invite-status--member {
+  background: var(--platform-hover-overlay);
+  border: 1px solid var(--platform-input-border);
+  color: var(--platform-text-secondary);
+  font-weight: 600;
+}

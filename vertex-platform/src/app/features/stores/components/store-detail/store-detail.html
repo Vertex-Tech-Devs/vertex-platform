@@ -1023,19 +1023,25 @@
                                   {{ formatDate(invite.createdAt) | date: 'dd/MM/yyyy HH:mm' }}
                                 </td>
                                 <td>
-                                  <span
-                                    class="badge-invite-status badge-invite-status--{{
-                                      invite.status
-                                    }}"
-                                  >
-                                    {{
-                                      invite.status === 'pending'
-                                        ? 'Pendiente'
-                                        : invite.status === 'accepted'
-                                          ? 'Aceptada'
-                                          : invite.status
-                                    }}
-                                  </span>
+                                  @if (isStaffMemberEmail(invite.email)) {
+                                    <span class="badge-invite-status badge-invite-status--member"
+                                      >Ya miembro</span
+                                    >
+                                  } @else {
+                                    <span
+                                      class="badge-invite-status badge-invite-status--{{
+                                        invite.status
+                                      }}"
+                                    >
+                                      {{
+                                        invite.status === 'pending'
+                                          ? 'Pendiente'
+                                          : invite.status === 'accepted'
+                                            ? 'Aceptada'
+                                            : invite.status
+                                      }}
+                                    </span>
+                                  }
                                 </td>
                                 <td class="text-end">
                                   <button
