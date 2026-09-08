@@ -4140,3 +4140,98 @@
     color: var(--platform-warning);
   }
 }
+
+/* ═══ Tema claro: contraste y colores legibles sobre los bloques nuevos ═══ */
+html[data-theme='light'] {
+  .sub-summary {
+    &__label {
+      color: var(--platform-text-secondary);
+    }
+    &__value {
+      color: var(--platform-text-primary);
+    }
+    &__sub {
+      color: var(--platform-text-muted);
+    }
+    &__status--success {
+      color: var(--platform-success);
+      border-color: var(--platform-status-active-border);
+    }
+    &__status--warning {
+      color: var(--platform-warning);
+      border-color: var(--platform-status-provisioning-border);
+    }
+    &__status--danger {
+      color: var(--platform-danger);
+      border-color: var(--platform-status-error-border);
+    }
+    &__status--primary {
+      color: #4338ca;
+    }
+  }
+
+  .sub-link-option {
+    color: var(--platform-text-primary);
+
+    &__price {
+      color: var(--platform-text-primary);
+    }
+    &__title {
+      color: var(--platform-text-secondary);
+    }
+    &--annual &__title {
+      color: #4338ca;
+    }
+    &__cta {
+      color: #1d4ed8;
+    }
+    &__bonus {
+      color: #047857;
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+  }
+
+  .mp-mode-banner {
+    &--prod {
+      color: #047857;
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+    &--test {
+      color: #1d4ed8;
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+    &--sandbox {
+      color: #92400e;
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.5);
+    }
+  }
+
+  .mp-status-chip {
+    &__label {
+      color: var(--platform-text-muted);
+    }
+    &__value {
+      color: var(--platform-text-primary);
+    }
+    &--ok {
+      color: #047857;
+    }
+    &--warn {
+      color: #92400e;
+    }
+    &--info {
+      color: #1d4ed8;
+    }
+  }
+
+  .log-sev--info {
+    color: #047857;
+  }
+  .log-sev--warn {
+    color: #92400e;
+  }
+}
