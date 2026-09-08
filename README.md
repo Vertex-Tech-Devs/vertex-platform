@@ -258,3 +258,13 @@ Gates por fase: `npm run typecheck && npm run lint && npm test && npm run build`
 Cada ronda escribe `ops/reconcileRuns` y emite la alerta `reconcile-actions` cuando corrige algo. Para forzar una corrida:
 `gcloud scheduler jobs run firebase-schedule-sweepStoresOrdersReconcile-us-central1 --project=vertex-platform-app --location=us-central1`
 Los proyectos maestros internos (`ecommerce-vertex*`, `vertex-platform*`) se omiten automáticamente.
+
+
+### Subdominios gratuitos `.web.app` (runbook)
+Cada tienda se crea con un fallback determinista (sanitizado + hash anti-colisión). Para personalizarlo:
+- Platform → tienda → **Dominios → “Dirección Gratuita (.web.app)”**: escribís el candidato, se verifica disponibilidad en tiempo real (debounce 400 ms, `sites.get`) y se ofrecen sugerencias si está tomado.
+- Al confirmar, `updateStoreSubdomain`: valida → crea el nuevo sitio (`sites.create`) → **clona el último release** del sitio anterior (sin downtime) → actualiza el doc de la tienda (`runtimeSiteId`/`subdomain`/`defaultUrl`) → elimina el sitio viejo (preserva la cuota de 36 sitios por proyecto).
+- La URL anterior deja de responder de inmediato: actualizar redes/WhatsApp.
+
+### Alertas por email
+El watchdog envía correos institucionales a los admins (`ALERT_EMAILS`, default `vertex.tech.dev@gmail.com`) cuando detecta alertas críticas (pagos en error, `IAM_PROPAGATION_FAILED`, cuota de shards). Requiere `SMTP_USER`/`SMTP_PASS` en el entorno; sin SMTP, las alertas siguen visibles en el Centro de Alertas.
