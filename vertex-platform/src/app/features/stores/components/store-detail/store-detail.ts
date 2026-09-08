@@ -340,6 +340,17 @@ export class StoreDetail implements OnInit {
   }
 
   readonly statusLabel = statusLabelUtil;
+
+  /** Clase de tono correcta para el badge del estado (no usar el raw status como clase). */
+  readonly storeStatusBadge = computed<string>(() => {
+    const tones: Record<string, string> = {
+      active: 'badge--success',
+      suspended: 'badge--danger',
+      error: 'badge--danger',
+      provisioning: 'badge--warning',
+    };
+    return tones[this.store()?.status || ''] ?? 'badge--neutral';
+  });
   readonly stepIcon = stepIconUtil;
   readonly formatDate = formatDateUtil;
 

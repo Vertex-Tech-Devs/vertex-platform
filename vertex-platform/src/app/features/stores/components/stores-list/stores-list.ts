@@ -151,7 +151,9 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
                   <h3 class="store-card__name">{{ store.name }}</h3>
                   <span class="store-card__slug">/{{ store.slug }}</span>
                 </div>
-                <span class="badge badge--{{ store.status }}">{{ statusLabel(store.status) }}</span>
+                <span class="badge {{ storeStatusBadge(store.status) }}">{{
+                  statusLabel(store.status)
+                }}</span>
               </div>
 
               <div class="store-card__details">
@@ -282,6 +284,21 @@ export class StoresList {
 
   statusLabel(s: Store['status']): string {
     return STATUS_LABELS[s];
+  }
+
+  /** Mapea el estado a una clase de tono existente (badge--success/danger/warning/neutral). */
+  storeStatusBadge(s: Store['status']): string {
+    switch (s) {
+      case 'active':
+        return 'badge--success';
+      case 'suspended':
+      case 'error':
+        return 'badge--danger';
+      case 'provisioning':
+        return 'badge--warning';
+      default:
+        return 'badge--neutral';
+    }
   }
 
   provisioningPercent(store: Store): number {

@@ -9,7 +9,7 @@
       <div class="detail-header__color"></div>
       <div class="detail-header__info">
         <h1 class="detail-header__name">{{ store()!.name }}</h1>
-        <span class="badge badge--{{ store()!.status }}">{{ statusLabel(store()!.status) }}</span>
+        <span class="badge {{ storeStatusBadge() }}">{{ statusLabel(store()!.status) }}</span>
         <a
           class="firebase-console-link"
           href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
@@ -1373,7 +1373,11 @@
                               }}
                             </td>
                             <td>
-                              <span class="badge badge--{{ deploy.success ? 'active' : 'error' }}">
+                              <span
+                                class="badge"
+                                [class.badge--success]="deploy.success"
+                                [class.badge--danger]="!deploy.success"
+                              >
                                 {{ deploy.success ? 'Éxito' : 'Error' }}
                               </span>
                             </td>
