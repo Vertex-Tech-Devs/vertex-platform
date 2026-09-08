@@ -17,7 +17,7 @@ import { StoresService, type StoreSubscriptionInfo } from '@core/services/stores
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
 
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, collection, getDocs, updateDoc } from 'firebase/firestore';
 import { AuthService } from '@core/services/auth';
 import { StoreDetailStaffService } from './services/store-detail-staff.service';
 import { StoreDetailDomainsService } from './services/store-detail-domains.service';
@@ -504,8 +504,11 @@ export class StoreDetail implements OnInit {
       | 'monitor',
   ): void {
     this.activeTab.set(tab);
-    if (tab === 'monitor' && this.logsEntries().length === 0) {
-      void this.loadStoreLogs();
+    if (tab === 'monitor') {
+      void this.loadStoreAlerts();
+      if (this.logsEntries().length === 0) {
+        void this.loadStoreLogs();
+      }
     }
     const s = this.store();
     if (tab === 'dominios' && s?.customDomain) {
@@ -684,6 +687,63 @@ export class StoreDetail implements OnInit {
   }>>([]);
   readonly logsProject = signal('');
   readonly logsLoadedAt = signal<Date | null>(null);
+  readonly storeAlerts = signal<
+    Array<{ key: string; severity: string; title: string; message: string }>
+  >([]);
+  readonly storeAlertsLoading = signal(false);
+  readonly resolvingAlertKey = signal<string | null>(null);
+
+  async loadStoreAlerts(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.storeAlertsLoading.set(true);
+    try {
+      const snap = await getDocs(collection(getFirestore(), 'alerts'));
+      const mine: Array<{ key: string; severity: string; title: string; message: string }> = [];
+      snap.forEach((d) => {
+        const data = d.data() as {
+          status?: string;
+          severity?: string;
+          storeId?: string;
+          title?: string;
+          message?: string;
+        };
+        if (data.status !== 'open') {
+          return;
+        }
+        if (data.storeId && data.storeId !== s.id && data.storeId !== s.slug) {
+          return;
+        }
+        mine.push({
+          key: d.id,
+          severity: data.severity || 'warning',
+          title: data.title || d.id,
+          message: data.message || '',
+        });
+      });
+      this.storeAlerts.set(mine);
+    } catch {
+      /* sin alertas disponibles no debe romper la pestaña */
+      this.storeAlerts.set([]);
+    } finally {
+      this.storeAlertsLoading.set(false);
+    }
+  }
+
+  async resolveStoreAlert(key: string): Promise<void> {
+    this.resolvingAlertKey.set(key);
+    try {
+      await updateDoc(doc(getFirestore(), 'alerts', key), {
+        status: 'resolved',
+        resolvedAt: new Date(),
+      });
+      this.storeAlerts.update((list) => list.filter((a) => a.key !== key));
+    } finally {
+      this.resolvingAlertKey.set(null);
+    }
+  }
 
   async loadStoreLogs(): Promise<void> {
     const s = this.store();

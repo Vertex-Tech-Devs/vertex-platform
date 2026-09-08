@@ -4022,3 +4022,51 @@
     font-size: 0.8rem;
   }
 }
+
+/* ═══ Alertas por tienda dentro de Monitor ═══ */
+.monitor-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  background: var(--platform-status-error-bg);
+  border: 1px solid var(--platform-status-error-border);
+
+  &__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 800;
+    color: var(--platform-danger);
+    font-size: 0.85rem;
+  }
+}
+
+.monitor-alert-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.65rem;
+  background: var(--platform-input-bg);
+  border: 1px solid var(--platform-input-border);
+
+  &__body {
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: 700;
+    color: var(--platform-text-primary);
+    font-size: 0.85rem;
+  }
+
+  &__msg {
+    color: var(--platform-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+}

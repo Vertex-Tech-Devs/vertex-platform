@@ -1470,6 +1470,36 @@
                 </div>
               </div>
 
+              @if (storeAlerts().length > 0) {
+                <div class="monitor-alerts">
+                  <div class="monitor-alerts__title">
+                    <i class="bi bi-shield-exclamation"></i> Alertas de esta tienda
+                  </div>
+                  @for (al of storeAlerts(); track al.key) {
+                    <div class="monitor-alert-row">
+                      <span
+                        class="log-sev"
+                        [class.log-sev--error]="al.severity === 'critical'"
+                        [class.log-sev--warn]="al.severity === 'warning'"
+                        >{{ al.severity === 'critical' ? 'Crítica' : 'Advertencia' }}</span
+                      >
+                      <div class="monitor-alert-row__body">
+                        <div class="monitor-alert-row__title">{{ al.title }}</div>
+                        <div class="monitor-alert-row__msg">{{ al.message }}</div>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn--sm"
+                        [disabled]="resolvingAlertKey() === al.key"
+                        (click)="resolveStoreAlert(al.key)"
+                      >
+                        {{ resolvingAlertKey() === al.key ? 'Resolviendo…' : 'Resolver' }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
               <!-- Toolbar de filtros -->
               <div class="monitor-toolbar">
                 <div class="monitor-filter">
