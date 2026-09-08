@@ -583,11 +583,19 @@ export class StoreDetail implements OnInit {
       if (mp) {
         this.mpPublicKey.set(mp.publicKey || '');
         // accessToken no se lee del servidor (nunca se devuelve en texto plano)
+        // El modo se deriva del token REAL validado (no de un toggle/sandbox viejo):
+        // APP_USR- validado => producción; TEST- validado => pruebas; sin token => preferencia.
+        const masked = String(mp.accessTokenMasked || '');
+        const valid = mp.validationStatus === 'valid';
         this.mpSandbox.set(
-          typeof mp.sandbox === 'boolean'
-            ? mp.sandbox
-            : (mp.accessTokenSecret || '').includes('TEST-') ||
-                (mp.publicKey || '').startsWith('TEST-'),
+          valid && masked.startsWith('APP_USR-')
+            ? false
+            : valid && masked.startsWith('TEST-')
+              ? true
+              : typeof mp.sandbox === 'boolean'
+                ? mp.sandbox
+                : (mp.accessTokenSecret || '').includes('TEST-') ||
+                    (mp.publicKey || '').startsWith('TEST-'),
         );
         this.mpValidationStatus.set(mp.validationStatus || '');
         this.mpAccountEmail.set(mp.accountEmail || '');

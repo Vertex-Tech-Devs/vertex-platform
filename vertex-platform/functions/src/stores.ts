@@ -1843,6 +1843,24 @@ export const getActiveStores = onCall(
   },
 );
 
+
+
+/** Serializa un payload anidado a `fields` de Firestore REST (valores string/boolean). */
+function toFirestoreFieldsForPayments(payload: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (v === null || v === undefined) continue;
+    if (typeof v === 'object') {
+      out[k] = { mapValue: { fields: toFirestoreFieldsForPayments(v as Record<string, any>) } };
+    } else if (typeof v === 'boolean') {
+      out[k] = { booleanValue: v };
+    } else {
+      out[k] = { stringValue: String(v) };
+    }
+  }
+  return out;
+}
+
 export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -1884,18 +1902,34 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
     const auth = await getOwnerOAuthClient();
 
     if (mercadoPago) {
+      // Captura fuera del scope interno para el mirror en store_payments del shard.
+      let mpValidationInfo: { accountEmail: string; accountUserId: string } = {
+        accountEmail: '',
+        accountUserId: '',
+      };
+      let perStoreSecretName = '';
       if (mercadoPago['accessToken']) {
         const validation = await validateMercadoPagoCredentials(
           mercadoPago['accessToken'],
           mercadoPago['webhookUrl'],
         );
-        const perStoreSecretName = `mp-access-token-${storeTenantId}`;
-        await upsertSecretInProject(
-          auth,
-          projectId,
-          perStoreSecretName,
-          mercadoPago['accessToken'],
-        );
+        perStoreSecretName = `mp-access-token-${storeTenantId}`;
+        try {
+          await upsertSecretInProject(
+            auth,
+            projectId,
+            perStoreSecretName,
+            mercadoPago['accessToken'],
+          );
+        } catch (secretErr) {
+          // El secreto en Secret Manager es la vía preferida; si el IAM del SA no lo permite,
+          // el token REAL se persiste igual en Firestore del shard (store_payments) para que
+          // el resolver del storefront nunca caiga al master TEST ("una de las partes es de prueba").
+          console.warn(
+            `[MP] No se pudo escribir secreto ${perStoreSecretName} en shard ${projectId}:`,
+            secretErr,
+          );
+        }
 
         mercadoPago['accessTokenSecret'] = perStoreSecretName;
         mercadoPago['accessTokenMasked'] = maskToken(mercadoPago['accessToken']);
@@ -1904,6 +1938,10 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
         mercadoPago['validationStatus'] = 'valid';
         mercadoPago['validationMessage'] = validation.message;
         mercadoPago['validatedAt'] = new Date().toISOString();
+        mpValidationInfo = {
+          accountEmail: validation.accountEmail || '',
+          accountUserId: validation.userId || '',
+        };
       } else if (mercadoPago['accessTokenSecret']) {
         mercadoPago['validationStatus'] = mercadoPago['validationStatus'] || 'valid';
         mercadoPago['validationMessage'] =
@@ -1911,6 +1949,46 @@ export const updateStoreConfig = onCall<UpdateStoreConfigPayload>(
       } else {
         mercadoPago['validationStatus'] = 'pending';
         mercadoPago['validationMessage'] = 'Sin token configurado.';
+      }
+
+      // Path canónico de lectura del storefront: store_payments/{tenantId}.payments.mercadoPago
+      // con el token REAL en claro, para que el resolver NUNCA caiga al master TEST aunque el
+      // secreto del shard no sea legible por el Service Account del storefront (IAM).
+      try {
+        const paymentsPath = `store_payments/${storeTenantId}`;
+        const paymentsPayload: Record<string, any> = {
+          mercadoPago: {
+            publicKey: mercadoPago['publicKey'] || '',
+            accessToken: mercadoPago['accessToken'],
+            accessTokenSecret: perStoreSecretName,
+            webhookUrl: mercadoPago['webhookUrl'] || '',
+            accountEmail: mpValidationInfo.accountEmail,
+            accountUserId: mpValidationInfo.accountUserId,
+            validationStatus: 'valid',
+            sandbox: false,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        const paymentsFields = toFirestoreFieldsForPayments(paymentsPayload);
+        await retry(
+          () =>
+            apiFetch(
+              auth,
+              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${paymentsPath}`,
+              {
+                method: 'PATCH',
+                body: { fields: paymentsFields },
+                quotaProject: projectId,
+              },
+            ),
+          5,
+          6000,
+        );
+      } catch (paymentsErr) {
+        console.warn(
+          `[MP] No se pudo escribir store_payments/${storeTenantId} en shard ${projectId}:`,
+          paymentsErr,
+        );
       }
 
       delete mercadoPago['accessToken'];
