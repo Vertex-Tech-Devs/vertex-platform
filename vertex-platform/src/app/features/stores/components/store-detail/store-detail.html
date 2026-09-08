@@ -1921,68 +1921,59 @@
                       >
                         <div class="accordion-body px-0 pb-0 pt-3">
                           <div class="master-sub-controls">
-                            <div class="master-sub-controls__header">
-                              <div class="master-badge">
-                                <i class="bi bi-shield-lock-fill"></i>
-                                <span>Gestión y Facturación</span>
-                              </div>
-                              <span class="master-sub-controls__tag">Herramientas</span>
-                            </div>
-
                             @if (discountSaveSuccess()) {
                               <div class="alert alert--success text-xs py-2 mb-3">
                                 <i class="bi bi-check-circle-fill"></i> {{ discountSaveSuccess() }}
                               </div>
                             }
 
-                            <!-- Public Checkout Link for Client -->
-                            <div class="payment-subcard mb-3">
-                              <div
-                                class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2"
-                              >
-                                <span
-                                  class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
-                                >
-                                  <i class="bi bi-box-arrow-up-right text-info"></i> Portal Público
-                                  de Pago
+                            <!-- Public Checkout Link for Client (una sola fila limpia) -->
+                            <div class="payment-subcard payment-subcard--link mb-3">
+                              <div class="payment-subcard__heading">
+                                <span class="payment-subcard__title">
+                                  <i class="bi bi-box-arrow-up-right"></i> Enlace público de pago
                                 </span>
-                                <div class="d-flex gap-2">
-                                  <button
-                                    type="button"
-                                    class="btn btn-secondary btn-sm"
-                                    (click)="copyPublicCheckoutUrl()"
-                                  >
-                                    <i
-                                      class="bi"
-                                      [class.bi-check-lg]="copiedPublicLink()"
-                                      [class.bi-clipboard]="!copiedPublicLink()"
-                                    ></i>
-                                    <span>{{ copiedPublicLink() ? '¡Copiado!' : 'Copiar' }}</span>
-                                  </button>
-                                  <a
-                                    [href]="whatsAppShareUrl()"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="btn btn-sm btn-whatsapp d-flex align-items-center gap-1"
-                                    title="Compartir enlace de cobro por WhatsApp"
-                                  >
-                                    <i class="bi bi-whatsapp"></i>
-                                    <span>WhatsApp</span>
-                                  </a>
-                                </div>
+                                <span class="payment-subcard__hint">
+                                  El cliente paga con su tarjeta, sin necesidad de cuenta.
+                                </span>
                               </div>
-                              <div class="d-flex gap-2">
+                              <div class="copy-link-row">
                                 <input
                                   type="text"
-                                  class="form-control text-xs"
+                                  class="copy-link-row__input"
                                   [value]="publicCheckoutUrl()"
                                   readonly
+                                  spellcheck="false"
                                 />
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary copy-link-row__btn"
+                                  [class.is-copied]="copiedPublicLink()"
+                                  (click)="copyPublicCheckoutUrl()"
+                                  title="Copiar enlace"
+                                >
+                                  <i
+                                    class="bi"
+                                    [class.bi-check-lg]="copiedPublicLink()"
+                                    [class.bi-clipboard]="!copiedPublicLink()"
+                                  ></i>
+                                  {{ copiedPublicLink() ? '¡Copiado!' : 'Copiar' }}
+                                </button>
                                 <a
+                                  class="btn btn-secondary copy-link-row__btn copy-link-row__btn--icon"
+                                  [href]="whatsAppShareUrl()"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Compartir por WhatsApp"
+                                >
+                                  <i class="bi bi-whatsapp"></i>
+                                </a>
+                                <a
+                                  class="btn btn-primary copy-link-row__btn"
                                   [href]="publicCheckoutUrl()"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  class="btn btn-secondary btn-sm text-nowrap"
+                                  title="Abrir enlace en pestaña nueva"
                                 >
                                   Abrir <i class="bi bi-arrow-up-right"></i>
                                 </a>

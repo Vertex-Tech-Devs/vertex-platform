@@ -3897,3 +3897,87 @@
     border: 1px solid var(--platform-status-active-border);
   }
 }
+
+/* ═══ Enlace público de pago: fila limpia y simétrica ═══ */
+.payment-subcard--link {
+  padding: 1rem 1.15rem;
+
+  .payment-subcard__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .payment-subcard__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--platform-text-primary);
+  }
+
+  .payment-subcard__hint {
+    font-size: 0.75rem;
+    color: var(--platform-text-muted);
+  }
+}
+
+.copy-link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 2.5rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--platform-input-border);
+    background: var(--platform-input-bg);
+    color: var(--platform-text-secondary);
+    font-size: 0.78rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding: 0 0.8rem;
+    outline: none;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding: 0 0.9rem;
+    border-radius: 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--icon {
+      width: 2.5rem;
+      padding: 0;
+      color: #4ade80;
+
+      &:hover {
+        background: rgba(37, 211, 102, 0.18);
+      }
+    }
+  }
+
+  .is-copied {
+    color: var(--platform-success);
+    border-color: var(--platform-success);
+  }
+
+  @media (max-width: 720px) {
+    flex-wrap: wrap;
+
+    &__input {
+      flex-basis: 100%;
+    }
+  }
+}
