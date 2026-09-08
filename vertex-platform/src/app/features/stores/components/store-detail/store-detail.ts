@@ -72,9 +72,9 @@ export class StoreDetail implements OnInit {
   readonly deployHistory = signal<DeploymentHistoryItem[]>([]);
   readonly isLoadingHistory = signal(true);
   readonly oauthRedirect = this.orchestrationService.oauthRedirect;
-  readonly activeTab = signal<'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'>(
-    'orquestacion',
-  );
+  readonly activeTab = signal<
+    'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos' | 'monitor'
+  >('orquestacion');
 
   readonly store = computed(() => {
     const local = this.localStore();
@@ -493,8 +493,19 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos'): void {
+  setTab(
+    tab:
+      | 'orquestacion'
+      | 'equipo'
+      | 'dominios'
+      | 'historial'
+      | 'pagos'
+      | 'monitor',
+  ): void {
     this.activeTab.set(tab);
+    if (tab === 'monitor' && this.logsEntries().length === 0) {
+      void this.loadStoreLogs();
+    }
     const s = this.store();
     if (tab === 'dominios' && s?.customDomain) {
       if (!this.domainInput()) {
@@ -655,6 +666,83 @@ export class StoreDetail implements OnInit {
     } finally {
       this.isSavingPayment.set(false);
     }
+  }
+
+  // ── Monitor: Logs por tienda (escalable a alertas/rendimiento) ────────────
+  readonly logsSeverity = signal<'ALL' | 'WARNING' | 'ERROR'>('ALL');
+  readonly logsQuery = signal('');
+  readonly logsSinceMinutes = signal(60);
+  readonly logsLoading = signal(false);
+  readonly logsError = signal('');
+  readonly logsEntries = signal<Array<{
+    timestamp: string;
+    severity: string;
+    function?: string;
+    message: string;
+    raw?: string;
+  }>>([]);
+  readonly logsProject = signal('');
+  readonly logsLoadedAt = signal<Date | null>(null);
+
+  async loadStoreLogs(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.logsLoading.set(true);
+    this.logsError.set('');
+    try {
+      const res = await this.storesService.getStoreLogs(s.id, {
+        severity: this.logsSeverity() === 'ALL' ? undefined : this.logsSeverity(),
+        query: this.logsQuery().trim() || undefined,
+        sinceMinutes: this.logsSinceMinutes(),
+        limit: 80,
+      });
+      this.logsEntries.set(res.entries || []);
+      this.logsProject.set(res.project || '');
+      this.logsLoadedAt.set(new Date());
+    } catch (err) {
+      this.logsError.set(
+        errorMessage(err, 'No se pudieron cargar los logs de la tienda.'),
+      );
+      this.logsEntries.set([]);
+    } finally {
+      this.logsLoading.set(false);
+    }
+  }
+
+  setLogsSince(minutes: number): void {
+    this.logsSinceMinutes.set(minutes);
+    void this.loadStoreLogs();
+  }
+
+  applyLogsFilters(): void {
+    void this.loadStoreLogs();
+  }
+
+  cloudLogsUrl(): string {
+    const project = this.logsProject() || 'ecommerce-vertex';
+    return `https://console.cloud.google.com/logs/query;query=textPayload%3A%22${encodeURIComponent(
+      this.store()?.slug || this.store()?.id || '',
+    )}%22?project=${project}`;
+  }
+
+  copyLogMessage(message: string): void {
+    void this.staffService.copyToClipboard(message);
+  }
+
+  logsSeverityClass(sev: string): string {
+    const s = (sev || '').toUpperCase();
+    if (s === 'ERROR' || s === 'CRITICAL' || s === 'ALERT' || s === 'EMERGENCY') {
+      return 'log-sev log-sev--error';
+    }
+    if (s === 'WARNING' || s === 'NOTICE') {
+      return 'log-sev log-sev--warn';
+    }
+    if (s === 'INFO' || s === 'DEBUG') {
+      return 'log-sev log-sev--info';
+    }
+    return 'log-sev';
   }
 
   copyWebhookUrl(storeId: string): Promise<void> {

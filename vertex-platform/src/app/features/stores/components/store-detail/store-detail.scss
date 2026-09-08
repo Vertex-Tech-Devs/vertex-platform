@@ -3777,3 +3777,123 @@
 .detail-card--saas .sub-summary__value {
   font-variant-numeric: tabular-nums;
 }
+
+/* ═══ Monitor de la tienda (Logs; escalable a alertas/rendimiento) ═══ */
+.monitor-panel {
+  .monitor-toolbar {
+    display: grid;
+    grid-template-columns: minmax(140px, 180px) 1fr minmax(140px, 170px) auto;
+    gap: 0.75rem;
+    align-items: end;
+    margin-bottom: 1.25rem;
+
+    @media (max-width: 860px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    @media (max-width: 560px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .monitor-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+
+    .form-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--platform-text-muted);
+    }
+
+    &--grow {
+      min-width: 0;
+    }
+  }
+
+  .monitor-console-link {
+    white-space: nowrap;
+  }
+
+  .monitor-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 26rem;
+    overflow: auto;
+    padding-right: 0.25rem;
+  }
+
+  .monitor-log-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.65rem;
+    background: var(--platform-input-bg);
+    border: 1px solid var(--platform-input-border);
+    font-size: 0.8rem;
+
+    @media (max-width: 720px) {
+      grid-template-columns: auto 1fr auto;
+      .monitor-log-row__time {
+        display: none;
+      }
+    }
+
+    &__left {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    &__fn {
+      font-size: 0.72rem;
+      color: var(--platform-text-secondary);
+    }
+
+    &__time {
+      font-variant-numeric: tabular-nums;
+      color: var(--platform-text-muted);
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+
+    &__msg {
+      color: var(--platform-text-primary);
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+    }
+  }
+}
+
+.log-sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &--error {
+    color: var(--platform-danger);
+    background: var(--platform-status-error-bg);
+    border: 1px solid var(--platform-status-error-border);
+  }
+  &--warn {
+    color: var(--platform-warning);
+    background: var(--platform-status-provisioning-bg);
+    border: 1px solid var(--platform-status-provisioning-border);
+  }
+  &--info {
+    color: var(--platform-status-active-text);
+    background: var(--platform-status-active-bg);
+    border: 1px solid var(--platform-status-active-border);
+  }
+}

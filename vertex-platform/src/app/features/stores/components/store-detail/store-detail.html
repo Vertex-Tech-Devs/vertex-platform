@@ -251,6 +251,20 @@
             <span class="tab-badge tab-badge--error">!</span>
           }
         </button>
+        <button
+          type="button"
+          class="tab-button"
+          [class.is-active]="activeTab() === 'monitor'"
+          (click)="setTab('monitor')"
+        >
+          <i class="bi bi-activity"></i>
+          <span>Monitor</span>
+          @if (logsError() && logsEntries().length === 0) {
+            <span class="tab-badge tab-badge--error">!</span>
+          } @else if (logsEntries().length > 0) {
+            <span class="tab-badge tab-badge--count">{{ logsEntries().length }}</span>
+          }
+        </button>
       </div>
 
       <!-- Tab Content Area -->
@@ -1403,6 +1417,141 @@
             }
           </div>
         }
+        @if (activeTab() === 'monitor') {
+          <div class="monitor-panel">
+            <div class="detail-card">
+              <div class="detail-card__header mb-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-activity text-primary"></i> Monitor de la tienda
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Estado operativo en vivo. Hoy: registro de eventos (logs) por tienda;
+                      próximo: alertas y rendimiento en este mismo espacio.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm"
+                    [disabled]="logsLoading()"
+                    (click)="loadStoreLogs()"
+                  >
+                    @if (logsLoading()) {
+                      <span class="spinner-sm"></span> Cargando…
+                    } @else {
+                      <i class="bi bi-arrow-clockwise"></i> Refrescar
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Toolbar de filtros -->
+              <div class="monitor-toolbar">
+                <div class="monitor-filter">
+                  <label class="form-label">Severidad</label>
+                  <select
+                    class="form-control"
+                    [ngModel]="logsSeverity()"
+                    (ngModelChange)="logsSeverity.set($event); applyLogsFilters()"
+                  >
+                    <option value="ALL">Todas</option>
+                    <option value="WARNING">Warnings + Errores</option>
+                    <option value="ERROR">Solo errores</option>
+                  </select>
+                </div>
+                <div class="monitor-filter monitor-filter--grow">
+                  <label class="form-label">Buscar (orderId, término…)</label>
+                  <input
+                    class="form-control"
+                    type="text"
+                    placeholder="ej. 4J26XEF7 o kasakalle"
+                    [ngModel]="logsQuery()"
+                    (keyup.enter)="logsQuery.set($any($event.target).value); applyLogsFilters()"
+                    (blur)="logsQuery.set($any($event.target).value); applyLogsFilters()"
+                  />
+                </div>
+                <div class="monitor-filter">
+                  <label class="form-label">Ventana</label>
+                  <select
+                    class="form-control"
+                    [ngModel]="logsSinceMinutes()"
+                    (ngModelChange)="setLogsSince($any($event))"
+                  >
+                    <option [ngValue]="15">Últimos 15 min</option>
+                    <option [ngValue]="60">Última hora</option>
+                    <option [ngValue]="360">Últimas 6 hs</option>
+                    <option [ngValue]="1440">Últimas 24 hs</option>
+                  </select>
+                </div>
+                <a
+                  class="btn btn-secondary btn--sm monitor-console-link"
+                  [href]="cloudLogsUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir Cloud Logging filtrando esta tienda"
+                >
+                  <i class="bi bi-box-arrow-up-right"></i> Cloud Console
+                </a>
+              </div>
+
+              @if (logsError()) {
+                <div class="alert alert--error mb-3">
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ logsError() }}
+                </div>
+              }
+
+              @if (logsLoading() && logsEntries().length === 0) {
+                <div class="detail-card detail-card--skeleton" aria-busy="true">
+                  <div class="skeleton skeleton--text mb-2"></div>
+                  <div class="skeleton skeleton--text mb-2" style="width: 70%"></div>
+                  <div class="skeleton skeleton--text" style="width: 45%"></div>
+                </div>
+              } @else if (logsEntries().length === 0 && !logsLoading() && !logsError()) {
+                <div class="empty-state" style="padding: 2.5rem 1rem; text-align: center">
+                  <i class="bi bi-journal-check fs-2 d-block mb-2"></i>
+                  <p class="mb-0">
+                    Sin eventos en la ventana seleccionada. Probá ampliar el rango o bajar la
+                    severidad.
+                  </p>
+                </div>
+              } @else if (logsEntries().length > 0) {
+                <div class="monitor-log-list">
+                  @for (entry of logsEntries(); track entry.timestamp + entry.message) {
+                    <div class="monitor-log-row">
+                      <div class="monitor-log-row__left">
+                        <span [class]="logsSeverityClass(entry.severity)">{{
+                          entry.severity || 'INFO'
+                        }}</span>
+                        @if (entry.function) {
+                          <code class="monitor-log-row__fn">{{ entry.function }}</code>
+                        }
+                      </div>
+                      <div class="monitor-log-row__time">{{ entry.timestamp }}</div>
+                      <div class="monitor-log-row__msg">{{ entry.message || entry.raw }}</div>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn--sm"
+                        title="Copiar mensaje"
+                        (click)="copyLogMessage(entry.message || entry.raw || '')"
+                      >
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                  }
+                </div>
+                <p class="form-hint mt-2 mb-0">
+                  @if (logsLoadedAt(); as at) {
+                    Última actualización: {{ at | date: 'HH:mm:ss' }} ·
+                  }
+                  Mostrando hasta 80 eventos recientes de
+                  <code>{{ logsProject() || 'ecommerce-vertex' }}</code>.
+                </p>
+              }
+            </div>
+          </div>
+        }
+
         @if (activeTab() === 'pagos') {
           <div class="payments-container">
             @if (paymentSaveError()) {
