@@ -4530,3 +4530,13 @@ html[data-theme='light'] {
     overflow-x: auto;
   }
 }
+
+.diagnostics-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--platform-accent);
+  text-decoration: none;
+}
