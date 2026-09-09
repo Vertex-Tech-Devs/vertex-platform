@@ -678,3 +678,37 @@
     line-height: 1.4;
   }
 }
+
+/* ═══ M3 polish (token-based, ambos temas) ═══ */
+.guidance-banner,
+.error-banner,
+.kpi-card,
+.guide-card,
+.account-card,
+.add-account-card,
+.shard-card {
+  border-radius: 1.1rem;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+  box-shadow: var(--platform-shadow-1);
+}
+
+.kpi-card__value {
+  color: var(--platform-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.kpi-card__label,
+.guidance-banner__standby-note {
+  color: var(--platform-text-muted);
+}
+
+.account-card,
+.shard-card {
+  transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--platform-shadow-2);
+  }
+}
