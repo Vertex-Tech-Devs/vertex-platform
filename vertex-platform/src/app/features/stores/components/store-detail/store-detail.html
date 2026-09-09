@@ -268,8 +268,6 @@
             <div class="detail-card">
               <h2 class="detail-card__title">Información general</h2>
               <dl class="detail-dl">
-                <dt>Slug</dt>
-                <dd>{{ store()!.slug }}</dd>
                 <dt>Cliente (Dueño)</dt>
                 <dd>{{ store()!.ownerEmail }}</dd>
                 <dt>URL de la tienda</dt>
@@ -299,10 +297,6 @@
                       <span class="badge badge--error ms-1">error en update</span>
                     }
                   </dd>
-                }
-                @if (store()!.targetChannel) {
-                  <dt>Canal</dt>
-                  <dd class="text-accent">{{ store()!.targetChannel | formatLabel }}</dd>
                 }
                 <dt>Creada</dt>
                 <dd>{{ formatDate(store()!.createdAt) | date: 'dd/MM/yyyy HH:mm' }}</dd>
@@ -357,6 +351,12 @@
                     @if (store()!.schemaVersion) {
                       <dt>Versión esquema</dt>
                       <dd class="text-accent">{{ store()!.schemaVersion }}</dd>
+                    }
+                    <dt>Slug</dt>
+                    <dd><code>{{ store()!.slug }}</code></dd>
+                    @if (store()!.targetChannel) {
+                      <dt>Canal</dt>
+                      <dd class="text-accent">{{ store()!.targetChannel | formatLabel }}</dd>
                     }
                   </dl>
                 </div>
