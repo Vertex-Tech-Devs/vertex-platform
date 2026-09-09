@@ -10,14 +10,6 @@
       <div class="detail-header__info">
         <h1 class="detail-header__name">{{ store()!.name }}</h1>
         <span class="badge {{ storeStatusBadge() }}">{{ statusLabel(store()!.status) }}</span>
-        <a
-          class="firebase-console-link"
-          href="https://console.firebase.google.com/project/{{ store()!.firebaseProjectId }}"
-          target="_blank"
-          title="Abrir Firebase Console"
-        >
-          <i class="bi bi-fire"></i> {{ store()!.firebaseProjectId }} ↗
-        </a>
       </div>
       <div class="detail-header__actions">
         @if (store()!.status === 'active' || store()!.status === 'suspended') {
@@ -342,6 +334,16 @@
                       <dt>Firebase Project</dt>
                       <dd>
                         <code>{{ store()!.firebaseProjectId }}</code>
+                        <a
+                          href="https://console.firebase.google.com/project/{{
+                            store()!.firebaseProjectId
+                          }}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="diagnostics-link"
+                        >
+                          <i class="bi bi-box-arrow-up-right"></i> Consola
+                        </a>
                       </dd>
                     }
                     @if (store()!.logoUrl) {
