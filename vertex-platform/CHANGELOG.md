@@ -1,6 +1,6 @@
 # Changelog — vertex-platform
 
-## [Unreleased]
+## [0.9.0] - 2026-09-09
 
 ### Added
 - Gestión dinámica de subdominios `.web.app` con disponibilidad en tiempo real y sugerencias.

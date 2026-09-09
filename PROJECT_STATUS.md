@@ -53,3 +53,7 @@
 ## 🔲 Deuda técnica residual (no bloqueante)
 - Deduplicación de estilos SCSS entre `store-detail` y sus componentes hijos (hoy comparten `store-detail.scss` por referencia).
 - Backends `purgeStoreData`/`deleteStoreDataItem` conservados **exclusivamente** para mantenimiento administrativo vía CLI/script (sin UI).
+
+
+## 📦 Release: 0.9.0 (Producción)
+- Versión cerrada y taggeada **v0.9.0**.
