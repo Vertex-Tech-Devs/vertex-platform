@@ -1,0 +1,1013 @@
+          <div class="payments-container">
+            @if (paymentSaveError()) {
+              <div class="alert alert-error">{{ paymentSaveError() }}</div>
+            }
+            @if (paymentSaveSuccess()) {
+              <div class="alert alert-success">{{ paymentSaveSuccess() }}</div>
+            }
+
+            @if (isLoadingPayment()) {
+              <div class="detail-card detail-card--skeleton" aria-busy="true">
+                <div class="skeleton skeleton--card-title"></div>
+                <div class="skeleton skeleton--text mb-4 mt-2"></div>
+                <div class="skeleton skeleton--input mb-3"></div>
+                <div class="skeleton skeleton--input mb-3"></div>
+                <div class="skeleton skeleton--btn"></div>
+              </div>
+            } @else {
+              <!-- Sub-tabs segmentados: Suscripción SaaS | Pasarela Mercado Pago (CSS-only, sin TS) -->
+              <div class="payments-segment" role="tablist" aria-label="Secciones de Pagos y Facturación">
+                <input
+                  type="radio"
+                  id="pagos-sub-saas"
+                  class="payments-segment__radio"
+                  name="pagos-sub"
+                  checked
+                />
+                <label class="payments-segment__pill" for="pagos-sub-saas" role="tab">
+                  <i class="bi bi-box-seam"></i> Suscripción & Plan SaaS
+                </label>
+                <input
+                  type="radio"
+                  id="pagos-sub-gateway"
+                  class="payments-segment__radio"
+                  name="pagos-sub"
+                />
+                <label class="payments-segment__pill" for="pagos-sub-gateway" role="tab">
+                  <i class="bi bi-credit-card-2-front"></i> Pasarela del Comercio (Mercado Pago)
+                </label>
+              </div>
+              <div class="payments-grid">
+                <!-- SaaS Subscription Vertex Card -->
+                <div class="detail-card detail-card--saas">
+                  <div class="detail-card__header mb-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <h2 class="detail-card__title">
+                        <i class="bi bi-stars text-primary"></i> Suscripción SaaS Vertex
+                      </h2>
+                      @switch (storeSubscription()?.subscription?.status || 'active') {
+                        @case ('active') {
+                          <span class="badge badge--success"
+                            ><i class="bi bi-check-circle-fill"></i> Suscripción Activa</span
+                          >
+                        }
+                        @case ('complimentary') {
+                          <span class="badge badge--primary"
+                            ><i class="bi bi-gift-fill"></i> Cortesía / Bonificada</span
+                          >
+                        }
+                        @case ('past_due') {
+                          <span class="badge badge--warning"
+                            ><i class="bi bi-clock-history"></i> En Período de Gracia</span
+                          >
+                        }
+                        @case ('suspended') {
+                          <span class="badge badge--danger"
+                            ><i class="bi bi-slash-circle-fill"></i> Suspendida por Pago</span
+                          >
+                        }
+                        @default {
+                          <span class="badge badge--neutral">En Período de Prueba</span>
+                        }
+                      }
+                    </div>
+                    <p class="detail-card__subtitle">
+                      Plan SaaS de la tienda: estado, precios y cobros al cliente.
+                    </p>
+                  </div>
+
+                  <!-- Trial Banner (if store is in trial period) -->
+                  @if (storeSubscription()?.subscription?.status === 'trial') {
+                    <div class="trial-banner p-3 mb-3">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-stars text-warning fs-5"></i>
+                          <div>
+                            <strong class="d-block text-white"
+                              >Período de Prueba Activo ({{ trialRemainingDays() }} días
+                              restantes)</strong
+                            >
+                            <span class="text-xs text-muted">
+                              Disfrutando de acceso completo sin cargo hasta el
+                              {{
+                                formatDate(
+                                  storeSubscription()?.subscription?.trialEndDate ||
+                                    storeSubscription()?.subscription?.currentPeriodEnd
+                                ) | date: 'dd/MM/yyyy'
+                              }}.
+                            </span>
+                          </div>
+                        </div>
+                        <span class="badge badge--warning">Trial</span>
+                      </div>
+                    </div>
+                  } @else if (storeSubscription()?.subscription?.status === 'past_due') {
+                    <div class="grace-alert-banner p-3 mb-3">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-clock-history text-warning fs-5"></i>
+                          <div>
+                            <strong class="d-block text-warning"
+                              >Período de Gracia Activo (Día
+                              {{ storeSubscription()?.overdueDetails?.overdueDays || 1 }}/5)</strong
+                            >
+                            <span class="text-xs text-muted">
+                              Recargo acumulado por mora:
+                              <strong
+                                >{{ storeSubscription()?.overdueDetails?.surchargePercent || 0 }}%
+                                (+${{
+                                  storeSubscription()?.overdueDetails?.surchargeAmount || 0 | number
+                                }}
+                                ARS)</strong
+                              >. Al vencer el día 5 la tienda pasará automáticamente a corte
+                              preventivo (suspendida).
+                            </span>
+                          </div>
+                        </div>
+                        <span class="badge badge--warning"
+                          >+{{ storeSubscription()?.overdueDetails?.surchargePercent || 0 }}%
+                          Mora</span
+                        >
+                      </div>
+                    </div>
+                  } @else if (storeSubscription()?.subscription?.status === 'suspended') {
+                    <div class="suspended-alert-banner p-3 mb-3">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-slash-circle-fill text-danger fs-5"></i>
+                          <div>
+                            <strong class="d-block text-danger"
+                              >Tienda Suspendida por Falta de Pago</strong
+                            >
+                            <span class="text-xs text-muted">
+                              Superó los 5 días de gracia. Requiere regularizar con el 10% de
+                              recargo por mora (+${{
+                                storeSubscription()?.overdueDetails?.surchargeAmount || 0 | number
+                              }}
+                              ARS) para restaurar el servicio.
+                            </span>
+                          </div>
+                        </div>
+                        <span class="badge badge--danger">+10% Mora</span>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Subscription Details & Pricing Card (grilla simétrica) -->
+                  <div class="sub-summary mb-4">
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Tarifa vigente</span>
+                      <span class="sub-summary__value">
+                        ${{ (storeSubscription()?.subscription?.billingCycle === 'annual'
+                          ? saasAnnual()
+                          : saasMonthly()) | number }}
+                        <span class="sub-summary__unit">ARS</span>
+                      </span>
+                      <span class="sub-summary__sub"
+                        >por
+                        {{
+                          storeSubscription()?.subscription?.billingCycle === 'annual'
+                            ? 'año'
+                            : 'mes'
+                        }}
+                        @if (storeSubscription()?.subscription?.discountPercent) {
+                          · {{ storeSubscription()?.subscription?.discountPercent }}% OFF
+                        }
+                      </span>
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Ciclo de cobro</span>
+                      <span class="sub-summary__value sub-summary__value--md">{{
+                        saasBillingCycleLabel()
+                      }}</span>
+                      <span class="sub-summary__sub"
+                        >{{
+                          saasBillingCycleLabel() === 'Anual' && saasAnnualMonthsFree() > 0
+                            ? '≈ ' + saasAnnualMonthsFree() + ' meses gratis vs. mensual'
+                            : 'Renovación automática mensual'
+                        }}</span
+                      >
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">{{
+                        storeSubscription()?.subscription?.status === 'trial'
+                          ? 'Fin de prueba'
+                          : 'Próximo vencimiento'
+                      }}</span>
+                      @if (storeSubscription()?.subscription?.currentPeriodEnd) {
+                        <span class="sub-summary__value sub-summary__value--md">
+                          {{
+                            formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
+                              | date: 'dd/MM/yyyy'
+                          }}
+                        </span>
+                        <span class="sub-summary__sub">Cierre del período actual</span>
+                      } @else {
+                        <span class="sub-summary__value sub-summary__value--md">—</span>
+                        <span class="sub-summary__sub">Sin período definido</span>
+                      }
+                    </div>
+                    <div class="sub-summary__cell">
+                      <span class="sub-summary__label">Estado de cuenta</span>
+                      <span class="sub-summary__status" [class]="'sub-summary__status--' + saasStatusInfo().tone">
+                        <i class="bi" [class]="'bi-' + saasStatusInfo().icon"></i>
+                        {{ saasStatusInfo().label }}
+                      </span>
+                      <span class="sub-summary__sub">
+                        {{
+                          storeSubscription()?.subscription?.status === 'past_due'
+                            ? 'Día ' +
+                              (storeSubscription()?.overdueDetails?.overdueDays || 1) +
+                              ' de 5 de gracia'
+                            : storeSubscription()?.subscription?.status === 'complimentary'
+                              ? 'Sin costo para el cliente'
+                              : 'Cobro directo a la tienda'
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Subscription Link Generator Buttons -->
+                  <div class="sub-link-actions mb-4">
+                    <div class="sub-link-actions__heading">
+                      <span class="form-label d-block mb-1">Generar enlace de cobro</span>
+                      <span class="form-hint d-block"
+                        >Elegí la frecuencia. El cliente paga con su propia tarjeta en Mercado
+                        Pago.</span
+                      >
+                    </div>
+                    <div class="sub-link-grid">
+                      <button
+                        type="button"
+                        class="sub-link-option sub-link-option--monthly"
+                        (click)="generateSubscriptionLink('monthly')"
+                        [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
+                      >
+                        <span class="sub-link-option__title">Débito Mensual</span>
+                        <span class="sub-link-option__price"
+                          >${{ saasMonthly() | number }} ARS / mes</span
+                        >
+                        <span class="sub-link-option__cta"
+                          ><i class="bi bi-link-45deg"></i>
+                          {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                        >
+                      </button>
+                      <button
+                        type="button"
+                        class="sub-link-option sub-link-option--annual"
+                        (click)="generateSubscriptionLink('annual')"
+                        [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
+                      >
+                        <span class="sub-link-option__title">Pago Anual</span>
+                        <span class="sub-link-option__price"
+                          >${{ saasAnnual() | number }} ARS / año</span
+                        >
+                        @if (saasAnnualMonthsFree() > 0) {
+                          <span class="sub-link-option__bonus"
+                            >≈ {{ saasAnnualMonthsFree() }} meses gratis</span
+                          >
+                        }
+                        <span class="sub-link-option__cta"
+                          ><i class="bi bi-tag-fill"></i>
+                          {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                        >
+                      </button>
+                    </div>
+                    @if (saasChargeBlocked()) {
+                      <span class="form-hint d-block mt-2 text-warning">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {{
+                          storeSubscription()?.subscription?.status === 'complimentary'
+                            ? 'Tienda en cortesía: no corresponde emitir cobro.'
+                            : storeSubscription()?.subscription?.status === 'suspended'
+                              ? 'Tienda suspendida: regularizá la cuenta antes de generar cobros.'
+                              : 'En período de prueba: el cobro se emite al finalizar el trial.'
+                        }}
+                      </span>
+                    }
+                  </div>
+
+                  @if (subLinkGenerated()) {
+                    <div class="alert alert--success mb-4">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span
+                          ><i class="bi bi-link-45deg"></i> Enlace de Pago Mercado Pago
+                          generado:</span
+                        >
+                        <a
+                          [href]="subLinkGenerated()"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-sm btn-primary"
+                        >
+                          Abrir Checkout <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                      </div>
+                      <input
+                        type="text"
+                        class="form-control text-xs"
+                        [value]="subLinkGenerated()"
+                        readonly
+                      />
+                    </div>
+                  }
+
+                  @if (subLinkError()) {
+                    <div class="alert alert--error mb-4">
+                      <i class="bi bi-exclamation-triangle-fill"></i> {{ subLinkError() }}
+                    </div>
+                  }
+
+                  <!-- Platform Admin Subscription & Pricing Controls (Collapsible Accordion) -->
+                  <div class="accordion master-sub-controls-accordion" id="masterControlsAccordion">
+                    <div class="accordion-item" style="background: transparent; border: none">
+                      <h3 class="accordion-header" id="masterControlsHeading">
+                        <button
+                          class="accordion-button collapsed d-flex align-items-center justify-content-between py-2 px-3 rounded-3"
+                          style="
+                            background: rgba(15, 23, 42, 0.55);
+                            border: 1px solid rgba(251, 191, 36, 0.25);
+                            color: #f1f5f9;
+                            font-size: 0.875rem;
+                            font-weight: 700;
+                            box-shadow: none;
+                          "
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#masterControlsBody"
+                          aria-expanded="false"
+                          aria-controls="masterControlsBody"
+                        >
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-lock-fill text-warning"></i>
+                            <span>Gestión y Facturación de la Tienda</span>
+                            <span
+                              class="badge"
+                              style="
+                                background: rgba(251, 191, 36, 0.12);
+                                border: 1px solid rgba(251, 191, 36, 0.3);
+                                color: #fbbf24;
+                                font-size: 0.65rem;
+                                font-weight: 700;
+                                letter-spacing: 0.08em;
+                              "
+                              >Master Admin</span
+                            >
+                          </div>
+                        </button>
+                      </h3>
+
+                      <div
+                        id="masterControlsBody"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="masterControlsHeading"
+                        data-bs-parent="#masterControlsAccordion"
+                      >
+                        <div class="accordion-body px-0 pb-0 pt-3">
+                          <div class="master-sub-controls">
+                            @if (discountSaveSuccess()) {
+                              <div class="alert alert--success text-xs py-2 mb-3">
+                                <i class="bi bi-check-circle-fill"></i> {{ discountSaveSuccess() }}
+                              </div>
+                            }
+
+                            <!-- Public Checkout Link for Client (una sola fila limpia) -->
+                            <div class="payment-subcard payment-subcard--link mb-3">
+                              <div class="payment-subcard__heading">
+                                <span class="payment-subcard__title">
+                                  <i class="bi bi-box-arrow-up-right"></i> Enlace público de pago
+                                </span>
+                                <span class="payment-subcard__hint">
+                                  El cliente paga con su tarjeta, sin necesidad de cuenta.
+                                </span>
+                              </div>
+                              <div class="copy-link-row">
+                                <input
+                                  type="text"
+                                  class="copy-link-row__input"
+                                  [value]="publicCheckoutUrl()"
+                                  readonly
+                                  spellcheck="false"
+                                />
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary copy-link-row__btn"
+                                  [class.is-copied]="copiedPublicLink()"
+                                  (click)="copyPublicCheckoutUrl()"
+                                  title="Copiar enlace"
+                                >
+                                  <i
+                                    class="bi"
+                                    [class.bi-check-lg]="copiedPublicLink()"
+                                    [class.bi-clipboard]="!copiedPublicLink()"
+                                  ></i>
+                                  {{ copiedPublicLink() ? '¡Copiado!' : 'Copiar' }}
+                                </button>
+                                <a
+                                  class="btn btn-secondary copy-link-row__btn copy-link-row__btn--icon"
+                                  [href]="whatsAppShareUrl()"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Compartir por WhatsApp"
+                                >
+                                  <i class="bi bi-whatsapp"></i>
+                                </a>
+                                <a
+                                  class="btn btn-primary copy-link-row__btn"
+                                  [href]="publicCheckoutUrl()"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Abrir enlace en pestaña nueva"
+                                >
+                                  Abrir <i class="bi bi-arrow-up-right"></i>
+                                </a>
+                              </div>
+                            </div>
+
+                            <!-- Quick Trial & Free Store Grant Controls -->
+                            <div class="payment-subcard mb-3">
+                              <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span
+                                  class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                                >
+                                  <i class="bi bi-gift-fill text-warning"></i> Acciones de
+                                  Bonificación
+                                </span>
+                                <span class="text-xxs text-muted font-weight-semibold"
+                                  >100% Bonificado</span
+                                >
+                              </div>
+
+                              <div class="d-flex gap-2 mb-2">
+                                <button
+                                  type="button"
+                                  class="btn btn-pill-option flex-1"
+                                  (click)="grantTrial(7)"
+                                  [disabled]="isGrantingTrial()"
+                                >
+                                  7 Días
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-pill-option flex-1"
+                                  (click)="grantTrial(14)"
+                                  [disabled]="isGrantingTrial()"
+                                >
+                                  14 Días
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-pill-option flex-1"
+                                  (click)="grantTrial(30)"
+                                  [disabled]="isGrantingTrial()"
+                                >
+                                  30 Días
+                                </button>
+                              </div>
+
+                              <div class="d-flex gap-2 align-items-center mb-2">
+                                <input
+                                  type="number"
+                                  class="form-control text-xs"
+                                  placeholder="Cantidad de días (ej. 45)"
+                                  [value]="trialDaysInput()"
+                                  (input)="
+                                    trialDaysInput.set(
+                                      $any($event.target).value ? +$any($event.target).value : 14
+                                    )
+                                  "
+                                  min="1"
+                                  max="365"
+                                />
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary btn-sm text-nowrap"
+                                  (click)="grantTrial(trialDaysInput())"
+                                  [disabled]="isGrantingTrial() || !trialDaysInput()"
+                                >
+                                  Aplicar Días
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                class="btn btn-grant-free btn-sm w-100"
+                                (click)="grantFreeStore()"
+                                [disabled]="isGrantingTrial()"
+                              >
+                                <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis
+                                Permanente (Cortesía)
+                              </button>
+                            </div>
+
+                            <!-- Custom Plan & Rate Settings -->
+                            <div class="payment-subcard mb-3">
+                              <div
+                                class="text-xs font-weight-bold text-white mb-2 d-flex align-items-center gap-1"
+                              >
+                                <i class="bi bi-sliders text-primary"></i> Tarifas Especiales y
+                                Estado
+                              </div>
+
+                              <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                  <label class="form-label text-xs">Estado de Cuenta</label>
+                                  <select
+                                    class="form-control text-xs"
+                                    [ngModel]="subscriptionStatusSelect()"
+                                    (ngModelChange)="subscriptionStatusSelect.set($event)"
+                                  >
+                                    <option value="active">Activa</option>
+                                    <option value="complimentary">Cortesía (Sin cobro)</option>
+                                    <option value="trial">Período de Prueba</option>
+                                    <option value="past_due">Período de Gracia</option>
+                                    <option value="suspended">Suspendida</option>
+                                  </select>
+                                </div>
+                                <div class="col-6">
+                                  <label class="form-label text-xs">Descuento (%)</label>
+                                  <input
+                                    type="number"
+                                    class="form-control text-xs"
+                                    placeholder="ej. 20"
+                                    [value]="discountPercentInput()"
+                                    (input)="
+                                      discountPercentInput.set(
+                                        $any($event.target).value
+                                          ? +$any($event.target).value
+                                          : null
+                                      )
+                                    "
+                                    min="0"
+                                    max="100"
+                                  />
+                                </div>
+                              </div>
+
+                              <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                  <label class="form-label text-xs">Mensual Custom (ARS)</label>
+                                  <input
+                                    type="number"
+                                    class="form-control text-xs"
+                                    placeholder="Ej.: 50000 (default 50.000)"
+                                    [value]="customMonthlyPriceInput()"
+                                    (input)="
+                                      customMonthlyPriceInput.set(
+                                        $any($event.target).value
+                                          ? +$any($event.target).value
+                                          : null
+                                      )
+                                    "
+                                  />
+                                </div>
+                                <div class="col-6">
+                                  <label class="form-label text-xs">Anual Custom (ARS)</label>
+                                  <input
+                                    type="number"
+                                    class="form-control text-xs"
+                                    placeholder="Ej.: 500000 (default 500.000)"
+                                    [value]="customAnnualPriceInput()"
+                                    (input)="
+                                      customAnnualPriceInput.set(
+                                        $any($event.target).value
+                                          ? +$any($event.target).value
+                                          : null
+                                      )
+                                    "
+                                  />
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                class="btn btn-primary btn-sm w-100"
+                                (click)="saveCustomSubscriptionPricing()"
+                                [disabled]="isSavingDiscount()"
+                              >
+                                <i
+                                  class="bi"
+                                  [class.bi-check2]="!isSavingDiscount()"
+                                  [class.bi-arrow-repeat]="isSavingDiscount()"
+                                  [class.spin]="isSavingDiscount()"
+                                ></i>
+                                <span>{{
+                                  isSavingDiscount()
+                                    ? 'Guardando…'
+                                    : 'Guardar Ajustes de Facturación'
+                                }}</span>
+                              </button>
+                            </div>
+
+                            <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
+                            <div class="qa-simulation-box">
+                              <div class="qa-simulation-box__toggle">
+                                <button
+                                  type="button"
+                                  class="btn-qa-toggle d-flex align-items-center gap-2 text-xs"
+                                  (click)="showSimulationTools.set(!showSimulationTools())"
+                                  title="Herramientas internas de soporte (QA/Lab)"
+                                >
+                                  <i class="bi bi-tools"></i>
+                                  <span class="font-weight-bold"
+                                    >Herramientas internas · Simulación de vencimientos</span
+                                  >
+                                  <i
+                                    class="bi"
+                                    [class.bi-chevron-down]="!showSimulationTools()"
+                                    [class.bi-chevron-up]="showSimulationTools()"
+                                  ></i>
+                                </button>
+                              </div>
+
+                              @if (showSimulationTools()) {
+                                <div class="qa-tools-content p-3 rounded">
+                                  <p class="text-xs text-muted mb-2">
+                                    Probá instantáneamente cómo responde la plataforma y el
+                                    storefront ante distintos estados de vencimiento sin esperar
+                                    días:
+                                  </p>
+                                  <div class="d-flex flex-column gap-2">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                        (click)="simulateStoreExpiration('imminent')"
+                                        [disabled]="isSimulatingExpiration()"
+                                      >
+                                        <i class="bi bi-alarm"></i>
+                                        <span>Vence en 1 Hora</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-warning btn-sm flex-1 text-xs"
+                                        (click)="simulateStoreExpiration('grace_period')"
+                                        [disabled]="isSimulatingExpiration()"
+                                      >
+                                        <i class="bi bi-hourglass-split"></i>
+                                        <span>Período de Gracia (5 días)</span>
+                                      </button>
+                                    </div>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-danger btn-sm flex-1 text-xs"
+                                        (click)="simulateStoreExpiration('expired_suspended')"
+                                        [disabled]="isSimulatingExpiration()"
+                                      >
+                                        <i class="bi bi-slash-circle-fill"></i>
+                                        <span>Expirado y Suspendido</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-success btn-sm flex-1 text-xs"
+                                        (click)="simulateStoreExpiration('reset_trial')"
+                                        [disabled]="isSimulatingExpiration()"
+                                      >
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                        <span>Restablecer Trial (14d)</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mercado Pago Card -->
+                <div class="detail-card detail-card--gateway">
+                  <div class="detail-card__header mb-3">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-credit-card text-primary"></i> Pasarela Mercado Pago (Tienda)
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Credenciales para procesar los cobros del checkout.
+                    </p>
+                  </div>
+
+                  <div class="mp-status-strip">
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="mpValidationStatus() === 'valid'"
+                      [class.mp-status-chip--warn]="mpValidationStatus() !== 'valid'"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-check-circle-fill]="mpValidationStatus() === 'valid'"
+                        [class.bi-circle]="mpValidationStatus() !== 'valid'"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Credenciales</span>
+                        <span class="mp-status-chip__value">
+                          {{
+                            mpValidationStatus() === 'valid'
+                              ? 'Guardadas y validadas'
+                              : mpValidationStatus() === 'invalid'
+                                ? 'Guardadas, pero inválidas'
+                                : 'Sin credenciales propias'
+                          }}@if (mpValidationStatus() === 'valid' && mpTokenMasked()) {
+                            <span class="mp-status-chip__token">{{ mpTokenMasked() }}</span>
+                          }
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="!!mpAccountEmail()"
+                      [class.mp-status-chip--warn]="!mpAccountEmail()"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-person-check-fill]="!!mpAccountEmail()"
+                        [class.bi-person]="!mpAccountEmail()"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Cuenta Mercado Pago</span>
+                        <span class="mp-status-chip__value">
+                          {{ mpAccountEmail() || 'Sin cuenta vinculada' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      class="mp-status-chip"
+                      [class.mp-status-chip--ok]="mpMode() === 'prod'"
+                      [class.mp-status-chip--info]="mpMode() === 'test'"
+                      [class.mp-status-chip--warn]="mpMode() === 'sandbox'"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-shield-check]="mpMode() === 'prod'"
+                        [class.bi-shield]="mpMode() === 'sandbox'"
+                        [class.bi-shield-shaded]="mpMode() === 'test'"
+                      ></i>
+                      <div class="mp-status-chip__body">
+                        <span class="mp-status-chip__label">Modo pasarela</span>
+                        <span class="mp-status-chip__value">{{ mpModeLabel() }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mp-form">
+                    <!-- Public Key -->
+                    <div class="form-group">
+                      <label class="form-label" for="mp-public-key">
+                        Public Key
+                        <span class="form-label__tag">Frontend</span>
+                      </label>
+                      <input
+                        id="mp-public-key"
+                        class="form-control"
+                        type="text"
+                        [ngModel]="mpPublicKey()"
+                        (ngModelChange)="mpPublicKey.set($event)"
+                        placeholder="TEST-... o APP_USR-..."
+                        autocomplete="off"
+                      />
+                      <span class="form-hint"
+                        >Clave pública utilizada para inicializar el Brick de pagos en el
+                        frontend.</span
+                      >
+                    </div>
+
+                    <!-- Access Token (protegido) -->
+                    <div class="form-group">
+                      <label class="form-label" for="mp-access-token">
+                        Access Token
+                        <span class="form-label__tag form-label__tag--secret">Secreto</span>
+                      </label>
+                      <div class="input-password-wrapper">
+                        <input
+                          id="mp-access-token"
+                          class="form-control"
+                          [type]="showMpToken() ? 'text' : 'password'"
+                          [ngModel]="mpAccessToken()"
+                          (ngModelChange)="mpAccessToken.set($event)"
+                          [placeholder]="
+                            mpTokenMasked()
+                              ? 'Dejar vacío para mantener el token actual'
+                              : 'TEST-... o APP_USR-...'
+                          "
+                          autocomplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          class="input-password-toggle"
+                          (click)="showMpToken.set(!showMpToken())"
+                          [title]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
+                          [attr.aria-label]="showMpToken() ? 'Ocultar token' : 'Mostrar token'"
+                        >
+                          <i [class]="showMpToken() ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                        </button>
+                      </div>
+                      <span class="form-hint"
+                        >Token privado. Se guarda encriptado de forma segura en Google Cloud Secret
+                        Manager.</span
+                      >
+                      <div class="mp-ping mt-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-info btn-sm rounded-pill"
+                          (click)="testMpConnection()"
+                          [disabled]="mpPinging() || !mpAccessToken().trim()"
+                        >
+                          @if (mpPinging()) {
+                            <span class="spinner-border spinner-border-sm me-1"></span> Consultando…
+                          } @else {
+                            <i class="bi bi-activity me-1"></i> Probar Conexión con Mercado Pago
+                          }
+                        </button>
+                        @if (!mpTokenMasked()) {
+                          <span class="mp-master-badge"
+                            >Modo Sandbox — Token Maestro Vertex activo. El checkout usa las
+                            credenciales maestras de prueba hasta que cargues las del cliente.</span
+                          >
+                        }
+                      </div>
+                      @if (mpPingResult(); as ping) {
+                        <div
+                          class="mp-ping-result"
+                          [class.mp-ping-result--ok]="ping.ok"
+                          [class.mp-ping-result--err]="!ping.ok"
+                        >
+                          @if (ping.ok && ping.account) {
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span
+                              ><strong>Conexión exitosa:</strong>
+                              {{ ping.account.nickname || '—' }}
+                              ({{ ping.account.email || '—' }}) · collector
+                              {{ ping.account.id ?? '—' }}</span
+                            >
+                          } @else {
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>{{ ping.message }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Sandbox Toggle -->
+                    <div class="sandbox-card">
+                      <div class="mp-mode-banner" [class]="'mp-mode-banner--' + mpMode()">
+                        @switch (mpMode()) {
+                          @case ('prod') {
+                            <i class="bi bi-patch-check-fill mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO PRODUCCIÓN REAL ACTIVO (Ventas en Vivo)</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Cobros en vivo a la cuenta bancaria del cliente. IMPORTANTE: Los
+                                pagos deben realizarse con tarjetas y cuentas reales. Si intentás
+                                pagar con cuentas o tarjetas de prueba de Mercado Pago, la pasarela
+                                rechazará la transacción ('Una de las partes es de prueba').
+                              </p>
+                            </div>
+                          }
+                          @case ('test') {
+                            <i class="bi bi-patch-question-fill mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO PRUEBAS DEL CLIENTE ACTIVO</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Configurado con credenciales TEST propias del cliente. Solo admite
+                                tarjetas y usuarios de prueba de Mercado Pago.
+                              </p>
+                            </div>
+                          }
+                          @default {
+                            <i class="bi bi-shield-exclamation mp-mode-banner__icon"></i>
+                            <div class="mp-mode-banner__body">
+                              <span class="mp-mode-banner__title"
+                                >MODO SANDBOX DE PLATAFORMA ACTIVO</span
+                              >
+                              <p class="mp-mode-banner__copy">
+                                Operando con la pasarela de prueba de Vertex. Únicamente admite
+                                pagos con tarjetas de test de Mercado Pago. Los pagos reales serán
+                                rechazados.
+                              </p>
+                            </div>
+                          }
+                        }
+                      </div>
+                      <label class="toggle-switch" [class.is-on]="mpSandbox()">
+                        <input
+                          type="checkbox"
+                          [ngModel]="mpSandbox()"
+                          (ngModelChange)="mpSandbox.set(!!$event)"
+                        />
+                        <span class="toggle-switch__slider"></span>
+                      </label>
+                    </div>
+
+                    <!-- Webhook URL (readonly, dynamic per tenant) -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        Webhook IPN URL
+                        <span class="form-label__tag">Solo Lectura</span>
+                      </label>
+                      <div class="input-copy-wrapper">
+                        <input
+                          class="form-control form-control--readonly"
+                          type="text"
+                          [value]="
+                            'https://us-central1-' +
+                            (isDevPlatformEnv() ? 'ecommerce-vertex-dev' : 'ecommerce-vertex') +
+                            '.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=' +
+                            (store()!.slug || store()!.id)
+                          "
+                          readonly
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-copy"
+                          (click)="copyWebhookUrl(store()!.id)"
+                          title="Copiar URL al portapapeles"
+                        >
+                          <i class="bi bi-clipboard"></i> Copiar
+                        </button>
+                      </div>
+                      <span class="form-hint"
+                        >Configurá esta URL en tu cuenta de Mercado Pago (Tus integraciones →
+                        Webhooks) para recibir notificaciones instantáneas de pago.</span
+                      >
+                    </div>
+
+                    <!-- Save Button Actions -->
+                    <div class="mp-form__actions">
+                      <button
+                        class="btn btn-primary btn-save-mp"
+                        [disabled]="isSavingPayment()"
+                        (click)="savePaymentConfig()"
+                      >
+                        @if (isSavingPayment()) {
+                          <span class="spinner-sm"></span> Guardando y validando…
+                        } @else {
+                          <i class="bi bi-check2-circle"></i> Guardar Credenciales de Pago
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info Card: Cómo usar -->
+                <div class="detail-card detail-card--info">
+                  <div class="detail-card__header mb-3">
+                    <h2 class="detail-card__title">
+                      <i class="bi bi-info-circle text-info"></i> ¿Cómo funciona?
+                    </h2>
+                    <p class="detail-card__subtitle">
+                      Cuatro pasos para activar los cobros.
+                    </p>
+                  </div>
+                  <div class="mp-info-list">
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">1</span>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Obtené tus credenciales</strong>
+                        <p class="mp-info-step__text">
+                          En el panel de Mercado Pago, ingresá a
+                          <em>Mis integraciones → Tu aplicación → Credenciales</em>.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">2</span>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Modo Sandbox para pruebas</strong>
+                        <p class="mp-info-step__text">
+                          Usá las credenciales de prueba (<code>TEST-...</code>) para validar el
+                          checkout antes de habilitar cobros reales.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">3</span>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Configurá el Webhook</strong>
+                        <p class="mp-info-step__text">
+                          Copiá la URL del webhook y registrala en tu cuenta de MP en
+                          <em>Tus integraciones → Webhooks</em>.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="mp-info-step">
+                      <span class="mp-info-step__num">4</span>
+                      <div class="mp-info-step__content">
+                        <strong class="mp-info-step__title">Pase a Producción</strong>
+                        <p class="mp-info-step__text">
+                          Una vez validado el flujo, reemplazá las credenciales por las de
+                          producción (<code>APP_USR-...</code>) y desactivá el sandbox.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>

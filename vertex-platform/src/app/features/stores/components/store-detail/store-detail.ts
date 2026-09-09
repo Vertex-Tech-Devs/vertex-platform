@@ -1,4 +1,3 @@
-/* eslint max-lines: off -- orquestador store-detail; la descomposición en subcomponentes se ejecuta en la fase de refactor dedicada (sin romper flujo actual) */
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,9 +11,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe,  } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { StoresService, type StoreSubscriptionInfo } from '@core/services/stores';
+import { StoresService } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
 import { FormatLabelPipe } from '../../../../shared/pipes/format-label.pipe';
 
@@ -26,7 +25,6 @@ import { StoreDetailOrchestrationService } from './services/store-detail-orchest
 import type { PendingInvitation, Store } from '@core/models/store';
 import {
   formatDateUtil,
-  parseDateToMillis,
   statusLabelUtil,
   stepIconUtil,
   formatDeployHistoryUtil,
@@ -37,15 +35,17 @@ import {
 } from './services/store-detail.util';
 import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store-modal';
 import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains.component';
+import { StoreDetailPayments } from '../store-detail-payments/store-detail-payments.component';
+import { StoreDetailPaymentsService } from '../../services/store-detail-payments.service';
 
 @Component({
   selector: 'app-store-detail',
   standalone: true,
   imports: [
     StoreDetailDomains,
+    StoreDetailPayments,
     RouterLink,
     DatePipe,
-    DecimalPipe,
     FormsModule,
     ReactiveFormsModule,
     AppSpinner,
@@ -58,6 +58,7 @@ import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains
 })
 export class StoreDetail implements OnInit {
   private storesService = inject(StoresService);
+  readonly paymentsService = inject(StoreDetailPaymentsService);
   readonly auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -147,16 +148,6 @@ export class StoreDetail implements OnInit {
   readonly domainStatus = this.domainsService.domainStatus;
   readonly domainInput = this.domainsService.domainInput;
 
-  isDevPlatformEnv(): boolean {
-    return (
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1' ||
-        window.location.hostname.includes('-dev.web.app') ||
-        window.location.hostname.endsWith('.local'))
-    );
-  }
-
   deleteConfirmInput = '';
   sleepConfirmInput = '';
   readonly editForm = this.orchestrationService.editForm;
@@ -177,176 +168,6 @@ export class StoreDetail implements OnInit {
   readonly isLoadingVersions = this.orchestrationService.isLoadingVersions;
   readonly isUpdatingAutoUpdate = signal(false);
   readonly selectedVersion = signal('0.5.0');
-  readonly mpPublicKey = signal('');
-  readonly mpAccessToken = signal('');
-  readonly mpPinging = signal(false);
-  readonly mpPingResult = signal<{
-    ok: boolean;
-    account?: { id?: number | string | null; email?: string; nickname?: string };
-    message?: string;
-    status?: number;
-  } | null>(null);
-  readonly mpSandbox = signal(false);
-  readonly showMpToken = signal(false);
-  readonly isSavingPayment = signal(false);
-  readonly isLoadingPayment = signal(false);
-  readonly paymentSaveError = signal('');
-  readonly paymentSaveSuccess = signal('');
-  readonly mpValidationStatus = signal<'pending' | 'valid' | 'invalid' | ''>('');
-  readonly mpAccountEmail = signal('');
-  readonly mpTokenMasked = signal('');
-
-  // ── Dominios: estado desde callable getDomainStatus / disconnectDomain ────
-  readonly mpMode = computed<'sandbox' | 'test' | 'prod'>(() => {
-    const raw = this.mpAccessToken().trim() || this.mpTokenMasked() || '';
-    if (raw.startsWith('APP_USR-')) {
-      return 'prod'; // protege: nunca tratar credenciales reales como sandbox
-    }
-    if (raw.startsWith('TEST-')) {
-      return 'test';
-    }
-    // Sin token visible: la validación previa distingue producción real (APP) de pruebas.
-    if (this.mpValidationStatus() === 'valid' && !this.mpSandbox()) {
-      return 'prod';
-    }
-    if (this.mpValidationStatus() === 'valid') {
-      return 'test';
-    }
-    return 'sandbox';
-  });
-
-  readonly mpModeLabel = computed(() => {
-    switch (this.mpMode()) {
-      case 'prod':
-        return 'Producción Real (APP_USR-)';
-      case 'test':
-        return 'Pruebas (TEST-)';
-      default:
-        return 'Sandbox de Plataforma (sin credenciales propias)';
-    }
-  });
-
-  // ── SaaS: precios efectivos y gating de cobro ─────────────────────────────
-  readonly saasMonthly = computed(() => {
-    const sub = this.storeSubscription()?.subscription;
-    return Number(
-      sub?.customMonthlyPrice ?? this.storeSubscription()?.basePricing?.monthlyPrice ?? 50000,
-    );
-  });
-  readonly saasAnnual = computed(() => {
-    const sub = this.storeSubscription()?.subscription;
-    return Number(
-      sub?.customAnnualPrice ?? this.storeSubscription()?.basePricing?.annualPrice ?? 500000,
-    );
-  });
-  /** Meses que el plan anual "regala" respecto a pagar 12 meses sueltos. */
-  readonly saasAnnualMonthsFree = computed(() => {
-    if (!this.saasMonthly()) {
-      return 0;
-    }
-    return Math.max(0, Math.round((this.saasMonthly() * 12 - this.saasAnnual()) / this.saasMonthly()));
-  });
-  /** Estados en los que NO corresponde generar un cobro. */
-  readonly saasChargeBlocked = computed(() => {
-    const st = this.storeSubscription()?.subscription?.status;
-    return st === 'complimentary' || st === 'suspended' || st === 'trial';
-  });
-
-  /** Presentación homogénea del estado de suscripción (grilla resumen). */
-  readonly saasStatusInfo = computed<{
-    label: string;
-    icon: string;
-    tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral';
-  }>(() => {
-    const map: Record<string, { label: string; icon: string; tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral' }> = {
-      active: { label: 'Activa', icon: 'check-circle-fill', tone: 'success' },
-      complimentary: { label: 'Cortesía / Bonificada', icon: 'gift-fill', tone: 'primary' },
-      trial: { label: 'Período de prueba', icon: 'stars', tone: 'warning' },
-      past_due: { label: 'Período de gracia', icon: 'clock-history', tone: 'warning' },
-      suspended: { label: 'Suspendida por pago', icon: 'slash-circle-fill', tone: 'danger' },
-    };
-    const st = String(this.storeSubscription()?.subscription?.status || '');
-    return map[st] ?? { label: 'En configuración', icon: 'question-circle', tone: 'neutral' };
-  });
-
-  readonly saasBillingCycleLabel = computed(() =>
-    this.storeSubscription()?.subscription?.billingCycle === 'annual' ? 'Anual' : 'Mensual',
-  );
-
-  // ── SaaS Subscription Vertex ──────────────────────────────────────────────
-  readonly storeSubscription = signal<StoreSubscriptionInfo | null>(null);
-  readonly isLoadingSubscription = signal(false);
-  readonly isGeneratingSubLink = signal(false);
-  readonly subLinkGenerated = signal<string | null>(null);
-  readonly subLinkError = signal<string | null>(null);
-  readonly isSavingDiscount = signal(false);
-  readonly discountSaveSuccess = signal<string | null>(null);
-
-  readonly customMonthlyPriceInput = signal<number | null>(null);
-  readonly customAnnualPriceInput = signal<number | null>(null);
-  readonly discountPercentInput = signal<number | null>(null);
-  readonly trialDaysInput = signal<number>(14);
-  readonly isGrantingTrial = signal(false);
-  readonly subscriptionStatusSelect = signal<
-    'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'
-  >('active');
-
-  readonly trialRemainingDays = computed(() => {
-    const sub = this.storeSubscription()?.subscription;
-    if (sub?.status !== 'trial') {
-      return 0;
-    }
-    const endTs = sub.trialEndDate || sub.currentPeriodEnd;
-    if (!endTs) {
-      return 0;
-    }
-    const endMs = parseDateToMillis(endTs);
-    if (!endMs) {
-      return 0;
-    }
-    const diffMs = endMs - Date.now();
-    return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
-  });
-
-  // QA Lab & Expiration Simulation
-  readonly showSimulationTools = signal(false);
-  readonly isSimulatingExpiration = signal(false);
-
-  readonly publicCheckoutUrl = computed(() => {
-    const s = this.store();
-    if (!s) {
-      return '';
-    }
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/pay/${s.id}`;
-  });
-
-  readonly whatsAppShareUrl = computed(() => {
-    const s = this.store();
-    const url = this.publicCheckoutUrl();
-    if (!s || !url) {
-      return '';
-    }
-    const text = encodeURIComponent(
-      `¡Hola! Te comparto el enlace seguro para abonar la suscripción de tu tienda ${s.name} en Vertex: ${url}`,
-    );
-    return `https://wa.me/?text=${text}`;
-  });
-
-  readonly copiedPublicLink = signal(false);
-
-  copyPublicCheckoutUrl(): void {
-    const url = this.publicCheckoutUrl();
-    if (!url) {
-      return;
-    }
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      void navigator.clipboard.writeText(url);
-    }
-    this.copiedPublicLink.set(true);
-    setTimeout(() => this.copiedPublicLink.set(false), 2500);
-  }
-
   readonly statusLabel = statusLabelUtil;
 
   /** Clase de tono correcta para el badge del estado (no usar el raw status como clase). */
@@ -511,8 +332,8 @@ export class StoreDetail implements OnInit {
       void this.staffService.loadStaff(s.id, true);
     }
     if (tab === 'pagos' && s) {
-      void this.loadPaymentConfig(s.id);
-      void this.loadStoreSubscription(s.id);
+      void this.paymentsService.loadPaymentConfig(s.id);
+      void this.paymentsService.loadStoreSubscription(s.id);
     }
   }
 
@@ -570,80 +391,6 @@ export class StoreDetail implements OnInit {
     return this.staffService.copyToClipboard(text);
   }
 
-  async loadPaymentConfig(storeId: string): Promise<void> {
-    this.isLoadingPayment.set(true);
-    this.paymentSaveError.set('');
-    this.paymentSaveSuccess.set('');
-    try {
-      const config = await this.storesService.getStoreConfig(storeId);
-      const mp = config?.payments?.mercadoPago;
-      if (mp) {
-        this.mpPublicKey.set(mp.publicKey || '');
-        // accessToken no se lee del servidor (nunca se devuelve en texto plano)
-        // El modo se deriva del token REAL validado (no de un toggle/sandbox viejo):
-        // APP_USR- validado => producción; TEST- validado => pruebas; sin token => preferencia.
-        const masked = String(mp.accessTokenMasked || '');
-        const valid = mp.validationStatus === 'valid';
-        this.mpSandbox.set(
-          valid && masked.startsWith('APP_USR-')
-            ? false
-            : valid && masked.startsWith('TEST-')
-              ? true
-              : typeof mp.sandbox === 'boolean'
-                ? mp.sandbox
-                : (mp.accessTokenSecret || '').includes('TEST-') ||
-                    (mp.publicKey || '').startsWith('TEST-'),
-        );
-        this.mpValidationStatus.set(mp.validationStatus || '');
-        this.mpAccountEmail.set(mp.accountEmail || '');
-        this.mpTokenMasked.set(mp.accessTokenMasked || '');
-      }
-    } catch (err) {
-      console.warn('No se pudo cargar la configuración de pagos:', err);
-    } finally {
-      this.isLoadingPayment.set(false);
-    }
-  }
-
-  async savePaymentConfig(): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isSavingPayment.set(true);
-    this.paymentSaveError.set('');
-    this.paymentSaveSuccess.set('');
-    try {
-      const mpConfig: {
-        publicKey: string;
-        sandbox: boolean;
-        accessToken?: string;
-        webhookUrl?: string;
-      } = {
-        publicKey: this.mpPublicKey().trim(),
-        sandbox: this.mpSandbox(),
-      };
-      const token = this.mpAccessToken().trim();
-      if (token) {
-        mpConfig['accessToken'] = token;
-      }
-      await this.storesService.updateStoreConfig(s.id, {
-        payments: { mercadoPago: mpConfig },
-      });
-      this.mpAccessToken.set(''); // Limpiar token del estado tras guardar
-      this.paymentSaveSuccess.set('Credenciales guardadas y validadas correctamente.');
-      // Recargar para mostrar el estado actualizado (masked token, email, etc.)
-      await this.loadPaymentConfig(s.id);
-    } catch (err) {
-      this.paymentSaveError.set(
-        errorMessage(err, 'No se pudieron guardar las credenciales de pago.'),
-      );
-    } finally {
-      this.isSavingPayment.set(false);
-    }
-  }
-
-  // ── Monitor: Logs por tienda (escalable a alertas/rendimiento) ────────────
   readonly logsSeverity = signal<'ALL' | 'WARNING' | 'ERROR'>('ALL');
   readonly logsQuery = signal('');
   readonly logsSinceMinutes = signal(60);
@@ -791,176 +538,6 @@ export class StoreDetail implements OnInit {
   }
 
   /** Actualiza el estado del dominio consultando el callable getDomainStatus. */
-  async testMpConnection(): Promise<void> {
-    const token = this.mpAccessToken().trim();
-    if (!token) {
-      this.mpPingResult.set({
-        ok: false,
-        message: 'Ingresá el Access Token para probar la conexión con Mercado Pago.',
-      });
-      return;
-    }
-    this.mpPinging.set(true);
-    this.mpPingResult.set(null);
-    try {
-      const result = await this.storesService.pingMercadoPagoConnection(token);
-      this.mpPingResult.set(result);
-    } catch (err) {
-      this.mpPingResult.set({
-        ok: false,
-        message: errorMessage(err, 'No se pudo conectar con Mercado Pago.'),
-      });
-    } finally {
-      this.mpPinging.set(false);
-    }
-  }
-
-  async loadStoreSubscription(storeId: string): Promise<void> {
-    this.isLoadingSubscription.set(true);
-    try {
-      const subInfo = await this.storesService.getStoreSubscription(storeId);
-      this.storeSubscription.set(subInfo);
-      if (subInfo.subscription) {
-        this.subscriptionStatusSelect.set(subInfo.subscription.status || 'active');
-        this.customMonthlyPriceInput.set(subInfo.subscription.customMonthlyPrice ?? null);
-        this.customAnnualPriceInput.set(subInfo.subscription.customAnnualPrice ?? null);
-        this.discountPercentInput.set(subInfo.subscription.discountPercent ?? null);
-      }
-    } catch (err) {
-      console.warn('[loadStoreSubscription] Error:', err);
-    } finally {
-      this.isLoadingSubscription.set(false);
-    }
-  }
-
-  async generateSubscriptionLink(billingCycle: 'monthly' | 'annual'): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isGeneratingSubLink.set(true);
-    this.subLinkGenerated.set(null);
-    this.subLinkError.set(null);
-
-    try {
-      const result = await this.storesService.createStoreSubscriptionLink(s.id, billingCycle);
-      if (result.checkoutUrl) {
-        this.subLinkGenerated.set(result.checkoutUrl);
-      }
-      await this.loadStoreSubscription(s.id);
-    } catch (err) {
-      this.subLinkError.set(errorMessage(err, 'Error al generar enlace de pago de suscripción.'));
-    } finally {
-      this.isGeneratingSubLink.set(false);
-    }
-  }
-
-  async saveCustomSubscriptionPricing(): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isSavingDiscount.set(true);
-    this.discountSaveSuccess.set(null);
-
-    try {
-      await this.storesService.updateStoreSubscriptionStatus({
-        storeId: s.id,
-        status: this.subscriptionStatusSelect(),
-        customMonthlyPrice: this.customMonthlyPriceInput(),
-        customAnnualPrice: this.customAnnualPriceInput(),
-        discountPercent: this.discountPercentInput(),
-      });
-      this.discountSaveSuccess.set('Parámetros de suscripción actualizados con éxito.');
-      await this.loadStoreSubscription(s.id);
-      setTimeout(() => this.discountSaveSuccess.set(null), 3000);
-    } catch (err) {
-      this.discountSaveSuccess.set(errorMessage(err, 'Error al guardar parámetros.'));
-    } finally {
-      this.isSavingDiscount.set(false);
-    }
-  }
-
-  async grantTrial(days: number): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isGrantingTrial.set(true);
-    this.discountSaveSuccess.set(null);
-
-    try {
-      await this.storesService.updateStoreSubscriptionStatus({
-        storeId: s.id,
-        status: 'trial',
-        trialDays: days,
-      });
-      this.discountSaveSuccess.set(`Período de prueba de ${days} días activado exitosamente.`);
-      await this.loadStoreSubscription(s.id);
-      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
-    } catch (err) {
-      this.discountSaveSuccess.set(errorMessage(err, 'Error al activar período de prueba.'));
-    } finally {
-      this.isGrantingTrial.set(false);
-    }
-  }
-
-  async grantFreeStore(): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isGrantingTrial.set(true);
-    this.discountSaveSuccess.set(null);
-
-    try {
-      await this.storesService.updateStoreSubscriptionStatus({
-        storeId: s.id,
-        status: 'complimentary',
-      });
-      this.discountSaveSuccess.set('Tienda bonificada al 100% (Gratis / Cortesía) exitosamente.');
-      await this.loadStoreSubscription(s.id);
-      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
-    } catch (err) {
-      this.discountSaveSuccess.set(errorMessage(err, 'Error al activar tienda bonificada.'));
-    } finally {
-      this.isGrantingTrial.set(false);
-    }
-  }
-
-  async simulateStoreExpiration(
-    mode: 'imminent' | 'grace_period' | 'expired_suspended' | 'reset_trial',
-  ): Promise<void> {
-    const s = this.store();
-    if (!s) {
-      return;
-    }
-    this.isSimulatingExpiration.set(true);
-    this.discountSaveSuccess.set(null);
-
-    const labels: Record<string, string> = {
-      imminent: 'Simulación aplicada: Expira en 1 hora.',
-      grace_period: 'Simulación aplicada: En período de gracia (vencido hace 2 días).',
-      expired_suspended:
-        'Simulación aplicada: Tienda suspendida por vencimiento (vencido hace 7 días).',
-      reset_trial: 'Simulación restablecida: Prueba renovada por 14 días.',
-    };
-
-    try {
-      await this.storesService.updateStoreSubscriptionStatus({
-        storeId: s.id,
-        simulateExpiration: mode,
-      });
-      this.discountSaveSuccess.set(labels[mode] || 'Simulación de vencimiento ejecutada.');
-      await this.loadStoreSubscription(s.id);
-      setTimeout(() => this.discountSaveSuccess.set(null), 4000);
-    } catch (err) {
-      this.discountSaveSuccess.set(errorMessage(err, 'Error al simular vencimiento.'));
-    } finally {
-      this.isSimulatingExpiration.set(false);
-    }
-  }
-
   openEdit(): void {
     this.orchestrationService.openEditForm(this.store());
     this.showEditModal.set(true);
