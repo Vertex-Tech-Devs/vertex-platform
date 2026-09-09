@@ -513,3 +513,25 @@ a[class*='btn'] {
     background-position: -200% 0;
   }
 }
+
+/* ═══ Responsive: red de seguridad global ═══ */
+html,
+body {
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+}
+
+table {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    max-width: 92vw !important;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+}

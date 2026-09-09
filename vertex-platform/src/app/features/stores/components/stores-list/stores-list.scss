@@ -755,3 +755,21 @@
 .stores-toolbar {
   gap: 0.6rem;
 }
+
+/* ═══ Responsive Tiendas ═══ */
+@media (max-width: 768px) {
+  .page-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stores-toolbar,
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}
