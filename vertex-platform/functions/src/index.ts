@@ -17,3 +17,4 @@ export * from './logs.functions';
 export * from './alerts.functions';
 export * from './reconcile.functions';
 export * from './purge.functions';
+export * from './subdomains.functions';

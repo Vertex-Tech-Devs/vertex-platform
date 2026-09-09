@@ -10,8 +10,28 @@
       <div class="detail-header__info">
         <h1 class="detail-header__name">{{ store()!.name }}</h1>
         <span class="badge {{ storeStatusBadge() }}">{{ statusLabel(store()!.status) }}</span>
+        @if (isUpdateAvailable()) {
+          <span
+            class="badge badge--warning d-inline-flex align-items-center gap-1"
+            title="Hay una nueva versión disponible (v{{ latestVersion()?.version }})"
+          >
+            <i class="bi bi-arrow-up-circle-fill"></i> Actualización disponible (v{{
+              latestVersion()?.version
+            }})
+          </span>
+        }
       </div>
       <div class="detail-header__actions">
+        @if (isUpdateAvailable() && store()!.status === 'active') {
+          <button
+            class="btn btn-outline-warning"
+            [disabled]="isDeploying() || deployActionState().status === 'running'"
+            (click)="upgradeToLatestVersion()"
+          >
+            <i class="bi bi-rocket-takeoff"></i> Actualizar a v{{ latestVersion()?.version }}
+          </button>
+        }
+
         @if (store()!.status === 'active' || store()!.status === 'suspended') {
           <button class="btn btn-secondary" (click)="openEdit()">
             <i class="bi bi-pencil"></i> Editar Info
@@ -194,10 +214,8 @@
         >
           <i class="bi bi-people"></i>
           <span>Equipo</span>
-          @if (staff().length > 0 || invitations().length > 0) {
-            <span class="tab-badge tab-badge--count">{{
-              staff().length + invitations().length
-            }}</span>
+          @if (staff().length > 0) {
+            <span class="tab-badge tab-badge--count">{{ staff().length }}</span>
           }
         </button>
         <button
@@ -1110,10 +1128,11 @@
                     [ngModel]="logsSinceMinutes()"
                     (ngModelChange)="setLogsSince($any($event))"
                   >
-                    <option [ngValue]="15">Últimos 15 min</option>
                     <option [ngValue]="60">Última hora</option>
                     <option [ngValue]="360">Últimas 6 hs</option>
                     <option [ngValue]="1440">Últimas 24 hs</option>
+                    <option [ngValue]="2880">Últimas 48 hs (Recomendado)</option>
+                    <option [ngValue]="10080">Últimos 7 días</option>
                   </select>
                 </div>
                 <a
@@ -1140,11 +1159,12 @@
                   <div class="skeleton skeleton--text" style="width: 45%"></div>
                 </div>
               } @else if (logsEntries().length === 0 && !logsLoading() && !logsError()) {
-                <div class="empty-state" style="padding: 2.5rem 1rem; text-align: center">
-                  <i class="bi bi-journal-check fs-2 d-block mb-2"></i>
-                  <p class="mb-0">
-                    Sin eventos en la ventana seleccionada. Probá ampliar el rango o bajar la
-                    severidad.
+                <div class="empty-state" style="padding: 3rem 1.5rem; text-align: center">
+                  <i class="bi bi-journal-check fs-1 text-muted d-block mb-2"></i>
+                  <h4 class="h6 mb-1 text-muted">No se registraron eventos en este período</h4>
+                  <p class="mb-0 text-muted small">
+                    No hay registros disponibles para el rango temporal y filtros seleccionados.
+                    Probá ampliar la ventana a 48 hs o 7 días.
                   </p>
                 </div>
               } @else if (logsEntries().length > 0) {

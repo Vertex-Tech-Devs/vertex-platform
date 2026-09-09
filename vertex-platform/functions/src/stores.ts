@@ -740,6 +740,7 @@ export const redeployStore = onCall<{ storeId: string }>(
       runtimeMode?: string;
       templateVersion?: string;
       autoUpdate?: boolean;
+      environment?: 'development' | 'production';
     };
 
     const projectId = resolveRuntimeProjectId(store);
@@ -761,13 +762,21 @@ export const redeployStore = onCall<{ storeId: string }>(
     const pat = await getGitHubPat();
     const deployTokenValue = await getDeployToken();
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+    const isStoreDev =
+      store.environment === 'development' ||
+      String(store.firebaseProjectId || store.runtimeProjectId || '').includes('-dev');
     const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
-    // Si la tienda tiene autoUpdate activo, compila la última versión del canal (develop en dev, main en prod).
-    // Si la tienda es estable (autoUpdate = false) y tiene templateVersion fijada, compila estrictamente su tag fijado.
+    // Lógica de actualización segura:
+    // - En develop (sandbox): solo si autoUpdate=true Y la tienda es de desarrollo califica a 'develop'. Si es de producción, NUNCA compila develop.
+    // - En main (producción): si autoUpdate=true compila 'main'. Si autoUpdate=false compila estrictamente su templateVersion fijada.
     const ref =
       store.autoUpdate === true
         ? env === 'development'
-          ? 'develop'
+          ? isStoreDev
+            ? 'develop'
+            : store.templateVersion
+              ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`
+              : 'main'
           : targetRef
         : store.templateVersion
           ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`
@@ -841,6 +850,7 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
     runtimeProjectId?: string;
     templateVersion?: string;
     autoUpdate?: boolean;
+    environment?: 'development' | 'production';
   };
   const projectId = resolveRuntimeProjectId(store);
   const runtimeSiteId = store.runtimeSiteId || store.id;
@@ -858,13 +868,21 @@ async function dispatchStoreDeployment(storeId: string): Promise<void> {
   const pat = await getGitHubPat();
   const deployTokenValue = await getDeployToken();
   const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+  const isStoreDev =
+    store.environment === 'development' ||
+    String(store.firebaseProjectId || store.runtimeProjectId || '').includes('-dev');
   const targetRef = env === 'production' ? 'main' : env === 'local' ? 'local' : 'develop';
-  // Si la tienda tiene autoUpdate activo, compila la última versión del canal.
-  // Si la tienda es estable (autoUpdate = false) y tiene templateVersion fijada, compila estrictamente su tag fijado.
+  // Lógica de actualización segura:
+  // - En develop (sandbox): solo si autoUpdate=true Y la tienda es de desarrollo califica a 'develop'. Si es de producción, NUNCA compila develop.
+  // - En main (producción): si autoUpdate=true compila 'main'. Si autoUpdate=false compila estrictamente su templateVersion fijada.
   const ref =
     store.autoUpdate === true
       ? env === 'development'
-        ? 'develop'
+        ? isStoreDev
+          ? 'develop'
+          : store.templateVersion
+            ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`
+            : 'main'
         : targetRef
       : store.templateVersion
         ? `refs/tags/v${store.templateVersion.replace(/^v/, '')}`

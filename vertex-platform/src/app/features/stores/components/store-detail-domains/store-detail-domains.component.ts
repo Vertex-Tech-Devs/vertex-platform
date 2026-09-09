@@ -61,8 +61,28 @@ export class StoreDetailDomains {
       if (!res.available && res.sanitized && res.sanitized !== value) {
         this.subInput.set(res.sanitized);
       }
-    } catch (err) {
-      this.subError.set(errorMessage(err, 'No se pudo verificar la disponibilidad.'));
+    } catch (err: unknown) {
+      const errStr = String(
+        (err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : '') ||
+          errorMessage(err, ''),
+      ).toLowerCase();
+      if (
+        errStr.includes('internal') ||
+        errStr.includes('unavailable') ||
+        errStr.includes('network') ||
+        errStr.includes('permission-denied')
+      ) {
+        this.subError.set(
+          'No se pudo verificar la disponibilidad en este momento. Reintentá en unos segundos.',
+        );
+      } else {
+        this.subError.set(
+          errorMessage(
+            err,
+            'No se pudo verificar la disponibilidad en este momento. Reintentá en unos segundos.',
+          ),
+        );
+      }
       this.subAvailable.set(false);
       this.subTaken.set(false);
     } finally {

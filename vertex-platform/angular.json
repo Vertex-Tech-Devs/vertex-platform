@@ -102,6 +102,7 @@
               "src/app/features/stores/components/store-create/**",
               "src/app/core/services/theme.service.ts",
               "src/app/features/settings/components/alerts/**",
+              "src/app/features/stores/components/store-detail/**",
               "src/app/layout/platform-layout.ts"
             ],
             "coverageReporters": [

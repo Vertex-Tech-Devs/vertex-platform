@@ -56,12 +56,12 @@ export const getStoreLogs = onCall<{
   if (!request.auth?.token?.['platformAdmin']) {
     throw new HttpsError('permission-denied', 'Only platform admins can read store logs.');
   }
-  const { storeId, severity, query, sinceMinutes = 1440, limit = 50 } = request.data;
+  const { storeId, severity, query, sinceMinutes = 2880, limit = 50 } = request.data;
   if (!storeId || !/^[a-zA-Z0-9_-]{1,120}$/.test(storeId)) {
     throw new HttpsError('invalid-argument', 'Invalid storeId.');
   }
   const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  const safeSince = Math.min(Math.max(Number(sinceMinutes) || 1440, 5), 10080);
+  const safeSince = Math.min(Math.max(Number(sinceMinutes) || 2880, 5), 10080);
 
   const db = getFirestore();
   const storeSnap = await db.collection('stores').doc(storeId).get();
@@ -78,6 +78,7 @@ export const getStoreLogs = onCall<{
   const project = isDev ? STOREFRONT_DEV : STOREFRONT_PROD;
 
   const sinceIso = new Date(Date.now() - safeSince * 60_000).toISOString();
+  const sinceDate = new Date(Date.now() - safeSince * 60_000);
   const PAYMENT_FNS =
     'resource.labels.function_name:"mercadoPagoWebhookHandler" OR ' +
     'resource.labels.function_name:"createPaymentPreference" OR ' +
@@ -90,6 +91,7 @@ export const getStoreLogs = onCall<{
   // para que el Monitor muestre el cuadro completo, no solo logs que contengan el slug.
   const tenantMatch = `(textPayload:"${slug}" OR textPayload:"${storeId}" OR jsonPayload.message:"${slug}" OR jsonPayload.text:"${slug}")`;
   const parts: string[] = [
+    `resource.type=("cloud_run_revision" OR "cloud_function")`,
     `timestamp >= "${sinceIso}"`,
     `(${tenantMatch} OR (severity >= ${toSeverityLevel('ERROR')} AND (${PAYMENT_FNS})))`,
   ];
@@ -102,6 +104,49 @@ export const getStoreLogs = onCall<{
   }
 
   const filter = parts.join(' AND ');
+
+  const queryFirestoreAuditLogsFallback = async (): Promise<StoreLogEntry[]> => {
+    try {
+      const fallbackEntries: StoreLogEntry[] = [];
+      const auditCol = db.collection('audit_logs');
+      const qSnap = await auditCol
+        .where('timestamp', '>=', sinceDate)
+        .orderBy('timestamp', 'desc')
+        .limit(safeLimit)
+        .get()
+        .catch(() => null);
+
+      if (qSnap && !qSnap.empty) {
+        qSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const msg = String(d['message'] || d['action'] || '');
+          const dSlug = String(d['storeId'] || d['slug'] || d['targetId'] || '');
+          if (
+            !slug ||
+            dSlug === slug ||
+            dSlug === storeId ||
+            msg.includes(slug) ||
+            msg.includes(storeId)
+          ) {
+            fallbackEntries.push({
+              timestamp:
+                d['timestamp']?.toDate?.()?.toISOString() ||
+                (d['timestamp'] instanceof Date
+                  ? d['timestamp'].toISOString()
+                  : String(d['timestamp'] || '')),
+              severity: d['severity'] || 'INFO',
+              function: d['module'] || 'audit_logs',
+              message: msg,
+              project: 'firestore-audit',
+            });
+          }
+        });
+      }
+      return fallbackEntries;
+    } catch {
+      return [];
+    }
+  };
 
   try {
     const auth = new GoogleAuth({
@@ -162,6 +207,18 @@ export const getStoreLogs = onCall<{
 
     entries.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
+    if (entries.length === 0) {
+      const fallback = await queryFirestoreAuditLogsFallback();
+      if (fallback.length > 0) {
+        return {
+          success: true,
+          project: 'firestore-audit',
+          entries: fallback.slice(0, safeLimit),
+          truncated: fallback.length >= safeLimit,
+        };
+      }
+    }
+
     return {
       success: true,
       project,
@@ -170,10 +227,11 @@ export const getStoreLogs = onCall<{
     };
   } catch (err) {
     logger.warn(`[getStoreLogs] Error general consultando logs de ${project} para ${slug}:`, err);
+    const fallback = await queryFirestoreAuditLogsFallback();
     return {
       success: true,
-      project,
-      entries: [],
+      project: fallback.length > 0 ? 'firestore-audit' : project,
+      entries: fallback.slice(0, safeLimit),
       truncated: false,
     };
   }

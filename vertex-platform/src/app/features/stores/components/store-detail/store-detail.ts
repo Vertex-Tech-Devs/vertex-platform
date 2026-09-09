@@ -32,6 +32,7 @@ import {
   STEP_ORDER,
   type ActionProgressState,
   IDLE_STATE,
+  isVersionOutdated,
 } from './services/store-detail.util';
 import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains.component';
 import { StoreDetailPayments } from '../store-detail-payments/store-detail-payments.component';
@@ -162,9 +163,17 @@ export class StoreDetail implements OnInit {
 
   readonly availableVersions = this.orchestrationService.versions;
   readonly isLoadingVersions = this.orchestrationService.isLoadingVersions;
+  readonly latestVersion = this.orchestrationService.latestVersion;
   readonly isUpdatingAutoUpdate = signal(false);
   readonly selectedVersion = signal('0.5.0');
   readonly statusLabel = statusLabelUtil;
+
+  /** Indica si hay una versión más reciente de la plantilla disponible para esta tienda. */
+  readonly isUpdateAvailable = computed<boolean>(() => {
+    const current = this.store()?.templateVersion;
+    const latest = this.latestVersion()?.version;
+    return isVersionOutdated(current, latest);
+  });
 
   /** Clase de tono correcta para el badge del estado (no usar el raw status como clase). */
   readonly storeStatusBadge = computed<string>(() => {
@@ -267,6 +276,15 @@ export class StoreDetail implements OnInit {
     } finally {
       this.isDeploying.set(false);
     }
+  }
+
+  async upgradeToLatestVersion(): Promise<void> {
+    const latest = this.latestVersion();
+    if (!latest?.version) {
+      return;
+    }
+    this.selectedVersion.set(latest.version);
+    await this.triggerDeployment();
   }
 
   async toggleAutoUpdate(event: Event): Promise<void> {
@@ -396,7 +414,7 @@ export class StoreDetail implements OnInit {
 
   readonly logsSeverity = signal<'ALL' | 'WARNING' | 'ERROR'>('ALL');
   readonly logsQuery = signal('');
-  readonly logsSinceMinutes = signal(60);
+  readonly logsSinceMinutes = signal(2880);
   readonly logsLoading = signal(false);
   readonly logsError = signal('');
   readonly logsEntries = signal<

@@ -920,4 +920,17 @@ describe('StoresService', () => {
       (customVertErrCb as (err: unknown) => void)(new Error('Failed loading verticals'));
     }
   });
+
+  it('correctly compares template versions with isVersionOutdated', async () => {
+    const { isVersionOutdated } =
+      await import('../../features/stores/components/store-detail/services/store-detail.util');
+    expect(isVersionOutdated('0.8.9', '0.9.0')).toBe(true);
+    expect(isVersionOutdated('v0.8.9', 'v0.9.0')).toBe(true);
+    expect(isVersionOutdated('0.9.0', '0.9.0')).toBe(false);
+    expect(isVersionOutdated('0.9.1', '0.9.0')).toBe(false);
+    expect(isVersionOutdated('1.0.0', '0.9.0')).toBe(false);
+    expect(isVersionOutdated('0.8.5', '0.9.0')).toBe(true);
+    expect(isVersionOutdated(undefined, '0.9.0')).toBe(false);
+    expect(isVersionOutdated('0.8.9', undefined)).toBe(false);
+  });
 });

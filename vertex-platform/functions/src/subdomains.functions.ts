@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getOwnerOAuthClient } from './helpers';
+import { getOwnerOAuthClient, ALLOWED_ORIGINS } from './helpers';
 import { sanitizeSubdomainCandidate, buildSubdomainSuggestions } from './hosting-subdomain.utils';
 
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
@@ -37,7 +37,7 @@ async function siteExists(projectId: string, siteId: string): Promise<boolean> {
  * candidato está ocupado, sugiere 3 alternativas limpias.
  */
 export const checkSubdomainAvailability = onCall<{ candidate: string }>(
-  { cors: true, invoker: 'public' },
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth || !isPlatformAdmin(request.auth?.token)) {
       throw new HttpsError('permission-denied', 'Only platform admins can check subdomains.');
@@ -77,7 +77,7 @@ export const checkSubdomainAvailability = onCall<{ candidate: string }>(
  * tienda y 5) elimina el sitio anterior preservando cuota de 36 sitios por proyecto.
  */
 export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: string }>(
-  { timeoutSeconds: 120, cors: true, invoker: 'public' },
+  { timeoutSeconds: 120, cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth || !isPlatformAdmin(request.auth?.token)) {
       throw new HttpsError('permission-denied', 'Only platform admins can update subdomains.');

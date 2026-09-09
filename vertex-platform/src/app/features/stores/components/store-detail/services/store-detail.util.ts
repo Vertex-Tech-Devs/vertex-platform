@@ -120,3 +120,27 @@ export function formatDeployHistoryUtil(
     return item;
   });
 }
+
+export function isVersionOutdated(currentVer?: string, latestVer?: string): boolean {
+  if (!currentVer || !latestVer) {
+    return false;
+  }
+  const parse = (v: string) =>
+    v
+      .replace(/^v/, '')
+      .split('.')
+      .map((n) => parseInt(n, 10) || 0);
+  const cur = parse(currentVer);
+  const lat = parse(latestVer);
+  for (let i = 0; i < Math.max(cur.length, lat.length); i++) {
+    const c = cur[i] ?? 0;
+    const l = lat[i] ?? 0;
+    if (c < l) {
+      return true;
+    }
+    if (c > l) {
+      return false;
+    }
+  }
+  return false;
+}

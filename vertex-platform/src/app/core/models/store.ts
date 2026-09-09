@@ -55,6 +55,7 @@ export interface Store {
   redeployStartedAt?: Date | string | null;
   pendingMigration?: boolean;
   autoUpdate?: boolean;
+  environment?: 'development' | 'production';
   billingAccountId?: string;
   provisioningSteps?: Record<string, ProvisioningStep>;
   unhandledProvisioningError?: string | null;
