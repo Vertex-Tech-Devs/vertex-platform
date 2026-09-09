@@ -4374,3 +4374,62 @@ html[data-theme='light'] {
   color: var(--platform-text-secondary);
   font-weight: 600;
 }
+
+/* ═══ Equipo — pasada M3 (miembros, invitaciones, estados) ═══ */
+.badge-invite-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &--pending {
+    color: var(--platform-warning);
+    background: var(--platform-status-provisioning-bg);
+    border: 1px solid var(--platform-status-provisioning-border);
+  }
+
+  &--accepted {
+    color: var(--platform-success);
+    background: var(--platform-status-active-bg);
+    border: 1px solid var(--platform-status-active-border);
+  }
+}
+
+.invitations-list .deployment-table {
+  th {
+    color: var(--platform-text-muted);
+    border-bottom-color: var(--platform-card-border);
+  }
+
+  .deployment-row:hover td {
+    background: var(--platform-hover-overlay);
+  }
+}
+
+.badge-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+
+  &--admin,
+  &--administrator {
+    color: var(--platform-info);
+    background: color-mix(in srgb, var(--platform-info) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--platform-info) 40%, transparent);
+  }
+
+  &--owner,
+  &--titular {
+    color: var(--platform-accent);
+    background: color-mix(in srgb, var(--platform-accent) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--platform-accent) 40%, transparent);
+  }
+}
