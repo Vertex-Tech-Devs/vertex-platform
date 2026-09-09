@@ -27,6 +27,7 @@ export class StoreDetailDomains {
   readonly subChecking = signal(false);
   readonly subAvailable = signal(false);
   readonly subTaken = signal(false);
+  readonly subReason = signal('');
   readonly subSuggestions = signal<string[]>([]);
   readonly subUpdating = signal(false);
   readonly subModalOpen = signal(false);
@@ -35,6 +36,19 @@ export class StoreDetailDomains {
   readonly subCopied = signal(false);
   private subTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly SUB_DEBOUNCE_MS = 400;
+
+  subTakenMessage(): string {
+    switch (this.subReason()) {
+      case 'RESERVED_KEYWORD':
+        return 'Palabra reservada del sistema';
+      case 'ALREADY_REGISTERED':
+        return 'En uso por otra tienda';
+      case 'TAKEN':
+        return 'Nombre no disponible';
+      default:
+        return 'Nombre no disponible';
+    }
+  }
 
   subCurrentUrl(): string {
     const s = this.store();
@@ -47,6 +61,7 @@ export class StoreDetailDomains {
       this.subChecking.set(false);
       this.subAvailable.set(false);
       this.subTaken.set(false);
+      this.subReason.set('');
       this.subSuggestions.set([]);
       this.subResult.set('');
       return;
@@ -54,9 +69,10 @@ export class StoreDetailDomains {
     this.subChecking.set(true);
     this.subResult.set('');
     try {
-      const res = await this.storesService.checkSubdomainAvailability(value);
+      const res = await this.storesService.checkSubdomainAvailability(value, this.store()?.id);
       this.subAvailable.set(res.available);
       this.subTaken.set(!res.available);
+      this.subReason.set(res.reason || '');
       this.subSuggestions.set(res.suggestions || []);
       if (!res.available && res.sanitized && res.sanitized !== value) {
         this.subInput.set(res.sanitized);

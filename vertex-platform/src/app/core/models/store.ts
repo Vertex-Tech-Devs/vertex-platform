@@ -57,6 +57,9 @@ export interface Store {
   autoUpdate?: boolean;
   environment?: 'development' | 'production';
   billingAccountId?: string;
+  /** Tienda corporativa/interna: exenta del circuito de suscripción SaaS de terceros. */
+  isExempt?: boolean;
+  plan?: 'internal' | 'standard';
   provisioningSteps?: Record<string, ProvisioningStep>;
   unhandledProvisioningError?: string | null;
   error?: string | null;

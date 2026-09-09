@@ -302,16 +302,27 @@ export class StoresService {
   }
 
   /** Chequea disponibilidad de un subdominio .web.app. */
-  async checkSubdomainAvailability(candidate: string): Promise<{
+  async checkSubdomainAvailability(
+    candidate: string,
+    storeId?: string,
+  ): Promise<{
     available: boolean;
     sanitized: string;
     suggestions?: string[];
+    reason?: string;
+    message?: string;
   }> {
     const fn = httpsCallable<
-      { candidate: string },
-      { available: boolean; sanitized: string; suggestions?: string[] }
+      { candidate: string; storeId?: string },
+      {
+        available: boolean;
+        sanitized: string;
+        suggestions?: string[];
+        reason?: string;
+        message?: string;
+      }
     >(this.fns, 'checkSubdomainAvailability');
-    const result = await fn({ candidate });
+    const result = await fn({ candidate, storeId });
     return result.data;
   }
 

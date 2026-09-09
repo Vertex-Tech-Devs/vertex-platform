@@ -59,7 +59,10 @@
             Cambiar Dirección
           </button>
         } @else if (subTaken()) {
-          <span class="badge badge--error">Nombre no disponible</span>
+          <span class="badge badge--error">{{ subTakenMessage() }}</span>
+          @if (subReason()) {
+            <span class="subdomain-status__reason">{{ subReason() }}</span>
+          }
         } @else if (subInput().length >= 4) {
           <span class="badge badge--neutral">Verificá disponibilidad</span>
         }

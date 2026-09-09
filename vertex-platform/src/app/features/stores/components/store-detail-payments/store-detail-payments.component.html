@@ -10,6 +10,16 @@
     <div class="alert alert-success">{{ paymentSaveSuccess() }}</div>
   }
 
+  @if (store()?.isExempt || store()?.plan === 'internal') {
+    <div class="alert alert--success internal-store-banner">
+      <i class="bi bi-building-check"></i>
+      <span
+        ><strong>Tienda Interna / Corporativa</strong> — exenta del circuito de suscripción SaaS de
+        terceros.</span
+      >
+    </div>
+  }
+
   <!-- Sub-tabs segmentados: Suscripción SaaS | Pasarela Mercado Pago -->
   <div class="payments-segment" role="tablist" aria-label="Secciones de Pagos y Facturación">
     <input
