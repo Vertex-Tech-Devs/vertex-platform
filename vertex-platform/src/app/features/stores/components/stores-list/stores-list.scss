@@ -737,3 +737,21 @@
     transition-duration: 0.18s;
   }
 }
+
+/* ═══ Declutter: aire y menos densidad en el grid ═══ */
+.stores-grid {
+  gap: 1.15rem;
+}
+
+.store-card__details {
+  gap: 0.4rem;
+}
+
+.store-card__footer {
+  margin-top: 0.7rem;
+}
+
+.filter-bar,
+.stores-toolbar {
+  gap: 0.6rem;
+}

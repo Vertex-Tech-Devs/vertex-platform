@@ -4433,3 +4433,57 @@ html[data-theme='light'] {
     border: 1px solid color-mix(in srgb, var(--platform-accent) 40%, transparent);
   }
 }
+
+/* ═══ Declutter: aire, densidad y jerarquía ═══ */
+.detail-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+
+.tab-content {
+  padding-top: 0.35rem;
+}
+
+.detail-card {
+  padding: 1.35rem 1.5rem;
+  border-radius: 1.1rem;
+}
+
+.detail-card + .detail-card,
+.detail-grid > .detail-card {
+  margin-top: 0;
+}
+
+.detail-grid {
+  gap: 1.15rem;
+}
+
+.detail-card__title {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.detail-card__subtitle {
+  line-height: 1.6;
+}
+
+.detail-dl {
+  row-gap: 0.6rem;
+
+  dt {
+    font-size: 0.72rem;
+  }
+  dd {
+    font-size: 0.9rem;
+  }
+}
+
+.tabs-container {
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+}
+
+.op-control-card {
+  border-radius: 1rem;
+}
