@@ -119,22 +119,7 @@ export class StoreDetail implements OnInit {
   readonly saveError = this.orchestrationService.saveError;
 
   readonly showDeleteConfirm = signal(false);
-  readonly purgeOpen = signal(false);
-  readonly purgeClients = signal(true);
-  readonly purgeOrders = signal(true);
-  readonly purgeCatalog = signal(false);
-  readonly purgeContent = signal(false);
-  readonly purgeRunning = signal(false);
-  readonly purgeError = signal('');
-  readonly purgeResult = signal<string>('');
-  readonly purgeConfirmInput = signal('');
-  readonly itemKind = signal<'client' | 'order'>('order');
-  readonly itemReference = signal('');
-  readonly itemArmed = signal(false);
-  readonly itemRunning = signal(false);
-  readonly itemMessage = signal('');
-  readonly itemError = signal('');
-  readonly showSleepConfirm = signal(false);
+ readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
   readonly logoPreviewError = signal(false);
@@ -993,78 +978,6 @@ export class StoreDetail implements OnInit {
     this.domainDisconnectOpen.set(false);
   }
 
-  async deleteItem(): Promise<void> {
-    const s = this.store();
-    const ref = this.itemReference().trim();
-    if (!s || this.itemRunning()) {
-      return;
-    }
-    if (!ref) {
-      this.itemError.set('Ingresá el ID del pedido o el email del cliente.');
-      return;
-    }
-    if (!this.itemArmed()) {
-      this.itemArmed.set(true);
-      this.itemError.set('');
-      this.itemMessage.set('');
-      return;
-    }
-    this.itemRunning.set(true);
-    this.itemError.set('');
-    this.itemMessage.set('');
-    try {
-      const res = await this.storesService.deleteStoreDataItem(s.id, this.itemKind(), ref);
-      this.itemMessage.set(res.message);
-      this.itemArmed.set(false);
-      this.itemReference.set('');
-    } catch (err) {
-      this.itemError.set(errorMessage(err, 'No se pudo eliminar el elemento.'));
-    } finally {
-      this.itemRunning.set(false);
-    }
-  }
-
-  resetItem(): void {
-    this.itemArmed.set(false);
-    this.itemError.set('');
-    this.itemMessage.set('');
-  }
-
-  async runPurge(): Promise<void> {
-    const s = this.store();
-    if (!s || this.purgeRunning()) {
-      return;
-    }
-    const typed = this.purgeConfirmInput().trim();
-    if (typed !== s.slug && typed !== s.id) {
-      this.purgeError.set('Escribí el slug o ID de la tienda para confirmar la limpieza.');
-      return;
-    }
-    this.purgeRunning.set(true);
-    this.purgeError.set('');
-    this.purgeResult.set('');
-    try {
-      const res = await this.storesService.purgeStoreData(s.id, {
-        deleteClients: this.purgeClients(),
-        deleteOrders: this.purgeOrders(),
-        deleteCatalog: this.purgeCatalog(),
-        deleteContent: this.purgeContent(),
-      });
-      const parts = Object.entries(res.deleted || {})
-        .filter(([, n]) => (n as number) > 0)
-        .map(([k, n]) => `${k}: ${n}`);
-      this.purgeResult.set(
-        res.success
-          ? 'Limpieza completada. ' + (parts.join(' · ') || 'Nada para borrar.')
-          : 'Limpieza con errores (revisá los logs de la plataforma).',
-      );
-      this.purgeOpen.set(false);
-    } catch (err) {
-      this.purgeError.set(errorMessage(err, 'No se pudo limpiar los datos de la tienda.'));
-    } finally {
-      this.purgeRunning.set(false);
-    }
-  }
   /** Desvincula el dominio (disconnectDomain callable) y espera el onSnapshot. */
   async confirmDisconnectDomain(): Promise<void> {
     const s = this.store();
