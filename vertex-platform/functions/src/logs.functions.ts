@@ -11,6 +11,7 @@ export interface StoreLogEntry {
   function?: string;
   message: string;
   raw?: string;
+  project?: string;
 }
 
 export interface GetStoreLogsResponse {
@@ -109,38 +110,56 @@ export const getStoreLogs = onCall<{
         scopes: ['https://www.googleapis.com/auth/logging.read'],
       });
       const client = await auth.getClient();
-      const resp = await (client as { request<T>(o: unknown): Promise<{ data: T }> }).request<{
-        entries?: Array<{
-          timestamp?: string;
-          severity?: string;
-          resource?: { labels?: Record<string, string> };
-          textPayload?: string;
-          jsonPayload?: Record<string, unknown>;
-        }>;
-      }>({
-        url: 'https://logging.googleapis.com/v2/entries:list',
-        method: 'POST',
-        data: {
-          resourceNames: [`projects/${project}`],
-          filter,
-          orderBy: 'timestamp desc',
-          pageSize: safeLimit,
-        },
-      });
+      type RawEntry = {
+        timestamp?: string;
+        severity?: string;
+        resource?: { labels?: Record<string, string> };
+        textPayload?: string;
+        jsonPayload?: Record<string, unknown>;
+      };
+      const queryProject = async (proj: string): Promise<StoreLogEntry[]> => {
+        const resp = await (client as { request<T>(o: unknown): Promise<{ data: T }> }).request<{
+          entries?: RawEntry[];
+        }>({
+          url: 'https://logging.googleapis.com/v2/entries:list',
+          method: 'POST',
+          data: {
+            resourceNames: [`projects/${proj}`],
+            filter,
+            orderBy: 'timestamp desc',
+            pageSize: safeLimit,
+          },
+        });
+        return (resp.data.entries || []).map((e) => {
+          const jp = e.jsonPayload as Record<string, unknown> | undefined;
+          const message =
+            String(e.textPayload ?? '') ||
+            String(jp?.['message'] ?? jp?.['msg'] ?? jp?.['error'] ?? jp?.['text'] ?? '');
+          return {
+            timestamp: e.timestamp || '',
+            severity: e.severity || 'DEFAULT',
+            function: e.resource?.labels?.['function_name'] || e.resource?.labels?.['service_name'],
+            message,
+            raw: jp ? JSON.stringify(jp) : undefined,
+            project: proj,
+          };
+        });
+      };
 
-      const entries: StoreLogEntry[] = (resp.data.entries || []).map((e) => {
-        const jp = e.jsonPayload as Record<string, unknown> | undefined;
-        const message =
-          String(e.textPayload ?? '') ||
-          String(jp?.['message'] ?? jp?.['msg'] ?? jp?.['error'] ?? jp?.['text'] ?? '');
-        return {
-          timestamp: e.timestamp || '',
-          severity: e.severity || 'DEFAULT',
-          function: e.resource?.labels?.['function_name'] || e.resource?.labels?.['service_name'],
-          message,
-          raw: jp ? JSON.stringify(jp) : undefined,
-        };
-      });
+      const entries: StoreLogEntry[] = await queryProject(project);
+      // También eventos de PLATFORM (provisioning, dominios, alertas) sobre esta tienda.
+      const platformProject = 'vertex-platform-app';
+      if ((project as string) !== platformProject) {
+        try {
+          const platformEntries = await queryProject(platformProject);
+          entries.push(...platformEntries);
+          entries.sort(
+            (a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''),
+          );
+        } catch (platformErr) {
+          logger.warn('[getStoreLogs] No se pudo leer logs de platform:', platformErr);
+        }
+      }
 
       return {
         success: true,
