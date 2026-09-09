@@ -79,18 +79,27 @@ export const getStoreLogs = onCall<{
     const project = isDev ? STOREFRONT_DEV : STOREFRONT_PROD;
 
     const sinceIso = new Date(Date.now() - safeSince * 60_000).toISOString();
+    const PAYMENT_FNS =
+      'resource.labels.function_name:"mercadoPagoWebhookHandler" OR ' +
+      'resource.labels.function_name:"createPaymentPreference" OR ' +
+      'resource.labels.function_name:"notifyOrderConfirmation" OR ' +
+      'resource.labels.function_name:"client-registry" OR ' +
+      'resource.labels.function_name:"superadmin.functions"';
 
-    // Free-text del tenant + opciones adicionales.
-    const parts = [
+    // Free-text del tenant + opciones adicionales. Se incluyen SIEMPRE los errores del
+    // flujo de pagos aunque no mencionen el tenant (crash stacks/structured payloads),
+    // para que el Monitor muestre el cuadro completo, no solo logs que contengan el slug.
+    const tenantMatch = `(textPayload:"${slug}" OR textPayload:"${storeId}" OR jsonPayload.message:"${slug}" OR jsonPayload.text:"${slug}")`;
+    const parts: string[] = [
       `timestamp >= "${sinceIso}"`,
-      `(textPayload:"${slug}" OR textPayload:"${storeId}" OR jsonPayload.message:"${slug}")`,
+      `(${tenantMatch} OR (severity >= ${toSeverityLevel('ERROR')} AND (${PAYMENT_FNS})))`,
     ];
-    if (severity && severity.toUpperCase() !== 'ALL') {
+    if (severity && severity.toUpperCase() !== 'ALL' && severity.toUpperCase() !== 'ERROR') {
       parts.push(`severity >= ${toSeverityLevel(severity)}`);
     }
     if (query && String(query).trim()) {
       const q = String(query).trim().replace(/["\\]/g, '');
-      parts.push(`textPayload:"${q}"`);
+      parts.push(`(${tenantMatch} OR textPayload:"${q}" OR jsonPayload.message:"${q}")`);
     }
 
     const filter = parts.join(' AND ');
@@ -119,13 +128,19 @@ export const getStoreLogs = onCall<{
         },
       });
 
-      const entries: StoreLogEntry[] = (resp.data.entries || []).map((e) => ({
-        timestamp: e.timestamp || '',
-        severity: e.severity || 'DEFAULT',
-        function: e.resource?.labels?.['function_name'] || e.resource?.labels?.['service_name'],
-        message: String(e.textPayload ?? ''),
-        raw: e.jsonPayload ? JSON.stringify(e.jsonPayload) : undefined,
-      }));
+      const entries: StoreLogEntry[] = (resp.data.entries || []).map((e) => {
+        const jp = e.jsonPayload as Record<string, unknown> | undefined;
+        const message =
+          String(e.textPayload ?? '') ||
+          String(jp?.['message'] ?? jp?.['msg'] ?? jp?.['error'] ?? jp?.['text'] ?? '');
+        return {
+          timestamp: e.timestamp || '',
+          severity: e.severity || 'DEFAULT',
+          function: e.resource?.labels?.['function_name'] || e.resource?.labels?.['service_name'],
+          message,
+          raw: jp ? JSON.stringify(jp) : undefined,
+        };
+      });
 
       return {
         success: true,
