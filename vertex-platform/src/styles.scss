@@ -20,11 +20,7 @@
   /* Vivid HSL Accents */
   --platform-accent-purple: hsl(244, 75%, 64%);
   --platform-accent-blue: hsl(199, 89%, 48%);
-  --platform-accent-gradient: linear-gradient(
-    135deg,
-    hsl(199, 89%, 48%) 0%,
-    hsl(244, 75%, 64%) 100%
-  );
+  --platform-accent-gradient: linear-gradient(135deg, hsl(244, 75%, 64%), hsl(244, 70%, 58%));
 
   /* Neon-Atenuated Statuses */
   --platform-status-active-bg: hsla(142, 70%, 45%, 0.07);
@@ -381,8 +377,8 @@ html[data-theme='dark'] {
   --platform-scroll-thumb: hsla(0, 0%, 100%, 0.14);
   --platform-focus-ring: hsla(244, 75%, 64%, 0.5);
   --platform-header-bg-solid: hsl(225, 30%, 7%);
-  --platform-shadow-1: 0 8px 28px rgba(2, 6, 23, 0.45);
-  --platform-shadow-2: 0 24px 64px -12px rgba(0, 0, 0, 0.65);
+  --platform-shadow-1: 0 2px 10px rgba(2, 6, 23, 0.18);
+  --platform-shadow-2: 0 10px 28px -10px rgba(0, 0, 0, 0.35);
   --platform-accent: hsl(244, 75%, 64%);
   --platform-accent-hover: hsl(244, 70%, 58%);
   --platform-accent-text: #ffffff;
@@ -439,8 +435,8 @@ html[data-theme='light'] {
   --platform-hover-overlay: rgba(15, 23, 42, 0.05);
   --platform-scroll-thumb: hsla(220, 15%, 45%, 0.3);
   --platform-focus-ring: hsla(244, 75%, 52%, 0.4);
-  --platform-shadow-1: 0 8px 28px rgba(15, 23, 42, 0.08);
-  --platform-shadow-2: 0 24px 64px -12px rgba(15, 23, 42, 0.2);
+  --platform-shadow-1: 0 1px 8px rgba(15, 23, 42, 0.06);
+  --platform-shadow-2: 0 8px 24px -12px rgba(15, 23, 42, 0.16);
   --platform-accent: hsl(244, 65%, 52%);
   --platform-accent-hover: hsl(244, 70%, 46%);
   --platform-accent-text: #ffffff;
@@ -534,4 +530,24 @@ table {
     max-height: 88vh;
     overflow-y: auto;
   }
+}
+
+/* ═══ Minimalismo: bordes más limpios y transiciones suaves ═══ */
+.detail-card,
+.glass-card,
+.card,
+.panel,
+.store-card,
+.pricing-plan-card,
+.guidance-banner,
+.kpi-card,
+.op-control-card {
+  box-shadow: var(--platform-shadow-1);
+}
+
+button,
+a,
+.card,
+.detail-card {
+  transition-duration: 0.15s;
 }
