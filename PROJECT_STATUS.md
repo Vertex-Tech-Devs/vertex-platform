@@ -14,8 +14,7 @@
 - Ventas reales liquidadas de referencia: KasaKalle `4J26XEF7` (Juan) y `NHDTZM2M` (Lihue).
 
 ### Administración de datos (super admin / admins de tienda)
-- Purga masiva por tienda (pedidos/clientes/catálogo/contenido) filtrada por tenant, sin tocar configuración/credenciales.
-- Borrado puntual de cliente (email) y pedido (orderId) con auditoría en `admin_audit` y restock automático.
+- **Borrado de datos se hace desde el ADMIN DE LA TIENDA** (clientes/pedidos con auditoría `admin_audit` y restock). La UI de limpieza/borrado en Platform se retiró en `a4c1768` (backends `purgeStoreData`/`deleteStoreDataItem` quedan por compatibilidad, sin UI).
 - Admins de tienda (claim `admin` del tenant) y super admins (Juan/Lihue/Vertex) tienen estos permisos.
 
 ### Infraestructura / confiabilidad (vertex-platform)
@@ -43,22 +42,7 @@
 - Invitación nueva = PENDIENTE; pasa a Aceptada solo si el invitado inicia sesión post-invitación (`lastLoginAt >= createdAt`).
 - Badge “Ya miembro” cuando el email ya es staff.
 
-## 🔲 Pendiente / deuda técnica conocida (no tocar sin plan)
-1. **Refactor estructural de `store-detail`**: descomponer en `store-detail-domains` y `store-detail-payments` (hoy `max-lines` está mitigado con directiva ESLint local; no se hizo para no romper nada).
-2. **Alerts**: entregado in-app + email críticos; falta (opcional) UI “ver todas las tiendas” global del Monitor.
-3. **HEIC**: soportado en subida central; falta validar galerías/logos/banners heredadas con UI propia que llame a `prepareUploadFile` explícitamente si no pasan por `StorageService`.
-4. Pulido fino continuo de vistas (por naturaleza iterativo; sin tickets abiertos críticos).
-
-## Reglas operativas vigentes
-- Prohibido tocar `"version"` en `package.json` salvo indicación explícita del dueño.
-- Sincronización: `develop` = `main` con 0 divergencia al cerrar cualquier entrega.
-- Gates: typecheck/lint/build + suites (platform app+functions; storefront app+functions) con cobertura ≥95%.
-- Ramas de deploy monitoreadas hasta `success`.
-
-## Tiendas entregadas (producción real)
-- `kasakalle` (KasaKalle) y `vidrios-emilia` (Vidrios Emilia). El resto son entornos de prueba/dev y están pendientes de eliminación por el dueño.
-## 🎨 Refinamiento de contenido (paquete A+B+11+12) — en curso
-- ✅ Header minimal (consola solo en Diagnóstico) · Info general minimal (slug/canal a Diagnóstico) · Acciones de Orquestación agrupadas (Mantenimiento / Riesgo) · Textos de Pagos/Suscripción en 1 línea · Placeholders con ejemplos claros.
-- ✅ Monitor: logs completos (jsonPayload, crash stacks, errores sin tenant), fuente platform incluida y badge de origen por fila.
-- ✅ Centro de Alertas agrupado por tienda y tipo.
-- 🔲 Continuar reglas B por vista (menos densidad, “una pregunta por tarjeta”) como iteración continua.
+## 🔲 Pendiente / deuda técnica conocida
+1. **Refactor estructural de `store-detail`** en subcomponentes (`store-detail-domains`/`store-detail-payments`) — sesión dedicada.
+2. Reglas de contenido B (menos densidad/una pregunta por tarjeta) como iteración continua por vista.
+3. Auditoría de textos “que no se entienden” por pantalla (se entrega lista antes de aplicar).
