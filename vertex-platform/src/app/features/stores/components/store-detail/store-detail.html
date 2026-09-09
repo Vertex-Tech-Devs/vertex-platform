@@ -17,6 +17,81 @@
             <i class="bi bi-pencil"></i> Editar Info
           </button>
         }
+
+  @if (subModalOpen()) {
+    <div class="modal-overlay" (click)="!subUpdating() && subModalOpen.set(false)">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title">
+          <i class="bi bi-globe me-2 text-primary"></i>¿Cambiar la dirección gratuita?
+        </h3>
+        <p style="color: var(--platform-text-secondary); margin-bottom: 1rem">
+          Al cambiar la dirección, la URL anterior dejará de responder inmediatamente. Deberás
+          actualizar los enlaces en tus redes sociales y WhatsApp.
+          <br /><br />
+          Nueva URL:
+          <code>https://{{ subInput() || '...' }}.web.app</code>
+        </p>
+        @if (subError()) {
+          <p style="color: var(--platform-danger); margin-bottom: 1rem">{{ subError() }}</p>
+        }
+        <div class="modal__actions">
+          <button type="button" class="btn btn-secondary" [disabled]="subUpdating()" (click)="subModalOpen.set(false)">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="subUpdating()" (click)="confirmSubdomainChange()">
+            @if (subUpdating()) {
+              <span class="spinner-sm"></span> Cambiando…
+            } @else {
+              Confirmar Cambio
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (domainDisconnectOpen()) {
+    <div class="modal-overlay" (click)="cancelDisconnectDomainModal()">
+      <div class="modal glass-modal" (click)="$event.stopPropagation()">
+        <h3 class="modal__title">
+          <i class="bi bi-unlink me-2 text-danger"></i>Desvincular Dominio
+        </h3>
+        <p style="color: var(--platform-text-secondary); margin-bottom: 1.25rem">
+          Se eliminará el mapeo en Firebase Hosting y se quitará
+          <code>{{ store()?.customDomain }}</code> de la tienda. La propagación DNS y el
+          certificado SSL dejarán de apuntar a tu storefront.
+        </p>
+        @if (domainDisconnectError()) {
+          <p style="color: var(--platform-danger, #f87171); margin-bottom: 1rem">
+            {{ domainDisconnectError() }}
+          </p>
+        }
+        <div class="modal__actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="isDisconnectingDomain()"
+            (click)="cancelDisconnectDomainModal()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            [disabled]="isDisconnectingDomain()"
+            (click)="confirmDisconnectDomain()"
+          >
+            @if (isDisconnectingDomain()) {
+              <span class="spinner-sm"></span> Desvinculando…
+            } @else {
+              <i class="bi bi-trash"></i> Sí, desvincular
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
         @if (store()!.status === 'active') {
           <a [href]="storeUrl()" target="_blank" class="btn btn-primary">
             <i class="bi bi-box-arrow-up-right"></i> Abrir tienda
@@ -2719,80 +2794,6 @@
 
   <!-- Edit modal -->
   @if (showEditModal()) {
-    @if (subModalOpen()) {
-      <div class="modal-overlay" (click)="!subUpdating() && subModalOpen.set(false)">
-        <div class="modal glass-modal" (click)="$event.stopPropagation()">
-          <h3 class="modal__title">
-            <i class="bi bi-globe me-2 text-primary"></i>¿Cambiar la dirección gratuita?
-          </h3>
-          <p style="color: var(--platform-text-secondary); margin-bottom: 1rem">
-            Al cambiar la dirección, la URL anterior dejará de responder inmediatamente. Deberás
-            actualizar los enlaces en tus redes sociales y WhatsApp.
-            <br /><br />
-            Nueva URL:
-            <code>https://{{ subInput() || '...' }}.web.app</code>
-          </p>
-          @if (subError()) {
-            <p style="color: var(--platform-danger); margin-bottom: 1rem">{{ subError() }}</p>
-          }
-          <div class="modal__actions">
-            <button type="button" class="btn btn-secondary" [disabled]="subUpdating()" (click)="subModalOpen.set(false)">
-              Cancelar
-            </button>
-            <button type="button" class="btn btn-primary" [disabled]="subUpdating()" (click)="confirmSubdomainChange()">
-              @if (subUpdating()) {
-                <span class="spinner-sm"></span> Cambiando…
-              } @else {
-                Confirmar Cambio
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-
-    @if (domainDisconnectOpen()) {
-      <div class="modal-overlay" (click)="cancelDisconnectDomainModal()">
-        <div class="modal glass-modal" (click)="$event.stopPropagation()">
-          <h3 class="modal__title">
-            <i class="bi bi-unlink me-2 text-danger"></i>Desvincular Dominio
-          </h3>
-          <p style="color: var(--platform-text-secondary); margin-bottom: 1.25rem">
-            Se eliminará el mapeo en Firebase Hosting y se quitará
-            <code>{{ store()?.customDomain }}</code> de la tienda. La propagación DNS y el
-            certificado SSL dejarán de apuntar a tu storefront.
-          </p>
-          @if (domainDisconnectError()) {
-            <p style="color: var(--platform-danger, #f87171); margin-bottom: 1rem">
-              {{ domainDisconnectError() }}
-            </p>
-          }
-          <div class="modal__actions">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              [disabled]="isDisconnectingDomain()"
-              (click)="cancelDisconnectDomainModal()"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger"
-              [disabled]="isDisconnectingDomain()"
-              (click)="confirmDisconnectDomain()"
-            >
-              @if (isDisconnectingDomain()) {
-                <span class="spinner-sm"></span> Desvinculando…
-              } @else {
-                <i class="bi bi-trash"></i> Sí, desvincular
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-
     <div class="modal-overlay" (click)="showEditModal.set(false)">
       <div class="modal modal--edit glass-modal" (click)="$event.stopPropagation()">
         <h3 class="modal__title">Editar Info de Tienda</h3>
