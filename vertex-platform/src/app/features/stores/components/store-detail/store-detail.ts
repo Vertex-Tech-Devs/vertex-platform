@@ -812,6 +812,7 @@ export class StoreDetail implements OnInit {
     function?: string;
     message: string;
     raw?: string;
+    project?: string;
   }>>([]);
   readonly logsProject = signal('');
   readonly logsLoadedAt = signal<Date | null>(null);

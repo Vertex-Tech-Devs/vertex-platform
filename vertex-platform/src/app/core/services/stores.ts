@@ -606,6 +606,7 @@ export interface StoreLogsResponse {
     function?: string;
     message: string;
     raw?: string;
+    project?: string;
   }>;
   truncated: boolean;
 }

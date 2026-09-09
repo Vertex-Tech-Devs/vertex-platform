@@ -1775,6 +1775,11 @@
                         <span [class]="logsSeverityClass(entry.severity)">{{
                           entry.severity || 'INFO'
                         }}</span>
+                        @if (entry.project === 'vertex-platform-app') {
+                          <span class="log-source log-source--platform" title="Origen: Platform (provisioning/dominios/alertas)">platform</span>
+                        } @else {
+                          <span class="log-source log-source--ecommerce" title="Origen: Storefront/ecommerce">tienda</span>
+                        }
                         @if (entry.function) {
                           <code class="monitor-log-row__fn">{{ entry.function }}</code>
                         }
