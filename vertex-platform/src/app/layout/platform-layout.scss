@@ -405,3 +405,25 @@
     justify-content: center;
   }
 }
+
+/* ── M3 final: navegación ────────────────────────────────────────────────── */
+.sidebar-nav .nav-section-label {
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  color: var(--platform-text-muted);
+}
+
+.nav-item {
+  border-radius: 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    transform: translateX(2px);
+  }
+
+  &.nav-item--active {
+    background: color-mix(in srgb, var(--platform-accent) 16%, transparent);
+    color: var(--platform-accent);
+    font-weight: 600;
+  }
+}
