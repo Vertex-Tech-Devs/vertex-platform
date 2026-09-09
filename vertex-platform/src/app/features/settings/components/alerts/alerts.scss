@@ -189,3 +189,41 @@
 .alerts-skeleton {
   padding: 1rem;
 }
+
+.alerts-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 0.5rem;
+}
+
+.alerts-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.2rem;
+}
+
+.alerts-group__store {
+  font-weight: 800;
+  color: var(--platform-text-primary);
+  font-size: 0.85rem;
+}
+
+.alerts-group__kind {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--platform-text-muted);
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--platform-hover-overlay);
+}
+
+.alerts-group__count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--platform-text-muted);
+}

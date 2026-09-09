@@ -16,6 +16,13 @@ interface PlatformAlert {
   lastSeen?: { toMillis(): number } | { seconds: number } | null;
 }
 
+interface AlertGroup {
+  label: string;
+  kind: string;
+  severity: PlatformAlert['severity'];
+  items: PlatformAlert[];
+}
+
 function tsToDate(t?: unknown): Date | null {
   if (!t) {
     return null;
@@ -55,6 +62,28 @@ export class AlertsCenter implements OnDestroy {
   });
 
   readonly openCount = computed(() => this.alerts().filter((a) => a.status === 'open').length);
+
+  readonly visibleGroups = computed<AlertGroup[]>(() => {
+    const byKey = new Map<string, AlertGroup>();
+    for (const a of this.visibleAlerts()) {
+      const store = a.storeId || 'general';
+      const key = `${store}|${a.kind}`;
+      let g = byKey.get(key);
+      if (!g) {
+        g = { label: store, kind: a.kind, severity: a.severity, items: [] };
+        byKey.set(key, g);
+      }
+      if (a.severity === 'critical') {
+        g.severity = 'critical';
+      }
+      g.items.push(a);
+    }
+    return Array.from(byKey.values()).sort((x, y) => {
+      const sx = x.severity === 'critical' ? 0 : 1;
+      const sy = y.severity === 'critical' ? 0 : 1;
+      return sx - sy || x.label.localeCompare(y.label);
+    });
+  });
 
   constructor() {
     this.unsub = onSnapshot(

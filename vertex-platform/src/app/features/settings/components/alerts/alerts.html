@@ -51,42 +51,53 @@
       </p>
     </div>
   } @else {
+
     <div class="alerts-list">
-      @for (a of visibleAlerts(); track a.key) {
-        <div class="alerts-item" [class.is-resolved]="a.status === 'resolved'">
-          <span [class]="alertTone(a.severity)">{{ a.severity }}</span>
-          <div class="alerts-item__body">
-            <div class="alerts-item__title">
-              {{ a.title }}
-              @if (a.storeId) {
-                <span class="alerts-item__store">{{ a.storeId }}</span>
-              }
-              @if ((a.count ?? 1) > 1) {
-                <span class="alerts-item__count">×{{ a.count }}</span>
-              }
-            </div>
-            <p class="alerts-item__msg">{{ a.message }}</p>
-            <div class="alerts-item__meta">
-              @if (tsDate(a.lastSeen); as d) {
-                <span>{{ d | date: 'dd/MM HH:mm' }}</span>
-              }
-              <span>{{ a.kind }}</span>
-              @if (a.status === 'open') {
-                <button
-                  type="button"
-                  class="alerts-item__resolve"
-                  [disabled]="resolvingKey() === a.key"
-                  (click)="resolve(a.key)"
-                >
-                  {{ resolvingKey() === a.key ? 'Resolviendo…' : 'Marcar resuelta' }}
-                </button>
-              }
-            </div>
+      @for (g of visibleGroups(); track g.label + '|' + g.kind) {
+        <div class="alerts-group">
+          <div class="alerts-group__head">
+            <span class="alerts-group__store">{{
+              g.label === 'general' ? 'Plataforma (global)' : 'Tienda: ' + g.label
+            }}</span>
+            <span class="alerts-group__kind">{{ g.kind }}</span>
+            <span class="alerts-group__count">{{ g.items.length }}</span>
           </div>
-          @if (a.link) {
-            <a class="alerts-item__link" [href]="a.link" target="_blank" rel="noopener noreferrer">
-              <i class="bi bi-box-arrow-up-right"></i>
-            </a>
+          @for (a of g.items; track a.key) {
+            <div class="alerts-item" [class.is-resolved]="a.status === 'resolved'">
+              <span [class]="alertTone(a.severity)">{{ a.severity }}</span>
+              <div class="alerts-item__body">
+                <div class="alerts-item__title">
+                  {{ a.title }}
+                  @if (a.storeId) {
+                    <span class="alerts-item__store">{{ a.storeId }}</span>
+                  }
+                  @if ((a.count ?? 1) > 1) {
+                    <span class="alerts-item__count">×{{ a.count }}</span>
+                  }
+                </div>
+                <p class="alerts-item__msg">{{ a.message }}</p>
+                <div class="alerts-item__meta">
+                  @if (tsDate(a.lastSeen); as d) {
+                    <span>{{ d | date: 'dd/MM HH:mm' }}</span>
+                  }
+                  @if (a.status === 'open') {
+                    <button
+                      type="button"
+                      class="alerts-item__resolve"
+                      [disabled]="resolvingKey() === a.key"
+                      (click)="resolve(a.key)"
+                    >
+                      {{ resolvingKey() === a.key ? 'Resolviendo…' : 'Marcar resuelta' }}
+                    </button>
+                  }
+                </div>
+              </div>
+              @if (a.link) {
+                <a class="alerts-item__link" [href]="a.link" target="_blank" rel="noopener noreferrer">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              }
+            </div>
           }
         </div>
       }
