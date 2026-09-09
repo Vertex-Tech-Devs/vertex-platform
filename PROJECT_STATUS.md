@@ -57,3 +57,8 @@
 
 ## Tiendas entregadas (producción real)
 - `kasakalle` (KasaKalle) y `vidrios-emilia` (Vidrios Emilia). El resto son entornos de prueba/dev y están pendientes de eliminación por el dueño.
+## 🎨 Refinamiento de contenido (paquete A+B+11+12) — en curso
+- ✅ Header minimal (consola solo en Diagnóstico) · Info general minimal (slug/canal a Diagnóstico) · Acciones de Orquestación agrupadas (Mantenimiento / Riesgo) · Textos de Pagos/Suscripción en 1 línea · Placeholders con ejemplos claros.
+- ✅ Monitor: logs completos (jsonPayload, crash stacks, errores sin tenant), fuente platform incluida y badge de origen por fila.
+- ✅ Centro de Alertas agrupado por tienda y tipo.
+- 🔲 Continuar reglas B por vista (menos densidad, “una pregunta por tarjeta”) como iteración continua.
