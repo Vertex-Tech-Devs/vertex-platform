@@ -2,12 +2,39 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getOwnerOAuthClient, ALLOWED_ORIGINS } from './helpers';
-import { sanitizeSubdomainCandidate, buildSubdomainSuggestions } from './hosting-subdomain.utils';
+import {
+  buildSubdomainSuggestions,
+  normalizeFreeSubdomain,
+  RESERVED_SUBDOMAINS,
+} from './hosting-subdomain.utils';
 
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
 
 interface HostingErrorBody {
   error?: { message?: string; code?: number };
+}
+
+/** Busca colisiones en Firestore (stores) para un subdominio o dominio propio. */
+async function subdomainCollision(
+  db: FirebaseFirestore.Firestore,
+  candidate: string,
+  excludeStoreId?: string,
+): Promise<boolean> {
+  const queries = [
+    db.collection('stores').where('subdomain', '==', candidate).limit(1),
+    db.collection('stores').where('subdomain', '==', `vtx-${candidate}`).limit(1),
+    db.collection('stores').where('customDomain', '==', candidate).limit(1),
+  ];
+  for (const q of queries) {
+    const snap = await q.get();
+    if (!snap.empty) {
+      const doc = snap.docs[0];
+      if (!excludeStoreId || doc.id !== excludeStoreId) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /** Guard: platform admins (vertex.tech.dev@gmail.com / platformAdmin / superAdmin). */
@@ -36,16 +63,47 @@ async function siteExists(projectId: string, siteId: string): Promise<boolean> {
  * Consulta Firebase Hosting (sites.get) sobre el proyecto maestro storefront y, si el
  * candidato está ocupado, sugiere 3 alternativas limpias.
  */
-export const checkSubdomainAvailability = onCall<{ candidate: string }>(
+export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
-    if (!request.auth || !isPlatformAdmin(request.auth?.token)) {
-      throw new HttpsError('permission-denied', 'Only platform admins can check subdomains.');
+    if (!request.auth) {
+      throw new HttpsError('permission-denied', 'Se requiere autenticación.');
     }
-    const sanitized = sanitizeSubdomainCandidate(String(request.data?.candidate || ''));
+    const admin = isPlatformAdmin(request.auth?.token);
+    const db = getFirestore();
+    const { candidate, storeId } = request.data || {};
+    const sanitized = normalizeFreeSubdomain(String(candidate || ''));
     if (!sanitized) {
       return { available: false, sanitized: '', suggestions: [] };
     }
+
+    // Palabras reservadas: bypass solo para admins de plataforma.
+    if (RESERVED_SUBDOMAINS.includes(sanitized)) {
+      if (!admin) {
+        return {
+          available: false,
+          sanitized,
+          reason: 'RESERVED_KEYWORD',
+          message: 'Esta palabra está reservada para el sistema.',
+        };
+      }
+    }
+
+    // Colisiones con otras tiendas en Firestore (excluye la actual si se envía).
+    try {
+      const collision = await subdomainCollision(db, sanitized, storeId || undefined);
+      if (collision) {
+        return {
+          available: false,
+          sanitized,
+          reason: 'ALREADY_REGISTERED',
+          message: 'Este dominio ya está en uso por otra tienda en Vertex.',
+        };
+      }
+    } catch (err) {
+      logger.warn('[Subdomain] Chequeo de colisión en Firestore falló:', err);
+    }
+
     const projectsToCheck = ['ecommerce-vertex', 'ecommerce-vertex-dev'];
     let taken = false;
     for (const projectId of projectsToCheck) {
@@ -70,12 +128,6 @@ export const checkSubdomainAvailability = onCall<{ candidate: string }>(
   },
 );
 
-/**
- * updateStoreSubdomain — personaliza la URL gratuita de la tienda sin downtime:
- * 1) valida disponibilidad, 2) crea el nuevo sitio, 3) clona el último release activo del
- * sitio anterior (misma versión) para responder de inmediato, 4) actualiza el doc de la
- * tienda y 5) elimina el sitio anterior preservando cuota de 36 sitios por proyecto.
- */
 export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: string }>(
   { timeoutSeconds: 120, cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
@@ -86,7 +138,7 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     if (!storeId || !/^[a-zA-Z0-9_-]{1,120}$/.test(storeId)) {
       throw new HttpsError('invalid-argument', 'Invalid storeId.');
     }
-    const sanitized = sanitizeSubdomainCandidate(String(newSubdomain || ''));
+    const sanitized = normalizeFreeSubdomain(String(newSubdomain || ''));
     if (!sanitized) {
       throw new HttpsError('invalid-argument', 'Subdominio inválido (4–30 caracteres a-z0-9-).');
     }
@@ -111,7 +163,13 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     const newSiteUrl = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(sanitized)}`;
 
     try {
-      // 0) disponibilidad estricta
+      // 0) disponibilidad estricta: colisión en Firestore (otras tiendas) + Hosting
+      if (await subdomainCollision(db, sanitized, storeId)) {
+        throw new HttpsError(
+          'already-exists',
+          'Este dominio ya está registrado por otra tienda en Vertex.',
+        );
+      }
       if (await siteExists(projectId, sanitized)) {
         throw new HttpsError(
           'already-exists',

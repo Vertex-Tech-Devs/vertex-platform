@@ -79,3 +79,35 @@ export function isSubdomainLengthValid(candidate: string): boolean {
   const s = sanitizeSubdomainCandidate(candidate);
   return s.length >= 4 && s.length <= 30;
 }
+
+/** Palabras reservadas del sistema (no registrables salvo superadmin/plataforma). */
+export const RESERVED_SUBDOMAINS: readonly string[] = [
+  'admin',
+  'platform',
+  'api',
+  'billing',
+  'auth',
+  'support',
+  'mail',
+  'dev',
+  'staging',
+  'vertex',
+];
+
+/**
+ * Normaliza el input libre de un subdominio `.web.app` a candidato limpio:
+ * quita protocolo, `www.`, sufijos de hosting y el prefijo automático `vtx-`,
+ * y luego aplica el sanitizador determinista existente.
+ */
+export function normalizeFreeSubdomain(raw: string): string {
+  const v = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/+$/, '')
+    .replace(/\.web\.app$/, '')
+    .replace(/\.firebaseapp\.com$/, '')
+    .replace(/^vtx-/, '');
+  return sanitizeSubdomainCandidate(v);
+}

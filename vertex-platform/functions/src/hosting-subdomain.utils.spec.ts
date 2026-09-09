@@ -3,6 +3,8 @@ import {
   sanitizeSubdomainCandidate,
   buildSubdomainSuggestions,
   isSubdomainLengthValid,
+  normalizeFreeSubdomain,
+  RESERVED_SUBDOMAINS,
 } from './hosting-subdomain.utils';
 
 describe('subdomain utils', () => {
@@ -30,5 +32,26 @@ describe('subdomain utils', () => {
   it('valida longitud para Firebase Hosting', () => {
     expect(isSubdomainLengthValid('vidrios')).toBe(true);
     expect(isSubdomainLengthValid('ab')).toBe(false);
+  });
+});
+
+describe('normalizeFreeSubdomain', () => {
+  it('quita protocolo, www, sufijos de hosting y prefijo vtx-', () => {
+    expect(normalizeFreeSubdomain('https://www.MiTienda.web.app')).toBe('mitienda');
+    expect(normalizeFreeSubdomain('  http://kasakalle.firebaseapp.com/ ')).toBe('kasakalle');
+    expect(normalizeFreeSubdomain('vtx-vidrios-emilia')).toBe('vidrios-emilia');
+  });
+
+  it('aplica el sanitizador y rechaza inválidos cortos', () => {
+    expect(normalizeFreeSubdomain('Kasa Kalle á é')).toBe('kasa-kalle-a-e');
+    expect(normalizeFreeSubdomain('ab')).toBe('');
+  });
+});
+
+describe('RESERVED_SUBDOMAINS', () => {
+  it('incluye las palabras del sistema', () => {
+    for (const word of ['admin', 'platform', 'api', 'vertex']) {
+      expect(RESERVED_SUBDOMAINS).toContain(word);
+    }
   });
 });
