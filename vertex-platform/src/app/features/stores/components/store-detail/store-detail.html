@@ -529,6 +529,7 @@
               </div>
 
               <div class="ops-card__grid">
+                <div class="ops-group-title">Mantenimiento</div>
                 <!-- Seed Control Card -->
                 @if (store()!.status === 'active') {
                   <div
@@ -667,6 +668,7 @@
                   </div>
                 </div>
 
+                <div class="ops-group-title">Riesgo (Super Admin)</div>
                 <!-- Super Admin: Limpieza de datos de prueba -->
                 @if (auth.isSuperAdmin()) {
                   <div class="op-control-card op-control-card--purge">

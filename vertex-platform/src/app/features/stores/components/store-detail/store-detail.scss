@@ -4540,3 +4540,17 @@ html[data-theme='light'] {
   color: var(--platform-accent);
   text-decoration: none;
 }
+
+.ops-group-title {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--platform-text-muted);
+  margin-top: 0.35rem;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
