@@ -636,3 +636,49 @@
     color: #f87171;
   }
 }
+
+/* ═══ M3 polish (token-based, ambos temas) ═══ */
+.sub-hero-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+  box-shadow: var(--platform-shadow-1);
+}
+
+.sub-hero-card__title {
+  letter-spacing: -0.02em;
+  color: var(--platform-text-primary);
+}
+
+.pricing-plan-card {
+  border-radius: 1.1rem;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--platform-shadow-2);
+  }
+
+  &--featured {
+    border-color: var(--platform-card-border-hover);
+    box-shadow: 0 0 0 1px var(--platform-card-border-hover), var(--platform-shadow-1);
+  }
+
+  .pricing-plan-card__amount {
+    color: var(--platform-text-primary);
+    letter-spacing: -0.02em;
+  }
+}
+
+.store-links-panel {
+  border-radius: 1.25rem;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+}
+
+.store-links-table th {
+  color: var(--platform-text-muted);
+  border-bottom-color: var(--platform-card-border);
+}
