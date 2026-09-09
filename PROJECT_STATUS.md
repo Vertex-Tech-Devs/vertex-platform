@@ -43,6 +43,13 @@
 - Badge “Ya miembro” cuando el email ya es staff.
 
 ## 🔲 Pendiente / deuda técnica conocida
-1. **Refactor estructural de `store-detail`** en subcomponentes (`store-detail-domains`/`store-detail-payments`) — sesión dedicada.
-2. Reglas de contenido B (menos densidad/una pregunta por tarjeta) como iteración continua por vista.
-3. Auditoría de textos “que no se entienden” por pantalla (se entrega lista antes de aplicar).
+1. Reglas de contenido B (menos densidad/una pregunta por tarjeta) como iteración continua por vista.
+2. Auditoría de textos “que no se entienden” por pantalla (se entrega lista antes de aplicar).
+
+## ✅ Cierre refactor store-detail (836de41)
+- `store-detail.ts`: 1264 → 634 líneas; `/* eslint max-lines: off */` eliminado.
+- Subcomponentes standalone `store-detail-domains` y `store-detail-payments`; `StoreDetailPaymentsService` (`providedIn: 'root'`) compartido con el badge MP de la tab bar.
+
+## 🔲 Deuda técnica residual (no bloqueante)
+- Deduplicación de estilos SCSS entre `store-detail` y sus componentes hijos (hoy comparten `store-detail.scss` por referencia).
+- Backends `purgeStoreData`/`deleteStoreDataItem` conservados **exclusivamente** para mantenimiento administrativo vía CLI/script (sin UI).
