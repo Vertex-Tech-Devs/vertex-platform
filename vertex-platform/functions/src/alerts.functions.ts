@@ -25,7 +25,6 @@ interface AlertInput {
  *     primera/última vez; el Centro de Alertas (UI) las consumirá.
  */
 
-
 /** Envía correo institucional a los admins si hay credenciales SMTP (no bloqueante). */
 async function sendAlertEmails(findings: AlertInput[]): Promise<void> {
   const criticals = findings.filter((f) => f.severity === 'critical');
@@ -37,7 +36,9 @@ async function sendAlertEmails(findings: AlertInput[]): Promise<void> {
     .map((e) => e.trim())
     .filter(Boolean);
   if (!smtpPass || toList.length === 0) {
-    logger.warn('[Alerts] SMTP no configurado; alerta crítica sin correo (sigue en Centro de Alertas).');
+    logger.warn(
+      '[Alerts] SMTP no configurado; alerta crítica sin correo (sigue en Centro de Alertas).',
+    );
     return;
   }
   try {
@@ -185,6 +186,8 @@ export const watchdogPlatformAlerts = onSchedule('every 60 minutes', async () =>
     }
   }
 
-  logger.info(`[Alerts] Ronda finalizada: ${findings.length} hallazgo(s), ${created} nueva(s), ${updated} actualizada(s).`);
+  logger.info(
+    `[Alerts] Ronda finalizada: ${findings.length} hallazgo(s), ${created} nueva(s), ${updated} actualizada(s).`,
+  );
   await sendAlertEmails(findings);
 });

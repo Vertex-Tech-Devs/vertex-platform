@@ -3480,7 +3480,10 @@
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.65));
   color: #f8fafc;
   text-align: left;
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 
   &:hover:not(:disabled) {
     border-color: rgba(148, 163, 184, 0.55);
@@ -4002,7 +4005,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
     color: var(--platform-text-secondary);
@@ -4285,7 +4290,9 @@ html[data-theme='light'] {
     border-radius: 0.7rem;
     overflow: hidden;
     background: var(--platform-input-bg);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
 
     &:focus-within {
       border-color: var(--platform-accent);
@@ -4359,7 +4366,9 @@ html[data-theme='light'] {
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
 
     &:hover {
       border-color: var(--platform-accent);

@@ -896,7 +896,10 @@
 .trial-custom-card {
   border-radius: 1rem;
   border: 1px solid var(--platform-card-border);
-  transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 
   &:hover {
     transform: translateY(-1px);

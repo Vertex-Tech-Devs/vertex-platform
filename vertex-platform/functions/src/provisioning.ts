@@ -1536,8 +1536,7 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
   try {
     await ensureShardProjectIam(auth, projectId);
   } catch (earlyIamErr) {
-    const earlyIamMsg =
-      earlyIamErr instanceof Error ? earlyIamErr.message : String(earlyIamErr);
+    const earlyIamMsg = earlyIamErr instanceof Error ? earlyIamErr.message : String(earlyIamErr);
     console.warn(
       `[provisioning:createProject] Early ensureShardProjectIam warning on ${projectId}: ${earlyIamMsg}. ` +
         `initFirestore volverá a intentarlo (auto-heal).`,
@@ -2195,7 +2194,9 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/${mpSecretId}:addVersion`,
           {
             method: 'POST',
-            body: { payload: { data: Buffer.from(DEFAULT_SANDBOX_ACCESS_TOKEN).toString('base64') } },
+            body: {
+              payload: { data: Buffer.from(DEFAULT_SANDBOX_ACCESS_TOKEN).toString('base64') },
+            },
           },
         );
       } catch (smErr) {
@@ -2479,9 +2480,15 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                                       stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
                                     },
                                     hasToken: { booleanValue: true },
-                                    secretRef: { stringValue: `tenants/${tenantId}/mp_access_token` },
-                                    _sandboxFallbackToken: { stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN },
-                                    accessTokenSecret: { stringValue: `mp-access-token-${tenantId}` },
+                                    secretRef: {
+                                      stringValue: `tenants/${tenantId}/mp_access_token`,
+                                    },
+                                    _sandboxFallbackToken: {
+                                      stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN,
+                                    },
+                                    accessTokenSecret: {
+                                      stringValue: `mp-access-token-${tenantId}`,
+                                    },
                                     accessTokenMasked: { stringValue: 'TEST-1516****4666' },
                                     webhookUrl: { stringValue: '' },
                                     validationStatus: { stringValue: 'valid' },
@@ -3013,48 +3020,50 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
                 emailHtml,
                 `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
               );
-              console.info(`[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`);
+              console.info(
+                `[provisioning:initAdmin] Welcome email sent via SMTP to ${ownerEmail}.`,
+              );
             } catch (smtpErr) {
-            // SMTP failed — try writing to the store's mail collection as fallback
-            // (requires firestore-send-email extension to be installed in the store project)
-            console.error(
-              `[provisioning:initAdmin] SMTP failed, attempting mail collection fallback for ${ownerEmail}:`,
-              smtpErr,
-            );
-            const mailDocFields = {
-              to: {
-                arrayValue: {
-                  values: [{ stringValue: ownerEmail }],
+              // SMTP failed — try writing to the store's mail collection as fallback
+              // (requires firestore-send-email extension to be installed in the store project)
+              console.error(
+                `[provisioning:initAdmin] SMTP failed, attempting mail collection fallback for ${ownerEmail}:`,
+                smtpErr,
+              );
+              const mailDocFields = {
+                to: {
+                  arrayValue: {
+                    values: [{ stringValue: ownerEmail }],
+                  },
                 },
-              },
-              message: {
-                mapValue: {
-                  fields: {
-                    subject: { stringValue: emailSubjectFinal },
-                    html: { stringValue: emailHtml },
-                    text: {
-                      stringValue: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+                message: {
+                  mapValue: {
+                    fields: {
+                      subject: { stringValue: emailSubjectFinal },
+                      html: { stringValue: emailHtml },
+                      text: {
+                        stringValue: `Bienvenido a Vertex. Ingresa con Google al panel administrativo desde: ${loginUrl}`,
+                      },
                     },
                   },
                 },
-              },
-              createdAt: {
-                timestampValue: new Date().toISOString(),
-              },
-            };
+                createdAt: {
+                  timestampValue: new Date().toISOString(),
+                },
+              };
 
-            await apiFetch(
-              auth,
-              `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
-              {
-                method: 'POST',
-                body: { fields: mailDocFields },
-              },
-            );
-            console.info(
-              `[provisioning:initAdmin] Welcome email queued in store ${projectId}'s mail collection.`,
-            );
-          }
+              await apiFetch(
+                auth,
+                `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/mail`,
+                {
+                  method: 'POST',
+                  body: { fields: mailDocFields },
+                },
+              );
+              console.info(
+                `[provisioning:initAdmin] Welcome email queued in store ${projectId}'s mail collection.`,
+              );
+            }
           } // fin allowEmail (supresión en DEV)
         } catch (mailErr) {
           console.error(
@@ -3207,7 +3216,10 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     try {
       await ensureShardSecurityPolicies(projectId, activeAuth);
     } catch (secErr) {
-      console.warn(`[ensureShardProjectIam] ensureShardSecurityPolicies non-fatal warning on ${projectId}:`, secErr);
+      console.warn(
+        `[ensureShardProjectIam] ensureShardSecurityPolicies non-fatal warning on ${projectId}:`,
+        secErr,
+      );
     }
   }
 
@@ -3818,7 +3830,6 @@ export const completeStoreDeployment = onCall<{
   return { success: true };
 });
 
-
 const HEAL_API_LIST = [
   'identitytoolkit.googleapis.com',
   'secretmanager.googleapis.com',
@@ -3905,7 +3916,12 @@ export const triggerHealShards = onCall(
         results.push({ shard: projectId, apis: 'OK', iam: 'OK', status: 'OK' });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        results.push({ shard: projectId, apis: 'ERROR', iam: 'ERROR', status: `ERROR: ${msg.slice(0, 140)}` });
+        results.push({
+          shard: projectId,
+          apis: 'ERROR',
+          iam: 'ERROR',
+          status: `ERROR: ${msg.slice(0, 140)}`,
+        });
       }
     }
     return { success: true, shards: projectIds.length, results };

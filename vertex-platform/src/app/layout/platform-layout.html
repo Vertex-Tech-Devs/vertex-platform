@@ -95,18 +95,24 @@
         <a
           class="alert-bell"
           routerLink="/settings/alerts"
-          [attr.aria-label]="openAlertsCount() > 0 ? openAlertsCount() + ' alertas abiertas' : 'Centro de Alertas'"
+          [attr.aria-label]="
+            openAlertsCount() > 0 ? openAlertsCount() + ' alertas abiertas' : 'Centro de Alertas'
+          "
           title="Centro de Alertas"
         >
           <i class="bi bi-bell-fill"></i>
           @if (openAlertsCount() > 0) {
-            <span class="alert-bell__badge">{{ openAlertsCount() > 99 ? '99+' : openAlertsCount() }}</span>
+            <span class="alert-bell__badge">{{
+              openAlertsCount() > 99 ? '99+' : openAlertsCount()
+            }}</span>
           }
         </a>
         <button
           class="theme-toggle"
           (click)="theme.toggle()"
-          [attr.aria-label]="theme.resolved() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          [attr.aria-label]="
+            theme.resolved() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+          "
           [title]="theme.resolved() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
         >
           @if (theme.resolved() === 'dark') {

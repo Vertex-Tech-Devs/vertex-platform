@@ -88,7 +88,9 @@ export const purgeStoreData = onCall<PurgeStoreDataParams>(
             await apiFetch(auth, d.name, { method: 'DELETE', quotaProject: projectId });
             count += 1;
           } catch (err) {
-            errors.push(`delete ${col}: ${err instanceof Error ? err.message.slice(0, 100) : 'err'}`);
+            errors.push(
+              `delete ${col}: ${err instanceof Error ? err.message.slice(0, 100) : 'err'}`,
+            );
           }
         }
         if (!list.nextPageToken) break;
@@ -131,7 +133,9 @@ export const purgeStoreData = onCall<PurgeStoreDataParams>(
           await apiFetch(auth, productPath, { method: 'DELETE', quotaProject: projectId });
           count += 1;
         } catch (err) {
-          errors.push(`delete product: ${err instanceof Error ? err.message.slice(0, 100) : 'err'}`);
+          errors.push(
+            `delete product: ${err instanceof Error ? err.message.slice(0, 100) : 'err'}`,
+          );
         }
       }
       deleted['products'] = (deleted['products'] || 0) + count;
@@ -154,7 +158,9 @@ export const purgeStoreData = onCall<PurgeStoreDataParams>(
       errors.push(err instanceof Error ? err.message.slice(0, 200) : 'purge error');
     }
 
-    logger.info(`[Purge] ${projectId} finalizado: ${JSON.stringify(deleted)} (errors ${errors.length})`);
+    logger.info(
+      `[Purge] ${projectId} finalizado: ${JSON.stringify(deleted)} (errors ${errors.length})`,
+    );
     return { success: errors.length === 0, shardProjectId: projectId, deleted, errors };
   },
 );
@@ -173,18 +179,26 @@ export const deleteStoreDataItem = onCall<DeleteStoreDataItemParams>(
   { timeoutSeconds: 60, cors: true, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token?.['platformAdmin']) {
-      throw new HttpsError('permission-denied', 'Only platform super admins can delete store items.');
+      throw new HttpsError(
+        'permission-denied',
+        'Only platform super admins can delete store items.',
+      );
     }
     const { storeId, kind, reference } = request.data;
     if (!storeId || !reference || !kind || (kind !== 'client' && kind !== 'order')) {
-      throw new HttpsError('invalid-argument', 'storeId, kind (client|order) y reference son requeridos.');
+      throw new HttpsError(
+        'invalid-argument',
+        'storeId, kind (client|order) y reference son requeridos.',
+      );
     }
 
     const db = getFirestore();
     const storeSnap = await db.collection('stores').doc(storeId).get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
     const store = storeSnap.data() as Record<string, string | undefined>;
-    const projectId = String(store['runtimeProjectId'] || store['firebaseProjectId'] || store['projectId'] || '').trim();
+    const projectId = String(
+      store['runtimeProjectId'] || store['firebaseProjectId'] || store['projectId'] || '',
+    ).trim();
     const slug = String(store['slug'] || storeId);
     if (!projectId) throw new HttpsError('failed-precondition', 'Tienda sin proyecto (shard).');
 
@@ -230,6 +244,9 @@ export const deleteStoreDataItem = onCall<DeleteStoreDataItemParams>(
 
     await apiFetch(auth, targetName, { method: 'DELETE', quotaProject: projectId });
     logger.info(`[PurgeItem] ${projectId}: ${kind} '${ref}' eliminado (${slug}).`);
-    return { success: true, message: `${kind === 'client' ? 'Cliente' : 'Pedido'} '${ref}' eliminado.` };
+    return {
+      success: true,
+      message: `${kind === 'client' ? 'Cliente' : 'Pedido'} '${ref}' eliminado.`,
+    };
   },
 );

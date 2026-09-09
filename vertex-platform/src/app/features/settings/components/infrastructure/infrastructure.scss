@@ -705,7 +705,10 @@
 
 .account-card,
 .shard-card {
-  transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 
   &:hover {
     transform: translateY(-1px);

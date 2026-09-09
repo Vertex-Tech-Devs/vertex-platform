@@ -59,7 +59,8 @@ export const secretsClient = new SecretManagerServiceClient();
 export const DEFAULT_SANDBOX_PUBLIC_KEY =
   process.env.DEFAULT_SANDBOX_PUBLIC_KEY || 'TEST-a354ba2d-3a48-441b-8d83-0179ef8f14eb';
 export const DEFAULT_SANDBOX_ACCESS_TOKEN =
-  process.env.DEFAULT_SANDBOX_ACCESS_TOKEN || 'TEST-151675204666-090317-defaultsandboxsampletoken-123456';
+  process.env.DEFAULT_SANDBOX_ACCESS_TOKEN ||
+  'TEST-151675204666-090317-defaultsandboxsampletoken-123456';
 
 function isMissingSecretError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -243,7 +244,10 @@ export async function ensureShardSecurityPolicies(
       saList.push(`${res.projectNumber}-compute@developer.gserviceaccount.com`);
     }
   } catch (err) {
-    console.warn(`[ensureShardSecurityPolicies] Failed to fetch projectNumber for ${targetProjectId}:`, err);
+    console.warn(
+      `[ensureShardSecurityPolicies] Failed to fetch projectNumber for ${targetProjectId}:`,
+      err,
+    );
   }
 
   const serviceAccounts = Array.from(new Set(saList));
@@ -256,7 +260,10 @@ export async function ensureShardSecurityPolicies(
       { method: 'POST', body: {} },
     )) as { bindings: Array<{ role: string; members: string[] }>; etag: string };
   } catch (authErr) {
-    console.warn(`[ensureShardSecurityPolicies] Initial getIamPolicy failed, trying platform SA auth:`, authErr);
+    console.warn(
+      `[ensureShardSecurityPolicies] Initial getIamPolicy failed, trying platform SA auth:`,
+      authErr,
+    );
     const platformAuth = await getPlatformServiceAccountOAuthClient();
     activeAuth = platformAuth;
     policy = (await apiFetch(
@@ -301,7 +308,9 @@ export async function ensureShardSecurityPolicies(
       `https://cloudresourcemanager.googleapis.com/v3/projects/${targetProjectId}:setIamPolicy`,
       { method: 'POST', body: { policy } },
     );
-    console.info(`[ensureShardSecurityPolicies] Defensively granted IAM roles on ${targetProjectId}`);
+    console.info(
+      `[ensureShardSecurityPolicies] Defensively granted IAM roles on ${targetProjectId}`,
+    );
   }
 }
 
@@ -319,7 +328,9 @@ export async function apiFetch(
   const sleepBackoff = (i: number, msg: string) => {
     const jitter = Math.floor(Math.random() * 1000);
     const currentDelay = Math.min(delayMs + jitter, 45000);
-    console.warn(`[apiFetch] ${msg} Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`);
+    console.warn(
+      `[apiFetch] ${msg} Retrying attempt ${i + 1}/${maxAttempts} in ${currentDelay}ms...`,
+    );
     return new Promise((r) => setTimeout(r, currentDelay)).then(() => {
       delayMs = Math.min(delayMs * 2, 45000);
     });

@@ -1,6 +1,13 @@
 import { Component, signal, type OnDestroy, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { getFirestore, collection, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 interface PlatformAlert {
   key: string;
@@ -58,7 +65,9 @@ export class AlertsCenter implements OnDestroy {
     const f = this.filter();
     return this.alerts()
       .filter((a) => f === 'all' || a.status === f)
-      .sort((a, b) => (tsToDate(b.lastSeen)?.getTime() || 0) - (tsToDate(a.lastSeen)?.getTime() || 0));
+      .sort(
+        (a, b) => (tsToDate(b.lastSeen)?.getTime() || 0) - (tsToDate(a.lastSeen)?.getTime() || 0),
+      );
   });
 
   readonly openCount = computed(() => this.alerts().filter((a) => a.status === 'open').length);
@@ -120,12 +129,13 @@ export class AlertsCenter implements OnDestroy {
     }
   }
 
-
   tsDate(t?: unknown): Date | null {
     return tsToDate(t);
   }
   alertTone(sev: string): string {
-    return sev === 'critical' ? 'alert-tone alert-tone--critical' : 'alert-tone alert-tone--warning';
+    return sev === 'critical'
+      ? 'alert-tone alert-tone--critical'
+      : 'alert-tone alert-tone--warning';
   }
 
   ngOnDestroy(): void {

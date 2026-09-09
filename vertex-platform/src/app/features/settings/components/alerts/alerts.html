@@ -9,7 +9,9 @@
     </div>
     <div class="alerts-header__right">
       @if (openCount() > 0) {
-        <span class="alerts-open-badge">{{ openCount() }} abierta{{ openCount() === 1 ? '' : 's' }}</span>
+        <span class="alerts-open-badge"
+          >{{ openCount() }} abierta{{ openCount() === 1 ? '' : 's' }}</span
+        >
       }
     </div>
   </div>
@@ -22,9 +24,7 @@
         [class.is-active]="filter() === f"
         (click)="setFilter(f)"
       >
-        {{
-          f === 'open' ? 'Abiertas' : f === 'resolved' ? 'Resueltas' : 'Todas'
-        }}
+        {{ f === 'open' ? 'Abiertas' : f === 'resolved' ? 'Resueltas' : 'Todas' }}
       </button>
     }
   </div>
@@ -51,7 +51,6 @@
       </p>
     </div>
   } @else {
-
     <div class="alerts-list">
       @for (g of visibleGroups(); track g.label + '|' + g.kind) {
         <div class="alerts-group">
@@ -93,7 +92,12 @@
                 </div>
               </div>
               @if (a.link) {
-                <a class="alerts-item__link" [href]="a.link" target="_blank" rel="noopener noreferrer">
+                <a
+                  class="alerts-item__link"
+                  [href]="a.link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <i class="bi bi-box-arrow-up-right"></i>
                 </a>
               }

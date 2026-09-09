@@ -2,10 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getOwnerOAuthClient } from './helpers';
-import {
-  sanitizeSubdomainCandidate,
-  buildSubdomainSuggestions,
-} from './hosting-subdomain.utils';
+import { sanitizeSubdomainCandidate, buildSubdomainSuggestions } from './hosting-subdomain.utils';
 
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
 
@@ -99,9 +96,7 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     const storeSnap = await storeRef.get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
     const store = storeSnap.data() as Record<string, unknown>;
-    const projectId = String(
-      store['runtimeProjectId'] || store['firebaseProjectId'] || '',
-    ).trim();
+    const projectId = String(store['runtimeProjectId'] || store['firebaseProjectId'] || '').trim();
     const oldSiteId = String(store['runtimeSiteId'] || store['siteId'] || `vtx-${storeId}`).trim();
     if (!projectId) {
       throw new HttpsError('failed-precondition', 'La tienda no tiene proyecto de Hosting.');
@@ -137,7 +132,9 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       )}/releases?pageSize=1`;
       const relRes = await fetch(releasesUrl, { headers });
       if (relRes.ok) {
-        const relBody = (await relRes.json()) as { releases?: Array<{ version?: { name?: string } }> };
+        const relBody = (await relRes.json()) as {
+          releases?: Array<{ version?: { name?: string } }>;
+        };
         versionName = relBody.releases?.[0]?.version?.name || '';
       }
       if (versionName) {

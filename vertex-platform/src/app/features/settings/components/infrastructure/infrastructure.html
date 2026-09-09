@@ -39,14 +39,10 @@
           Audita las 7 APIs canónicas y corrige permisos IAM del orchestrator en todos los shards.
         </p>
       </div>
-      <button
-        type="button"
-        class="btn btn-primary"
-        (click)="healShards()"
-        [disabled]="isHealing()"
-      >
+      <button type="button" class="btn btn-primary" (click)="healShards()" [disabled]="isHealing()">
         @if (isHealing()) {
-          <span class="spinner-border spinner-border-sm me-1"></span> Auditando APIs y corrigiendo IAM…
+          <span class="spinner-border spinner-border-sm me-1"></span> Auditando APIs y corrigiendo
+          IAM…
         } @else {
           <i class="bi bi-shield-check me-1"></i> Sanear Shards de Plataforma
         }

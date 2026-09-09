@@ -21,7 +21,13 @@ export const sweepStoresOrdersReconcile = onSchedule(
     const db = getFirestore();
     const started = Date.now();
     const HARD_CAP_ORDERS = 400;
-    const summary = { stores: 0, cancelledAbandoned: 0, restoredLegacy: 0, clientsBackfilled: 0, errors: 0 };
+    const summary = {
+      stores: 0,
+      cancelledAbandoned: 0,
+      restoredLegacy: 0,
+      clientsBackfilled: 0,
+      errors: 0,
+    };
 
     const storesSnap = await db.collection('stores').limit(200).get();
     const auth = await getOwnerOAuthClient();
@@ -32,8 +38,11 @@ export const sweepStoresOrdersReconcile = onSchedule(
       return { [name]: { stringValue: String(value) } };
     };
 
-    const projectOf = (d: { firebaseProjectId?: string; runtimeProjectId?: string; projectId?: string }) =>
-      String(d.runtimeProjectId || d.firebaseProjectId || d.projectId || '').trim();
+    const projectOf = (d: {
+      firebaseProjectId?: string;
+      runtimeProjectId?: string;
+      projectId?: string;
+    }) => String(d.runtimeProjectId || d.firebaseProjectId || d.projectId || '').trim();
     // Proyectos "maestros" internos (no son shards de tienda): se omiten para no
     // generar ruido de 403 en cada ronda.
     const SKIP_PROJECTS = new Set([
@@ -67,17 +76,36 @@ export const sweepStoresOrdersReconcile = onSchedule(
       for (const order of orders) {
         if (processed >= HARD_CAP_ORDERS) break;
         const id = decodeURIComponent(order.name.split('/').pop() || '');
-        const f = (order.fields || {}) as Record<string, { stringValue?: string; booleanValue?: boolean; integerValue?: string; mapValue?: { fields?: Record<string, unknown> }; timestampValue?: string; arrayValue?: { values?: Array<{ mapValue?: { fields?: Record<string, unknown> } }> } }>;
+        const f = (order.fields || {}) as Record<
+          string,
+          {
+            stringValue?: string;
+            booleanValue?: boolean;
+            integerValue?: string;
+            mapValue?: { fields?: Record<string, unknown> };
+            timestampValue?: string;
+            arrayValue?: { values?: Array<{ mapValue?: { fields?: Record<string, unknown> } }> };
+          }
+        >;
         const status = f['status']?.stringValue || '';
         const isPaid = f['paymentStatus']?.stringValue === 'approved' || status === 'approved';
-        const paymentDetailsMap = (f['paymentDetails'] as {
-          mapValue?: { fields?: Record<string, { stringValue?: string }> };
-        } | undefined)?.mapValue?.fields;
+        const paymentDetailsMap = (
+          f['paymentDetails'] as
+            | {
+                mapValue?: { fields?: Record<string, { stringValue?: string }> };
+              }
+            | undefined
+        )?.mapValue?.fields;
         const paymentId = paymentDetailsMap?.['paymentId']?.stringValue;
         const stockDec = f['stockDecremented']?.booleanValue === true;
-        const createdRaw = f['createdAt']?.timestampValue || f['orderDate']?.timestampValue || f['checkoutStartedAt']?.timestampValue || '';
+        const createdRaw =
+          f['createdAt']?.timestampValue ||
+          f['orderDate']?.timestampValue ||
+          f['checkoutStartedAt']?.timestampValue ||
+          '';
         const createdMs = createdRaw ? new Date(createdRaw).getTime() : Date.now();
-        const expRaw = (f['mercadopago_expiration_date'] as { timestampValue?: string } | undefined)?.timestampValue;
+        const expRaw = (f['mercadopago_expiration_date'] as { timestampValue?: string } | undefined)
+          ?.timestampValue;
         const expiredMs = expRaw ? new Date(expRaw).getTime() : 0;
         const now = Date.now();
         const patchUrl = `${root}/orders/${encodeURIComponent(id)}`;
@@ -98,7 +126,10 @@ export const sweepStoresOrdersReconcile = onSchedule(
                     ...docFields('isPaid', false),
                     ...docFields('reconciledBy', 'sweepStoresOrdersReconcile'),
                     ...docFields('reconciledAt', new Date().toISOString()),
-                    ...docFields('notes', 'Orden abandonada (pago vencido). Cancelada automáticamente por reconciliación.'),
+                    ...docFields(
+                      'notes',
+                      'Orden abandonada (pago vencido). Cancelada automáticamente por reconciliación.',
+                    ),
                   },
                 },
               });
@@ -114,28 +145,40 @@ export const sweepStoresOrdersReconcile = onSchedule(
         }
 
         // 2) Fantasma legacy con stock
-        if (status === 'processing' && stockDec && !paymentId && !isPaid && now - createdMs > 24 * 60 * 60 * 1000) {
+        if (
+          status === 'processing' &&
+          stockDec &&
+          !paymentId &&
+          !isPaid &&
+          now - createdMs > 24 * 60 * 60 * 1000
+        ) {
           try {
             type ItFields = { stringValue?: string; integerValue?: string };
             type ItemDoc = { mapValue?: { fields?: Record<string, ItFields> } };
-            const items = ((f['items'] as { arrayValue?: { values?: ItemDoc[] } } | undefined)?.arrayValue?.values || [])
-              .map((it) => {
-                const fl = it.mapValue?.fields || {};
-                const qty = fl['quantity'];
-                return {
-                  productId: fl['productId']?.stringValue || '',
-                  variantId: fl['variantId']?.stringValue || 'default',
-                  qty: Number(qty?.stringValue ?? qty?.integerValue ?? 0),
-                };
-              });
+            const items = (
+              (f['items'] as { arrayValue?: { values?: ItemDoc[] } } | undefined)?.arrayValue
+                ?.values || []
+            ).map((it) => {
+              const fl = it.mapValue?.fields || {};
+              const qty = fl['quantity'];
+              return {
+                productId: fl['productId']?.stringValue || '',
+                variantId: fl['variantId']?.stringValue || 'default',
+                qty: Number(qty?.stringValue ?? qty?.integerValue ?? 0),
+              };
+            });
             let restoredUnits = 0;
             for (const it of items) {
               if (!it.productId || it.qty <= 0) continue;
               const prodUrl = `${root}/products/${encodeURIComponent(it.productId)}`;
               const varUrl = `${root}/products/${encodeURIComponent(it.productId)}/variants/${encodeURIComponent(it.variantId)}`;
               try {
-                const v = (await apiFetch(auth, varUrl, { quotaProject: projectId })) as { fields?: Record<string, unknown> };
-                const cur = Number(((v.fields || {})['stock'] as { integerValue?: string })?.integerValue || 0);
+                const v = (await apiFetch(auth, varUrl, { quotaProject: projectId })) as {
+                  fields?: Record<string, unknown>;
+                };
+                const cur = Number(
+                  ((v.fields || {})['stock'] as { integerValue?: string })?.integerValue || 0,
+                );
                 await apiFetch(auth, varUrl, {
                   method: 'PATCH',
                   quotaProject: projectId,
@@ -147,8 +190,12 @@ export const sweepStoresOrdersReconcile = onSchedule(
                 if (!/404|not found/i.test(msg)) throw err;
               }
               try {
-                const p = (await apiFetch(auth, prodUrl, { quotaProject: projectId })) as { fields?: Record<string, unknown> };
-                const cur = Number(((p.fields || {})['totalStock'] as { integerValue?: string })?.integerValue || 0);
+                const p = (await apiFetch(auth, prodUrl, { quotaProject: projectId })) as {
+                  fields?: Record<string, unknown>;
+                };
+                const cur = Number(
+                  ((p.fields || {})['totalStock'] as { integerValue?: string })?.integerValue || 0,
+                );
                 await apiFetch(auth, prodUrl, {
                   method: 'PATCH',
                   quotaProject: projectId,
@@ -170,13 +217,18 @@ export const sweepStoresOrdersReconcile = onSchedule(
                   ...docFields('stockDecremented', false),
                   ...docFields('reconciledBy', 'sweepStoresOrdersReconcile'),
                   ...docFields('reconciledAt', new Date().toISOString()),
-                  ...docFields('notes', `Venta fantasma legacy: stock restituido (${restoredUnits} u.) y cancelada.`),
+                  ...docFields(
+                    'notes',
+                    `Venta fantasma legacy: stock restituido (${restoredUnits} u.) y cancelada.`,
+                  ),
                 },
               },
             });
             summary.restoredLegacy += 1;
             processed += 1;
-            logger.info(`[Reconcile] ${slug} ${id}: legacy restaurado (${restoredUnits} u.) → CANCELLED_UNPAID`);
+            logger.info(
+              `[Reconcile] ${slug} ${id}: legacy restaurado (${restoredUnits} u.) → CANCELLED_UNPAID`,
+            );
           } catch (err) {
             logger.warn(`[Reconcile] Error restaurando ${slug}/${id}:`, err);
             summary.errors += 1;
@@ -207,14 +259,19 @@ export const sweepStoresOrdersReconcile = onSchedule(
                         ...docFields('firstOrderDate', new Date(createdMs).toISOString()),
                         ...docFields('lastOrderDate', new Date(createdMs).toISOString()),
                         ...docFields('numberOfOrders', 1),
-                        ...docFields('totalSpent', Number(f['total']?.integerValue || f['total']?.stringValue || 0)),
+                        ...docFields(
+                          'totalSpent',
+                          Number(f['total']?.integerValue || f['total']?.stringValue || 0),
+                        ),
                         ...docFields('reconciledBy', 'sweepStoresOrdersReconcile'),
                       },
                     },
                   });
                   summary.clientsBackfilled += 1;
                   processed += 1;
-                  logger.info(`[Reconcile] ${slug}: cliente histórico creado ${email} (orden ${id})`);
+                  logger.info(
+                    `[Reconcile] ${slug}: cliente histórico creado ${email} (orden ${id})`,
+                  );
                 } catch (err2) {
                   logger.warn(`[Reconcile] Error backfill cliente ${email} en ${slug}:`, err2);
                   summary.errors += 1;
@@ -229,33 +286,42 @@ export const sweepStoresOrdersReconcile = onSchedule(
       }
     }
 
-    await db.collection('ops').doc('reconcileRuns').set(
-      {
-        ranAt: Timestamp.now(),
-        durationMs: Date.now() - started,
-        summary,
-      },
-      { merge: true },
-    );
+    await db
+      .collection('ops')
+      .doc('reconcileRuns')
+      .set(
+        {
+          ranAt: Timestamp.now(),
+          durationMs: Date.now() - started,
+          summary,
+        },
+        { merge: true },
+      );
     logger.info(`[Reconcile] Ronda finalizada: ${JSON.stringify(summary)}`);
 
     // Alerta si la ronda tuvo que corregir algo (deduplicada contra la última ronda).
     if (summary.cancelledAbandoned + summary.restoredLegacy + summary.clientsBackfilled > 0) {
-      await db.collection('alerts').doc('reconcile-actions').set({
-        severity: 'warning',
-        kind: 'reconcile_actions',
-        status: 'open',
-        title: 'Reconciliación de órdenes con correcciones',
-        message:
-          `Órdenes abandonadas canceladas: ${summary.cancelledAbandoned}. ` +
-          `Fantasma restaurados (stock devuelto): ${summary.restoredLegacy}. ` +
-          `Clientes históricos creados: ${summary.clientsBackfilled}.`,
-        count: summary.cancelledAbandoned + summary.restoredLegacy + summary.clientsBackfilled,
-        firstSeen: Timestamp.now(),
-        lastSeen: Timestamp.now(),
-        resolvedAt: null,
-        link: `https://console.firebase.google.com/project/vertex-platform-app/firestore/data/~2Fops~2FreconcileRuns`,
-      }, { merge: true });
+      await db
+        .collection('alerts')
+        .doc('reconcile-actions')
+        .set(
+          {
+            severity: 'warning',
+            kind: 'reconcile_actions',
+            status: 'open',
+            title: 'Reconciliación de órdenes con correcciones',
+            message:
+              `Órdenes abandonadas canceladas: ${summary.cancelledAbandoned}. ` +
+              `Fantasma restaurados (stock devuelto): ${summary.restoredLegacy}. ` +
+              `Clientes históricos creados: ${summary.clientsBackfilled}.`,
+            count: summary.cancelledAbandoned + summary.restoredLegacy + summary.clientsBackfilled,
+            firstSeen: Timestamp.now(),
+            lastSeen: Timestamp.now(),
+            resolvedAt: null,
+            link: `https://console.firebase.google.com/project/vertex-platform-app/firestore/data/~2Fops~2FreconcileRuns`,
+          },
+          { merge: true },
+        );
     }
   },
 );

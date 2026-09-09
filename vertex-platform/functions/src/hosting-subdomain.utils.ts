@@ -8,10 +8,27 @@
 /** Normaliza a base ASCII: tildes → base, ñ → n, diéresis → vocal. */
 function stripDiacritics(value: string): string {
   const map: Record<string, string> = {
-    á: 'a', é: 'e', í: 'i', ó: 'o', ú: 'u', ü: 'u',
-    à: 'a', è: 'e', ì: 'i', ò: 'o', ù: 'u',
-    â: 'a', ê: 'e', î: 'i', ô: 'o', û: 'u',
-    ä: 'a', ë: 'e', ï: 'i', ö: 'o', ÿ: 'y',
+    á: 'a',
+    é: 'e',
+    í: 'i',
+    ó: 'o',
+    ú: 'u',
+    ü: 'u',
+    à: 'a',
+    è: 'e',
+    ì: 'i',
+    ò: 'o',
+    ù: 'u',
+    â: 'a',
+    ê: 'e',
+    î: 'i',
+    ô: 'o',
+    û: 'u',
+    ä: 'a',
+    ë: 'e',
+    ï: 'i',
+    ö: 'o',
+    ÿ: 'y',
     ñ: 'n',
     ç: 'c',
   };
@@ -22,7 +39,11 @@ function stripDiacritics(value: string): string {
 }
 
 export function sanitizeSubdomainCandidate(raw: string): string {
-  const lowered = stripDiacritics(String(raw || '').trim().toLowerCase());
+  const lowered = stripDiacritics(
+    String(raw || '')
+      .trim()
+      .toLowerCase(),
+  );
   // espacios/underscores/puntos -> guiones
   const spaced = lowered.replace(/[\s_.]+/g, '-');
   // solo a-z0-9 y guiones

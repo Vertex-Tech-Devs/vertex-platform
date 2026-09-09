@@ -53,10 +53,8 @@ export class StoreDetailPaymentsService {
     'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended'
   >('active');
 
-
   readonly showSimulationTools = signal(false);
   readonly isSimulatingExpiration = signal(false);
-
 
   async loadPaymentConfig(storeId: string): Promise<void> {
     this.isLoadingPayment.set(true);
@@ -80,7 +78,7 @@ export class StoreDetailPaymentsService {
               : typeof mp.sandbox === 'boolean'
                 ? mp.sandbox
                 : (mp.accessTokenSecret || '').includes('TEST-') ||
-                    (mp.publicKey || '').startsWith('TEST-'),
+                  (mp.publicKey || '').startsWith('TEST-'),
         );
         this.mpValidationStatus.set(mp.validationStatus || '');
         this.mpAccountEmail.set(mp.accountEmail || '');
@@ -302,5 +300,4 @@ export class StoreDetailPaymentsService {
       this.isSimulatingExpiration.set(false);
     }
   }
-
 }

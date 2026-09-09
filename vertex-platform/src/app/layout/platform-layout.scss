@@ -380,7 +380,10 @@
   color: var(--platform-text-secondary);
   font-size: 1rem;
   text-decoration: none;
-  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
 
   &:hover {
     color: var(--platform-accent);
@@ -415,7 +418,10 @@
 
 .nav-item {
   border-radius: 0.75rem;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 
   &:hover {
     transform: translateX(2px);

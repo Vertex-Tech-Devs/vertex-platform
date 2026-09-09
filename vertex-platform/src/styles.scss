@@ -400,8 +400,7 @@ html[data-theme='light'] {
   --platform-card-border: hsl(220, 18%, 82%);
   --platform-card-border-hover: hsla(244, 75%, 60%, 0.4);
   --platform-card-radius: 18px;
-  --platform-shadow-card: 0 8px 28px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --platform-shadow-card: 0 8px 28px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
   --platform-text-primary: hsl(220, 28%, 10%);
   --platform-text-secondary: hsl(220, 18%, 30%);

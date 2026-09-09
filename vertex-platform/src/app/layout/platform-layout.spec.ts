@@ -10,19 +10,23 @@ vi.mock('firebase/firestore', () => {
   return {
     getFirestore: vi.fn(() => ({})),
     collection: vi.fn(() => ({})),
-    onSnapshot: vi.fn((_col: unknown, next: (snap: { forEach(cb: (d: { data(): { status?: string } }) => void): void }) => void) => {
-      next({
-        forEach: (cb) => {
-          cb({ data: () => ({ status: 'open' }) });
-          cb({ data: () => ({ status: 'resolved' }) });
-        },
-      });
-      return unsubSpy;
-    }),
+    onSnapshot: vi.fn(
+      (
+        _col: unknown,
+        next: (snap: { forEach(cb: (d: { data(): { status?: string } }) => void): void }) => void,
+      ) => {
+        next({
+          forEach: (cb) => {
+            cb({ data: () => ({ status: 'open' }) });
+            cb({ data: () => ({ status: 'resolved' }) });
+          },
+        });
+        return unsubSpy;
+      },
+    ),
     __unsubSpy: unsubSpy,
   };
 });
-
 
 describe('PlatformLayout', () => {
   let fixture: ComponentFixture<PlatformLayout>;
@@ -54,8 +58,6 @@ describe('PlatformLayout', () => {
   it('should create layout component', () => {
     expect(component).toBeTruthy();
   });
-
-
 
   it('cuenta alertas abiertas desde el snapshot de firestore', () => {
     expect(component.openAlertsCount()).toBe(1);

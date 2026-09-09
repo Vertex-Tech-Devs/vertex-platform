@@ -244,7 +244,9 @@ export class StoresService {
 
   /** Normaliza un dominio ingresado por el usuario (protocolo/www/puertos/paths). */
   private sanitizeDomain(raw: string): string {
-    let d = String(raw ?? '').trim().toLowerCase();
+    let d = String(raw ?? '')
+      .trim()
+      .toLowerCase();
     d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
     d = (d.split(/[/?#]/)[0] || d).trim();
     d = d.replace(/:\d{1,5}$/, '');
@@ -305,10 +307,10 @@ export class StoresService {
     sanitized: string;
     suggestions?: string[];
   }> {
-    const fn = httpsCallable<{ candidate: string }, { available: boolean; sanitized: string; suggestions?: string[] }>(
-      this.fns,
-      'checkSubdomainAvailability',
-    );
+    const fn = httpsCallable<
+      { candidate: string },
+      { available: boolean; sanitized: string; suggestions?: string[] }
+    >(this.fns, 'checkSubdomainAvailability');
     const result = await fn({ candidate });
     return result.data;
   }
@@ -318,10 +320,10 @@ export class StoresService {
     storeId: string,
     newSubdomain: string,
   ): Promise<{ success: boolean; subdomain: string; url?: string }> {
-    const fn = httpsCallable<{ storeId: string; newSubdomain: string }, { success: boolean; subdomain: string; url?: string }>(
-      this.fns,
-      'updateStoreSubdomain',
-    );
+    const fn = httpsCallable<
+      { storeId: string; newSubdomain: string },
+      { success: boolean; subdomain: string; url?: string }
+    >(this.fns, 'updateStoreSubdomain');
     const result = await fn({ storeId, newSubdomain });
     return result.data;
   }
@@ -329,7 +331,12 @@ export class StoresService {
   /** Purga super-admin de datos de prueba (purgeStoreData callable). */
   async purgeStoreData(
     storeId: string,
-    opts: { deleteClients?: boolean; deleteOrders?: boolean; deleteCatalog?: boolean; deleteContent?: boolean },
+    opts: {
+      deleteClients?: boolean;
+      deleteOrders?: boolean;
+      deleteCatalog?: boolean;
+      deleteContent?: boolean;
+    },
   ): Promise<PurgeStoreDataResult> {
     const fn = httpsCallable<{ storeId: string } & typeof opts, PurgeStoreDataResult>(
       this.fns,
@@ -624,7 +631,8 @@ export interface MpPingResponse {
   status?: number;
 }
 
-export interface PlatformBillingConfig {  pricing: {
+export interface PlatformBillingConfig {
+  pricing: {
     name: string;
     description: string;
     monthlyPrice: number;

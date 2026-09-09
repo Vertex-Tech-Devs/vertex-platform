@@ -1437,7 +1437,9 @@ export const processRuntimeCleanupTask = onDocumentCreated(
  * paths, puertos y normaliza a minúsculas. Permite ccTLDs (.com.ar) y subdominios.
  */
 function sanitizeDomainName(raw: string): string {
-  let d = String(raw ?? '').trim().toLowerCase();
+  let d = String(raw ?? '')
+    .trim()
+    .toLowerCase();
   d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//i, ''); // http:// https://
   d = (d.split(/[/?#]/)[0] || d).trim(); // quitar path/query/hash
   d = d.replace(/:\d{1,5}$/, ''); // puerto
@@ -1461,9 +1463,7 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
     const domain = sanitizeDomainName(rawDomain);
     if (
       !domain ||
-      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i.test(
-        domain,
-      )
+      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i.test(domain)
     ) {
       throw new HttpsError(
         'invalid-argument',
@@ -1549,7 +1549,9 @@ export const connectDomain = onCall<{ storeId: string; domain: string }>(
       if (res.status === 409) {
         // Idempotencia: el dominio ya está conectado (409/ALREADY_EXISTS). No es un
         // error: continuamos para devolver los registros DNS vigentes (200 OK).
-        console.warn(`[connectDomain] Domain already connected (409) on ${domain} — idempotent OK.`);
+        console.warn(
+          `[connectDomain] Domain already connected (409) on ${domain} — idempotent OK.`,
+        );
       } else {
         throw new HttpsError('internal', 'Failed to connect domain.');
       }
@@ -1842,8 +1844,6 @@ export const getActiveStores = onCall(
     };
   },
 );
-
-
 
 /** Serializa un payload anidado a `fields` de Firestore REST (valores string/boolean). */
 function toFirestoreFieldsForPayments(payload: Record<string, any>): Record<string, any> {

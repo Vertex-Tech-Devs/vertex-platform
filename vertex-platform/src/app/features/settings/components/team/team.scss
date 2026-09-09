@@ -574,7 +574,9 @@
 .admin-item {
   border-radius: 0.9rem;
   border: 1px solid transparent;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     border-color: var(--platform-card-border);

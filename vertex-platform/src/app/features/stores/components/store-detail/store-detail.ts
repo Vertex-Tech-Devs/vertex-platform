@@ -11,7 +11,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '@core/utils/error.util';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { DatePipe,  } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
 import { AppSpinner } from '../../../../shared/components/app-spinner/app-spinner';
@@ -122,7 +122,7 @@ export class StoreDetail implements OnInit {
   readonly saveError = this.orchestrationService.saveError;
 
   readonly showDeleteConfirm = signal(false);
- readonly showSleepConfirm = signal(false);
+  readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
   readonly showSeedConfirm = signal(false);
   readonly logoPreviewError = signal(false);
@@ -290,15 +290,7 @@ export class StoreDetail implements OnInit {
     }
   }
 
-  setTab(
-    tab:
-      | 'orquestacion'
-      | 'equipo'
-      | 'dominios'
-      | 'historial'
-      | 'pagos'
-      | 'monitor',
-  ): void {
+  setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos' | 'monitor'): void {
     this.activeTab.set(tab);
     if (tab === 'monitor') {
       void this.loadStoreAlerts();
@@ -350,11 +342,18 @@ export class StoreDetail implements OnInit {
   }
 
   isStaffMemberEmail(email: string): boolean {
-    const e = String(email || '').trim().toLowerCase();
+    const e = String(email || '')
+      .trim()
+      .toLowerCase();
     if (!e) {
       return false;
     }
-    return this.staff().some((m) => String(m.email || '').trim().toLowerCase() === e);
+    return this.staff().some(
+      (m) =>
+        String(m.email || '')
+          .trim()
+          .toLowerCase() === e,
+    );
   }
 
   async resendInvite(invite: PendingInvitation): Promise<void> {
@@ -396,14 +395,16 @@ export class StoreDetail implements OnInit {
   readonly logsSinceMinutes = signal(60);
   readonly logsLoading = signal(false);
   readonly logsError = signal('');
-  readonly logsEntries = signal<Array<{
-    timestamp: string;
-    severity: string;
-    function?: string;
-    message: string;
-    raw?: string;
-    project?: string;
-  }>>([]);
+  readonly logsEntries = signal<
+    Array<{
+      timestamp: string;
+      severity: string;
+      function?: string;
+      message: string;
+      raw?: string;
+      project?: string;
+    }>
+  >([]);
   readonly logsProject = signal('');
   readonly logsLoadedAt = signal<Date | null>(null);
   readonly storeAlerts = signal<
@@ -482,9 +483,7 @@ export class StoreDetail implements OnInit {
       this.logsProject.set(res.project || '');
       this.logsLoadedAt.set(new Date());
     } catch (err) {
-      this.logsError.set(
-        errorMessage(err, 'No se pudieron cargar los logs de la tienda.'),
-      );
+      this.logsError.set(errorMessage(err, 'No se pudieron cargar los logs de la tienda.'));
       this.logsEntries.set([]);
     } finally {
       this.logsLoading.set(false);

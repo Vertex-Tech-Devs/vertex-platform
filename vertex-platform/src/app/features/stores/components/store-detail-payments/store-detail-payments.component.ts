@@ -106,7 +106,6 @@ export class StoreDetailPayments {
     );
   }
 
-
   readonly mpMode = computed<'sandbox' | 'test' | 'prod'>(() => {
     const raw = this.mpAccessToken().trim() || this.mpTokenMasked() || '';
     if (raw.startsWith('APP_USR-')) {
@@ -154,7 +153,10 @@ export class StoreDetailPayments {
     if (!this.saasMonthly()) {
       return 0;
     }
-    return Math.max(0, Math.round((this.saasMonthly() * 12 - this.saasAnnual()) / this.saasMonthly()));
+    return Math.max(
+      0,
+      Math.round((this.saasMonthly() * 12 - this.saasAnnual()) / this.saasMonthly()),
+    );
   });
   /** Estados en los que NO corresponde generar un cobro. */
   readonly saasChargeBlocked = computed(() => {
@@ -168,7 +170,14 @@ export class StoreDetailPayments {
     icon: string;
     tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral';
   }>(() => {
-    const map: Record<string, { label: string; icon: string; tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral' }> = {
+    const map: Record<
+      string,
+      {
+        label: string;
+        icon: string;
+        tone: 'success' | 'warning' | 'danger' | 'primary' | 'neutral';
+      }
+    > = {
       active: { label: 'Activa', icon: 'check-circle-fill', tone: 'success' },
       complimentary: { label: 'Cortesía / Bonificada', icon: 'gift-fill', tone: 'primary' },
       trial: { label: 'Período de prueba', icon: 'stars', tone: 'warning' },
@@ -238,7 +247,6 @@ export class StoreDetailPayments {
     this.copiedPublicLink.set(true);
     setTimeout(() => this.copiedPublicLink.set(false), 2500);
   }
-
 
   copyWebhookUrl(storeId: string): Promise<void> {
     const isDev =

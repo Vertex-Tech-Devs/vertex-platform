@@ -1,11 +1,4 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  computed,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, signal } from '@angular/core';
 import { errorMessage } from '@core/utils/error.util';
 import { FormsModule } from '@angular/forms';
 import { StoresService } from '@core/services/stores';
@@ -108,9 +101,7 @@ export class StoreDetailDomains {
     this.subResult.set('');
     try {
       const res = await this.storesService.updateStoreSubdomain(s.id, this.subInput());
-      this.subResult.set(
-        `Dirección actualizada: https://${res.subdomain}.web.app`,
-      );
+      this.subResult.set(`Dirección actualizada: https://${res.subdomain}.web.app`);
       this.subModalOpen.set(false);
       this.subAvailable.set(false);
       this.subTaken.set(false);
@@ -139,7 +130,6 @@ export class StoreDetailDomains {
   readonly isConnectingDomain = this.domainsService.isConnectingDomain;
   readonly dnsVerificationError = this.domainsService.dnsVerificationError;
   readonly dnsVerificationSuccess = this.domainsService.dnsVerificationSuccess;
-
 
   readonly hasDomainOwnership = signal(false);
   readonly hasDnsAccess = signal(false);
@@ -183,7 +173,6 @@ export class StoreDetailDomains {
     return uri ? this.staffService.copyToClipboard(uri) : Promise.resolve();
   }
 
-
   verifyDNS(silent = false): Promise<unknown> {
     const s = this.store();
     return s
@@ -196,7 +185,6 @@ export class StoreDetailDomains {
     return s ? this.domainsService.connectDomain(s.id, this.domainInput()) : Promise.resolve();
   }
 
-
   async loadDomainStatus(): Promise<void> {
     const s = this.store();
     if (!s?.customDomain) {
@@ -206,13 +194,18 @@ export class StoreDetailDomains {
     this.domainCheckError.set('');
     try {
       const result = await this.storesService.getDomainStatus(s.id, s.customDomain);
-      this.domainBackendStatus.set((result.status as 'ACTIVE' | 'VALIDATING' | 'PENDING_DNS') || '');
+      this.domainBackendStatus.set(
+        (result.status as 'ACTIVE' | 'VALIDATING' | 'PENDING_DNS') || '',
+      );
       if (result.status === 'ACTIVE') {
         await this.verifyDNS(true);
       }
     } catch (err) {
       this.domainCheckError.set(
-        errorMessage(err, 'No se pudo consultar el estado del dominio. Reintentá en unos segundos.'),
+        errorMessage(
+          err,
+          'No se pudo consultar el estado del dominio. Reintentá en unos segundos.',
+        ),
       );
     } finally {
       this.domainRefreshLoading.set(false);

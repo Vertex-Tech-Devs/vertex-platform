@@ -654,7 +654,10 @@
   border-radius: 1.1rem;
   border: 1px solid var(--platform-card-border);
   background: var(--platform-card-bg);
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -663,7 +666,9 @@
 
   &--featured {
     border-color: var(--platform-card-border-hover);
-    box-shadow: 0 0 0 1px var(--platform-card-border-hover), var(--platform-shadow-1);
+    box-shadow:
+      0 0 0 1px var(--platform-card-border-hover),
+      var(--platform-shadow-1);
   }
 
   .pricing-plan-card__amount {
