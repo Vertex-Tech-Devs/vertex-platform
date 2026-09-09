@@ -534,71 +534,6 @@
               </div>
 
               <div class="ops-card__grid">
-                <div class="ops-group-title">Mantenimiento</div>
-                <!-- Seed Control Card -->
-                @if (store()!.status === 'active') {
-                  <div
-                    class="op-control-card"
-                    [class.op-control-card--active]="seedActionState().status === 'running'"
-                  >
-                    <div class="op-control-card__top">
-                      <div class="op-control-card__icon text-info">
-                        <i class="bi bi-database-fill-gear"></i>
-                      </div>
-                      <div class="op-control-card__meta">
-                        <h4 class="op-control-card__title">Cargar Datos de Ejemplo</h4>
-                        <span class="op-control-card__badge badge--info">Catálogo Demo</span>
-                      </div>
-                    </div>
-
-                    <div class="op-control-card__body">
-                      <p class="op-control-card__desc">
-                        Generá automáticamente un catálogo completo de productos, categorías e
-                        imágenes de muestra para probar la tienda.
-                      </p>
-
-                      @if (seedActionState().status !== 'idle') {
-                        <div
-                          class="action-progress action-progress--{{ seedActionState().status }}"
-                        >
-                          <div class="action-progress__bar">
-                            <div
-                              class="action-progress__fill"
-                              [style.width.%]="seedActionState().progress"
-                            ></div>
-                          </div>
-                          <div class="action-progress__info">
-                            @if (seedActionState().status === 'running') {
-                              <span class="spinner-sm"></span>
-                            } @else if (seedActionState().status === 'success') {
-                              <i class="bi bi-check-circle-fill text-success"></i>
-                            } @else if (seedActionState().status === 'error') {
-                              <i class="bi bi-x-circle-fill text-danger"></i>
-                            }
-                            <span class="action-progress__text">{{
-                              seedActionState().message
-                            }}</span>
-                          </div>
-                        </div>
-                      }
-                    </div>
-
-                    <div class="op-control-card__footer">
-                      <button
-                        class="btn btn-outline-info op-control-card__btn"
-                        [disabled]="isSeeding() || seedActionState().status === 'running'"
-                        (click)="openSeedConfirm()"
-                      >
-                        @if (isSeeding()) {
-                          <app-spinner size="sm" label="Cargando…" />
-                        } @else {
-                          <i class="bi bi-database-add me-1"></i> Cargar Catálogo
-                        }
-                      </button>
-                    </div>
-                  </div>
-                }
-
                 <!-- Sleep / Activate Control Card -->
                 <div class="op-control-card">
                   <div class="op-control-card__top">
@@ -673,7 +608,6 @@
                   </div>
                 </div>
 
-                <div class="ops-group-title">Riesgo (Super Admin)</div>
                 <!-- Danger Zone Control Card -->
                 @if (auth.isSuperAdmin()) {
                   <div class="op-control-card op-control-card--danger">
@@ -1412,18 +1346,6 @@
         </div>
       </div>
     </div>
-  }
-
-  <!-- Seed modal with 21 business verticals and multimodal provisioning -->
-  @if (showSeedConfirm() && store()) {
-    <app-seed-store-modal
-      [storeId]="store()!.id"
-      [storeName]="store()!.name"
-      [currentVerticalId]="store()!.verticalId || 'TECNOLOGIA_ELECTRONICA'"
-      [isSeeding]="isSeeding()"
-      (close)="showSeedConfirm.set(false)"
-      (seedConfirmed)="handleSeedConfirm($event)"
-    />
   }
 } @else if (isStoreLoading()) {
   <!-- Full-Page Detail Skeleton Wireframe -->

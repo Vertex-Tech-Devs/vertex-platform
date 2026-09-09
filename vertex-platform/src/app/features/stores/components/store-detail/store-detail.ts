@@ -33,7 +33,6 @@ import {
   type ActionProgressState,
   IDLE_STATE,
 } from './services/store-detail.util';
-import { SeedStoreModal, type SeedPayload } from '../seed-store-modal/seed-store-modal';
 import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains.component';
 import { StoreDetailPayments } from '../store-detail-payments/store-detail-payments.component';
 import { StoreDetailPaymentsService } from '../../services/store-detail-payments.service';
@@ -49,7 +48,6 @@ import { StoreDetailPaymentsService } from '../../services/store-detail-payments
     FormsModule,
     ReactiveFormsModule,
     AppSpinner,
-    SeedStoreModal,
     FormatLabelPipe,
   ],
   templateUrl: './store-detail.html',
@@ -124,7 +122,6 @@ export class StoreDetail implements OnInit {
   readonly showDeleteConfirm = signal(false);
   readonly showSleepConfirm = signal(false);
   readonly showEditModal = signal(false);
-  readonly showSeedConfirm = signal(false);
   readonly logoPreviewError = signal(false);
 
   readonly localDeployError = this.orchestrationService.localDeployError;
@@ -137,7 +134,6 @@ export class StoreDetail implements OnInit {
     this.orchestrationService.computeDeployActionState(this.store()),
   );
 
-  readonly seedActionState = signal<ActionProgressState>(IDLE_STATE);
   readonly suspendActionState = signal<ActionProgressState>(IDLE_STATE);
   readonly domainActionState = signal<ActionProgressState>(IDLE_STATE);
   readonly retryActionState = signal<ActionProgressState>(IDLE_STATE);
@@ -576,24 +572,6 @@ export class StoreDetail implements OnInit {
     if (s && (s.versionUpdateStatus === 'updating' || s.redeployStatus === 'deploying')) {
       void this.storesService.resetStoreDeployStatus(s.id);
     }
-  }
-
-  openSeedConfirm(): void {
-    this.showSeedConfirm.set(true);
-  }
-
-  async handleSeedConfirm(p: SeedPayload): Promise<void> {
-    const id = this.store()?.id;
-    if (!id) {
-      return;
-    }
-    this.showSeedConfirm.set(false);
-    await this.orchestrationService.seedData(
-      id,
-      p.includeMockData,
-      p.provisioningMode,
-      p.verticalId,
-    );
   }
 
   retry(): Promise<void> {
