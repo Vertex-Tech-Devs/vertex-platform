@@ -4,6 +4,9 @@
 
 .page-container {
   max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .page-top {
@@ -192,6 +195,13 @@
       0 0 0 3px hsla(244, 75%, 64%, 0.15),
       0 0 16px hsla(199, 89%, 48%, 0.1);
   }
+}
+
+.filter-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .filter-select {
@@ -581,9 +591,19 @@
   border-radius: 8px;
 }
 
+.skeleton--avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
 .skeleton--title {
-  height: 1.25rem;
-  width: 50%;
+  height: 1.15rem;
+  width: 60%;
+}
+.skeleton--slug {
+  height: 0.75rem;
+  width: 40%;
 }
 .skeleton--badge {
   height: 1.15rem;
@@ -591,12 +611,17 @@
   border-radius: 12px;
 }
 .skeleton--url {
-  height: 0.9rem;
-  width: 75%;
+  height: 0.85rem;
+  width: 70%;
 }
 .skeleton--meta {
   height: 0.85rem;
-  width: 45%;
+  width: 50%;
+}
+.skeleton--tag {
+  height: 1.35rem;
+  width: 95px;
+  border-radius: 6px;
 }
 
 @keyframes skeleton-shimmer {
@@ -768,6 +793,12 @@
 
   .stores-toolbar,
   .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-controls {
+    width: 100%;
     flex-direction: column;
     align-items: stretch;
   }

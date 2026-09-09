@@ -87,7 +87,7 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
             (ngModelChange)="searchQuery.set($event)"
           />
         </div>
-        <div class="filter-controls" style="display: flex; gap: 1rem;">
+        <div class="filter-controls">
           <select
             class="filter-select"
             [ngModel]="statusFilter()"
@@ -114,11 +114,23 @@ const STATUS_LABELS: Record<StoreStatus, string> = {
           @for (s of [1, 2, 3, 4, 5, 6]; track s) {
             <div class="store-card store-card--skeleton">
               <div class="store-card__header">
-                <div class="skeleton skeleton--title"></div>
+                <div class="skeleton skeleton--avatar"></div>
+                <div class="store-card__title-wrap" style="flex: 1;">
+                  <div class="skeleton skeleton--title"></div>
+                  <div class="skeleton skeleton--slug mt-1"></div>
+                </div>
                 <div class="skeleton skeleton--badge"></div>
               </div>
-              <div class="skeleton skeleton--url"></div>
-              <div class="skeleton skeleton--meta"></div>
+              <div class="store-card__details">
+                <div class="skeleton skeleton--url"></div>
+                <div class="skeleton skeleton--meta"></div>
+              </div>
+              <div class="store-card__footer">
+                <div class="store-card__tags">
+                  <div class="skeleton skeleton--tag"></div>
+                  <div class="skeleton skeleton--tag" style="width: 80px;"></div>
+                </div>
+              </div>
             </div>
           }
         </div>

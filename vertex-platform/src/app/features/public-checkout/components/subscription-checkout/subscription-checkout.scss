@@ -547,19 +547,83 @@
   }
 }
 
-/* Loading & Error */
-.loading-state {
-  text-align: center;
-  padding: 5rem 0;
+/* Skeleton Loading State */
+.checkout-grid--skeleton {
+  pointer-events: none;
 
-  .spinner {
-    width: 44px;
-    height: 44px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #6366f1;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 1.5rem auto;
+  .store-badge-card--skeleton {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .cycle-tab--skeleton,
+  .features-card--skeleton,
+  .order-summary-card--skeleton {
+    pointer-events: none;
+  }
+
+  .skeleton--avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    flex-shrink: 0;
+  }
+
+  .skeleton--eyebrow {
+    width: 140px;
+    height: 12px;
+  }
+
+  .skeleton--title {
+    height: 1.4rem;
+    width: 60%;
+    border-radius: 6px;
+  }
+
+  .skeleton--url {
+    height: 0.85rem;
+    width: 45%;
+    border-radius: 4px;
+  }
+
+  .skeleton--badge {
+    height: 1rem;
+    width: 120px;
+    border-radius: 9999px;
+  }
+
+  .skeleton--text {
+    height: 0.85rem;
+    width: 90%;
+    border-radius: 4px;
+  }
+
+  .skeleton--btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 

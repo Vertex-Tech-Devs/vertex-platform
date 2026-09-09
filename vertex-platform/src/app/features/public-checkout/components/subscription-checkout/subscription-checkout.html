@@ -21,9 +21,46 @@
   <main class="checkout-main">
     <div class="checkout-container">
       @if (isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando información de la tienda…</p>
+        <div class="checkout-grid checkout-grid--skeleton" aria-busy="true">
+          <div class="checkout-panel">
+            <div class="store-badge-card store-badge-card--skeleton">
+              <div class="skeleton skeleton--avatar"></div>
+              <div class="store-meta flex-1">
+                <div class="skeleton skeleton--eyebrow"></div>
+                <div class="skeleton skeleton--title mt-2"></div>
+                <div class="skeleton skeleton--url mt-1"></div>
+              </div>
+            </div>
+            <div class="cycle-selector">
+              <div class="skeleton skeleton--title mb-3" style="width: 50%"></div>
+              <div class="cycle-tabs">
+                <div class="cycle-tab cycle-tab--skeleton">
+                  <div class="skeleton skeleton--badge mb-2"></div>
+                  <div class="skeleton skeleton--title mb-1"></div>
+                  <div class="skeleton skeleton--text"></div>
+                </div>
+                <div class="cycle-tab cycle-tab--skeleton">
+                  <div class="skeleton skeleton--title mb-1 mt-3"></div>
+                  <div class="skeleton skeleton--text"></div>
+                </div>
+              </div>
+            </div>
+            <div class="features-card features-card--skeleton">
+              <div class="skeleton skeleton--title mb-3" style="width: 45%"></div>
+              <div class="skeleton skeleton--text mb-2"></div>
+              <div class="skeleton skeleton--text mb-2" style="width: 85%"></div>
+              <div class="skeleton skeleton--text mb-2" style="width: 75%"></div>
+            </div>
+          </div>
+          <div class="checkout-sidebar">
+            <div class="order-summary-card order-summary-card--skeleton">
+              <div class="skeleton skeleton--title mb-4" style="width: 65%"></div>
+              <div class="skeleton skeleton--text mb-3"></div>
+              <div class="skeleton skeleton--text mb-4"></div>
+              <div class="skeleton skeleton--btn mb-3" style="height: 50px"></div>
+              <div class="skeleton skeleton--text mx-auto" style="width: 70%; height: 14px"></div>
+            </div>
+          </div>
         </div>
       } @else if (errorMessage()) {
         <div class="error-card">

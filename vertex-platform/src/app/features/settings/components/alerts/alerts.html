@@ -35,9 +35,18 @@
 
   @if (loading()) {
     <div class="alerts-skeleton" aria-busy="true">
-      <div class="skeleton skeleton--text mb-2"></div>
-      <div class="skeleton skeleton--text mb-2" style="width: 80%"></div>
-      <div class="skeleton skeleton--text" style="width: 55%"></div>
+      <div class="alerts-skeleton__card mb-3">
+        <div class="skeleton skeleton--badge mb-2"></div>
+        <div class="skeleton skeleton--title mb-2"></div>
+        <div class="skeleton skeleton--text mb-2" style="width: 85%"></div>
+        <div class="skeleton skeleton--text" style="width: 35%; height: 12px"></div>
+      </div>
+      <div class="alerts-skeleton__card">
+        <div class="skeleton skeleton--badge mb-2"></div>
+        <div class="skeleton skeleton--title mb-2"></div>
+        <div class="skeleton skeleton--text mb-2" style="width: 70%"></div>
+        <div class="skeleton skeleton--text" style="width: 40%; height: 12px"></div>
+      </div>
     </div>
   } @else if (visibleAlerts().length === 0) {
     <div class="alerts-empty">
