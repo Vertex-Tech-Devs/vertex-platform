@@ -560,3 +560,30 @@
     }
   }
 }
+
+/* ═══ M3 polish (token-based, ambos temas) ═══ */
+.team-page .kpi-card,
+.admins-card,
+.add-card {
+  border-radius: 1.1rem;
+  border: 1px solid var(--platform-card-border);
+  background: var(--platform-card-bg);
+  box-shadow: var(--platform-shadow-1);
+}
+
+.admin-item {
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--platform-card-border);
+    background: var(--platform-hover-overlay);
+  }
+}
+
+.admin-item__avatar {
+  border-radius: 999px;
+  box-shadow: var(--platform-shadow-1);
+  font-weight: 700;
+}
