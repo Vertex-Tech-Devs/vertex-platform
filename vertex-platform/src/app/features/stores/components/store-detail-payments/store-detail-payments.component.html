@@ -1,10 +1,40 @@
-<div class="payments-container">
+<div
+  class="payments-container"
+  [class.payments-container--saas]="activeSubTab() === 'saas'"
+  [class.payments-container--gateway]="activeSubTab() === 'gateway'"
+>
   @if (paymentSaveError()) {
     <div class="alert alert-error">{{ paymentSaveError() }}</div>
   }
   @if (paymentSaveSuccess()) {
     <div class="alert alert-success">{{ paymentSaveSuccess() }}</div>
   }
+
+  <!-- Sub-tabs segmentados: Suscripción SaaS | Pasarela Mercado Pago -->
+  <div class="payments-segment" role="tablist" aria-label="Secciones de Pagos y Facturación">
+    <input
+      type="radio"
+      id="pagos-sub-saas"
+      class="payments-segment__radio"
+      name="pagos-sub"
+      [checked]="activeSubTab() === 'saas'"
+      (change)="setSubTab('saas')"
+    />
+    <label class="payments-segment__pill" for="pagos-sub-saas" role="tab">
+      <i class="bi bi-box-seam"></i> Suscripción & Plan SaaS
+    </label>
+    <input
+      type="radio"
+      id="pagos-sub-gateway"
+      class="payments-segment__radio"
+      name="pagos-sub"
+      [checked]="activeSubTab() === 'gateway'"
+      (change)="setSubTab('gateway')"
+    />
+    <label class="payments-segment__pill" for="pagos-sub-gateway" role="tab">
+      <i class="bi bi-credit-card-2-front"></i> Pasarela del Comercio (Mercado Pago)
+    </label>
+  </div>
 
   @if (isLoadingPayment()) {
     <div class="detail-card detail-card--skeleton" aria-busy="true">
@@ -15,23 +45,6 @@
       <div class="skeleton skeleton--btn"></div>
     </div>
   } @else {
-    <!-- Sub-tabs segmentados: Suscripción SaaS | Pasarela Mercado Pago (CSS-only, sin TS) -->
-    <div class="payments-segment" role="tablist" aria-label="Secciones de Pagos y Facturación">
-      <input
-        type="radio"
-        id="pagos-sub-saas"
-        class="payments-segment__radio"
-        name="pagos-sub"
-        checked
-      />
-      <label class="payments-segment__pill" for="pagos-sub-saas" role="tab">
-        <i class="bi bi-box-seam"></i> Suscripción & Plan SaaS
-      </label>
-      <input type="radio" id="pagos-sub-gateway" class="payments-segment__radio" name="pagos-sub" />
-      <label class="payments-segment__pill" for="pagos-sub-gateway" role="tab">
-        <i class="bi bi-credit-card-2-front"></i> Pasarela del Comercio (Mercado Pago)
-      </label>
-    </div>
     <div class="payments-grid">
       <!-- SaaS Subscription Vertex Card -->
       <div class="detail-card detail-card--saas">
@@ -480,11 +493,11 @@
                       <i class="bi bi-sliders text-primary"></i> Tarifas Especiales y Estado
                     </div>
 
-                    <div class="row g-2 mb-2">
-                      <div class="col-6">
-                        <label class="form-label text-xs">Estado de Cuenta</label>
+                    <div class="row g-3 mb-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Estado de Cuenta</label>
                         <select
-                          class="form-control text-xs"
+                          class="form-control"
                           [ngModel]="subscriptionStatusSelect()"
                           (ngModelChange)="subscriptionStatusSelect.set($event)"
                         >
@@ -494,53 +507,66 @@
                           <option value="past_due">Período de Gracia</option>
                           <option value="suspended">Suspendida</option>
                         </select>
+                        <span class="form-hint">Define el ciclo operativo de la tienda.</span>
                       </div>
-                      <div class="col-6">
-                        <label class="form-label text-xs">Descuento (%)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="ej. 20"
-                          [value]="discountPercentInput()"
-                          (input)="
-                            discountPercentInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                          min="0"
-                          max="100"
-                        />
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Descuento (%)</label>
+                        <div class="input-with-affix">
+                          <span class="input-affix">%</span>
+                          <input
+                            type="number"
+                            class="form-control"
+                            placeholder="0"
+                            [value]="discountPercentInput()"
+                            (input)="
+                              discountPercentInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                        <span class="form-hint">Descuento porcentual sobre el plan base.</span>
                       </div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                      <div class="col-6">
-                        <label class="form-label text-xs">Mensual Custom (ARS)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="Ej.: 50000 (default 50.000)"
-                          [value]="customMonthlyPriceInput()"
-                          (input)="
-                            customMonthlyPriceInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                        />
+                    <div class="row g-3 mb-3">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Mensual Custom (ARS)</label>
+                        <div class="input-with-affix">
+                          <span class="input-affix">$</span>
+                          <input
+                            type="number"
+                            class="form-control"
+                            placeholder="50000 (default 50.000)"
+                            [value]="customMonthlyPriceInput()"
+                            (input)="
+                              customMonthlyPriceInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                          />
+                        </div>
+                        <span class="form-hint">Precio mensual específico para esta tienda.</span>
                       </div>
-                      <div class="col-6">
-                        <label class="form-label text-xs">Anual Custom (ARS)</label>
-                        <input
-                          type="number"
-                          class="form-control text-xs"
-                          placeholder="Ej.: 500000 (default 500.000)"
-                          [value]="customAnnualPriceInput()"
-                          (input)="
-                            customAnnualPriceInput.set(
-                              $any($event.target).value ? +$any($event.target).value : null
-                            )
-                          "
-                        />
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Anual Custom (ARS)</label>
+                        <div class="input-with-affix">
+                          <span class="input-affix">$</span>
+                          <input
+                            type="number"
+                            class="form-control"
+                            placeholder="500000 (default 500.000)"
+                            [value]="customAnnualPriceInput()"
+                            (input)="
+                              customAnnualPriceInput.set(
+                                $any($event.target).value ? +$any($event.target).value : null
+                              )
+                            "
+                          />
+                        </div>
+                        <span class="form-hint">Precio anual específico para esta tienda.</span>
                       </div>
                     </div>
 

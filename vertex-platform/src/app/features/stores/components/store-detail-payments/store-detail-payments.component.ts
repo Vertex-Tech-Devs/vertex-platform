@@ -33,6 +33,11 @@ export class StoreDetailPayments {
   private staffService = inject(StoreDetailStaffService);
   readonly formatDate = formatDateUtil;
 
+  readonly activeSubTab = this.payments.activeSubTab;
+  setSubTab(tab: 'saas' | 'gateway'): void {
+    this.payments.activeSubTab.set(tab);
+  }
+
   readonly customAnnualPriceInput = this.payments.customAnnualPriceInput;
   readonly customMonthlyPriceInput = this.payments.customMonthlyPriceInput;
   readonly discountPercentInput = this.payments.discountPercentInput;

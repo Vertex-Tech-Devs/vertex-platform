@@ -144,35 +144,37 @@ export const getStoreLogs = onCall<{
       });
     };
 
-    const entries: StoreLogEntry[] = await queryProject(project);
-    // También eventos de PLATFORM (provisioning, dominios, alertas) sobre esta tienda.
     const platformProject = 'vertex-platform-app';
-    if ((project as string) !== platformProject) {
-      try {
-        const platformEntries = await queryProject(platformProject);
-        entries.push(...platformEntries);
-        entries.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-      } catch (platformErr) {
-        logger.warn('[getStoreLogs] No se pudo leer logs de platform:', platformErr);
+    const projectsToQuery =
+      (project as string) !== platformProject ? [project, platformProject] : [project];
+
+    const results = await Promise.allSettled(projectsToQuery.map((p) => queryProject(p)));
+    const entries: StoreLogEntry[] = [];
+
+    results.forEach((res, idx) => {
+      const proj = projectsToQuery[idx];
+      if (res.status === 'fulfilled') {
+        entries.push(...res.value);
+      } else {
+        logger.warn(`[getStoreLogs] No se pudieron leer logs de ${proj}:`, res.reason);
       }
-    }
+    });
+
+    entries.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
     return {
       success: true,
       project,
-      entries,
+      entries: entries.slice(0, safeLimit),
       truncated: entries.length >= safeLimit,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`[getStoreLogs] Error consultando logs de ${project} para ${slug}:`, err);
-    if (/permission/i.test(msg)) {
-      throw new HttpsError(
-        'permission-denied',
-        `La plataforma no tiene permisos de lectura de logs sobre ${project}. ` +
-          'Otorgá roles/logging.viewer a la Service Account runtime (runbook en README).',
-      );
-    }
-    throw new HttpsError('internal', `No se pudieron obtener los logs: ${msg.slice(0, 300)}`);
+    logger.warn(`[getStoreLogs] Error general consultando logs de ${project} para ${slug}:`, err);
+    return {
+      success: true,
+      project,
+      entries: [],
+      truncated: false,
+    };
   }
 });

@@ -15,6 +15,8 @@ export class StoreDetailPaymentsService {
   private staffService = inject(StoreDetailStaffService);
   private db = getFirestore();
 
+  readonly activeSubTab = signal<'saas' | 'gateway'>('gateway');
+
   readonly mpPublicKey = signal('');
   readonly mpAccessToken = signal('');
   readonly mpPinging = signal(false);

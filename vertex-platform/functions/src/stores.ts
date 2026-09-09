@@ -1669,23 +1669,27 @@ export const getDomainStatus = onCall<{ storeId: string; domain?: string }>(
     if (!domain || !projectId || !siteId) {
       throw new HttpsError('failed-precondition', 'La tienda no posee dominio vinculado o sitio.');
     }
-    const auth = await getOwnerOAuthClient(store.provisioningOwnerId as string | undefined);
-    const token = (await auth.getAccessToken()).token;
-    const res = await fetch(
-      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${encodeURIComponent(domain)}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!res.ok) {
-      throw new HttpsError(
-        res.status === 404 ? 'not-found' : 'internal',
-        `No se pudo consultar el dominio (${res.status}).`,
-      );
-    }
-    const data = (await res.json()) as {
+    let data: {
       provisioning?: { dnsStatus?: string; certStatus?: string; expectedIps?: string[] };
       requiredDnsUpdates?: Array<{ domainName?: string; type?: string; rdata?: string }>;
       status?: string;
-    };
+    } = {};
+
+    try {
+      const auth = await getOwnerOAuthClient(store.provisioningOwnerId as string | undefined);
+      const token = (await auth.getAccessToken()).token;
+      const res = await fetch(
+        `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${encodeURIComponent(domain)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) {
+        console.warn(`[getDomainStatus] Hosting API warning (${res.status}) para ${domain}`);
+      } else {
+        data = (await res.json()) as typeof data;
+      }
+    } catch (fetchErr) {
+      console.warn('[getDomainStatus] Error consultando dominio:', fetchErr);
+    }
     const dnsReady =
       (data.provisioning?.dnsStatus || '') === 'ACTIVE' ||
       (data.status || '') === 'ACTIVE' ||
@@ -2648,25 +2652,7 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
     const siteId = resolveRuntimeSiteId(store);
     const auth = await getOwnerOAuthClient(store.provisioningOwnerId);
 
-    const tokenRes = await auth.getAccessToken();
-    const res = await fetch(
-      `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${domain}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${tokenRes.token}`,
-          'Content-Type': 'application/json',
-        },
-      },
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('verifyDomainDNSStatus Firebase Hosting error:', res.status, text);
-      throw new HttpsError('internal', 'Failed to retrieve domain status.');
-    }
-
-    const result = (await res.json()) as {
+    let result: {
       status?: string;
       provisioning?: {
         expectedIps?: string[];
@@ -2681,7 +2667,30 @@ export const verifyDomainDNSStatus = onCall<{ storeId: string; domain: string }>
           requiredAction?: string;
         }>;
       };
-    };
+    } = {};
+
+    try {
+      const tokenRes = await auth.getAccessToken();
+      const res = await fetch(
+        `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites/${siteId}/domains/${domain}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${tokenRes.token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn('verifyDomainDNSStatus Firebase Hosting warning/error:', res.status, text);
+      } else {
+        result = (await res.json()) as typeof result;
+      }
+    } catch (fetchErr) {
+      console.warn('verifyDomainDNSStatus fetch error:', fetchErr);
+    }
 
     // El estado real de "live" lo dan los campos de provisioning:
     //  - dnsStatus: DNS_READY / DNS_ACTIVE → registros apuntando bien

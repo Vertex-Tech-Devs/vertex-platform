@@ -2111,12 +2111,8 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.25rem;
-
-    @media (max-width: 1024px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
 
     @media (max-width: 680px) {
       grid-template-columns: 1fr;
@@ -3178,21 +3174,26 @@
 /* Vista "Suscripción & Plan SaaS": la card SaaS ocupa todo el ancho;
    la pasarela y su card de ayuda quedan ocultas (display:none preserva
    los FormControls vivos en el DOM). */
-.payments-container:has(#pagos-sub-saas:checked) .payments-grid {
+.payments-container:has(#pagos-sub-saas:checked) .payments-grid,
+.payments-container--saas .payments-grid {
   grid-template-columns: minmax(0, 1fr);
 }
 .payments-container:has(#pagos-sub-saas:checked) .detail-card--gateway,
-.payments-container:has(#pagos-sub-saas:checked) .detail-card--info {
+.payments-container:has(#pagos-sub-saas:checked) .detail-card--info,
+.payments-container--saas .detail-card--gateway,
+.payments-container--saas .detail-card--info {
   display: none;
 }
 
 /* Vista "Pasarela del Comercio (Mercado Pago)": oculta la suscripción;
    pasarela como columna principal + card "Cómo obtener credenciales"
    como columna lateral. */
-.payments-container:has(#pagos-sub-gateway:checked) .detail-card--saas {
+.payments-container:has(#pagos-sub-gateway:checked) .detail-card--saas,
+.payments-container--gateway .detail-card--saas {
   display: none;
 }
-.payments-container:has(#pagos-sub-gateway:checked) .payments-grid {
+.payments-container:has(#pagos-sub-gateway:checked) .payments-grid,
+.payments-container--gateway .payments-grid {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
 }
 
@@ -3745,7 +3746,32 @@
     }
 
     .form-hint {
-      font-size: 0.78rem;
+      display: block;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.35rem;
+      line-height: 1.4;
+      min-height: 1.1rem;
+    }
+
+    .input-with-affix {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .input-affix {
+        position: absolute;
+        left: 0.85rem;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 0.9rem;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .form-control {
+        padding-left: 1.85rem;
+      }
     }
 
     .form-control,

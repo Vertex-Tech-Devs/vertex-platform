@@ -292,6 +292,14 @@ export class StoreDetail implements OnInit {
 
   setTab(tab: 'orquestacion' | 'equipo' | 'dominios' | 'historial' | 'pagos' | 'monitor'): void {
     this.activeTab.set(tab);
+    if (typeof window !== 'undefined') {
+      const container = document.querySelector('.tabs-container');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
     if (tab === 'monitor') {
       void this.loadStoreAlerts();
       if (this.logsEntries().length === 0) {
