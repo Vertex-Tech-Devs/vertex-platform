@@ -21,7 +21,7 @@ import type { Store } from '@core/models/store';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, DatePipe, DecimalPipe],
-  templateUrl: './store-detail-payments.component.html',
+  templateUrl: './store-detail-payments.html',
   styleUrl: '../store-detail/store-detail.scss',
 })
 export class StoreDetailPayments {

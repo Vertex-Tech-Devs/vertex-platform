@@ -12,7 +12,7 @@ import { StoreDetailOrchestrationService } from '../store-detail/services/store-
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule],
-  templateUrl: './store-detail-domains.component.html',
+  templateUrl: './store-detail-domains.html',
   styleUrl: '../store-detail/store-detail.scss',
 })
 export class StoreDetailDomains {

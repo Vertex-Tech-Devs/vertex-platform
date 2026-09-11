@@ -34,8 +34,8 @@ import {
   IDLE_STATE,
   isVersionOutdated,
 } from './services/store-detail.util';
-import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains.component';
-import { StoreDetailPayments } from '../store-detail-payments/store-detail-payments.component';
+import { StoreDetailDomains } from '../store-detail-domains/store-detail-domains';
+import { StoreDetailPayments } from '../store-detail-payments/store-detail-payments';
 import { StoreDetailPaymentsService } from '../../services/store-detail-payments.service';
 
 @Component({
