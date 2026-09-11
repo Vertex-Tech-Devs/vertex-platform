@@ -598,6 +598,170 @@
                     </button>
                   </div>
 
+                  <!-- Super Admin PricingOverride Card (Descuentos y Precios Especiales por Tienda) -->
+                  <div class="payment-subcard mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span
+                        class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                      >
+                        <i class="bi bi-tag-fill text-warning"></i> Beneficio / Descuento Especial
+                        (Super Admin)
+                      </span>
+                      @if (storeSubscription()?.pricingOverride; as po) {
+                        <span class="badge badge--success text-xxs">Activo</span>
+                      } @else {
+                        <span class="badge badge--neutral text-xxs">Sin beneficio</span>
+                      }
+                    </div>
+
+                    @if (storeSubscription()?.pricingOverride; as po) {
+                      <div class="p-2 mb-2 rounded bg-black-20 border border-white-10 text-xs">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <strong>
+                            @if (po.type === 'custom_fixed_price') {
+                              Precio Fijo: ${{ po.value | number }} ARS
+                            } @else if (po.type === 'percentage_discount') {
+                              Descuento: {{ po.value }}% OFF
+                            } @else {
+                              Descuento: ${{ po.value | number }} ARS OFF
+                            }
+                          </strong>
+                          <button
+                            type="button"
+                            class="btn btn-link text-danger text-xxs p-0"
+                            (click)="revokePricingOverride()"
+                            [disabled]="isSavingOverride()"
+                          >
+                            Revocar beneficio
+                          </button>
+                        </div>
+                        <div class="text-muted mt-1 text-xxs">
+                          Duración: {{ po.duration }} · Motivo: {{ po.reason }} (por
+                          {{ po.assignedBy }})
+                        </div>
+                      </div>
+                    }
+
+                    <div class="row g-2 mb-2">
+                      <div class="col-12 col-md-4">
+                        <label class="form-label text-xxs">Modalidad</label>
+                        <select
+                          class="form-control text-xs"
+                          [ngModel]="overrideType()"
+                          (ngModelChange)="overrideType.set($event)"
+                        >
+                          <option value="percentage_discount">% Porcentual OFF</option>
+                          <option value="fixed_discount">$ Monto Fijo OFF</option>
+                          <option value="custom_fixed_price">Precio Fijo Arbitrario</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <label class="form-label text-xxs">Valor</label>
+                        <input
+                          type="number"
+                          class="form-control text-xs"
+                          [value]="overrideValue()"
+                          (input)="overrideValue.set(+$any($event.target).value)"
+                          min="0"
+                        />
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <label class="form-label text-xxs">Duración</label>
+                        <select
+                          class="form-control text-xs"
+                          [ngModel]="overrideDuration()"
+                          (ngModelChange)="overrideDuration.set($event)"
+                        >
+                          <option value="lifetime">Indefinida / De por vida</option>
+                          <option value="recurring_cycles">N Ciclos</option>
+                          <option value="single_cycle">1 Solo Ciclo</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="mb-2">
+                      <label class="form-label text-xxs">Motivo / Justificación</label>
+                      <input
+                        type="text"
+                        class="form-control text-xs"
+                        placeholder="Ej. Convenio Cámara de Comercio / Partner"
+                        [value]="overrideReason()"
+                        (input)="overrideReason.set($any($event.target).value)"
+                      />
+                    </div>
+
+                    <div class="p-2 mb-2 rounded bg-black-20 border border-white-10 text-xs">
+                      <span class="text-muted d-block text-xxs mb-1"
+                        >Previsualización del Precio Efectivo Resultante:</span
+                      >
+                      <div class="d-flex justify-content-between">
+                        <span
+                          >Mensual:
+                          <strong>${{ effectivePreviewMonthly() | number }} ARS</strong></span
+                        >
+                        <span
+                          >Anual:
+                          <strong>${{ effectivePreviewAnnual() | number }} ARS</strong></span
+                        >
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm w-100"
+                      (click)="applyPricingOverride()"
+                      [disabled]="isSavingOverride() || !overrideValue()"
+                    >
+                      <i class="bi bi-check-lg"></i> Asignar Beneficio Especial
+                    </button>
+                  </div>
+
+                  <!-- Prepaid Bridge Card (Pagos Manuales / Transferencias Bancarias) -->
+                  <div class="payment-subcard mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span
+                        class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                      >
+                        <i class="bi bi-bank text-info"></i> Prepaid Bridge (Pago Manual /
+                        Transferencia)
+                      </span>
+                      <span class="text-xxs text-muted">Sin doble cobro MP</span>
+                    </div>
+                    <p class="text-xxs text-muted mb-2">
+                      Registra cobertura pagada por transferencia. Al adherir tarjeta en Mercado
+                      Pago, el débito iniciará recién al vencer esta fecha.
+                    </p>
+                    <div class="row g-2 mb-2">
+                      <div class="col-12 col-md-5">
+                        <label class="form-label text-xxs">Vigencia hasta (Fecha Fin)</label>
+                        <input
+                          type="date"
+                          class="form-control text-xs"
+                          [value]="prepaidPeriodEndInput()"
+                          (input)="prepaidPeriodEndInput.set($any($event.target).value)"
+                        />
+                      </div>
+                      <div class="col-12 col-md-7">
+                        <label class="form-label text-xxs">Notas / Comprobante Bancario</label>
+                        <input
+                          type="text"
+                          class="form-control text-xs"
+                          placeholder="Ej. Transferencia Banco Galicia Op #98421"
+                          [value]="prepaidNotesInput()"
+                          (input)="prepaidNotesInput.set($any($event.target).value)"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm w-100"
+                      (click)="applyPrepaidCoverage()"
+                      [disabled]="isSavingPrepaid() || !prepaidPeriodEndInput()"
+                    >
+                      <i class="bi bi-shield-check"></i> Registrar Cobertura Prepaga
+                    </button>
+                  </div>
+
                   <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->
                   <div class="qa-simulation-box">
                     <div class="qa-simulation-box__toggle">

@@ -546,9 +546,14 @@ export async function sendDirectEmail(
     },
   });
 
+  const cleanTo = to.replace(/[^a-zA-Z0-9@._-]/g, '');
+  const domainPart = 'vertex.tech';
+  const messageId = `<store-welcome-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@${domainPart}>`;
+  const entityRefId = `vertex-sub-${cleanTo}`;
+
   await transporter.sendMail({
-    from: '"Vertex Platform" <vertex.tech.dev@gmail.com>',
-    replyTo: 'vertex.tech.dev@gmail.com',
+    from: '"Vertex Platform" <notificaciones@vertex.tech>',
+    replyTo: 'notificaciones@vertex.tech',
     to,
     subject,
     text,
@@ -557,8 +562,89 @@ export async function sendDirectEmail(
       'X-Priority': '1',
       'X-MSMail-Priority': 'High',
       Importance: 'High',
+      'List-Unsubscribe': `<mailto:bajas@vertex.tech?subject=Unsubscribe%20${encodeURIComponent(cleanTo)}>`,
+      'Message-ID': messageId,
+      'X-Entity-Ref-ID': entityRefId,
     },
   });
+}
+
+export interface OwnerWelcomeEmailData {
+  ownerEmail: string;
+  storeName: string;
+  slug: string;
+  publicUrl: string;
+  adminUrl: string;
+  trialDays?: number | null;
+}
+
+export async function notifyOwnerStoreWelcome(data: OwnerWelcomeEmailData): Promise<void> {
+  const subject = `¡Bienvenido a Vertex! Tu tienda "${data.storeName}" ya está lista`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
+    .card { background: #1e293b; border-radius: 12px; border: 1px solid #334155; max-width: 600px; margin: 0 auto; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .logo { color: #6366f1; font-size: 24px; font-weight: bold; margin-bottom: 24px; display: inline-block; }
+    h1 { font-size: 20px; color: #ffffff; margin-top: 0; }
+    p { line-height: 1.6; color: #cbd5e1; font-size: 15px; }
+    .actions { margin: 28px 0; display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn { display: inline-block; background: #6366f1; color: #ffffff !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; }
+    .btn-secondary { background: #334155; color: #cbd5e1 !important; border: 1px solid #475569; }
+    .details { background: #0f172a; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #334155; }
+    .footer { font-size: 12px; color: #64748b; margin-top: 32px; border-top: 1px solid #334155; padding-top: 16px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">VERTEX COMMERCE</div>
+    <h1>¡Felicitaciones! Tu tienda online está lista para vender</h1>
+    <p>Hola,</p>
+    <p>Nos complace darte la bienvenida a <strong>Vertex Commerce</strong>. Tu tienda <strong>${data.storeName}</strong> ha sido aprovisionada y configurada exitosamente en nuestra nube de alto rendimiento.</p>
+    
+    <div class="details">
+      <p style="margin: 4px 0;"><strong>🌐 Tienda pública:</strong> <a href="${data.publicUrl}" style="color: #818cf8;">${data.publicUrl}</a></p>
+      <p style="margin: 4px 0;"><strong>⚙️ Panel de administración:</strong> <a href="${data.adminUrl}" style="color: #818cf8;">${data.adminUrl}</a></p>
+      ${data.trialDays ? `<p style="margin: 4px 0;"><strong>✨ Período de prueba bonificado:</strong> ${data.trialDays} días</p>` : ''}
+    </div>
+
+    <div class="actions">
+      <a href="${data.publicUrl}" class="btn" target="_blank" rel="noopener">Ver mi Tienda</a>
+      <a href="${data.adminUrl}" class="btn btn-secondary" target="_blank" rel="noopener">Administrar Catálogo</a>
+    </div>
+
+    <p>Podés comenzar a cargar tus productos, personalizar tu diseño y vincular tu cuenta de Mercado Pago desde el panel de control de tu tienda.</p>
+
+    <div class="footer">
+      Vertex Commerce Platform • Infraestructura SaaS Multi-Tenant<br>
+      Si tenés alguna consulta, respondé a este correo o escribinos a notificaciones@vertex.tech.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+¡Bienvenido a Vertex Commerce!
+
+Tu tienda "${data.storeName}" ya está lista y configurada para vender.
+
+- Tienda pública: ${data.publicUrl}
+- Panel de administración: ${data.adminUrl}
+${data.trialDays ? `- Período de prueba gratuito: ${data.trialDays} días` : ''}
+
+Podés ingresar al panel de administración para configurar tus productos, métodos de pago y diseño.
+
+Atentamente,
+El equipo de Vertex Commerce
+notificaciones@vertex.tech
+`;
+
+  await sendDirectEmail(data.ownerEmail, subject, html, text);
 }
 
 export interface NewStoreNotificationData {

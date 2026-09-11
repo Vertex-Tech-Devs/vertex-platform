@@ -264,4 +264,61 @@ export class StoreDetailPayments {
     }.cloudfunctions.net/mercadoPagoWebhookHandler?tenant=${storeId}`;
     return this.staffService.copyToClipboard(url);
   }
+
+  // ── Super Admin: Pricing Override & Prepaid Bridge ────────────────────────
+  readonly showPricingOverrideModal = this.payments.showPricingOverrideModal;
+  readonly isSavingOverride = this.payments.isSavingOverride;
+  readonly overrideType = this.payments.overrideType;
+  readonly overrideValue = this.payments.overrideValue;
+  readonly overrideDuration = this.payments.overrideDuration;
+  readonly overrideCyclesRemaining = this.payments.overrideCyclesRemaining;
+  readonly overrideReason = this.payments.overrideReason;
+
+  readonly isSavingPrepaid = this.payments.isSavingPrepaid;
+  readonly prepaidPeriodEndInput = this.payments.prepaidPeriodEndInput;
+  readonly prepaidNotesInput = this.payments.prepaidNotesInput;
+
+  readonly effectivePreviewMonthly = computed(() => {
+    const base = this.storeSubscription()?.basePricing?.monthlyPrice || 50000;
+    const type = this.overrideType();
+    const val = Number(this.overrideValue()) || 0;
+    if (type === 'custom_fixed_price') {
+      return Math.max(0, val);
+    }
+    if (type === 'percentage_discount') {
+      return Math.max(0, Math.round(base * (1 - val / 100)));
+    }
+    if (type === 'fixed_discount') {
+      return Math.max(0, base - val);
+    }
+    return base;
+  });
+
+  readonly effectivePreviewAnnual = computed(() => {
+    const base = this.storeSubscription()?.basePricing?.annualPrice || 500000;
+    const type = this.overrideType();
+    const val = Number(this.overrideValue()) || 0;
+    if (type === 'custom_fixed_price') {
+      return Math.max(0, val * 10);
+    }
+    if (type === 'percentage_discount') {
+      return Math.max(0, Math.round(base * (1 - val / 100)));
+    }
+    if (type === 'fixed_discount') {
+      return Math.max(0, base - val);
+    }
+    return base;
+  });
+
+  applyPricingOverride(): Promise<void> {
+    return this.payments.applyPricingOverride();
+  }
+
+  revokePricingOverride(): Promise<void> {
+    return this.payments.revokePricingOverride();
+  }
+
+  applyPrepaidCoverage(): Promise<void> {
+    return this.payments.applyPrepaidCoverage();
+  }
 }

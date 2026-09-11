@@ -26,6 +26,7 @@ import {
   listProvisioningOwnerCandidates,
   sendDirectEmail,
   notifyAdminNewStoreCreated,
+  notifyOwnerStoreWelcome,
   getPlatformServiceAccountOAuthClient,
   ensureShardSecurityPolicies,
   DEFAULT_SANDBOX_PUBLIC_KEY,
@@ -3799,6 +3800,11 @@ export const completeStoreDeployment = onCall<{
 
     // Notificación por email al administrador central de la plataforma
     const storeSub = (storeData['subscription'] as Record<string, unknown>) || {};
+    const publicStoreUrl =
+      storeData['siteUrl'] ||
+      `https://${storeData['subdomain'] || (storeData['slug'] ? `vtx-${storeData['slug']}` : storeId)}.web.app`;
+    const adminPanelUrl = `${publicStoreUrl}/admin`;
+
     void notifyAdminNewStoreCreated({
       storeId,
       storeName: storeData['name'] || storeId,
@@ -3807,9 +3813,7 @@ export const completeStoreDeployment = onCall<{
       verticalId: storeData['verticalId'],
       projectId: storeData['projectId'],
       shardMode: storeData['runtimeMode'] || (storeData['shardId'] ? 'shared' : 'dedicated'),
-      siteUrl:
-        storeData['siteUrl'] ||
-        `https://${storeData['slug'] ? `vtx-${storeData['slug']}` : storeId}.web.app`,
+      siteUrl: publicStoreUrl,
       tier: storeData['tier'] || 'PRO',
       billingCycle: storeData['billingCycle'] || 'monthly',
       subscriptionStatus: (storeSub['status'] as string) || (storeData['status'] as string),
@@ -3817,6 +3821,21 @@ export const completeStoreDeployment = onCall<{
         typeof storeSub['trialDays'] === 'number' ? (storeSub['trialDays'] as number) : null,
       createdAt: (storeData['createdAt'] as FirebaseFirestore.Timestamp)?.toDate() || new Date(),
     });
+
+    // Notificación por email de bienvenida con blindaje al dueño del comercio
+    if (storeData['ownerEmail']) {
+      void notifyOwnerStoreWelcome({
+        ownerEmail: storeData['ownerEmail'],
+        storeName: storeData['name'] || storeId,
+        slug: storeData['slug'] || storeId,
+        publicUrl: publicStoreUrl,
+        adminUrl: adminPanelUrl,
+        trialDays:
+          typeof storeSub['trialDays'] === 'number' ? (storeSub['trialDays'] as number) : null,
+      }).catch((err) => {
+        console.error(`[completeStoreDeployment] Error sending welcome email to owner:`, err);
+      });
+    }
   } else {
     await storeRef.update({
       'provisioningSteps.triggerDeploy.status': 'error',

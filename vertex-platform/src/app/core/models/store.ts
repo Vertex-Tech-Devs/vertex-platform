@@ -66,13 +66,47 @@ export interface Store {
   verticalId?: string;
   businessVertical?: BusinessVertical;
   provisioningMode?: ProvisioningMode;
-  subscription?: {
-    status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
-    currentPeriodEnd?: string;
-    trialDaysRemaining?: number;
-    trialDays?: number | null;
-    billingCycle?: 'monthly' | 'annual';
-  };
+  subdomain?: string;
+  subscription?: StoreSubscription;
+}
+
+export interface PricingOverride {
+  type: 'custom_fixed_price' | 'percentage_discount' | 'fixed_discount';
+  value: number; // Ej: 18000 para precio fijo, 30 para 30%, 5000 para $5000 OFF
+  duration: 'lifetime' | 'recurring_cycles' | 'single_cycle';
+  cyclesRemaining?: number;
+  cyclesApplied?: number;
+  reason: string;
+  assignedBy: string;
+  assignedAt: string;
+}
+
+export interface StoreSubscription {
+  status?:
+    | 'active'
+    | 'complimentary'
+    | 'trial'
+    | 'past_due'
+    | 'suspended'
+    | 'legacy_prepaid'
+    | 'trialing'
+    | 'grace_period';
+  currentPeriodEnd?: string;
+  trialDaysRemaining?: number;
+  trialDays?: number | null;
+  billingCycle?: 'monthly' | 'annual';
+  paymentMethod?: 'mercadopago' | 'manual_bridge' | 'transfer' | string;
+  prepaidNotes?: string;
+  customMonthlyPrice?: number | null;
+  customAnnualPrice?: number | null;
+  discountPercent?: number | null;
+  pricingOverride?: PricingOverride | null;
+  lastGeneratedLink?: string;
+  preapprovalId?: string;
+  preferenceId?: string;
+  amount?: number;
+  updatedAt?: Date | string;
+  updatedBy?: string;
 }
 
 export type ProvisioningMode = 'EMPTY' | 'CATALOG_ONLY' | 'FULL_DEMO';
@@ -87,6 +121,7 @@ export interface CreateStorePayload {
   name: string;
   slug: string;
   ownerEmail: string;
+  subdomain?: string;
   logoUrl?: string | null;
   customDomain?: string;
   verticalId?: string;

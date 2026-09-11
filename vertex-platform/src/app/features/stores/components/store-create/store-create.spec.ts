@@ -22,12 +22,21 @@ describe('StoreCreate', () => {
   const storesService = {
     createStore: vi.fn().mockResolvedValue('store-123'),
     getRuntimeCapacitySummary: vi.fn().mockResolvedValue(runtimeSummary),
+    checkSubdomainAvailability: vi
+      .fn()
+      .mockResolvedValue({ available: true, sanitized: 'vtx-test' }),
     allVerticals: signal(PLATFORM_BUSINESS_VERTICALS),
     createCustomVertical: vi.fn().mockResolvedValue({ success: true, vertical: { id: 'TEST' } }),
   };
 
   beforeEach(async () => {
     storesService.createStore.mockReset();
+    storesService.createStore.mockResolvedValue('store-123');
+    storesService.checkSubdomainAvailability.mockReset();
+    storesService.checkSubdomainAvailability.mockResolvedValue({
+      available: true,
+      sanitized: 'vtx-test',
+    });
     storesService.getRuntimeCapacitySummary.mockReset();
     storesService.getRuntimeCapacitySummary.mockResolvedValue(runtimeSummary);
 
@@ -106,6 +115,7 @@ describe('StoreCreate', () => {
     component.form.patchValue({
       name: 'Mi Tienda',
       slug: 'mi-tienda',
+      subdomain: 'vtx-mi-tienda',
       ownerEmail: 'owner@mitienda.com',
       businessVertical: 'INDUMENTARIA_MODA',
       provisioningMode: 'FULL_DEMO',
@@ -117,6 +127,7 @@ describe('StoreCreate', () => {
       expect.objectContaining({
         name: 'Mi Tienda',
         slug: 'mi-tienda',
+        subdomain: 'vtx-mi-tienda',
         ownerEmail: 'owner@mitienda.com',
         businessVertical: 'INDUMENTARIA_MODA',
         includeMockData: true,
@@ -132,6 +143,7 @@ describe('StoreCreate', () => {
     component.form.patchValue({
       name: 'Test Store',
       slug: 'test-store',
+      subdomain: 'vtx-test-store',
       ownerEmail: 'owner@test.com',
       verticalId: 'indumentaria',
     });
@@ -150,6 +162,7 @@ describe('StoreCreate', () => {
     component.form.patchValue({
       name: 'Test Store',
       slug: 'test-store',
+      subdomain: 'vtx-test-store',
       ownerEmail: 'owner@test.com',
     });
 
@@ -282,6 +295,7 @@ describe('StoreCreate', () => {
     component.form.patchValue({
       name: 'Tienda Test',
       slug: 'tienda-test',
+      subdomain: 'vtx-tienda-test',
       ownerEmail: 'test@example.com',
       verticalId: 'TECNOLOGIA',
       provisioningMode: 'FULL_DEMO',

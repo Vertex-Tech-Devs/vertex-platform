@@ -23,10 +23,50 @@ export type BusinessVertical =
   | 'TECNOLOGIA'
   | 'HOGAR_DECO';
 
+export interface PricingOverride {
+  type: 'custom_fixed_price' | 'percentage_discount' | 'fixed_discount';
+  value: number;
+  duration: 'lifetime' | 'recurring_cycles' | 'single_cycle';
+  cyclesRemaining?: number;
+  cyclesApplied?: number;
+  reason: string;
+  assignedBy: string;
+  assignedAt: string;
+}
+
+export interface StoreSubscription {
+  status?:
+    | 'active'
+    | 'complimentary'
+    | 'trial'
+    | 'past_due'
+    | 'suspended'
+    | 'legacy_prepaid'
+    | 'trialing'
+    | 'grace_period';
+  currentPeriodEnd?: FirebaseFirestore.Timestamp | Date | string;
+  trialDaysRemaining?: number;
+  trialDays?: number | null;
+  billingCycle?: 'monthly' | 'annual';
+  paymentMethod?: 'mercadopago' | 'manual_bridge' | 'transfer' | string;
+  prepaidNotes?: string;
+  customMonthlyPrice?: number | null;
+  customAnnualPrice?: number | null;
+  discountPercent?: number | null;
+  pricingOverride?: PricingOverride | null;
+  lastGeneratedLink?: string;
+  preapprovalId?: string;
+  preferenceId?: string;
+  amount?: number;
+  updatedAt?: Date | string;
+  updatedBy?: string;
+}
+
 export interface CreateStorePayload {
   name: string;
   slug: string;
   ownerEmail: string;
+  subdomain?: string;
   logoUrl?: string;
   customDomain?: string;
   verticalId?: string;

@@ -72,9 +72,27 @@ describe('mapAuditToLog', () => {
 describe('consolidateAndSortLogs', () => {
   it('dedupes by id, sorts desc and applies limit', () => {
     const logs = [
-      { id: 'a', timestamp: '2026-09-01T10:00:00.000Z', severity: 'INFO' as const, message: 'x', source: 'orders' as const },
-      { id: 'b', timestamp: '2026-09-03T10:00:00.000Z', severity: 'INFO' as const, message: 'y', source: 'cloud' as const },
-      { id: 'a', timestamp: '2026-09-02T10:00:00.000Z', severity: 'WARN' as const, message: 'x-detallado', source: 'orders' as const },
+      {
+        id: 'a',
+        timestamp: '2026-09-01T10:00:00.000Z',
+        severity: 'INFO' as const,
+        message: 'x',
+        source: 'orders' as const,
+      },
+      {
+        id: 'b',
+        timestamp: '2026-09-03T10:00:00.000Z',
+        severity: 'INFO' as const,
+        message: 'y',
+        source: 'cloud' as const,
+      },
+      {
+        id: 'a',
+        timestamp: '2026-09-02T10:00:00.000Z',
+        severity: 'WARN' as const,
+        message: 'x-detallado',
+        source: 'orders' as const,
+      },
     ];
     const out = consolidateAndSortLogs(logs, 2);
     expect(out).toHaveLength(2);

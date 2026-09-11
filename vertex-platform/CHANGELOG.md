@@ -3,6 +3,15 @@
 ## [0.9.0] - 2026-09-09
 
 ### Added
+- **UI del Monitor de Logs**: Selector de ventana temporal con presets (1h, 6h, 24h, 48h default, 7 días, Todo el historial y Rango personalizado con selectores de fecha Desde/Hasta), selector de origen y badges visuales específicos para `[ÓRDENES]`, `[SISTEMA]` y `[CLOUD]`.
+- **Aislamiento Reactivo de Actualizaciones**: Estado `updatingStores = signal<Set<string>>(new Set())` aislado por `storeId` en `StoreDetailOrchestrationService`, eliminando banderas globales compartidas y evitando fugas de estado entre pestañas o tiendas.
+- **Subdominios en Creación de Tienda (`store-create`)**: Autocompletado sugerido `vtx-[nombre]` con edición libre, prefijo visual `https://` y sufijo `.web.app`, comprobación en vivo con debounce (400ms), badges de disponibilidad y bloqueo de envío ante colisiones o palabras reservadas.
+- **Motor SaaS Super Admin & Catálogo Global**: Consulta y edición de tarifas base en `system_config/billing` desde la plataforma sin redeploy (`getGlobalPlansPricing`, `updateGlobalPlansPricing`).
+- **Prepaid Bridge (Pagos Manuales / Transferencias)**: Callable `setStorePrepaidCoverage` que fija cobertura con fecha de fin y notas de comprobante; transición fluida a débito automático en Mercado Pago vía `start_date` eliminando doble cobro.
+- **Beneficios Especiales y Descuentos por Tienda (`PricingOverride`)**: Configuración Super Admin de precios fijos, % OFF o $ OFF con duración (lifetime, N ciclos, 1 ciclo) y previsualización de cálculo en vivo aplicada directamente a preferencias y cobros recurrentes de Mercado Pago.
+- **Máquina de Estados de Suscripción**: Soporte robusto de estados (`trialing` 14 días, `legacy_prepaid`, `grace_period` de 5 días, `suspended`), con exención total para tiendas corporativas (`isExempt === true` / plan: 'internal').
+- **Entregabilidad y Blindaje Antispam de Emails**: Correo transaccional de bienvenida al `ownerEmail` con remitente corporativo verificado (`Vertex Platform <notificaciones@vertex.tech>`), formato multipart (`html` + `text/plain`), cabeceras `List-Unsubscribe`, `Message-ID` y `X-Entity-Ref-ID`.
+- **Ergonomía Responsive en Store Detail**: Pestañas touch con scroll horizontal `scroll-snap-type: x mandatory`, pills con `min-height: 44px`, `white-space: nowrap` y sticky navigation bar con blur glassmorphism.
 - Gestión dinámica de subdominios `.web.app` con disponibilidad en tiempo real y sugerencias.
 - Monitor de logs con orígenes (`tienda`/`platform`), severidades completas (incl. `jsonPayload` y crash stacks).
 - Centro de Alertas agrupado por tienda y tipo; alertas SMTP críticas; reconciliador automático de órdenes (60 min).

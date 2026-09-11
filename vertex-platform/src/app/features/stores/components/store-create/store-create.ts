@@ -4,6 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { StoresService, type RuntimeCapacitySummary } from '@core/services/stores';
 import { DEFAULT_STORE_VERTICAL } from '@core/constants/store-defaults.constants';
 import type { VerticalOption } from '@core/constants/business-verticals.constants';
@@ -70,10 +71,15 @@ export class StoreCreate implements OnInit {
   ];
 
   private destroyRef = inject(DestroyRef);
+  readonly isCheckingSubdomain = signal(false);
+  readonly subdomainAvailable = signal<boolean | null>(null);
+  readonly subdomainError = signal('');
+  readonly subdomainMessage = signal('');
 
   readonly form = this.fb.group({
     name: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(SLUG_RE)]],
+    subdomain: ['', [Validators.required, Validators.pattern(/^[a-z0-9][a-z0-9-]{2,61}[a-z0-9]$/)]],
     ownerEmail: ['', [Validators.required, Validators.email]],
     logoUrl: [''],
     businessVertical: [DEFAULT_STORE_VERTICAL, Validators.required],
@@ -135,6 +141,21 @@ export class StoreCreate implements OnInit {
         if (slugControl && !slugControl.dirty) {
           this.autoSlug();
         }
+        const subControl = this.form.get('subdomain');
+        if (subControl && !subControl.dirty) {
+          this.autoSubdomain();
+        }
+      });
+
+    this.form
+      .get('subdomain')
+      ?.valueChanges.pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((val) => {
+        void this.verifySubdomain(val || '');
       });
   }
 
@@ -166,6 +187,54 @@ export class StoreCreate implements OnInit {
       .slice(0, 30);
     this.form.get('slug')?.setValue(slug);
     this.form.get('slug')?.updateValueAndValidity();
+  }
+
+  autoSubdomain(): void {
+    const name = this.form.get('name')?.value ?? '';
+    const clean = name
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 26);
+    const suggested = clean ? `vtx-${clean}` : '';
+    this.form.get('subdomain')?.setValue(suggested);
+    this.form.get('subdomain')?.updateValueAndValidity();
+  }
+
+  async verifySubdomain(sub: string): Promise<void> {
+    const clean = sub.trim().toLowerCase();
+    if (!clean || clean.length < 3) {
+      this.subdomainAvailable.set(null);
+      this.subdomainError.set('');
+      this.subdomainMessage.set('');
+      return;
+    }
+    this.isCheckingSubdomain.set(true);
+    this.subdomainError.set('');
+    try {
+      const res = await this.storesService.checkSubdomainAvailability(clean);
+      this.subdomainAvailable.set(res.available);
+      if (res.available) {
+        this.subdomainMessage.set(`✓ https://${res.sanitized}.web.app disponible`);
+        this.subdomainError.set('');
+      } else {
+        this.subdomainMessage.set('');
+        this.subdomainError.set(
+          res.reason === 'reserved'
+            ? '✕ Palabra reservada por la plataforma'
+            : res.reason === 'taken'
+              ? '✕ En uso por otra tienda'
+              : res.message || '✕ Subdominio no disponible',
+        );
+      }
+    } catch {
+      this.subdomainAvailable.set(false);
+      this.subdomainError.set('✕ Error al verificar subdominio');
+    } finally {
+      this.isCheckingSubdomain.set(false);
+    }
   }
 
   onLogoFileSelected(event: Event): void {

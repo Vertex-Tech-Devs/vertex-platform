@@ -58,6 +58,22 @@ export class StoreDetailPaymentsService {
   readonly showSimulationTools = signal(false);
   readonly isSimulatingExpiration = signal(false);
 
+  // Pricing Override (Super Admin)
+  readonly showPricingOverrideModal = signal(false);
+  readonly isSavingOverride = signal(false);
+  readonly overrideType = signal<'percentage_discount' | 'fixed_discount' | 'custom_fixed_price'>(
+    'percentage_discount',
+  );
+  readonly overrideValue = signal<number>(20);
+  readonly overrideDuration = signal<'lifetime' | 'recurring_cycles' | 'single_cycle'>('lifetime');
+  readonly overrideCyclesRemaining = signal<number>(3);
+  readonly overrideReason = signal<string>('Beneficio especial Vertex Partner');
+
+  // Prepaid Bridge (Manual Transfer)
+  readonly isSavingPrepaid = signal(false);
+  readonly prepaidPeriodEndInput = signal<string>('');
+  readonly prepaidNotesInput = signal<string>('');
+
   async loadPaymentConfig(storeId: string): Promise<void> {
     this.isLoadingPayment.set(true);
     this.paymentSaveError.set('');
@@ -300,6 +316,76 @@ export class StoreDetailPaymentsService {
       this.discountSaveSuccess.set(errorMessage(err, 'Error al simular vencimiento.'));
     } finally {
       this.isSimulatingExpiration.set(false);
+    }
+  }
+
+  async applyPricingOverride(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isSavingOverride.set(true);
+    try {
+      await this.storesService.setStorePricingOverride({
+        storeId: s.id,
+        type: this.overrideType(),
+        value: Number(this.overrideValue()),
+        duration: this.overrideDuration(),
+        cyclesRemaining:
+          this.overrideDuration() === 'recurring_cycles'
+            ? Number(this.overrideCyclesRemaining())
+            : undefined,
+        reason: this.overrideReason().trim() || 'Beneficio especial Super Admin',
+      });
+      this.showPricingOverrideModal.set(false);
+      this.discountSaveSuccess.set('Beneficio especial asignado correctamente.');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al aplicar beneficio.'));
+    } finally {
+      this.isSavingOverride.set(false);
+    }
+  }
+
+  async revokePricingOverride(): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    this.isSavingOverride.set(true);
+    try {
+      await this.storesService.removeStorePricingOverride(s.id);
+      this.discountSaveSuccess.set('Beneficio especial revocado.');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al revocar beneficio.'));
+    } finally {
+      this.isSavingOverride.set(false);
+    }
+  }
+
+  async applyPrepaidCoverage(): Promise<void> {
+    const s = this.store();
+    if (!s || !this.prepaidPeriodEndInput()) {
+      return;
+    }
+    this.isSavingPrepaid.set(true);
+    try {
+      await this.storesService.setStorePrepaidCoverage({
+        storeId: s.id,
+        currentPeriodEnd: this.prepaidPeriodEndInput(),
+        notes: this.prepaidNotesInput().trim() || 'Cobertura manual por transferencia bancaria',
+      });
+      this.discountSaveSuccess.set('Cobertura prepaga registrada con éxito (Prepaid Bridge).');
+      this.prepaidNotesInput.set('');
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3500);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al registrar cobertura prepaga.'));
+    } finally {
+      this.isSavingPrepaid.set(false);
     }
   }
 }

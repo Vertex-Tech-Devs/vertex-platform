@@ -5,6 +5,7 @@ import {
   isMasterBillingAdmin,
   getEffectivePricing,
   calculateOverdueDetails,
+  calculateEffectivePrice,
 } from './subscriptions';
 
 describe('Single SaaS Subscription Engine & Access Control', () => {
@@ -151,6 +152,73 @@ describe('Single SaaS Subscription Engine & Access Control', () => {
       expect(res.surchargePercent).toBe(4);
       expect(res.surchargeAmount).toBe(2000);
       expect(res.totalAmount).toBe(52000);
+    });
+  });
+
+  describe('calculateEffectivePrice (Super Admin Overrides & Discounts)', () => {
+    it('returns base price when override is undefined or null', () => {
+      expect(calculateEffectivePrice(50000, undefined)).toBe(50000);
+      expect(calculateEffectivePrice(50000, null)).toBe(50000);
+    });
+
+    it('returns custom fixed price', () => {
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'custom_fixed_price',
+          value: 35000,
+        }),
+      ).toBe(35000);
+      expect(
+        calculateEffectivePrice(500000, {
+          type: 'custom_fixed_price',
+          value: 0,
+        }),
+      ).toBe(0);
+    });
+
+    it('applies percentage discount correctly', () => {
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'percentage_discount',
+          value: 20,
+        }),
+      ).toBe(40000);
+      expect(
+        calculateEffectivePrice(500000, {
+          type: 'percentage_discount',
+          value: 50,
+        }),
+      ).toBe(250000);
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'percentage_discount',
+          value: 100,
+        }),
+      ).toBe(0);
+    });
+
+    it('applies fixed discount ($ OFF) correctly and does not drop below 0', () => {
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'fixed_discount',
+          value: 15000,
+        }),
+      ).toBe(35000);
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'fixed_discount',
+          value: 70000,
+        }),
+      ).toBe(0);
+    });
+
+    it('handles invalid or NaN values safely', () => {
+      expect(
+        calculateEffectivePrice(50000, {
+          type: 'percentage_discount',
+          value: NaN,
+        }),
+      ).toBe(50000);
     });
   });
 });

@@ -955,11 +955,16 @@
   border: 1px solid var(--platform-card-border);
   border-radius: 12px;
   padding: 0.35rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   margin-bottom: 1.5rem;
   overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  position: sticky;
+  top: 0.5rem;
+  z-index: 10;
 
   &::-webkit-scrollbar {
     display: none;
@@ -970,6 +975,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 44px;
   padding: 0.625rem 1.125rem;
   border-radius: 8px;
   font-family: 'Outfit', sans-serif;
@@ -980,6 +986,8 @@
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  scroll-snap-align: start;
+  flex: 0 0 auto;
   transition: all var(--transition-base);
   position: relative;
 
@@ -3927,6 +3935,47 @@
     color: var(--platform-status-active-text);
     background: var(--platform-status-active-bg);
     border: 1px solid var(--platform-status-active-border);
+  }
+}
+
+.log-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+
+  &--orders {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+  }
+
+  &--system {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.28);
+  }
+
+  &--cloud {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+  }
+
+  &--platform {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.24);
+  }
+
+  &--ecommerce {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.12);
+    border: 1px solid rgba(52, 211, 153, 0.24);
   }
 }
 

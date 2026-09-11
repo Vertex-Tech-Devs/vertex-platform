@@ -139,6 +139,13 @@ export class StoreDetail implements OnInit {
   readonly domainActionState = signal<ActionProgressState>(IDLE_STATE);
   readonly retryActionState = signal<ActionProgressState>(IDLE_STATE);
 
+  readonly isStoreUpdating = computed<boolean>(() => {
+    const s = this.store();
+    return s ? this.orchestrationService.isStoreUpdating(s.id) : false;
+  });
+
+  readonly isDiagnosticsUpdating = signal(false);
+
   readonly showDiagnostics = signal(false);
 
   // ── Subdominio gratuito .web.app ───────────────────────────────────────────
@@ -264,6 +271,7 @@ export class StoreDetail implements OnInit {
     this.hasUserInitiatedDeploy.set(true);
     this.deploySessionTimestamp.set(Date.now());
     this.isDeploying.set(true);
+    this.orchestrationService.setStoreUpdating(s.id, true);
     this.localDeployError.set('');
     try {
       if (version === s.templateVersion) {
@@ -275,6 +283,7 @@ export class StoreDetail implements OnInit {
       this.localDeployError.set(errorMessage(err, 'No se pudo iniciar el despliegue.'));
     } finally {
       this.isDeploying.set(false);
+      this.orchestrationService.setStoreUpdating(s.id, false);
     }
   }
 
@@ -415,16 +424,24 @@ export class StoreDetail implements OnInit {
   readonly logsSeverity = signal<'ALL' | 'WARNING' | 'ERROR'>('ALL');
   readonly logsQuery = signal('');
   readonly logsSinceMinutes = signal(2880);
+  readonly activeWindow = signal<'60' | '360' | '1440' | '2880' | '10080' | 'all' | 'custom'>(
+    '2880',
+  );
+  readonly customStartDate = signal('');
+  readonly customEndDate = signal('');
+  readonly logsSource = signal<'all' | 'orders' | 'system' | 'cloud'>('all');
   readonly logsLoading = signal(false);
   readonly logsError = signal('');
   readonly logsEntries = signal<
     Array<{
+      id?: string;
       timestamp: string;
       severity: string;
       function?: string;
       message: string;
       raw?: string;
       project?: string;
+      source?: 'orders' | 'system' | 'cloud' | string;
     }>
   >([]);
   readonly logsProject = signal('');
@@ -495,11 +512,29 @@ export class StoreDetail implements OnInit {
     this.logsLoading.set(true);
     this.logsError.set('');
     try {
+      const win = this.activeWindow();
+      let sinceMinutes: number | undefined;
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+
+      if (win === 'custom') {
+        startDate = this.customStartDate() || undefined;
+        endDate = this.customEndDate() || undefined;
+      } else if (win === 'all') {
+        sinceMinutes = undefined;
+      } else {
+        sinceMinutes = parseInt(win, 10) || 2880;
+      }
+
+      const src = this.logsSource();
       const res = await this.storesService.getStoreLogs(s.id, {
         severity: this.logsSeverity() === 'ALL' ? undefined : this.logsSeverity(),
         query: this.logsQuery().trim() || undefined,
-        sinceMinutes: this.logsSinceMinutes(),
-        limit: 80,
+        sinceMinutes,
+        startDate,
+        endDate,
+        source: src === 'all' ? undefined : src,
+        limit: 100,
       });
       this.logsEntries.set(res.entries || []);
       this.logsProject.set(res.project || '');
@@ -512,8 +547,25 @@ export class StoreDetail implements OnInit {
     }
   }
 
+  setLogsWindow(windowVal: '60' | '360' | '1440' | '2880' | '10080' | 'all' | 'custom'): void {
+    this.activeWindow.set(windowVal);
+    if (windowVal !== 'custom') {
+      void this.loadStoreLogs();
+    }
+  }
+
+  applyCustomDateFilter(): void {
+    if (this.activeWindow() === 'custom') {
+      void this.loadStoreLogs();
+    }
+  }
+
   setLogsSince(minutes: number): void {
     this.logsSinceMinutes.set(minutes);
+    const win = String(minutes);
+    if (win === '60' || win === '360' || win === '1440' || win === '2880' || win === '10080') {
+      this.activeWindow.set(win);
+    }
     void this.loadStoreLogs();
   }
 

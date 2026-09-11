@@ -38,14 +38,11 @@ export function resolveDateRange(
 ): DateRangeFilter {
   const hasStart = Boolean(startDate && !Number.isNaN(Date.parse(startDate as string)));
   const hasEnd = Boolean(endDate && !Number.isNaN(Date.parse(endDate as string)));
-  const raw = sinceMinutes === undefined || sinceMinutes === null ? DEFAULT_WINDOW_MIN : sinceMinutes;
+  const raw =
+    sinceMinutes === undefined || sinceMinutes === null ? DEFAULT_WINDOW_MIN : sinceMinutes;
   const num = Number(raw);
   const isAll =
-    raw === 0 ||
-    raw === 'all' ||
-    raw === '0' ||
-    startDate === 'all' ||
-    endDate === 'all';
+    raw === 0 || raw === 'all' || raw === '0' || startDate === 'all' || endDate === 'all';
   if (isAll) return { isAll: true };
   const fromDate = hasStart
     ? new Date(Date.parse(startDate as string))

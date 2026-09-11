@@ -94,8 +94,47 @@ export function isMasterBillingAdmin(authEmail?: string): boolean {
   return configuredMasters.includes(authEmail.toLowerCase().trim());
 }
 
+export interface PricingOverride {
+  type: 'custom_fixed_price' | 'percentage_discount' | 'fixed_discount';
+  value: number;
+  duration: 'lifetime' | 'recurring_cycles' | 'single_cycle';
+  cyclesRemaining?: number;
+  cyclesApplied?: number;
+  reason: string;
+  assignedBy: string;
+  assignedAt: string;
+}
+
+/**
+ * Calcula con precisión el precio efectivo resultante tras aplicar overrides o descuentos.
+ * Función pura y determinista sin efectos colaterales.
+ */
+export function calculateEffectivePrice(
+  basePrice: number,
+  override?: PricingOverride | { type?: string; value?: number } | null,
+): number {
+  if (!override || typeof override.value !== 'number' || isNaN(override.value)) {
+    return Math.max(0, Math.round(basePrice));
+  }
+
+  const val = override.value;
+  switch (override.type) {
+    case 'custom_fixed_price':
+      return Math.max(0, Math.round(val));
+    case 'percentage_discount': {
+      const discount = (basePrice * val) / 100;
+      return Math.max(0, Math.round(basePrice - discount));
+    }
+    case 'fixed_discount':
+      return Math.max(0, Math.round(basePrice - val));
+    default:
+      return Math.max(0, Math.round(basePrice));
+  }
+}
+
 /**
  * Obtiene la configuración de precios y tarifas desde Firestore (o defaults).
+ * Consulta preferentemente system_config/billing con fallback a platform_config/billing.
  */
 export async function getEffectivePricing(): Promise<{
   name: string;
@@ -105,7 +144,10 @@ export async function getEffectivePricing(): Promise<{
 }> {
   try {
     const db = getFirestore();
-    const configSnap = await db.collection('platform_config').doc('billing').get();
+    let configSnap = await db.collection('system_config').doc('billing').get();
+    if (!configSnap.exists) {
+      configSnap = await db.collection('platform_config').doc('billing').get();
+    }
     if (configSnap.exists) {
       const data = configSnap.data() || {};
       return {
@@ -116,10 +158,7 @@ export async function getEffectivePricing(): Promise<{
       };
     }
   } catch (err) {
-    console.warn(
-      '[getEffectivePricing] Could not read platform_config/billing, using defaults:',
-      err,
-    );
+    console.warn('[getEffectivePricing] Could not read billing config, using defaults:', err);
   }
   return { ...DEFAULT_SUBSCRIPTION_PRICING };
 }
@@ -302,12 +341,15 @@ export const createStoreSubscriptionLink = onCall(
     const storeData = storeSnap.data() || {};
     const effectivePricing = await getEffectivePricing();
 
-    // 1. Calcular precio final considerando descuentos o precios personalizados asignados por Juan
+    // 1. Calcular precio final considerando overrides, descuentos o precios personalizados
     const subConfig = storeData['subscription'] || {};
-    let finalAmount =
+    const baseAmount =
       billingCycle === 'monthly' ? effectivePricing.monthlyPrice : effectivePricing.annualPrice;
+    let finalAmount = baseAmount;
 
-    if (billingCycle === 'monthly' && typeof subConfig['customMonthlyPrice'] === 'number') {
+    if (subConfig['pricingOverride']) {
+      finalAmount = calculateEffectivePrice(baseAmount, subConfig['pricingOverride']);
+    } else if (billingCycle === 'monthly' && typeof subConfig['customMonthlyPrice'] === 'number') {
       finalAmount = subConfig['customMonthlyPrice'];
     } else if (billingCycle === 'annual' && typeof subConfig['customAnnualPrice'] === 'number') {
       finalAmount = subConfig['customAnnualPrice'];
@@ -338,8 +380,21 @@ export const createStoreSubscriptionLink = onCall(
         : 'https://vertex-platform-app.web.app';
 
     if (billingCycle === 'monthly') {
+      // Si la tienda cuenta con vigencia prepaga futura (ej: Prepaid Bridge), sincronizar start_date
+      let startDateStr: string | undefined;
+      const currentEndTs = subConfig['currentPeriodEnd'];
+      if (currentEndTs) {
+        const endDate =
+          typeof currentEndTs.toDate === 'function'
+            ? currentEndTs.toDate()
+            : new Date((currentEndTs.seconds || 0) * 1000);
+        if (endDate.getTime() > Date.now()) {
+          startDateStr = endDate.toISOString();
+        }
+      }
+
       // MERCADO PAGO PREAPPROVAL API (Débito mensual automático)
-      const payload = {
+      const payload: Record<string, any> = {
         payer_email: targetEmail,
         back_url: `${platformBaseUrl}/pay/${storeId}/success`,
         reason: `Vertex Store — ${storeName} (Mensual)`,
@@ -349,6 +404,7 @@ export const createStoreSubscriptionLink = onCall(
           frequency_type: 'months',
           transaction_amount: finalAmount,
           currency_id: 'ARS',
+          ...(startDateStr ? { start_date: startDateStr } : {}),
         },
       };
 
@@ -497,15 +553,18 @@ export const getPublicStoreSubscriptionInfo = onCall(
     let monthlyPrice = effectivePricing.monthlyPrice;
     let annualPrice = effectivePricing.annualPrice;
 
-    if (typeof subConfig['customMonthlyPrice'] === 'number') {
+    if (subConfig['pricingOverride']) {
+      monthlyPrice = calculateEffectivePrice(monthlyPrice, subConfig['pricingOverride']);
+      annualPrice = calculateEffectivePrice(annualPrice, subConfig['pricingOverride']);
+    } else if (typeof subConfig['customMonthlyPrice'] === 'number') {
       monthlyPrice = subConfig['customMonthlyPrice'];
     }
-    if (typeof subConfig['customAnnualPrice'] === 'number') {
+    if (!subConfig['pricingOverride'] && typeof subConfig['customAnnualPrice'] === 'number') {
       annualPrice = subConfig['customAnnualPrice'];
     }
     const discountPercent =
       typeof subConfig['discountPercent'] === 'number' ? subConfig['discountPercent'] : 0;
-    if (discountPercent > 0) {
+    if (!subConfig['pricingOverride'] && discountPercent > 0) {
       monthlyPrice = Math.max(0, Math.round(monthlyPrice * (1 - discountPercent / 100)));
       annualPrice = Math.max(0, Math.round(annualPrice * (1 - discountPercent / 100)));
     }
@@ -552,6 +611,7 @@ export const getPublicStoreSubscriptionInfo = onCall(
       baseMonthlyPrice: effectivePricing.monthlyPrice,
       baseAnnualPrice: effectivePricing.annualPrice,
       discountPercent: discountPercent > 0 ? discountPercent : null,
+      pricingOverride: subConfig['pricingOverride'] || null,
       isOverdue: monthlyOverdue.isOverdue,
       overdueDays: monthlyOverdue.overdueDays,
       overdueSurchargePercent: monthlyOverdue.surchargePercent,
@@ -592,10 +652,20 @@ export const getStoreSubscription = onCall(
     const email = request.auth.token.email;
     const isMaster = isMasterBillingAdmin(email);
 
-    const baseAmount =
+    let baseAmount =
       subscription.billingCycle === 'annual'
-        ? subscription.customAnnualPrice || effectivePricing.annualPrice
-        : subscription.customMonthlyPrice || effectivePricing.monthlyPrice;
+        ? effectivePricing.annualPrice
+        : effectivePricing.monthlyPrice;
+
+    if (subscription.pricingOverride) {
+      baseAmount = calculateEffectivePrice(baseAmount, subscription.pricingOverride);
+    } else {
+      baseAmount =
+        subscription.billingCycle === 'annual'
+          ? subscription.customAnnualPrice || effectivePricing.annualPrice
+          : subscription.customMonthlyPrice || effectivePricing.monthlyPrice;
+    }
+
     const overdueDetails = calculateOverdueDetails(subscription, baseAmount);
 
     return {
@@ -605,6 +675,262 @@ export const getStoreSubscription = onCall(
       isMasterAdmin: isMaster,
       overdueDetails,
     };
+  },
+);
+
+/**
+ * Consulta el catálogo global de precios de planes SaaS en system_config/billing.
+ */
+export const getGlobalPlansPricing = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+    const pricing = await getEffectivePricing();
+    return { success: true, pricing };
+  },
+);
+
+/**
+ * Permite al Super Admin modificar las tarifas globales de los planes base en system_config/billing.
+ */
+export const updateGlobalPlansPricing = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+    const email = request.auth.token.email;
+    const isMaster = isMasterBillingAdmin(email);
+    if (!isMaster && !request.auth.token['superAdmin'] && !request.auth.token['platformAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Solo administradores pueden modificar tarifas globales.',
+      );
+    }
+
+    const { monthlyPrice, annualPrice, name, description } = request.data as {
+      monthlyPrice?: number;
+      annualPrice?: number;
+      name?: string;
+      description?: string;
+    };
+
+    const updates: Record<string, any> = {
+      updatedAt: new Date(),
+      updatedBy: email,
+    };
+
+    if (monthlyPrice !== undefined) {
+      if (typeof monthlyPrice !== 'number' || monthlyPrice < 0) {
+        throw new HttpsError('invalid-argument', 'El precio mensual debe ser un número positivo.');
+      }
+      updates['monthlyPrice'] = monthlyPrice;
+    }
+
+    if (annualPrice !== undefined) {
+      if (typeof annualPrice !== 'number' || annualPrice < 0) {
+        throw new HttpsError('invalid-argument', 'El precio anual debe ser un número positivo.');
+      }
+      updates['annualPrice'] = annualPrice;
+    }
+
+    if (name) updates['name'] = String(name).trim();
+    if (description) updates['description'] = String(description).trim();
+
+    const db = getFirestore();
+    await db.collection('system_config').doc('billing').set(updates, { merge: true });
+    await db.collection('platform_config').doc('billing').set(updates, { merge: true });
+
+    await logAuditAction(
+      request.auth.uid,
+      email,
+      'updateGlobalPlansPricing',
+      'system_config/billing',
+      'success',
+      updates,
+    );
+
+    return {
+      success: true,
+      message: 'Tarifas de planes actualizadas en catálogo global.',
+      pricing: await getEffectivePricing(),
+    };
+  },
+);
+
+/**
+ * Asigna un PricingOverride (precio fijo especial, % de descuento o $ OFF) a una tienda puntual.
+ */
+export const setStorePricingOverride = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+    const email = request.auth.token.email;
+    const isMaster = isMasterBillingAdmin(email);
+    if (!isMaster && !request.auth.token['superAdmin'] && !request.auth.token['platformAdmin']) {
+      throw new HttpsError(
+        'permission-denied',
+        'Solo administradores pueden configurar beneficios especiales.',
+      );
+    }
+
+    const { storeId, type, value, duration, cyclesRemaining, reason } = request.data as {
+      storeId: string;
+      type: 'custom_fixed_price' | 'percentage_discount' | 'fixed_discount';
+      value: number;
+      duration: 'lifetime' | 'recurring_cycles' | 'single_cycle';
+      cyclesRemaining?: number;
+      reason: string;
+    };
+
+    if (!storeId || !type || typeof value !== 'number' || value < 0 || !duration) {
+      throw new HttpsError('invalid-argument', 'Parámetros de override inválidos.');
+    }
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const storeSnap = await storeRef.get();
+    if (!storeSnap.exists) {
+      throw new HttpsError('not-found', 'Tienda no encontrada.');
+    }
+
+    const override: PricingOverride = {
+      type,
+      value,
+      duration,
+      cyclesRemaining:
+        duration === 'single_cycle'
+          ? 1
+          : duration === 'recurring_cycles'
+            ? cyclesRemaining || 3
+            : undefined,
+      cyclesApplied: 0,
+      reason: String(reason || 'Beneficio especial Super Admin').trim(),
+      assignedBy: email || 'superadmin',
+      assignedAt: new Date().toISOString(),
+    };
+
+    await storeRef.update({
+      'subscription.pricingOverride': override,
+      'subscription.updatedAt': new Date(),
+      'subscription.updatedBy': email,
+    });
+
+    await logAuditAction(
+      request.auth.uid,
+      email,
+      'setStorePricingOverride',
+      storeId,
+      'success',
+      override,
+    );
+
+    return { success: true, storeId, pricingOverride: override };
+  },
+);
+
+/**
+ * Revoca el PricingOverride configurado en una tienda.
+ */
+export const removeStorePricingOverride = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+    const email = request.auth.token.email;
+    const isMaster = isMasterBillingAdmin(email);
+    if (!isMaster && !request.auth.token['superAdmin'] && !request.auth.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Solo administradores pueden revocar beneficios.');
+    }
+
+    const { storeId } = request.data as { storeId: string };
+    if (!storeId) {
+      throw new HttpsError('invalid-argument', 'storeId es requerido.');
+    }
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    await storeRef.update({
+      'subscription.pricingOverride': null,
+      'subscription.updatedAt': new Date(),
+      'subscription.updatedBy': email,
+    });
+
+    await logAuditAction(
+      request.auth.uid,
+      email,
+      'removeStorePricingOverride',
+      storeId,
+      'success',
+      {},
+    );
+
+    return { success: true, storeId };
+  },
+);
+
+/**
+ * Prepaid Bridge: fija cobertura manual por transferencia/bancaria sin doble cobro.
+ */
+export const setStorePrepaidCoverage = onCall(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
+    }
+    const email = request.auth.token.email;
+    const isMaster = isMasterBillingAdmin(email);
+    if (!isMaster && !request.auth.token['superAdmin'] && !request.auth.token['platformAdmin']) {
+      throw new HttpsError('permission-denied', 'Acceso denegado.');
+    }
+
+    const { storeId, currentPeriodEnd, notes } = request.data as {
+      storeId: string;
+      currentPeriodEnd: string;
+      notes?: string;
+    };
+
+    if (!storeId || !currentPeriodEnd) {
+      throw new HttpsError('invalid-argument', 'storeId y currentPeriodEnd son requeridos.');
+    }
+
+    const parsedEnd = new Date(currentPeriodEnd);
+    if (isNaN(parsedEnd.getTime())) {
+      throw new HttpsError('invalid-argument', 'Fecha currentPeriodEnd inválida.');
+    }
+
+    const db = getFirestore();
+    const storeRef = db.collection('stores').doc(storeId);
+    const storeSnap = await storeRef.get();
+    if (!storeSnap.exists) {
+      throw new HttpsError('not-found', 'Tienda no encontrada.');
+    }
+
+    const updates: Record<string, any> = {
+      status: 'active',
+      'subscription.status': 'legacy_prepaid',
+      'subscription.paymentMethod': 'manual_bridge',
+      'subscription.currentPeriodEnd': Timestamp.fromDate(parsedEnd),
+      'subscription.prepaidNotes': notes
+        ? String(notes).trim()
+        : 'Pago manual verificado por administración',
+      'subscription.updatedAt': new Date(),
+      'subscription.updatedBy': email,
+    };
+
+    await storeRef.update(updates);
+
+    await logAuditAction(request.auth.uid, email, 'setStorePrepaidCoverage', storeId, 'success', {
+      currentPeriodEnd: parsedEnd.toISOString(),
+      notes,
+    });
+
+    return { success: true, storeId, currentPeriodEnd: parsedEnd.toISOString() };
   },
 );
 
@@ -633,7 +959,15 @@ export const updateStoreSubscriptionStatus = onCall(
       simulateExpiration,
     } = request.data as {
       storeId: string;
-      status?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended';
+      status?:
+        | 'active'
+        | 'complimentary'
+        | 'trial'
+        | 'past_due'
+        | 'suspended'
+        | 'legacy_prepaid'
+        | 'trialing'
+        | 'grace_period';
       customMonthlyPrice?: number | null;
       customAnnualPrice?: number | null;
       discountPercent?: number | null;
@@ -882,8 +1216,12 @@ export const checkSubscriptionExpirations = onSchedule(
       verified++;
       const sub = data['subscription'] || {};
 
-      // Tiendas en cortesía permanente no se suspenden
-      if (sub.status === 'complimentary') {
+      // Tiendas en cortesía permanente, corporativas o internas exentas no se suspenden
+      if (
+        data['isExempt'] === true ||
+        data['plan'] === 'internal' ||
+        sub.status === 'complimentary'
+      ) {
         continue;
       }
 

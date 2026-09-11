@@ -22,6 +22,7 @@ import type {
   StaffMember,
   PendingInvitation,
   TemplateVersion,
+  PricingOverride,
 } from '../models/store';
 import type {
   DnsRecord,
@@ -360,7 +361,15 @@ export class StoresService {
   /** Logs por tienda (getStoreLogs callable). */
   async getStoreLogs(
     storeId: string,
-    opts: { severity?: string; query?: string; sinceMinutes?: number; limit?: number } = {},
+    opts: {
+      severity?: string;
+      query?: string;
+      sinceMinutes?: number;
+      startDate?: string;
+      endDate?: string;
+      source?: 'orders' | 'system' | 'cloud';
+      limit?: number;
+    } = {},
   ): Promise<StoreLogsResponse> {
     const fn = httpsCallable<{ storeId: string } & typeof opts, StoreLogsResponse>(
       this.fns,
@@ -377,6 +386,101 @@ export class StoresService {
       'triggerHealShards',
     );
     const result = await fn({});
+    return result.data;
+  }
+
+  /** Consulta el catálogo oficial de precios de planes en system_config/billing */
+  async getGlobalPlansPricing(): Promise<{
+    monthlyPrice: number;
+    annualPrice: number;
+    name?: string;
+    description?: string;
+  }> {
+    const fn = httpsCallable<
+      Record<string, never>,
+      {
+        success: boolean;
+        pricing: {
+          monthlyPrice: number;
+          annualPrice: number;
+          name?: string;
+          description?: string;
+        };
+      }
+    >(this.fns, 'getGlobalPlansPricing');
+    const result = await fn({});
+    return result.data.pricing;
+  }
+
+  /** Actualiza las tarifas base de los planes SaaS (Super Admin) */
+  async updateGlobalPlansPricing(payload: {
+    monthlyPrice?: number;
+    annualPrice?: number;
+    name?: string;
+    description?: string;
+  }): Promise<{
+    monthlyPrice: number;
+    annualPrice: number;
+    name?: string;
+    description?: string;
+  }> {
+    const fn = httpsCallable<
+      typeof payload,
+      {
+        success: boolean;
+        message: string;
+        pricing: {
+          monthlyPrice: number;
+          annualPrice: number;
+          name?: string;
+          description?: string;
+        };
+      }
+    >(this.fns, 'updateGlobalPlansPricing');
+    const result = await fn(payload);
+    return result.data.pricing;
+  }
+
+  /** Asigna un PricingOverride (precio especial, % OFF, $ OFF) a una tienda */
+  async setStorePricingOverride(payload: {
+    storeId: string;
+    type: 'custom_fixed_price' | 'percentage_discount' | 'fixed_discount';
+    value: number;
+    duration: 'lifetime' | 'recurring_cycles' | 'single_cycle';
+    cyclesRemaining?: number;
+    reason: string;
+  }): Promise<{ success: boolean; storeId: string }> {
+    const fn = httpsCallable<typeof payload, { success: boolean; storeId: string }>(
+      this.fns,
+      'setStorePricingOverride',
+    );
+    const result = await fn(payload);
+    return result.data;
+  }
+
+  /** Revoca el PricingOverride de una tienda */
+  async removeStorePricingOverride(
+    storeId: string,
+  ): Promise<{ success: boolean; storeId: string }> {
+    const fn = httpsCallable<{ storeId: string }, { success: boolean; storeId: string }>(
+      this.fns,
+      'removeStorePricingOverride',
+    );
+    const result = await fn({ storeId });
+    return result.data;
+  }
+
+  /** Prepaid Bridge: fija cobertura manual por transferencia con nota bancaria */
+  async setStorePrepaidCoverage(payload: {
+    storeId: string;
+    currentPeriodEnd: string;
+    notes?: string;
+  }): Promise<{ success: boolean; storeId: string; currentPeriodEnd: string }> {
+    const fn = httpsCallable<
+      typeof payload,
+      { success: boolean; storeId: string; currentPeriodEnd: string }
+    >(this.fns, 'setStorePrepaidCoverage');
+    const result = await fn(payload);
     return result.data;
   }
 
@@ -619,12 +723,14 @@ export interface StoreLogsResponse {
   success: boolean;
   project: string;
   entries: Array<{
+    id?: string;
     timestamp: string;
     severity: string;
     function?: string;
     message: string;
     raw?: string;
     project?: string;
+    source?: 'orders' | 'system' | 'cloud' | string;
   }>;
   truncated: boolean;
 }
@@ -684,6 +790,7 @@ export interface StoreSubscriptionInfo {
     notes?: string;
     lastGeneratedLink?: string;
   };
+  pricingOverride?: PricingOverride | null;
   basePricing: {
     name: string;
     description: string;

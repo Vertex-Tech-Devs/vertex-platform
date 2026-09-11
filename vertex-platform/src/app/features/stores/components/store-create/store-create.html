@@ -91,6 +91,41 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">Subdominio Público *</label>
+          <div class="input-addon">
+            <span class="input-addon__pre">https://</span>
+            <input
+              formControlName="subdomain"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="form.get('subdomain')?.invalid && form.get('subdomain')?.touched"
+              placeholder="vtx-ropa-maria"
+            />
+            <span class="input-addon__post">.web.app</span>
+          </div>
+          <div class="mt-1">
+            @if (isCheckingSubdomain()) {
+              <span class="text-xs text-muted d-inline-flex align-items-center gap-1">
+                <span class="spinner-sm"></span> Comprobando disponibilidad…
+              </span>
+            } @else if (subdomainAvailable() === true) {
+              <span class="badge badge--success text-xs">
+                {{ subdomainMessage() }}
+              </span>
+            } @else if (subdomainError()) {
+              <span class="badge badge--danger text-xs">
+                {{ subdomainError() }}
+              </span>
+            }
+          </div>
+          @if (form.get('subdomain')?.invalid && form.get('subdomain')?.touched) {
+            <div class="invalid-feedback d-block">
+              Subdominio inválido (mínimo 4 caracteres alfanuméricos y guiones).
+            </div>
+          }
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Email del cliente *</label>
           <input
             formControlName="ownerEmail"
@@ -415,7 +450,11 @@
 
     <div class="form-actions">
       <a routerLink="/stores" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="isSubmitting() || isCheckingSubdomain() || subdomainAvailable() === false"
+      >
         @if (isSubmitting()) {
           <span class="spinner-sm"></span> Creando tienda…
         } @else {

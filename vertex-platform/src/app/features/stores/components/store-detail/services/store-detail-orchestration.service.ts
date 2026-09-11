@@ -32,7 +32,24 @@ export class StoreDetailOrchestrationService {
   readonly isLoadingVersions = signal(false);
   /** Cache de sesión: evita recargar releases en cada visita al detalle. */
   private cachedVersions: TemplateVersion[] | null = null;
-  readonly isUpdatingVersion = signal(false);
+  /** Estado de actualización aislado por ID de tienda para evitar contaminación reactiva entre tabs/tiendas */
+  readonly updatingStores = signal<Set<string>>(new Set<string>());
+
+  isStoreUpdating(storeId: string): boolean {
+    return this.updatingStores().has(storeId);
+  }
+
+  setStoreUpdating(storeId: string, updating: boolean): void {
+    this.updatingStores.update((set) => {
+      const next = new Set(set);
+      if (updating) {
+        next.add(storeId);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+  }
 
   readonly localDeployError = signal('');
   readonly isDeployProgressDismissed = signal(false);

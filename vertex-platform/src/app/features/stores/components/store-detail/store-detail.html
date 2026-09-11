@@ -438,6 +438,7 @@
                         (change)="selectedVersion.set($any($event.target).value)"
                         [disabled]="
                           isDeploying() ||
+                          isStoreUpdating() ||
                           isLoadingVersions() ||
                           availableVersions().length === 0 ||
                           deployActionState().status === 'running'
@@ -480,12 +481,17 @@
                         class="action-btn action-btn--primary"
                         [disabled]="
                           isDeploying() ||
+                          isStoreUpdating() ||
                           store()!.status !== 'active' ||
                           deployActionState().status === 'running'
                         "
                         (click)="triggerDeployment()"
                       >
-                        @if (isDeploying() || deployActionState().status === 'running') {
+                        @if (
+                          isDeploying() ||
+                          isStoreUpdating() ||
+                          deployActionState().status === 'running'
+                        ) {
                           <app-spinner size="sm" label="Desplegando…" />
                         } @else if (selectedVersion() === store()!.templateVersion) {
                           <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
@@ -1110,6 +1116,19 @@
                     <option value="ERROR">Solo errores</option>
                   </select>
                 </div>
+                <div class="monitor-filter">
+                  <label class="form-label">Origen</label>
+                  <select
+                    class="form-control"
+                    [ngModel]="logsSource()"
+                    (ngModelChange)="logsSource.set($event); applyLogsFilters()"
+                  >
+                    <option value="all">Todos los orígenes</option>
+                    <option value="orders">Órdenes / Checkout</option>
+                    <option value="system">Sistema / Auditoría</option>
+                    <option value="cloud">Cloud Logging</option>
+                  </select>
+                </div>
                 <div class="monitor-filter monitor-filter--grow">
                   <label class="form-label">Buscar (orderId, término…)</label>
                   <input
@@ -1125,16 +1144,47 @@
                   <label class="form-label">Ventana</label>
                   <select
                     class="form-control"
-                    [ngModel]="logsSinceMinutes()"
-                    (ngModelChange)="setLogsSince($any($event))"
+                    [ngModel]="activeWindow()"
+                    (ngModelChange)="setLogsWindow($event)"
                   >
-                    <option [ngValue]="60">Última hora</option>
-                    <option [ngValue]="360">Últimas 6 hs</option>
-                    <option [ngValue]="1440">Últimas 24 hs</option>
-                    <option [ngValue]="2880">Últimas 48 hs (Recomendado)</option>
-                    <option [ngValue]="10080">Últimos 7 días</option>
+                    <option value="60">Última hora</option>
+                    <option value="360">Últimas 6 hs</option>
+                    <option value="1440">Últimas 24 hs</option>
+                    <option value="2880">Últimas 48 hs (Recomendado)</option>
+                    <option value="10080">Últimos 7 días</option>
+                    <option value="all">Todo el historial</option>
+                    <option value="custom">Rango personalizado</option>
                   </select>
                 </div>
+                @if (activeWindow() === 'custom') {
+                  <div class="monitor-filter">
+                    <label class="form-label">Desde</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      [ngModel]="customStartDate()"
+                      (ngModelChange)="customStartDate.set($event)"
+                    />
+                  </div>
+                  <div class="monitor-filter">
+                    <label class="form-label">Hasta</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      [ngModel]="customEndDate()"
+                      (ngModelChange)="customEndDate.set($event)"
+                    />
+                  </div>
+                  <div class="monitor-filter align-self-end">
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm"
+                      (click)="applyCustomDateFilter()"
+                    >
+                      <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                  </div>
+                }
                 <a
                   class="btn btn-secondary btn--sm monitor-console-link"
                   [href]="cloudLogsUrl()"
@@ -1163,19 +1213,50 @@
                   <i class="bi bi-journal-check fs-1 text-muted d-block mb-2"></i>
                   <h4 class="h6 mb-1 text-muted">No se registraron eventos en este período</h4>
                   <p class="mb-0 text-muted small">
-                    No hay registros disponibles para el rango temporal y filtros seleccionados.
-                    Probá ampliar la ventana a 48 hs o 7 días.
+                    @if (activeWindow() === 'custom') {
+                      No hay registros disponibles entre {{ customStartDate() || 'el inicio' }} y
+                      {{ customEndDate() || 'hoy' }}. Probá con
+                    } @else {
+                      No hay registros disponibles para el rango temporal seleccionado. Probá con
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm p-0 align-baseline"
+                      (click)="setLogsWindow('all')"
+                    >
+                      "Todo el historial"
+                    </button>
+                    o ampliar la ventana.
                   </p>
                 </div>
               } @else if (logsEntries().length > 0) {
                 <div class="monitor-log-list">
-                  @for (entry of logsEntries(); track entry.timestamp + entry.message) {
+                  @for (
+                    entry of logsEntries();
+                    track (entry.id || entry.timestamp) + entry.message
+                  ) {
                     <div class="monitor-log-row">
                       <div class="monitor-log-row__left">
                         <span [class]="logsSeverityClass(entry.severity)">{{
                           entry.severity || 'INFO'
                         }}</span>
-                        @if (entry.project === 'vertex-platform-app') {
+                        @if (entry.source === 'orders') {
+                          <span
+                            class="log-source log-source--orders"
+                            title="Origen: Pedidos / Checkout"
+                            >[ÓRDENES]</span
+                          >
+                        } @else if (entry.source === 'system') {
+                          <span
+                            class="log-source log-source--system"
+                            title="Origen: Sistema / Auditoría"
+                            >[SISTEMA]</span
+                          >
+                        } @else if (entry.source === 'cloud') {
+                          <span class="log-source log-source--cloud" title="Origen: Cloud Logging"
+                            >[CLOUD]</span
+                          >
+                        } @else if (entry.project === 'vertex-platform-app') {
                           <span
                             class="log-source log-source--platform"
                             title="Origen: Platform (provisioning/dominios/alertas)"
