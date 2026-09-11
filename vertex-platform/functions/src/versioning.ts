@@ -78,9 +78,9 @@ export const listTemplateVersions = onCall(
       releases = (await res.json()) as GitHubRelease[];
       const published = releases.filter((r) => !r.draft && !r.prerelease);
 
-      // Tags (fuente secundaria): versiones con tag pero sin release publicada.
-      // Se fusionan para que el selector muestre TODAS las versiones compatibles,
-      // no solo la latest.
+      // Releases oficiales publicadas desde la rama main.
+      // Solo se reconocen releases formales publicadas (prerelease: false y draft: false)
+      // para evitar que tags o pre-releases de branches de desarrollo se usen en producción.
       const byVersion = new Map<string, TemplateVersion>();
       for (const r of published) {
         const relVersion = r.tag_name.replace(/^v/, '');
@@ -92,60 +92,6 @@ export const listTemplateVersions = onCall(
           notes: r.body ?? undefined,
           schemaVersion: SCHEMA_BY_VERSION[relVersion] ?? 0,
         });
-      }
-
-      const tagsRes = await fetch(
-        'https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/tags?per_page=20',
-        {
-          headers: {
-            Authorization: `Bearer ${pat}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-          },
-        },
-      );
-      if (tagsRes.ok) {
-        const tags = (await tagsRes.json()) as {
-          name: string;
-          commit?: { sha: string };
-        }[];
-        for (const t of tags.filter((x) => x.name.startsWith('v'))) {
-          const v = t.name.replace(/^v/, '');
-          if (!byVersion.has(v)) {
-            // Fecha real del tag: la del commit al que apunta (no "ahora").
-            let publishedAt = new Date().toISOString();
-            if (t.commit?.sha) {
-              try {
-                const cRes = await fetch(
-                  `https://api.github.com/repos/Vertex-Tech-Devs/ecommerce-vertex/commits/${t.commit.sha}`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${pat}`,
-                      Accept: 'application/vnd.github+json',
-                      'X-GitHub-Api-Version': '2022-11-28',
-                    },
-                  },
-                );
-                if (cRes.ok) {
-                  const c = (await cRes.json()) as {
-                    commit?: { committer?: { date?: string } };
-                  };
-                  publishedAt = c.commit?.committer?.date ?? publishedAt;
-                }
-              } catch {
-                // Se conserva la fecha fallback si la llamada falla.
-              }
-            }
-            byVersion.set(v, {
-              version: v,
-              tag: t.name,
-              publishedAt,
-              isLatest: false,
-              notes: 'Git tag (sin release publicada)',
-              schemaVersion: SCHEMA_BY_VERSION[v] ?? 0,
-            });
-          }
-        }
       }
 
       // Orden desc por semver y marca la más alta como latest.

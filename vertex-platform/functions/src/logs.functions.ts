@@ -179,9 +179,10 @@ export const getStoreLogs = onCall<{
       const queryClause = cleanQuery
         ? ` AND (textPayload:"${cleanQuery}" OR jsonPayload.message:"${cleanQuery}")`
         : '';
+      const sevUpper = severity ? severity.toUpperCase() : '';
       const sevClause =
-        severity && severity.toUpperCase() !== 'ALL'
-          ? ` AND severity >= ${severity.toUpperCase() === 'WARNING' ? '400' : severity.toUpperCase() === 'ERROR' ? '500' : '200'}`
+        sevUpper && sevUpper !== 'ALL'
+          ? ` AND severity >= ${sevUpper === 'WARNING' || sevUpper === 'WARN' ? 'WARNING' : sevUpper === 'ERROR' || sevUpper === 'CRITICAL' ? 'ERROR' : 'INFO'}`
           : '';
       const filter = `${base}${lowerClause}${upperClause}${sevClause}${queryClause}`;
 

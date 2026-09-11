@@ -1185,8 +1185,28 @@
                     </button>
                   </div>
                 }
+                @if (logsEntries().length > 0) {
+                  <div class="monitor-filter align-self-end d-flex gap-1">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn--sm"
+                      title="Expandir todos los logs"
+                      (click)="expandAllLogs()"
+                    >
+                      <i class="bi bi-arrows-expand"></i> Expandir todos
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn--sm"
+                      title="Colapsar todos los logs"
+                      (click)="collapseAllLogs()"
+                    >
+                      <i class="bi bi-arrows-collapse"></i> Colapsar todos
+                    </button>
+                  </div>
+                }
                 <a
-                  class="btn btn-secondary btn--sm monitor-console-link"
+                  class="btn btn-secondary btn--sm monitor-console-link align-self-end"
                   [href]="cloudLogsUrl()"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1235,54 +1255,97 @@
                     entry of logsEntries();
                     track (entry.id || entry.timestamp) + entry.message
                   ) {
-                    <div class="monitor-log-row">
-                      <div class="monitor-log-row__left">
-                        <span [class]="logsSeverityClass(entry.severity)">{{
-                          entry.severity || 'INFO'
-                        }}</span>
-                        @if (entry.source === 'orders') {
-                          <span
-                            class="log-source log-source--orders"
-                            title="Origen: Pedidos / Checkout"
-                            >[ÓRDENES]</span
+                    <div class="monitor-log-item">
+                      <div class="monitor-log-row">
+                        <div class="monitor-log-row__left">
+                          <span [class]="logsSeverityClass(entry.severity)">{{
+                            entry.severity || 'INFO'
+                          }}</span>
+                          @if (entry.source === 'orders') {
+                            <span
+                              class="log-source log-source--orders"
+                              title="Origen: Pedidos / Checkout"
+                              >[ÓRDENES]</span
+                            >
+                          } @else if (entry.source === 'system') {
+                            <span
+                              class="log-source log-source--system"
+                              title="Origen: Sistema / Auditoría"
+                              >[SISTEMA]</span
+                            >
+                          } @else if (entry.source === 'cloud') {
+                            <span class="log-source log-source--cloud" title="Origen: Cloud Logging"
+                              >[CLOUD]</span
+                            >
+                          } @else if (entry.project === 'vertex-platform-app') {
+                            <span
+                              class="log-source log-source--platform"
+                              title="Origen: Platform (provisioning/dominios/alertas)"
+                              >platform</span
+                            >
+                          } @else {
+                            <span
+                              class="log-source log-source--ecommerce"
+                              title="Origen: Storefront/ecommerce"
+                              >tienda</span
+                            >
+                          }
+                          @if (entry.function) {
+                            <code class="monitor-log-row__fn">{{ entry.function }}</code>
+                          }
+                        </div>
+                        <div class="monitor-log-row__time">{{ entry.timestamp }}</div>
+                        <div class="monitor-log-row__summary">
+                          {{ getLogSummary(entry.message || entry.raw) }}
+                        </div>
+                        <div class="monitor-log-row__actions">
+                          @if (isLogExpandable(entry.message || entry.raw)) {
+                            <button
+                              type="button"
+                              class="btn btn-secondary btn--sm btn-toggle-expand"
+                              (click)="toggleLogExpansion(entry.id || entry.timestamp)"
+                              [title]="
+                                isLogExpanded(entry.id || entry.timestamp)
+                                  ? 'Colapsar detalle'
+                                  : 'Ver detalle completo'
+                              "
+                            >
+                              {{
+                                isLogExpanded(entry.id || entry.timestamp)
+                                  ? 'Cerrar ▴'
+                                  : 'Detalle ▾'
+                              }}
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm"
+                            title="Copiar contenido"
+                            (click)="copyLogPayload(entry.message || entry.raw || '')"
                           >
-                        } @else if (entry.source === 'system') {
-                          <span
-                            class="log-source log-source--system"
-                            title="Origen: Sistema / Auditoría"
-                            >[SISTEMA]</span
-                          >
-                        } @else if (entry.source === 'cloud') {
-                          <span class="log-source log-source--cloud" title="Origen: Cloud Logging"
-                            >[CLOUD]</span
-                          >
-                        } @else if (entry.project === 'vertex-platform-app') {
-                          <span
-                            class="log-source log-source--platform"
-                            title="Origen: Platform (provisioning/dominios/alertas)"
-                            >platform</span
-                          >
-                        } @else {
-                          <span
-                            class="log-source log-source--ecommerce"
-                            title="Origen: Storefront/ecommerce"
-                            >tienda</span
-                          >
-                        }
-                        @if (entry.function) {
-                          <code class="monitor-log-row__fn">{{ entry.function }}</code>
-                        }
+                            <i class="bi bi-clipboard"></i>
+                          </button>
+                        </div>
                       </div>
-                      <div class="monitor-log-row__time">{{ entry.timestamp }}</div>
-                      <div class="monitor-log-row__msg">{{ entry.message || entry.raw }}</div>
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn--sm"
-                        title="Copiar mensaje"
-                        (click)="copyLogMessage(entry.message || entry.raw || '')"
-                      >
-                        <i class="bi bi-clipboard"></i>
-                      </button>
+                      @if (isLogExpanded(entry.id || entry.timestamp)) {
+                        <div class="monitor-log-expanded">
+                          <div class="monitor-log-expanded__toolbar">
+                            <span class="monitor-log-expanded__chars">
+                              {{ (entry.message || entry.raw || '').length }} caracteres
+                            </span>
+                            <button
+                              type="button"
+                              class="btn btn-secondary btn--sm"
+                              (click)="copyLogPayload(entry.message || entry.raw || '')"
+                            >
+                              <i class="bi bi-clipboard me-1"></i> Copiar contenido
+                            </button>
+                          </div>
+                          <pre
+                            class="log-payload"
+                          ><code>{{ entry.message || entry.raw }}</code></pre>
+                        </div>
+                      }
                     </div>
                   }
                 </div>

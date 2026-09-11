@@ -446,6 +446,7 @@ export class StoreDetail implements OnInit {
   >([]);
   readonly logsProject = signal('');
   readonly logsLoadedAt = signal<Date | null>(null);
+  readonly expandedLogIds = signal<Set<string>>(new Set());
   readonly storeAlerts = signal<
     Array<{ key: string; severity: string; title: string; message: string }>
   >([]);
@@ -582,6 +583,65 @@ export class StoreDetail implements OnInit {
 
   copyLogMessage(message: string): void {
     void this.staffService.copyToClipboard(message);
+  }
+
+  copyLogPayload(payload: string): void {
+    void this.staffService.copyToClipboard(payload);
+  }
+
+  toggleLogExpansion(id: string): void {
+    if (!id) {
+      return;
+    }
+    this.expandedLogIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  isLogExpanded(id?: string): boolean {
+    if (!id) {
+      return false;
+    }
+    return this.expandedLogIds().has(id);
+  }
+
+  expandAllLogs(): void {
+    const allIds = new Set<string>();
+    for (const entry of this.logsEntries()) {
+      const id = entry.id || entry.timestamp;
+      if (id) {
+        allIds.add(id);
+      }
+    }
+    this.expandedLogIds.set(allIds);
+  }
+
+  collapseAllLogs(): void {
+    this.expandedLogIds.set(new Set());
+  }
+
+  getLogSummary(message?: string): string {
+    if (!message) {
+      return '';
+    }
+    const firstLine = message.split(/\r?\n/)[0]?.trim() || '';
+    if (firstLine.length > 120) {
+      return firstLine.slice(0, 120) + '…';
+    }
+    return firstLine;
+  }
+
+  isLogExpandable(message?: string): boolean {
+    if (!message) {
+      return false;
+    }
+    return message.includes('\n') || message.length > 120;
   }
 
   logsSeverityClass(sev: string): string {

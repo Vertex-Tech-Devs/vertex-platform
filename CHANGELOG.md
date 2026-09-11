@@ -5,6 +5,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [0.9.0] - 2026-09-11
+
+### 🐛 Backend & Cloud Logging
+- **Fix GCP Severity Enum (`functions/src/logs.functions.ts`)**: Se reemplazó el filtro con enteros inválidos (`severity >= 500`) por la sintaxis oficial de Cloud Logging API v2 (`severity >= ERROR` / `WARNING` / `INFO`), eliminando el error HTTP 400 de Gaxios.
+- **Blindaje de Versiones Productivas (`versioning.ts`)**: Se aseguró que `listTemplateVersions` filtre estrictamente releases formales publicadas (`prerelease: false` y `draft: false`), garantizando que las tiendas en producción solo utilicen código proveniente de la rama `main`.
+
+### 🖥️ Frontend & Monitor de Logs
+- **Logs Colapsables y UI Compacta (`store-detail`)**: Filas compactas de una sola línea (~44px) con resumen monoespaciado truncado (máx. 120 caracteres) y toggle individual "Detalle ▾" / "Cerrar ▴".
+- **Visor de Payload y Controles Globales**: Modalidad expandida con bloque `<pre><code>` (scroll hasta 320px) con conteo de caracteres y copia en portapapeles. Botones globales en la barra de herramientas "Expandir todos" y "Colapsar todos".
+
+---
+
 ## [0.8.0] - 2026-09-02
 
 ### 🧪 Calidad, Testing & Quality Gates
