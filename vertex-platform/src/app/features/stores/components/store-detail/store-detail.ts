@@ -9,6 +9,7 @@ import {
   type OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import type { Subscription } from 'rxjs';
 import { errorMessage } from '@core/utils/error.util';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -68,6 +69,7 @@ export class StoreDetail implements OnInit {
 
   private db = getFirestore();
   private storeUnsub: (() => void) | null = null;
+  private deployHistorySub: Subscription | null = null;
   readonly localStore = signal<Store | null>(null);
   readonly isStoreLoading = signal(true);
 
@@ -125,11 +127,15 @@ export class StoreDetail implements OnInit {
   readonly showEditModal = signal(false);
   readonly logoPreviewError = signal(false);
 
-  readonly localDeployError = this.orchestrationService.localDeployError;
-  readonly isDeployProgressDismissed = this.orchestrationService.isDeployProgressDismissed;
-  readonly hasUserInitiatedDeploy = this.orchestrationService.hasUserInitiatedDeploy;
-  readonly deploySessionTimestamp = this.orchestrationService.deploySessionTimestamp;
-  readonly isDeploying = this.orchestrationService.isDeploying;
+  readonly localDeployError = computed<string>(() => {
+    const s = this.store();
+    return s ? this.orchestrationService.getLocalDeployError(s.id) : '';
+  });
+
+  readonly isDeploying = computed<boolean>(() => {
+    const s = this.store();
+    return s ? this.orchestrationService.isStoreDeploying(s.id) : false;
+  });
 
   readonly deployActionState = computed<ActionProgressState>(() =>
     this.orchestrationService.computeDeployActionState(this.store()),
@@ -210,6 +216,11 @@ export class StoreDetail implements OnInit {
     this.destroyRef.onDestroy(() => {
       if (this.storeUnsub) {
         this.storeUnsub();
+        this.storeUnsub = null;
+      }
+      if (this.deployHistorySub) {
+        this.deployHistorySub.unsubscribe();
+        this.deployHistorySub = null;
       }
     });
   }
@@ -222,6 +233,10 @@ export class StoreDetail implements OnInit {
       if (this.storeUnsub) {
         this.storeUnsub();
         this.storeUnsub = null;
+      }
+      if (this.deployHistorySub) {
+        this.deployHistorySub.unsubscribe();
+        this.deployHistorySub = null;
       }
       if (id) {
         try {
@@ -250,8 +265,8 @@ export class StoreDetail implements OnInit {
     return uri ? this.staffService.copyToClipboard(uri) : Promise.resolve();
   }
 
-  async loadVersions(): Promise<void> {
-    await this.orchestrationService.loadVersions();
+  async loadVersions(force = false): Promise<void> {
+    await this.orchestrationService.loadVersions(force);
     const latest = this.orchestrationService.latestVersion();
     const defaultVer =
       this.store()?.templateVersion ||
@@ -261,29 +276,36 @@ export class StoreDetail implements OnInit {
     this.selectedVersion.set(defaultVer);
   }
 
+  async refreshVersions(): Promise<void> {
+    await this.loadVersions(true);
+  }
+
   async triggerDeployment(): Promise<void> {
     const s = this.store();
     const version = this.selectedVersion();
     if (!s || !version) {
       return;
     }
-    this.isDeployProgressDismissed.set(false);
-    this.hasUserInitiatedDeploy.set(true);
-    this.deploySessionTimestamp.set(Date.now());
-    this.isDeploying.set(true);
-    this.orchestrationService.setStoreUpdating(s.id, true);
-    this.localDeployError.set('');
+    const storeId = s.id;
+    this.orchestrationService.setDeployDismissed(storeId, false);
+    this.orchestrationService.setUserInitiated(storeId, true, Date.now());
+    this.orchestrationService.setStoreDeploying(storeId, true);
+    this.orchestrationService.setStoreUpdating(storeId, true);
+    this.orchestrationService.setLocalDeployError(storeId, '');
     try {
       if (version === s.templateVersion) {
-        await this.storesService.redeployStore(s.id);
+        await this.storesService.redeployStore(storeId);
       } else {
-        await this.storesService.updateStoreVersion(s.id, version);
+        await this.storesService.updateStoreVersion(storeId, version);
       }
     } catch (err) {
-      this.localDeployError.set(errorMessage(err, 'No se pudo iniciar el despliegue.'));
+      this.orchestrationService.setLocalDeployError(
+        storeId,
+        errorMessage(err, 'No se pudo iniciar el despliegue.'),
+      );
     } finally {
-      this.isDeploying.set(false);
-      this.orchestrationService.setStoreUpdating(s.id, false);
+      this.orchestrationService.setStoreDeploying(storeId, false);
+      this.orchestrationService.setStoreUpdating(storeId, false);
     }
   }
 
@@ -697,10 +719,12 @@ export class StoreDetail implements OnInit {
   }
 
   dismissDeployProgress(): void {
-    this.isDeployProgressDismissed.set(true);
     const s = this.store();
-    if (s && (s.versionUpdateStatus === 'updating' || s.redeployStatus === 'deploying')) {
-      void this.storesService.resetStoreDeployStatus(s.id);
+    if (s?.id) {
+      this.orchestrationService.setDeployDismissed(s.id, true);
+      if (s.versionUpdateStatus === 'updating' || s.redeployStatus === 'deploying') {
+        void this.storesService.resetStoreDeployStatus(s.id);
+      }
     }
   }
 
@@ -729,13 +753,17 @@ export class StoreDetail implements OnInit {
 
   refreshDeployHistory(explicitId?: string): void {
     const id = explicitId || this.storeId() || this.route.snapshot.paramMap.get('id');
+    if (this.deployHistorySub) {
+      this.deployHistorySub.unsubscribe();
+      this.deployHistorySub = null;
+    }
     if (!id) {
       this.isLoadingHistory.set(false);
       return;
     }
     this.deployHistory.set([]);
     this.isLoadingHistory.set(true);
-    this.storesService
+    this.deployHistorySub = this.storesService
       .getStoreDeploymentHistory(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((h) => {

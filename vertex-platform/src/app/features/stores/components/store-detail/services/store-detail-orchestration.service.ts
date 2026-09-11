@@ -31,15 +31,26 @@ export class StoreDetailOrchestrationService {
   readonly latestVersion = signal<TemplateVersion | null>(null);
   readonly isLoadingVersions = signal(false);
   /** Cache de sesión: evita recargar releases en cada visita al detalle. */
-  private cachedVersions: TemplateVersion[] | null = null;
-  /** Estado de actualización aislado por ID de tienda para evitar contaminación reactiva entre tabs/tiendas */
+  private cachedVersions: TemplateVersion[] | null =
+    null; /** Estado de actualización aislado por ID de tienda para evitar contaminación reactiva entre tabs/tiendas */
   readonly updatingStores = signal<Set<string>>(new Set<string>());
+  readonly deployingStoreIds = signal<Set<string>>(new Set<string>());
+  readonly localDeployErrors = signal<Map<string, string>>(new Map<string, string>());
+  readonly dismissedDeployStoreIds = signal<Set<string>>(new Set<string>());
+  readonly userInitiatedDeployStoreIds = signal<Set<string>>(new Set<string>());
+  readonly deploySessionTimestamps = signal<Map<string, number>>(new Map<string, number>());
 
   isStoreUpdating(storeId: string): boolean {
-    return this.updatingStores().has(storeId);
+    if (!storeId) {
+      return false;
+    }
+    return this.updatingStores().has(storeId) || this.deployingStoreIds().has(storeId);
   }
 
   setStoreUpdating(storeId: string, updating: boolean): void {
+    if (!storeId) {
+      return;
+    }
     this.updatingStores.update((set) => {
       const next = new Set(set);
       if (updating) {
@@ -51,11 +62,102 @@ export class StoreDetailOrchestrationService {
     });
   }
 
-  readonly localDeployError = signal('');
-  readonly isDeployProgressDismissed = signal(false);
-  readonly hasUserInitiatedDeploy = signal(false);
-  readonly deploySessionTimestamp = signal<number>(0);
-  readonly isDeploying = signal(false);
+  isStoreDeploying(storeId: string): boolean {
+    if (!storeId) {
+      return false;
+    }
+    return this.deployingStoreIds().has(storeId);
+  }
+
+  setStoreDeploying(storeId: string, deploying: boolean): void {
+    if (!storeId) {
+      return;
+    }
+    this.deployingStoreIds.update((set) => {
+      const next = new Set(set);
+      if (deploying) {
+        next.add(storeId);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+  }
+
+  getLocalDeployError(storeId: string): string {
+    if (!storeId) {
+      return '';
+    }
+    return this.localDeployErrors().get(storeId) || '';
+  }
+
+  setLocalDeployError(storeId: string, error: string): void {
+    if (!storeId) {
+      return;
+    }
+    this.localDeployErrors.update((map) => {
+      const next = new Map(map);
+      if (error) {
+        next.set(storeId, error);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+  }
+
+  isDeployDismissed(storeId: string): boolean {
+    if (!storeId) {
+      return false;
+    }
+    return this.dismissedDeployStoreIds().has(storeId);
+  }
+
+  setDeployDismissed(storeId: string, dismissed: boolean): void {
+    if (!storeId) {
+      return;
+    }
+    this.dismissedDeployStoreIds.update((set) => {
+      const next = new Set(set);
+      if (dismissed) {
+        next.add(storeId);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+  }
+
+  hasUserInitiated(storeId: string): boolean {
+    if (!storeId) {
+      return false;
+    }
+    return this.userInitiatedDeployStoreIds().has(storeId);
+  }
+
+  setUserInitiated(storeId: string, initiated: boolean, timestamp = Date.now()): void {
+    if (!storeId) {
+      return;
+    }
+    this.userInitiatedDeployStoreIds.update((set) => {
+      const next = new Set(set);
+      if (initiated) {
+        next.add(storeId);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+    this.deploySessionTimestamps.update((map) => {
+      const next = new Map(map);
+      if (initiated) {
+        next.set(storeId, timestamp);
+      } else {
+        next.delete(storeId);
+      }
+      return next;
+    });
+  }
 
   readonly editForm = this.fb.group({
     name: ['', Validators.required],
@@ -69,38 +171,44 @@ export class StoreDetailOrchestrationService {
     consoleUrl?: string;
   } | null>(null);
 
-  private lastKnownProgress = 0;
+  private lastKnownProgressByStore = new Map<string, number>();
 
   computeDeployActionState(store: Store | null): ActionProgressState {
-    if (this.isDeployProgressDismissed()) {
-      this.lastKnownProgress = 0;
+    if (!store?.id) {
       return IDLE_STATE;
     }
-    if (!store) {
-      this.lastKnownProgress = 0;
+    const storeId = store.id;
+
+    if (this.isDeployDismissed(storeId)) {
+      this.lastKnownProgressByStore.delete(storeId);
       return IDLE_STATE;
     }
-    if (this.localDeployError()) {
-      this.lastKnownProgress = 0;
-      return { status: 'error', progress: 100, message: this.localDeployError() };
+    const localErr = this.getLocalDeployError(storeId);
+    if (localErr) {
+      this.lastKnownProgressByStore.delete(storeId);
+      return { status: 'error', progress: 100, message: localErr };
     }
     if (store.redeployStatus === 'failed' || store.versionUpdateStatus === 'failed') {
-      this.lastKnownProgress = 0;
+      this.lastKnownProgressByStore.delete(storeId);
       return {
         status: 'error',
         progress: 100,
         message: store.redeployError || '✗ Falló el despliegue del storefront.',
       };
     }
+    const isDeployingThis = this.isStoreDeploying(storeId);
     const isGhaRunning =
       store.redeployStatus === 'deploying' || store.versionUpdateStatus === 'updating';
-    if (this.isDeploying() || isGhaRunning) {
+
+    let lastKnownProgress = this.lastKnownProgressByStore.get(storeId) || 0;
+
+    if (isDeployingThis || isGhaRunning) {
       const updatedAtMillis = parseDateToMillis(
         store.versionUpdateProgress?.updatedAt || store.updatedAt,
       );
       const isStale = updatedAtMillis > 0 && Date.now() - updatedAtMillis > 10 * 60 * 1000;
-      if (isStale && !this.isDeploying()) {
-        this.lastKnownProgress = 0;
+      if (isStale && !isDeployingThis) {
+        this.lastKnownProgressByStore.delete(storeId);
         void this.storesService.resetStoreDeployStatus(store.id);
         return {
           status: 'error',
@@ -108,28 +216,31 @@ export class StoreDetailOrchestrationService {
           message: '⚠️ El despliegue anterior excedió el tiempo límite. Podés volver a desplegar.',
         };
       }
-      const rawPct = store.versionUpdateProgress?.pct || (this.isDeploying() ? 25 : 55);
-      this.lastKnownProgress = Math.max(this.lastKnownProgress, rawPct);
+      const rawPct = store.versionUpdateProgress?.pct || (isDeployingThis ? 25 : 55);
+      lastKnownProgress = Math.max(lastKnownProgress, rawPct);
+      this.lastKnownProgressByStore.set(storeId, lastKnownProgress);
       return {
         status: 'running',
-        progress: this.lastKnownProgress,
+        progress: lastKnownProgress,
         message: `🔨 ${store.versionUpdateProgress?.step || 'Compilando en GitHub Actions…'}`,
       };
     }
-    if (this.hasUserInitiatedDeploy()) {
+    if (this.hasUserInitiated(storeId)) {
       const lastDeploy = parseDateToMillis(store.lastDeployedAt);
-      if (lastDeploy > this.deploySessionTimestamp()) {
-        this.lastKnownProgress = 0;
+      const sessionTimestamp = this.deploySessionTimestamps().get(storeId) || 0;
+      if (lastDeploy > sessionTimestamp) {
+        this.lastKnownProgressByStore.delete(storeId);
         return { status: 'success', progress: 100, message: '✓ Despliegue completado con éxito.' };
       }
-      this.lastKnownProgress = Math.max(this.lastKnownProgress, 25);
+      lastKnownProgress = Math.max(lastKnownProgress, 25);
+      this.lastKnownProgressByStore.set(storeId, lastKnownProgress);
       return {
         status: 'running',
-        progress: this.lastKnownProgress,
+        progress: lastKnownProgress,
         message: '🔨 Iniciando flujo en GitHub Actions…',
       };
     }
-    this.lastKnownProgress = 0;
+    this.lastKnownProgressByStore.delete(storeId);
     return IDLE_STATE;
   }
 
@@ -170,8 +281,11 @@ export class StoreDetailOrchestrationService {
       return;
     }
     this.isLoadingVersions.set(true);
+    if (force) {
+      this.cachedVersions = null;
+    }
     try {
-      const list = await this.storesService.listTemplateVersions();
+      const list = await this.storesService.listTemplateVersions(force);
       this.cachedVersions = list;
       this.versions.set(list);
       this.latestVersion.set(list.find((v: TemplateVersion) => v.isLatest) ?? list[0] ?? null);

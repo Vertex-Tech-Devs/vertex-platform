@@ -50,11 +50,25 @@ function getSchemaVersion(v?: string): number {
   return SCHEMA_BY_VERSION[clean] ?? 1;
 }
 
-export const listTemplateVersions = onCall(
+let cachedReleasesList: { timestamp: number; versions: TemplateVersion[] } | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60s TTL
+
+export function _clearTemplateVersionsCache(): void {
+  cachedReleasesList = null;
+}
+
+export const listTemplateVersions = onCall<{ forceRefresh?: boolean }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
   async (request) => {
     if (!request.auth?.token['platformAdmin']) {
       throw new HttpsError('permission-denied', 'Only platform admins can list template versions.');
+    }
+
+    const forceRefresh = Boolean(request.data?.forceRefresh);
+    const now = Date.now();
+
+    if (!forceRefresh && cachedReleasesList && now - cachedReleasesList.timestamp < CACHE_TTL_MS) {
+      return { versions: cachedReleasesList.versions };
     }
 
     try {
@@ -102,9 +116,15 @@ export const listTemplateVersions = onCall(
         versions[0] = { ...versions[0], isLatest: true };
       }
 
+      cachedReleasesList = { timestamp: now, versions };
+
       return { versions };
     } catch (err) {
       console.warn('[listTemplateVersions] Failed to fetch releases:', err);
+      // Si falla la llamada externa pero tenemos caché previo, devolverlo en vez de vacío
+      if (cachedReleasesList) {
+        return { versions: cachedReleasesList.versions };
+      }
       return { versions: [] };
     }
   },

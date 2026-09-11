@@ -20,4 +20,10 @@ describe('compareVersions (semver desc)', () => {
     expect(compareVersions('0.2', '0.2.0')).toBe(0);
     expect(compareVersions('1', '1.0.0')).toBe(0);
   });
+
+  it('permite limpiar la cache de versiones', async () => {
+    const { _clearTemplateVersionsCache } = await import('./versioning');
+    expect(typeof _clearTemplateVersionsCache).toBe('function');
+    expect(() => _clearTemplateVersionsCache()).not.toThrow();
+  });
 });

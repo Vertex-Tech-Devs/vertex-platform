@@ -1,5 +1,16 @@
 # Changelog — vertex-platform
 
+## [Unreleased]
+
+### Fixed
+- **Aislamiento Total del Estado de Despliegue por StoreId**: Banderas reactivas (`deployingStoreIds`, `localDeployErrors`, `userInitiatedDeployStoreIds`, `deploySessionTimestamps`, `dismissedDeployStoreIds`) e índices completamente aislados por `storeId` en `StoreDetailOrchestrationService` y `StoreDetail`. Mutar o iniciar un deploy en una tienda no altera botones, spinners ni barras de progreso en otras tiendas.
+- **Gestión Segura de Suscripciones en Tiempo Real**: Cancelación y desuscripción activa (`deployHistorySub`) y limpieza estricta de snapshots al desmontar o alternar entre tiendas para prevenir filtración de eventos cruzados y fugas de memoria.
+
+### Added
+- **Refresco Manual y en Vivo de Releases de Storefront en Orquestación**:
+  - Parámetro `{ forceRefresh?: boolean }` y TTL en memoria de 60s en Cloud Function `listTemplateVersions` para invalidar cachés y detectar tags recién creados (ej. `v0.9.1`) al instante.
+  - Botón interactivo "🔄 Refrescar versiones" junto al selector de versiones de template en `store-detail` con animación reactiva de spinner y feedback durante la sincronización.
+
 ## [0.9.0] - 2026-09-09
 
 ### Added

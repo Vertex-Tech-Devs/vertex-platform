@@ -611,12 +611,12 @@ export class StoresService {
     await fn({ storeId, includeMockData, provisioningMode, verticalId });
   }
 
-  async listTemplateVersions(): Promise<TemplateVersion[]> {
-    const fn = httpsCallable<Record<string, never>, { versions: TemplateVersion[] }>(
+  async listTemplateVersions(forceRefresh = false): Promise<TemplateVersion[]> {
+    const fn = httpsCallable<{ forceRefresh?: boolean }, { versions: TemplateVersion[] }>(
       this.fns,
       'listTemplateVersions',
     );
-    const result = await fn({});
+    const result = await fn({ forceRefresh });
     return result.data.versions;
   }
 

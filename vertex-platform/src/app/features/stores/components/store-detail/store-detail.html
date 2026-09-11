@@ -478,6 +478,23 @@
                     </div>
                     <div class="col-auto">
                       <button
+                        type="button"
+                        class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center"
+                        style="height: 38px; min-width: 38px; padding: 0 0.65rem"
+                        [disabled]="isLoadingVersions() || isDeploying() || isStoreUpdating()"
+                        (click)="refreshVersions()"
+                        title="Refrescar versiones y releases desde GitHub"
+                      >
+                        <i
+                          class="bi"
+                          [class.bi-arrow-clockwise]="!isLoadingVersions()"
+                          [class.bi-arrow-repeat]="isLoadingVersions()"
+                          [class.spin]="isLoadingVersions()"
+                        ></i>
+                      </button>
+                    </div>
+                    <div class="col-auto">
+                      <button
                         class="action-btn action-btn--primary"
                         [disabled]="
                           isDeploying() ||

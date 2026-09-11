@@ -488,8 +488,9 @@ describe('StoresService', () => {
     TestBed.configureTestingModule({ providers: [StoresService] });
     const service = TestBed.inject(StoresService);
 
-    const versions = await service.listTemplateVersions();
+    const versions = await service.listTemplateVersions(true);
     expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'listTemplateVersions');
+    expect(mockFn).toHaveBeenCalledWith({ forceRefresh: true });
     expect(versions).toHaveLength(1);
     expect(versions[0].version).toBe('v1');
   });
