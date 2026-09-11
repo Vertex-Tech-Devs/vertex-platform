@@ -202,7 +202,12 @@
                 ? 'Fin de prueba'
                 : 'Próximo vencimiento'
             }}</span>
-            @if (storeSubscription()?.subscription?.currentPeriodEnd) {
+            @if (isUnlimitedPermanently()) {
+              <span class="sub-summary__value sub-summary__value--md text-success">
+                Ilimitado
+              </span>
+              <span class="sub-summary__sub">Sin vencimiento (Cortesía permanente)</span>
+            } @else if (storeSubscription()?.subscription?.currentPeriodEnd) {
               <span class="sub-summary__value sub-summary__value--md">
                 {{
                   formatDate(storeSubscription()?.subscription?.currentPeriodEnd)
@@ -240,56 +245,68 @@
 
         <!-- Subscription Link Generator Buttons -->
         <div class="sub-link-actions mb-4">
-          <div class="sub-link-actions__heading">
-            <span class="form-label d-block mb-1">Generar enlace de cobro</span>
-            <span class="form-hint d-block"
-              >Elegí la frecuencia. El cliente paga con su propia tarjeta en Mercado Pago.</span
-            >
-          </div>
-          <div class="sub-link-grid">
-            <button
-              type="button"
-              class="sub-link-option sub-link-option--monthly"
-              (click)="generateSubscriptionLink('monthly')"
-              [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
-            >
-              <span class="sub-link-option__title">Débito Mensual</span>
-              <span class="sub-link-option__price">${{ saasMonthly() | number }} ARS / mes</span>
-              <span class="sub-link-option__cta"
-                ><i class="bi bi-link-45deg"></i>
-                {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
-              >
-            </button>
-            <button
-              type="button"
-              class="sub-link-option sub-link-option--annual"
-              (click)="generateSubscriptionLink('annual')"
-              [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
-            >
-              <span class="sub-link-option__title">Pago Anual</span>
-              <span class="sub-link-option__price">${{ saasAnnual() | number }} ARS / año</span>
-              @if (saasAnnualMonthsFree() > 0) {
-                <span class="sub-link-option__bonus"
-                  >≈ {{ saasAnnualMonthsFree() }} meses gratis</span
+          @if (isUnlimitedPermanently()) {
+            <div class="alert alert--success d-flex align-items-center gap-2 p-3 rounded-3 mb-0">
+              <i class="bi bi-gift-fill text-warning fs-5"></i>
+              <div>
+                <strong class="d-block text-white font-weight-bold">Tienda 100% bonificada</strong>
+                <span class="text-xs text-muted"
+                  >No requiere generación de enlaces de pago ni adhesión de tarjeta.</span
                 >
-              }
-              <span class="sub-link-option__cta"
-                ><i class="bi bi-tag-fill"></i>
-                {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+              </div>
+            </div>
+          } @else {
+            <div class="sub-link-actions__heading">
+              <span class="form-label d-block mb-1">Generar enlace de cobro</span>
+              <span class="form-hint d-block"
+                >Elegí la frecuencia. El cliente paga con su propia tarjeta en Mercado Pago.</span
               >
-            </button>
-          </div>
-          @if (saasChargeBlocked()) {
-            <span class="form-hint d-block mt-2 text-warning">
-              <i class="bi bi-info-circle me-1"></i>
-              {{
-                storeSubscription()?.subscription?.status === 'complimentary'
-                  ? 'Tienda en cortesía: no corresponde emitir cobro.'
-                  : storeSubscription()?.subscription?.status === 'suspended'
-                    ? 'Tienda suspendida: regularizá la cuenta antes de generar cobros.'
-                    : 'En período de prueba: el cobro se emite al finalizar el trial.'
-              }}
-            </span>
+            </div>
+            <div class="sub-link-grid">
+              <button
+                type="button"
+                class="sub-link-option sub-link-option--monthly"
+                (click)="generateSubscriptionLink('monthly')"
+                [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
+              >
+                <span class="sub-link-option__title">Débito Mensual</span>
+                <span class="sub-link-option__price">${{ saasMonthly() | number }} ARS / mes</span>
+                <span class="sub-link-option__cta"
+                  ><i class="bi bi-link-45deg"></i>
+                  {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                >
+              </button>
+              <button
+                type="button"
+                class="sub-link-option sub-link-option--annual"
+                (click)="generateSubscriptionLink('annual')"
+                [disabled]="isGeneratingSubLink() || saasChargeBlocked()"
+              >
+                <span class="sub-link-option__title">Pago Anual</span>
+                <span class="sub-link-option__price">${{ saasAnnual() | number }} ARS / año</span>
+                @if (saasAnnualMonthsFree() > 0) {
+                  <span class="sub-link-option__bonus"
+                    >≈ {{ saasAnnualMonthsFree() }} meses gratis</span
+                  >
+                }
+                <span class="sub-link-option__cta"
+                  ><i class="bi bi-tag-fill"></i>
+                  {{ isGeneratingSubLink() ? 'Generando…' : 'Generar cobro' }}</span
+                >
+              </button>
+            </div>
+            @if (saasChargeBlocked()) {
+              <span class="form-hint d-block mt-2 text-warning">
+                <i class="bi bi-info-circle me-1"></i>
+                {{
+                  storeSubscription()?.subscription?.status === 'complimentary'
+                    ? 'Tienda en cortesía: no corresponde emitir cobro.'
+                    : storeSubscription()?.subscription?.status === 'suspended'
+                      ? 'Tienda suspendida: regularizá la cuenta antes de generar cobros.'
+                      : 'En período de prueba: el cobro se emite al finalizar el trial.'
+                }}
+              </span>
+            }
           }
         </div>
 
@@ -422,208 +439,185 @@
                     </div>
                   </div>
 
-                  <!-- Quick Trial & Free Store Grant Controls -->
+                  <!-- ============================================================= -->
+                  <!-- BLOQUE 1: Vigencia y Pagos Manuales (Prepaid Bridge)           -->
+                  <!-- ============================================================= -->
                   <div class="payment-subcard mb-3">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
                       <span
-                        class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                        class="text-xs font-weight-bold text-white d-flex align-items-center gap-2"
                       >
-                        <i class="bi bi-gift-fill text-warning"></i> Acciones de Bonificación
+                        <i class="bi bi-clock-history text-warning"></i>
+                        <span>Vigencia y Pagos Manuales (Prepaid Bridge)</span>
                       </span>
-                      <span class="text-xxs text-muted font-weight-semibold">100% Bonificado</span>
-                    </div>
-
-                    <div class="d-flex gap-2 mb-2">
-                      <button
-                        type="button"
-                        class="btn btn-pill-option flex-1"
-                        (click)="grantTrial(7)"
-                        [disabled]="isGrantingTrial()"
-                      >
-                        7 Días
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-pill-option flex-1"
-                        (click)="grantTrial(14)"
-                        [disabled]="isGrantingTrial()"
-                      >
-                        14 Días
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-pill-option flex-1"
-                        (click)="grantTrial(30)"
-                        [disabled]="isGrantingTrial()"
-                      >
-                        30 Días
-                      </button>
-                    </div>
-
-                    <div class="d-flex gap-2 align-items-center mb-2">
-                      <input
-                        type="number"
-                        class="form-control text-xs"
-                        placeholder="Cantidad de días (ej. 45)"
-                        [value]="trialDaysInput()"
-                        (input)="
-                          trialDaysInput.set(
-                            $any($event.target).value ? +$any($event.target).value : 14
-                          )
+                      <span
+                        class="badge"
+                        style="
+                          background: rgba(251, 191, 36, 0.15);
+                          color: #fbbf24;
+                          font-size: 0.65rem;
                         "
-                        min="1"
-                        max="365"
-                      />
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-sm text-nowrap"
-                        (click)="grantTrial(trialDaysInput())"
-                        [disabled]="isGrantingTrial() || !trialDaysInput()"
                       >
-                        Aplicar Días
-                      </button>
+                        Control de Ciclo
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      class="btn btn-grant-free btn-sm w-100"
-                      (click)="grantFreeStore()"
-                      [disabled]="isGrantingTrial()"
-                    >
-                      <i class="bi bi-check-circle-fill"></i> Otorgar Tienda Gratis Permanente
-                      (Cortesía)
-                    </button>
-                  </div>
-
-                  <!-- Custom Plan & Rate Settings -->
-                  <div class="payment-subcard mb-3">
-                    <div
-                      class="text-xs font-weight-bold text-white mb-2 d-flex align-items-center gap-1"
-                    >
-                      <i class="bi bi-sliders text-primary"></i> Tarifas Especiales y Estado
-                    </div>
-
-                    <div class="row g-3 mb-2">
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Estado de Cuenta</label>
+                    <!-- Selector de Estado de Cuenta con botón de actualización -->
+                    <div class="mb-3 p-2 rounded bg-black-20 border border-white-10">
+                      <label class="form-label text-xxs text-muted mb-1 d-block"
+                        >Estado Operativo de la Tienda</label
+                      >
+                      <div class="d-flex gap-2 align-items-center">
                         <select
-                          class="form-control"
+                          class="form-control text-xs flex-1"
                           [ngModel]="subscriptionStatusSelect()"
                           (ngModelChange)="subscriptionStatusSelect.set($event)"
                         >
-                          <option value="active">Activa</option>
-                          <option value="complimentary">Cortesía (Sin cobro)</option>
-                          <option value="trial">Período de Prueba</option>
-                          <option value="past_due">Período de Gracia</option>
-                          <option value="suspended">Suspendida</option>
+                          <option value="trial">Período de Prueba (trialing)</option>
+                          <option value="active">Activa (active)</option>
+                          <option value="past_due">Período de Gracia (grace_period)</option>
+                          <option value="suspended">Suspendida (suspended)</option>
+                          <option value="complimentary">
+                            Cortesía Permanente (courtesy / sin cobro)
+                          </option>
                         </select>
-                        <span class="form-hint">Define el ciclo operativo de la tienda.</span>
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Descuento (%)</label>
-                        <div class="input-with-affix">
-                          <span class="input-affix">%</span>
-                          <input
-                            type="number"
-                            class="form-control"
-                            placeholder="0"
-                            [value]="discountPercentInput()"
-                            (input)="
-                              discountPercentInput.set(
-                                $any($event.target).value ? +$any($event.target).value : null
-                              )
-                            "
-                            min="0"
-                            max="100"
-                          />
-                        </div>
-                        <span class="form-hint">Descuento porcentual sobre el plan base.</span>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm text-nowrap"
+                          (click)="updateAccountStatus()"
+                          [disabled]="isSavingDiscount()"
+                          title="Aplicar estado seleccionado"
+                        >
+                          <i
+                            class="bi"
+                            [class.bi-check2]="!isSavingDiscount()"
+                            [class.bi-arrow-repeat]="isSavingDiscount()"
+                            [class.spin]="isSavingDiscount()"
+                          ></i>
+                          <span>Aplicar Estado</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Mensual Custom (ARS)</label>
-                        <div class="input-with-affix">
-                          <span class="input-affix">$</span>
-                          <input
-                            type="number"
-                            class="form-control"
-                            placeholder="50000 (default 50.000)"
-                            [value]="customMonthlyPriceInput()"
-                            (input)="
-                              customMonthlyPriceInput.set(
-                                $any($event.target).value ? +$any($event.target).value : null
-                              )
-                            "
-                          />
-                        </div>
-                        <span class="form-hint">Precio mensual específico para esta tienda.</span>
+                    <!-- Prórrogas Rápidas -->
+                    <div class="mb-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span
+                          class="text-xxs font-weight-bold text-muted text-uppercase tracking-wider"
+                        >
+                          Prórrogas Rápidas y Bonificación
+                        </span>
+                        <span class="text-xxs text-muted">Ajuste de días</span>
                       </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Anual Custom (ARS)</label>
-                        <div class="input-with-affix">
-                          <span class="input-affix">$</span>
-                          <input
-                            type="number"
-                            class="form-control"
-                            placeholder="500000 (default 500.000)"
-                            [value]="customAnnualPriceInput()"
-                            (input)="
-                              customAnnualPriceInput.set(
-                                $any($event.target).value ? +$any($event.target).value : null
-                              )
-                            "
-                          />
-                        </div>
-                        <span class="form-hint">Precio anual específico para esta tienda.</span>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          class="btn btn-pill-option flex-1"
+                          (click)="grantTrial(7)"
+                          [disabled]="isGrantingTrial()"
+                        >
+                          +7 Días
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-pill-option flex-1"
+                          (click)="grantTrial(14)"
+                          [disabled]="isGrantingTrial()"
+                        >
+                          +14 Días
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-pill-option flex-1"
+                          (click)="grantTrial(30)"
+                          [disabled]="isGrantingTrial()"
+                        >
+                          +30 Días
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-grant-free btn-sm flex-1 text-nowrap"
+                          (click)="grantFreeStore()"
+                          [disabled]="isGrantingTrial()"
+                        >
+                          <i class="bi bi-gift-fill me-1"></i> Cortesía Permanente
+                        </button>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm w-100"
-                      (click)="saveCustomSubscriptionPricing()"
-                      [disabled]="isSavingDiscount()"
-                    >
-                      <i
-                        class="bi"
-                        [class.bi-check2]="!isSavingDiscount()"
-                        [class.bi-arrow-repeat]="isSavingDiscount()"
-                        [class.spin]="isSavingDiscount()"
-                      ></i>
-                      <span>{{
-                        isSavingDiscount() ? 'Guardando…' : 'Guardar Ajustes de Facturación'
-                      }}</span>
-                    </button>
+                    <!-- Registro de Transferencia Bancaria (Prepaid Bridge) -->
+                    <div class="pt-2 border-top border-white-10">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span
+                          class="text-xxs font-weight-bold text-white d-flex align-items-center gap-1"
+                        >
+                          <i class="bi bi-bank text-info"></i> Registro de Transferencia Bancaria
+                        </span>
+                        <span class="text-xxs text-muted">Sin doble cobro MP</span>
+                      </div>
+                      <p class="text-xxs text-muted mb-2">
+                        Registra la cobertura pagada manualmente. Al adherir tarjeta en Mercado
+                        Pago, el débito automático esperará hasta vencer esta fecha.
+                      </p>
+                      <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-5">
+                          <label class="form-label text-xxs">Vigencia hasta (Fecha Fin) *</label>
+                          <input
+                            type="date"
+                            class="form-control text-xs"
+                            [value]="prepaidPeriodEndInput()"
+                            (input)="prepaidPeriodEndInput.set($any($event.target).value)"
+                          />
+                        </div>
+                        <div class="col-12 col-md-7">
+                          <label class="form-label text-xxs">Comprobante / Notas Bancarias</label>
+                          <input
+                            type="text"
+                            class="form-control text-xs"
+                            placeholder="Ej. Transferencia Banco Galicia Op #98421"
+                            [value]="prepaidNotesInput()"
+                            (input)="prepaidNotesInput.set($any($event.target).value)"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm w-100"
+                        (click)="applyPrepaidCoverage()"
+                        [disabled]="isSavingPrepaid() || !prepaidPeriodEndInput()"
+                      >
+                        <i class="bi bi-shield-check"></i> Registrar Cobertura Prepaga
+                      </button>
+                    </div>
                   </div>
 
-                  <!-- Super Admin PricingOverride Card (Descuentos y Precios Especiales por Tienda) -->
+                  <!-- ============================================================= -->
+                  <!-- BLOQUE 2: Beneficio / Precio Especial (Motor Único)            -->
+                  <!-- ============================================================= -->
                   <div class="payment-subcard mb-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                       <span
                         class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
                       >
-                        <i class="bi bi-tag-fill text-warning"></i> Beneficio / Descuento Especial
-                        (Super Admin)
+                        <i class="bi bi-tag-fill text-warning"></i> Beneficio / Precio Especial
                       </span>
                       @if (storeSubscription()?.pricingOverride; as po) {
                         <span class="badge badge--success text-xxs">Activo</span>
                       } @else {
-                        <span class="badge badge--neutral text-xxs">Sin beneficio</span>
+                        <span class="badge badge--neutral text-xxs">Tarifa oficial</span>
                       }
                     </div>
 
                     @if (storeSubscription()?.pricingOverride; as po) {
-                      <div class="p-2 mb-2 rounded bg-black-20 border border-white-10 text-xs">
+                      <div class="p-2 mb-3 rounded bg-black-20 border border-white-10 text-xs">
                         <div class="d-flex justify-content-between align-items-center">
                           <strong>
                             @if (po.type === 'custom_fixed_price') {
-                              Precio Fijo: ${{ po.value | number }} ARS
+                              Precio Fijo Especial: ${{ po.value | number }} ARS
                             } @else if (po.type === 'percentage_discount') {
-                              Descuento: {{ po.value }}% OFF
+                              Descuento Porcentual: {{ po.value }}% OFF
                             } @else {
-                              Descuento: ${{ po.value | number }} ARS OFF
+                              Descuento Fijo: ${{ po.value | number }} ARS OFF
                             }
                           </strong>
                           <button
@@ -632,11 +626,11 @@
                             (click)="revokePricingOverride()"
                             [disabled]="isSavingOverride()"
                           >
-                            Revocar beneficio
+                            <i class="bi bi-x-circle me-1"></i> Restablecer a Tarifa Oficial
                           </button>
                         </div>
                         <div class="text-muted mt-1 text-xxs">
-                          Duración: {{ po.duration }} · Motivo: {{ po.reason }} (por
+                          Duración: {{ po.duration }} · Motivo: {{ po.reason }} (asignado por
                           {{ po.assignedBy }})
                         </div>
                       </div>
@@ -644,22 +638,23 @@
 
                     <div class="row g-2 mb-2">
                       <div class="col-12 col-md-4">
-                        <label class="form-label text-xxs">Modalidad</label>
+                        <label class="form-label text-xxs">Modalidad de Beneficio</label>
                         <select
                           class="form-control text-xs"
                           [ngModel]="overrideType()"
                           (ngModelChange)="overrideType.set($event)"
                         >
-                          <option value="percentage_discount">% Porcentual OFF</option>
+                          <option value="percentage_discount">% Porcentaje OFF</option>
                           <option value="fixed_discount">$ Monto Fijo OFF</option>
                           <option value="custom_fixed_price">Precio Fijo Arbitrario</option>
                         </select>
                       </div>
                       <div class="col-12 col-md-4">
-                        <label class="form-label text-xxs">Valor</label>
+                        <label class="form-label text-xxs">Valor del Beneficio</label>
                         <input
                           type="number"
                           class="form-control text-xs"
+                          placeholder="Ej. 20 (para 20% o $20k)"
                           [value]="overrideValue()"
                           (input)="overrideValue.set(+$any($event.target).value)"
                           min="0"
@@ -672,7 +667,7 @@
                           [ngModel]="overrideDuration()"
                           (ngModelChange)="overrideDuration.set($event)"
                         >
-                          <option value="lifetime">Indefinida / De por vida</option>
+                          <option value="lifetime">De por vida / Permanente</option>
                           <option value="recurring_cycles">N Ciclos</option>
                           <option value="single_cycle">1 Solo Ciclo</option>
                         </select>
@@ -680,86 +675,54 @@
                     </div>
 
                     <div class="mb-2">
-                      <label class="form-label text-xxs">Motivo / Justificación</label>
+                      <label class="form-label text-xxs">Justificación / Motivo Interno</label>
                       <input
                         type="text"
                         class="form-control text-xs"
-                        placeholder="Ej. Convenio Cámara de Comercio / Partner"
+                        placeholder="Ej. Convenio Cámara de Comercio / Promoción Partner"
                         [value]="overrideReason()"
                         (input)="overrideReason.set($any($event.target).value)"
                       />
                     </div>
 
-                    <div class="p-2 mb-2 rounded bg-black-20 border border-white-10 text-xs">
-                      <span class="text-muted d-block text-xxs mb-1"
-                        >Previsualización del Precio Efectivo Resultante:</span
-                      >
+                    <!-- Previsualización en vivo -->
+                    <div class="p-2 mb-3 rounded bg-black-20 border border-white-10 text-xs">
+                      <span class="text-muted d-block text-xxs mb-1">
+                        Previsualización en tiempo real del precio resultante:
+                      </span>
                       <div class="d-flex justify-content-between">
                         <span
-                          >Mensual:
+                          >Mensual resultante:
                           <strong>${{ effectivePreviewMonthly() | number }} ARS</strong></span
                         >
                         <span
-                          >Anual:
+                          >Anual resultante:
                           <strong>${{ effectivePreviewAnnual() | number }} ARS</strong></span
                         >
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm w-100"
-                      (click)="applyPricingOverride()"
-                      [disabled]="isSavingOverride() || !overrideValue()"
-                    >
-                      <i class="bi bi-check-lg"></i> Asignar Beneficio Especial
-                    </button>
-                  </div>
-
-                  <!-- Prepaid Bridge Card (Pagos Manuales / Transferencias Bancarias) -->
-                  <div class="payment-subcard mb-3">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                      <span
-                        class="text-xs font-weight-bold text-white d-flex align-items-center gap-1"
+                    <div class="d-flex gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm flex-1"
+                        (click)="applyPricingOverride()"
+                        [disabled]="isSavingOverride() || !overrideValue()"
                       >
-                        <i class="bi bi-bank text-info"></i> Prepaid Bridge (Pago Manual /
-                        Transferencia)
-                      </span>
-                      <span class="text-xxs text-muted">Sin doble cobro MP</span>
+                        <i class="bi bi-check-lg"></i> Guardar Beneficio
+                      </button>
+                      @if (storeSubscription()?.pricingOverride) {
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          (click)="revokePricingOverride()"
+                          [disabled]="isSavingOverride()"
+                          title="Eliminar beneficio y volver a precios estándar"
+                        >
+                          <i class="bi bi-arrow-counterclockwise"></i> Restablecer a Tarifa Oficial
+                        </button>
+                      }
                     </div>
-                    <p class="text-xxs text-muted mb-2">
-                      Registra cobertura pagada por transferencia. Al adherir tarjeta en Mercado
-                      Pago, el débito iniciará recién al vencer esta fecha.
-                    </p>
-                    <div class="row g-2 mb-2">
-                      <div class="col-12 col-md-5">
-                        <label class="form-label text-xxs">Vigencia hasta (Fecha Fin)</label>
-                        <input
-                          type="date"
-                          class="form-control text-xs"
-                          [value]="prepaidPeriodEndInput()"
-                          (input)="prepaidPeriodEndInput.set($any($event.target).value)"
-                        />
-                      </div>
-                      <div class="col-12 col-md-7">
-                        <label class="form-label text-xxs">Notas / Comprobante Bancario</label>
-                        <input
-                          type="text"
-                          class="form-control text-xs"
-                          placeholder="Ej. Transferencia Banco Galicia Op #98421"
-                          [value]="prepaidNotesInput()"
-                          (input)="prepaidNotesInput.set($any($event.target).value)"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm w-100"
-                      (click)="applyPrepaidCoverage()"
-                      [disabled]="isSavingPrepaid() || !prepaidPeriodEndInput()"
-                    >
-                      <i class="bi bi-shield-check"></i> Registrar Cobertura Prepaga
-                    </button>
                   </div>
 
                   <!-- QA Lab & Time-Travel Expiration Testing (DEV & PROD) -->

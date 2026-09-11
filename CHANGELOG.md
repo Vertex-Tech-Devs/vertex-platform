@@ -5,6 +5,22 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [0.9.1] - 2026-09-11
+
+### 🏬 Store Creation UX (`store-create`)
+- **Dirección Web Unificada (.web.app)**: Se eliminó el campo redundante de slug legacy con prefijo `vertex-stores.web.app/`. Se implementó un único input central con prefijo fijo `https://`, selector de subdominio editable (`vtx-[nombre]`) y sufijo `.web.app`.
+- **Sincronización Automática e Inmediata**: Al tipear el nombre de la marca se autocompleta `'vtx-' + slugify(name)` y se sincronizan atómicamente el `slug` y el `subdomain` para backend y base de datos.
+- **Validación de Disponibilidad Reactiva**: Badge dinámico con comprobación en vivo con debounce de colisiones y reservas de subdominios en Firestore.
+
+### 💳 Suscripciones y Pagos (`store-detail-payments`)
+- **Limpieza de UI y Fechas Absurdas**: Si la tienda es cortesía o exenta (`isExempt`), se renderiza `"Ilimitado / Sin vencimiento (Cortesía permanente)"` en lugar de fechas ficticias del año 2126.
+- **Banner de Tienda Bonificada**: Ocultamiento de botones de cobro y reemplazo por banner sobrio cuando la tienda es 100% bonificada o permanente.
+- **Consolidación de Panel Master Admin**: Fusión de múltiples tarjetas redundantes en 2 bloques limpios y jerárquicos:
+  1. *Vigencia y Pagos Manuales (Prepaid Bridge)*: Selector de estado de cuenta, prórrogas rápidas (+7d, +14d, +30d, Cortesía Permanente) y registro de transferencias bancarias manuales sin doble cobro en Mercado Pago.
+  2. *Beneficio / Precio Especial (Motor Único)*: Motor unificado (% OFF, $ OFF, Precio Fijo) con previsualización en tiempo real del precio mensual/anual y botón de revocación / restablecimiento a tarifa oficial.
+
+---
+
 ## [0.9.0] - 2026-09-11
 
 ### 🐛 Backend & Cloud Logging

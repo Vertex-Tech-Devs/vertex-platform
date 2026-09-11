@@ -213,6 +213,33 @@ export class StoreDetailPaymentsService {
     }
   }
 
+  async updateAccountStatus(
+    newStatus?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended',
+  ): Promise<void> {
+    const s = this.store();
+    if (!s) {
+      return;
+    }
+    const statusToSet = newStatus || this.subscriptionStatusSelect();
+    this.subscriptionStatusSelect.set(statusToSet);
+    this.isSavingDiscount.set(true);
+    this.discountSaveSuccess.set(null);
+
+    try {
+      await this.storesService.updateStoreSubscriptionStatus({
+        storeId: s.id,
+        status: statusToSet,
+      });
+      this.discountSaveSuccess.set(`Estado de cuenta actualizado a: ${statusToSet}.`);
+      await this.loadStoreSubscription(s.id);
+      setTimeout(() => this.discountSaveSuccess.set(null), 3000);
+    } catch (err) {
+      this.discountSaveSuccess.set(errorMessage(err, 'Error al actualizar estado de cuenta.'));
+    } finally {
+      this.isSavingDiscount.set(false);
+    }
+  }
+
   async saveCustomSubscriptionPricing(): Promise<void> {
     const s = this.store();
     if (!s) {

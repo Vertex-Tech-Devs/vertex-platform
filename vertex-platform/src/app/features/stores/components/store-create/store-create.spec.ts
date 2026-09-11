@@ -49,7 +49,7 @@ describe('StoreCreate', () => {
     }).compileComponents();
   });
 
-  it('auto-generates the slug from the store name', () => {
+  it('auto-generates the slug and subdomain from the store name', () => {
     const fixture = TestBed.createComponent(StoreCreate);
     const component = fixture.componentInstance;
 
@@ -57,6 +57,7 @@ describe('StoreCreate', () => {
     component.autoSlug();
 
     expect(component.form.get('slug')?.value).toBe('ropa-maria-2026');
+    expect(component.form.get('subdomain')?.value).toBe('vtx-ropa-maria-2026');
   });
 
   it('renders the runtime capacity summary when available', async () => {

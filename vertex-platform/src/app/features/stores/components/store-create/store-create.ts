@@ -178,19 +178,6 @@ export class StoreCreate implements OnInit {
 
   autoSlug(): void {
     const name = this.form.get('name')?.value ?? '';
-    const slug = name
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 30);
-    this.form.get('slug')?.setValue(slug);
-    this.form.get('slug')?.updateValueAndValidity();
-  }
-
-  autoSubdomain(): void {
-    const name = this.form.get('name')?.value ?? '';
     const clean = name
       .toLowerCase()
       .normalize('NFKD')
@@ -198,9 +185,15 @@ export class StoreCreate implements OnInit {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 26);
+    this.form.get('slug')?.setValue(clean);
+    this.form.get('slug')?.updateValueAndValidity();
     const suggested = clean ? `vtx-${clean}` : '';
     this.form.get('subdomain')?.setValue(suggested);
     this.form.get('subdomain')?.updateValueAndValidity();
+  }
+
+  autoSubdomain(): void {
+    this.autoSlug();
   }
 
   async verifySubdomain(sub: string): Promise<void> {
@@ -305,12 +298,18 @@ export class StoreCreate implements OnInit {
     this.errorMessage.set('');
     try {
       const val = this.form.value;
+      const rawSub = String(val.subdomain || '')
+        .trim()
+        .toLowerCase();
+      const derivedSlug = rawSub ? rawSub.replace(/^vtx-/, '') : val.slug || '';
       const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
       const mode = val.provisioningMode || 'FULL_DEMO';
       const subStatus = val.initialSubscriptionStatus || 'trial';
       const days = subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
       const payload = {
         ...val,
+        slug: derivedSlug || val.slug,
+        subdomain: rawSub,
         verticalId: vertical,
         businessVertical: vertical,
         provisioningMode: mode,

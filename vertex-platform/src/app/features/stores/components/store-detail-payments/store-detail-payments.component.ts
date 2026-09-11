@@ -78,6 +78,12 @@ export class StoreDetailPayments {
     return this.payments.generateSubscriptionLink(cycle);
   }
 
+  updateAccountStatus(
+    newStatus?: 'active' | 'complimentary' | 'trial' | 'past_due' | 'suspended',
+  ): Promise<void> {
+    return this.payments.updateAccountStatus(newStatus);
+  }
+
   saveCustomSubscriptionPricing(): Promise<void> {
     return this.payments.saveCustomSubscriptionPricing();
   }
@@ -163,10 +169,32 @@ export class StoreDetailPayments {
       Math.round((this.saasMonthly() * 12 - this.saasAnnual()) / this.saasMonthly()),
     );
   });
+  /** Indica si la tienda cuenta con cortesía o vigencia ilimitada permanente (sin fecha fin real). */
+  readonly isUnlimitedPermanently = computed(() => {
+    const sub = this.storeSubscription()?.subscription;
+    const s = this.store();
+    if (s?.isExempt || s?.plan === 'internal' || sub?.status === 'complimentary') {
+      return true;
+    }
+    const end = sub?.currentPeriodEnd;
+    if (end) {
+      const ms = parseDateToMillis(end);
+      if (ms && new Date(ms).getFullYear() > 2099) {
+        return true;
+      }
+    }
+    return false;
+  });
+
   /** Estados en los que NO corresponde generar un cobro. */
   readonly saasChargeBlocked = computed(() => {
     const st = this.storeSubscription()?.subscription?.status;
-    return st === 'complimentary' || st === 'suspended' || st === 'trial';
+    return (
+      this.isUnlimitedPermanently() ||
+      st === 'complimentary' ||
+      st === 'suspended' ||
+      st === 'trial'
+    );
   });
 
   /** Presentación homogénea del estado de suscripción (grilla resumen). */
