@@ -2,10 +2,11 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 10
     groups:
       angular:
         patterns: ["@angular/*", "@angular-devkit/*", "@angular-eslint/*"]
@@ -14,17 +15,20 @@ updates:
       typescript-eslint:
         patterns: ["@typescript-eslint/*"]
       testing:
-        patterns: ["karma*", "jasmine*", "cypress*"]
+        patterns: ["karma*", "jasmine*", "cypress*", "vitest*"]
+      dev-tools:
+        patterns: ["eslint*", "prettier*", "typescript", "stylelint*"]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/functions"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 10
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
