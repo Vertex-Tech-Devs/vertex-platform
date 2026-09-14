@@ -500,6 +500,20 @@ a[class*='btn'] {
   animation: skeleton-shimmer 1.4s ease infinite;
 }
 
+.skeleton-select {
+  height: 42px;
+  min-height: 42px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.skeleton-btn {
+  height: 42px;
+  min-height: 42px;
+  min-width: 170px;
+  border-radius: 8px;
+}
+
 @keyframes skeleton-shimmer {
   0% {
     background-position: 200% 0;

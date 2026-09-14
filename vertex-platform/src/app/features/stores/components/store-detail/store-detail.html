@@ -430,94 +430,87 @@
                 </div>
 
                 <div class="version-selector">
-                  <div class="row g-2 align-items-center">
-                    <div class="col">
-                      <select
-                        class="form-select"
-                        [value]="selectedVersion()"
-                        (change)="selectedVersion.set($any($event.target).value)"
-                        [disabled]="
-                          isDeploying() ||
-                          isStoreUpdating() ||
-                          isLoadingVersions() ||
-                          availableVersions().length === 0 ||
-                          deployActionState().status === 'running'
-                        "
-                      >
-                        @if (availableVersions().length === 0) {
-                          <option [value]="selectedVersion()">
-                            @if (isLoadingVersions()) {
-                              Cargando versiones…
-                            } @else {
+                  @if (isLoadingVersions()) {
+                    <div class="row g-2 align-items-center">
+                      <div class="col">
+                        <div class="skeleton skeleton-select"></div>
+                      </div>
+                      <div class="col-auto">
+                        <div class="skeleton skeleton-btn"></div>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="row g-2 align-items-center">
+                      <div class="col">
+                        <select
+                          class="form-select"
+                          [value]="selectedVersion()"
+                          (change)="selectedVersion.set($any($event.target).value)"
+                          [disabled]="
+                            isDeploying() ||
+                            isStoreUpdating() ||
+                            availableVersions().length === 0 ||
+                            deployActionState().status === 'running'
+                          "
+                        >
+                          @if (availableVersions().length === 0) {
+                            <option [value]="selectedVersion()">
                               No se encontraron releases publicados
-                            }
-                          </option>
-                        } @else {
-                          @for (v of availableVersions(); track v.version) {
-                            <option
-                              [value]="v.version"
-                              [disabled]="
-                                (v.schemaVersion ?? 0) !== 0 &&
-                                (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
-                              "
-                            >
-                              v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
-                              {{ v.publishedAt | date: 'dd/MM/yyyy' }}
-                              @if (
-                                (v.schemaVersion ?? 0) !== 0 &&
-                                (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
-                              ) {
-                                (incompatible — esquema {{ store()!.schemaVersion }})
-                              } @else if ((v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)) {
-                                (requiere migración)
-                              }
                             </option>
+                          } @else {
+                            @for (v of availableVersions(); track v.version) {
+                              <option
+                                [value]="v.version"
+                                [disabled]="
+                                  (v.schemaVersion ?? 0) !== 0 &&
+                                  (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                                "
+                              >
+                                v{{ v.version }}{{ v.isLatest ? ' (latest)' : '' }} —
+                                {{ v.publishedAt | date: 'dd/MM/yyyy' }}
+                                @if (
+                                  (v.schemaVersion ?? 0) !== 0 &&
+                                  (v.schemaVersion ?? 0) < (store()!.schemaVersion ?? 0)
+                                ) {
+                                  (incompatible — esquema {{ store()!.schemaVersion }})
+                                } @else if (
+                                  (v.schemaVersion ?? 0) > (store()!.schemaVersion ?? 0)
+                                ) {
+                                  (requiere migración)
+                                }
+                              </option>
+                            }
                           }
-                        }
-                      </select>
+                        </select>
+                      </div>
+                      <div class="col-auto">
+                        <button
+                          class="action-btn action-btn--primary"
+                          [disabled]="
+                            isDeploying() ||
+                            isStoreUpdating() ||
+                            store()!.status !== 'active' ||
+                            deployActionState().status === 'running'
+                          "
+                          (click)="triggerDeployment()"
+                        >
+                          @if (
+                            isDeploying() ||
+                            isStoreUpdating() ||
+                            deployActionState().status === 'running'
+                          ) {
+                            <app-spinner size="sm" label="Desplegando…" />
+                          } @else if (selectedVersion() === store()!.templateVersion) {
+                            <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
+                          } @else {
+                            <i class="bi bi-rocket-takeoff"></i> Actualizar a v{{
+                              selectedVersion()
+                            }}
+                          }
+                        </button>
+                      </div>
                     </div>
-                    <div class="col-auto">
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center"
-                        style="height: 38px; min-width: 38px; padding: 0 0.65rem"
-                        [disabled]="isLoadingVersions() || isDeploying() || isStoreUpdating()"
-                        (click)="refreshVersions()"
-                        title="Refrescar versiones y releases desde GitHub"
-                      >
-                        <i
-                          class="bi"
-                          [class.bi-arrow-clockwise]="!isLoadingVersions()"
-                          [class.bi-arrow-repeat]="isLoadingVersions()"
-                          [class.spin]="isLoadingVersions()"
-                        ></i>
-                      </button>
-                    </div>
-                    <div class="col-auto">
-                      <button
-                        class="action-btn action-btn--primary"
-                        [disabled]="
-                          isDeploying() ||
-                          isStoreUpdating() ||
-                          store()!.status !== 'active' ||
-                          deployActionState().status === 'running'
-                        "
-                        (click)="triggerDeployment()"
-                      >
-                        @if (
-                          isDeploying() ||
-                          isStoreUpdating() ||
-                          deployActionState().status === 'running'
-                        ) {
-                          <app-spinner size="sm" label="Desplegando…" />
-                        } @else if (selectedVersion() === store()!.templateVersion) {
-                          <i class="bi bi-arrow-repeat"></i> Re-desplegar v{{ selectedVersion() }}
-                        } @else {
-                          <i class="bi bi-rocket-takeoff"></i> Actualizar a v{{ selectedVersion() }}
-                        }
-                      </button>
-                    </div>
-                  </div>
+                  }
 
                   @if (store()!.pendingMigration) {
                     <p class="feedback feedback--warning mt-2">
