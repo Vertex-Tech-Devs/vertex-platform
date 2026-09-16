@@ -2149,7 +2149,7 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedRole = role.trim().toLowerCase();
-    const allowedRoles = new Set(['admin']);
+    const allowedRoles = new Set(['admin', 'staff']);
     if (!allowedRoles.has(normalizedRole)) {
       throw new HttpsError('invalid-argument', 'Invalid role for staff invitation.');
     }
@@ -2275,19 +2275,20 @@ export const inviteStaff = onCall<InviteStaffPayload>(
 
     let inviteEmailSent = true;
     try {
-      const emailSubject = `Acceso de administrador habilitado para ${storeName} - Vertex`;
+      const displayRole = normalizedRole === 'staff' ? 'Operador / Staff' : 'Administrador';
+      const emailSubject = `Acceso de ${displayRole.toLowerCase()} habilitado para ${storeName} - Vertex`;
       const emailHtml = `
         <div style="background:#f1f5f9;padding:28px 16px;font-family:Arial,sans-serif;color:#0f172a;">
           <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
             <div style="padding:20px 24px;background:linear-gradient(120deg,#0f172a,#1d4ed8);color:#ffffff;">
               <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Vertex Platform</p>
-              <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">Tu acceso de administrador está listo</h1>
+              <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">Tu acceso está listo</h1>
             </div>
             <div style="padding:24px;">
               <p style="margin:0 0 14px;color:#0f172a;font-size:15px;line-height:1.55;">
-                Se te otorgó acceso de administrador para la tienda <strong>${storeName}</strong>.
+                Se te otorgó acceso de ${displayRole.toLowerCase()} para la tienda <strong>${storeName}</strong>.
               </p>
-              <p style="margin:0 0 18px;color:#334155;font-size:14px;">Rol asignado: <strong>Administrador</strong></p>
+              <p style="margin:0 0 18px;color:#334155;font-size:14px;">Rol asignado: <strong>${displayRole}</strong></p>
               <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.5;">
                 Ingresá con tu cuenta de Google usando esta misma dirección de email.
               </p>

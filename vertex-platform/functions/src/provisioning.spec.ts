@@ -284,6 +284,78 @@ describe('provisionStore handler', () => {
     expect(savedData.shardId).toBe('shard-dev-1');
   });
 
+  it('respects user provided custom subdomain without forcing vtx- prefix', async () => {
+    const docMock = {
+      set: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({ exists: false }),
+    };
+    const mockShards = [
+      {
+        id: 'shard-dev-1',
+        environment: 'development',
+        runtimeMode: 'shared-shard',
+        projectId: 'vtx-shard-project-1',
+        siteId: 'default',
+        status: 'ACTIVE',
+        maxCapacity: 100,
+        currentStores: 5,
+        reservedStores: 1,
+        billingAccountId: '01D2F4-C25DF1-489AE9',
+        redirectUriStatus: 'registered',
+      },
+    ];
+    const dbMock = {
+      collection: vi.fn((colName) => {
+        if (colName === 'stores') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({ empty: true }),
+            doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
+          };
+        }
+        if (colName === 'infrastructure_shards') {
+          return {
+            where: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            get: vi.fn().mockResolvedValue({
+              empty: false,
+              docs: mockShards.map((s) => ({
+                id: s.id,
+                data: () => s,
+              })),
+            }),
+            doc: vi.fn(() => docMock),
+            add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
+          };
+        }
+        return {
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue({ empty: true }),
+          doc: vi.fn(() => docMock),
+          add: vi.fn().mockResolvedValue({ id: 'mock-audit-id' }),
+        };
+      }),
+    };
+    vi.mocked(getFirestore).mockReturnValue(dbMock as unknown as ReturnType<typeof getFirestore>);
+
+    await handler(
+      makeRequest({
+        ...VALID_PAYLOAD,
+        subdomain: 'diente-de-leon',
+      }),
+    );
+
+    expect(docMock.set).toHaveBeenCalled();
+    const savedData = docMock.set.mock.calls[0][0] as any;
+    expect(savedData.subdomain).toBe('diente-de-leon');
+    expect(savedData.runtimeSiteId).toBe('diente-de-leon');
+    expect(savedData.siteId).toBe('diente-de-leon');
+    expect(savedData.defaultUrl).toBe('https://diente-de-leon.web.app');
+  });
+
   it('rejects store provisioning with a clear error when no active verified shards are available', async () => {
     const docMock = {
       set: vi.fn().mockResolvedValue(undefined),

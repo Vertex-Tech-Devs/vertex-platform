@@ -67,6 +67,7 @@ export interface CreateStorePayload {
   slug: string;
   ownerEmail: string;
   subdomain?: string;
+  desiredSubdomain?: string;
   logoUrl?: string;
   customDomain?: string;
   verticalId?: string;
@@ -199,5 +200,5 @@ export interface UpdateStoreConfigPayload {
 export interface InviteStaffPayload {
   storeId: string;
   email: string;
-  role: 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
+  role: 'admin' | 'staff' | 'warehouse' | 'fulfillment' | 'analyst';
 }

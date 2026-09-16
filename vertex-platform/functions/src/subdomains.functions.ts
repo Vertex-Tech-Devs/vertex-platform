@@ -148,11 +148,23 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     const storeSnap = await storeRef.get();
     if (!storeSnap.exists) throw new HttpsError('not-found', 'Store not found.');
     const store = storeSnap.data() as Record<string, unknown>;
-    const projectId = String(store['runtimeProjectId'] || store['firebaseProjectId'] || '').trim();
-    const oldSiteId = String(store['runtimeSiteId'] || store['siteId'] || `vtx-${storeId}`).trim();
-    if (!projectId) {
-      throw new HttpsError('failed-precondition', 'La tienda no tiene proyecto de Hosting.');
+    let targetProjectId = String(
+      store['gcpProjectId'] || store['runtimeProjectId'] || store['firebaseProjectId'] || '',
+    ).trim();
+    if (!targetProjectId && store['shardId']) {
+      const shardSnap = await db
+        .collection('infrastructure_shards')
+        .doc(String(store['shardId']))
+        .get();
+      targetProjectId = String(
+        shardSnap.data()?.['gcpProjectId'] || shardSnap.data()?.['projectId'] || '',
+      ).trim();
     }
+    if (!targetProjectId) {
+      targetProjectId = process.env.GCLOUD_PROJECT || 'vertex-platform-dev';
+    }
+
+    const oldSiteId = String(store['runtimeSiteId'] || store['siteId'] || `vtx-${storeId}`).trim();
     if (oldSiteId === sanitized) {
       return { success: true, subdomain: sanitized, alreadyCurrent: true };
     }
@@ -160,7 +172,6 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     const auth = await getOwnerOAuthClient();
     const token = (await auth.getAccessToken()).token;
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-    const newSiteUrl = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(sanitized)}`;
 
     try {
       // 0) disponibilidad estricta: colisión en Firestore (otras tiendas) + Hosting
@@ -170,36 +181,60 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
           'Este dominio ya está registrado por otra tienda en Vertex.',
         );
       }
-      if (await siteExists(projectId, sanitized)) {
+      if (await siteExists(targetProjectId, sanitized)) {
         throw new HttpsError(
           'already-exists',
           'El subdominio ya está en uso. Elegí una de las sugerencias.',
         );
       }
-      // 1) crear nuevo sitio
-      const createRes = await fetch(newSiteUrl, { method: 'PUT', headers });
-      if (!createRes.ok) {
+
+      // 1) crear nuevo sitio en Firebase Hosting
+      const parent = targetProjectId.startsWith('projects/')
+        ? targetProjectId
+        : `projects/${targetProjectId}`;
+      const createSiteUrl = `${HOSTING_API}/${parent}/sites?siteId=${encodeURIComponent(sanitized)}`;
+      let createRes = await fetch(createSiteUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ type: 'WEB_APP' }),
+      });
+      // Fallback a USER_SITE si WEB_APP no es reconocido en la llamada directa
+      if (!createRes.ok && createRes.status === 400) {
+        createRes = await fetch(createSiteUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ type: 'USER_SITE' }),
+        });
+      }
+      if (!createRes.ok && createRes.status !== 409) {
         const body = (await createRes.json().catch(() => ({}))) as HostingErrorBody;
         throw new Error(`sites.create falló: ${body?.error?.message || createRes.status}`);
       }
 
-      // 2) clonar release: última versión del sitio anterior
+      // 2) clonar release: última versión del sitio anterior (no abortar si no hay releases activos o falla)
       let versionName = '';
-      const releasesUrl = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(
-        oldSiteId,
-      )}/releases?pageSize=1`;
-      const relRes = await fetch(releasesUrl, { headers });
-      if (relRes.ok) {
-        const relBody = (await relRes.json()) as {
-          releases?: Array<{ version?: { name?: string } }>;
-        };
-        versionName = relBody.releases?.[0]?.version?.name || '';
-      }
-      if (versionName) {
-        const releaseCreate = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(
-          sanitized,
-        )}/releases?versionName=${encodeURIComponent(versionName)}`;
-        await fetch(releaseCreate, { method: 'POST', headers });
+      try {
+        const releasesUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
+          oldSiteId,
+        )}/releases?pageSize=1`;
+        const relRes = await fetch(releasesUrl, { headers });
+        if (relRes.ok) {
+          const relBody = (await relRes.json()) as {
+            releases?: Array<{ version?: { name?: string } }>;
+          };
+          versionName = relBody.releases?.[0]?.version?.name || '';
+        }
+        if (versionName) {
+          const releaseCreate = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
+            sanitized,
+          )}/releases?versionName=${encodeURIComponent(versionName)}`;
+          await fetch(releaseCreate, { method: 'POST', headers });
+        }
+      } catch (cloneErr) {
+        logger.warn(
+          `[Subdomain] No se pudo clonar release del sitio viejo ${oldSiteId} al nuevo ${sanitized}:`,
+          cloneErr,
+        );
       }
 
       // 3) actualizar doc atómicamente
@@ -213,14 +248,18 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       });
 
       // 4) eliminar sitio anterior (preserva cuota de 36 sitios)
-      const oldSiteUrl = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(oldSiteId)}`;
-      const delRes = await fetch(oldSiteUrl, { method: 'DELETE', headers });
-      if (!delRes.ok && delRes.status !== 404) {
-        logger.warn(`[Subdomain] No se pudo borrar sitio viejo ${oldSiteId}: ${delRes.status}`);
+      try {
+        const oldSiteUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(oldSiteId)}`;
+        const delRes = await fetch(oldSiteUrl, { method: 'DELETE', headers });
+        if (!delRes.ok && delRes.status !== 404) {
+          logger.warn(`[Subdomain] No se pudo borrar sitio viejo ${oldSiteId}: ${delRes.status}`);
+        }
+      } catch (delErr) {
+        logger.warn(`[Subdomain] Error al intentar eliminar sitio anterior ${oldSiteId}:`, delErr);
       }
 
       logger.info(
-        `[Subdomain] Tienda ${storeId}: ${oldSiteId} → ${sanitized} (proyecto ${projectId})`,
+        `[Subdomain] Tienda ${storeId}: ${oldSiteId} → ${sanitized} (proyecto ${targetProjectId})`,
       );
       return { success: true, subdomain: sanitized, url: `https://${sanitized}.web.app` };
     } catch (err) {

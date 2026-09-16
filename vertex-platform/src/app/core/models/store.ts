@@ -122,6 +122,7 @@ export interface CreateStorePayload {
   slug: string;
   ownerEmail: string;
   subdomain?: string;
+  desiredSubdomain?: string;
   logoUrl?: string | null;
   customDomain?: string;
   verticalId?: string;
@@ -207,7 +208,7 @@ export interface StoreConfig {
 export interface StaffMember {
   uid: string;
   email: string;
-  role: 'owner' | 'admin' | 'warehouse' | 'fulfillment' | 'analyst';
+  role: 'owner' | 'admin' | 'staff' | 'warehouse' | 'fulfillment' | 'analyst';
   displayName?: string;
   joinedAt?: string;
   isOwner?: boolean;

@@ -301,15 +301,19 @@ export class StoreCreate implements OnInit {
       const rawSub = String(val.subdomain || '')
         .trim()
         .toLowerCase();
-      const derivedSlug = rawSub ? rawSub.replace(/^vtx-/, '') : val.slug || '';
+      const explicitSlug = String(val.slug || '')
+        .trim()
+        .toLowerCase();
+      const derivedSlug = explicitSlug || (rawSub ? rawSub.replace(/^vtx-/, '') : '');
       const vertical = val.businessVertical || 'INDUMENTARIA_MODA';
       const mode = val.provisioningMode || 'FULL_DEMO';
       const subStatus = val.initialSubscriptionStatus || 'trial';
       const days = subStatus === 'trial' ? (val.trialDays ? Number(val.trialDays) : 14) : undefined;
       const payload = {
         ...val,
-        slug: derivedSlug || val.slug,
-        subdomain: rawSub,
+        slug: derivedSlug,
+        subdomain: rawSub || undefined,
+        desiredSubdomain: rawSub || undefined,
         verticalId: vertical,
         businessVertical: vertical,
         provisioningMode: mode,

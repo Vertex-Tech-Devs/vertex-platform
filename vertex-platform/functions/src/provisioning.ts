@@ -853,6 +853,8 @@ export const provisionStore = onCall<CreateStorePayload>(
       name,
       slug,
       ownerEmail,
+      subdomain,
+      desiredSubdomain,
       logoUrl,
       customDomain,
       verticalId,
@@ -865,6 +867,14 @@ export const provisionStore = onCall<CreateStorePayload>(
       customMonthlyPrice,
       customAnnualPrice,
     } = request.data;
+
+    const rawUserSubdomain = subdomain || desiredSubdomain;
+    const sanitizedDesiredSubdomain = rawUserSubdomain
+      ? String(rawUserSubdomain)
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '')
+          .slice(0, 30)
+      : '';
 
     const effectiveVertical = businessVertical || verticalId || 'INDUMENTARIA_MODA';
     const effectiveMode =
@@ -981,6 +991,7 @@ export const provisionStore = onCall<CreateStorePayload>(
     let runtimeMode: StoreRuntimeMode;
     let shardId: string | null = null;
     let projectId = `vtx-${slug}`.slice(0, 30);
+    const initialSubdomain = sanitizedDesiredSubdomain || `vtx-${slug}`.slice(0, 30);
     let runtimeSiteId = 'default';
     let isNewShard = false;
 
@@ -1000,7 +1011,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         runtimeMode = 'shared-shard';
         shardId = (selectedShard as StoreShard).id;
         projectId = (selectedShard as StoreShard).projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = initialSubdomain;
         isNewShard = false;
       } else {
         // Fallback: Generate a new shared-shard project autonomously
@@ -1009,7 +1020,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const randomId = crypto.randomUUID().slice(0, 8);
         shardId = `shard-${env}-${randomId}`;
         projectId = `vtx-sd-${randomId}`;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = initialSubdomain;
         // Trigger asynchronous background creation of a warm shard buffer
         void ensureWarmShardAvailable().catch((err) => {
           console.error('[provisionStore] Failed to trigger background warm shard creation:', err);
@@ -1087,7 +1098,7 @@ export const provisionStore = onCall<CreateStorePayload>(
         const fbShardData = (fbShardDoc.data() ?? {}) as StoreShard;
         shardId = fbShardDoc.id;
         projectId = fbShardData.projectId;
-        runtimeSiteId = `vtx-${slug}`.slice(0, 30);
+        runtimeSiteId = initialSubdomain;
       }
 
       // Solo si seguimos necesitando un proyecto GCP nuevo tras el fallback
@@ -1137,6 +1148,8 @@ export const provisionStore = onCall<CreateStorePayload>(
         shardId,
         runtimeProjectId: projectId,
         runtimeSiteId,
+        siteId: runtimeSiteId,
+        subdomain: runtimeSiteId,
         firebaseProjectId: projectId,
         defaultUrl:
           runtimeMode === 'shared-shard'

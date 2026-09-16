@@ -765,6 +765,9 @@
                       <label class="form-label">Rol en la Tienda (RBAC Claims)</label>
                       <select formControlName="role" class="form-select">
                         <option value="admin">Administrador (Acceso total)</option>
+                        <option value="staff">
+                          Empleado / Operador (Solo gestión de catálogo y pedidos)
+                        </option>
                       </select>
                     </div>
 
@@ -827,6 +830,7 @@
                                 class="bi"
                                 [class.bi-shield-check]="member.isOwner || member.role === 'owner'"
                                 [class.bi-person-badge]="member.role === 'admin' && !member.isOwner"
+                                [class.bi-person-gear]="member.role === 'staff'"
                                 [class.bi-box-seam]="member.role === 'warehouse'"
                                 [class.bi-truck]="member.role === 'fulfillment'"
                                 [class.bi-graph-up]="member.role === 'analyst'"
@@ -836,13 +840,15 @@
                                   ? 'Titular'
                                   : member.role === 'admin'
                                     ? 'Administrador'
-                                    : member.role === 'warehouse'
-                                      ? 'Depósito'
-                                      : member.role === 'fulfillment'
-                                        ? 'Logística'
-                                        : member.role === 'analyst'
-                                          ? 'Analista'
-                                          : member.role
+                                    : member.role === 'staff'
+                                      ? 'Operador'
+                                      : member.role === 'warehouse'
+                                        ? 'Depósito'
+                                        : member.role === 'fulfillment'
+                                          ? 'Logística'
+                                          : member.role === 'analyst'
+                                            ? 'Analista'
+                                            : member.role
                               }}
                             </span>
                           </div>
@@ -883,7 +889,11 @@
                                 </td>
                                 <td>
                                   <span class="badge-role badge-role--{{ invite.role }}">{{
-                                    invite.role
+                                    invite.role === 'staff'
+                                      ? 'Operador'
+                                      : invite.role === 'admin'
+                                        ? 'Administrador'
+                                        : invite.role
                                   }}</span>
                                 </td>
                                 <td class="deployment-date">
