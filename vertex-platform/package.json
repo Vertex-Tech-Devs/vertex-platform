@@ -89,7 +89,7 @@
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.9",
-    "cypress": "^15.17.0",
+    "cypress": "^15.21.1",
     "eslint": "^9.39.4",
     "firebase-admin": "^14.4.0",
     "husky": "^9.1.7",
@@ -99,7 +99,7 @@
     "start-server-and-test": "^3.0.11",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.60.2"
