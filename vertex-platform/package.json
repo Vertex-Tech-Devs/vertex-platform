@@ -83,7 +83,7 @@
     "@clack/prompts": "^1.8.0",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
-    "@google-cloud/secret-manager": "^6.2.0",
+    "@google-cloud/secret-manager": "^6.3.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.2",
     "@typescript-eslint/eslint-plugin": "^8.70.0",
