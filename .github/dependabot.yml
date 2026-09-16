@@ -15,9 +15,11 @@ updates:
       typescript-eslint:
         patterns: ["@typescript-eslint/*"]
       testing:
-        patterns: ["karma*", "jasmine*", "cypress*", "vitest*"]
+        patterns: ["karma*", "jasmine*", "cypress*", "vitest*", "@vitest/*", "@playwright/*"]
       dev-tools:
-        patterns: ["eslint*", "prettier*", "typescript", "stylelint*"]
+        patterns: ["eslint*", "prettier*", "typescript", "stylelint*", "lint-staged*", "@commitlint/*", "husky*", "tsx*", "@clack/*", "start-server-and-test*"]
+      dependencies:
+        patterns: ["*"]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -29,6 +31,9 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      functions-dependencies:
+        patterns: ["*"]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -37,7 +42,7 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     groups:
       github-actions:
         patterns: ["*"]
