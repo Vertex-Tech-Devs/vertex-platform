@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getOwnerOAuthClient, ALLOWED_ORIGINS } from './helpers';
+import { ensureAuthorizedDomain } from './hosting-auth.utils';
 import {
   buildSubdomainSuggestions,
   normalizeFreeSubdomain,
@@ -172,6 +173,7 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     const auth = await getOwnerOAuthClient();
     const token = (await auth.getAccessToken()).token;
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    let createdNewSite = false;
 
     try {
       // 0) disponibilidad estricta: colisión en Firestore (otras tiendas) + Hosting
@@ -192,6 +194,7 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       const parent = targetProjectId.startsWith('projects/')
         ? targetProjectId
         : `projects/${targetProjectId}`;
+      const projectBare = targetProjectId.replace(/^projects\//, '');
       const createSiteUrl = `${HOSTING_API}/${parent}/sites?siteId=${encodeURIComponent(sanitized)}`;
       let createRes = await fetch(createSiteUrl, {
         method: 'POST',
@@ -210,8 +213,11 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
         const body = (await createRes.json().catch(() => ({}))) as HostingErrorBody;
         throw new Error(`sites.create falló: ${body?.error?.message || createRes.status}`);
       }
+      if (createRes.ok) {
+        createdNewSite = true;
+      }
 
-      // 2) clonar release: última versión del sitio anterior (no abortar si no hay releases activos o falla)
+      // 2) clonar release del sitio anterior (VERIFICADO: sin release no se cambia nada)
       let versionName = '';
       try {
         const releasesUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
@@ -224,30 +230,62 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
           };
           versionName = relBody.releases?.[0]?.version?.name || '';
         }
-        if (versionName) {
-          const releaseCreate = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
-            sanitized,
-          )}/releases?versionName=${encodeURIComponent(versionName)}`;
-          await fetch(releaseCreate, { method: 'POST', headers });
-        }
       } catch (cloneErr) {
-        logger.warn(
-          `[Subdomain] No se pudo clonar release del sitio viejo ${oldSiteId} al nuevo ${sanitized}:`,
-          cloneErr,
+        logger.warn(`[Subdomain] No se pudo leer releases del sitio ${oldSiteId}:`, cloneErr);
+      }
+      if (!versionName) {
+        throw new HttpsError(
+          'failed-precondition',
+          'La tienda no tiene un release activo para clonar. Re-desplegá la tienda antes de cambiar la dirección.',
+        );
+      }
+      const releaseCreate = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
+        sanitized,
+      )}/releases?versionName=${encodeURIComponent(versionName)}`;
+      const releaseRes = await fetch(releaseCreate, { method: 'POST', headers });
+      if (!releaseRes.ok) {
+        const body = (await releaseRes.json().catch(() => ({}))) as HostingErrorBody;
+        throw new Error(
+          `release create falló (${releaseRes.status}): ${body?.error?.message || ''}`,
         );
       }
 
-      // 3) actualizar doc atómicamente
+      // 3) autorizar el dominio nuevo en Firebase Auth (login con Google del admin)
+      await ensureAuthorizedDomain(auth, projectBare, `${sanitized}.web.app`, { strict: true });
+
+      // 4) health check: el sitio nuevo debe responder 200 antes de confirmar el cambio
+      const newUrl = `https://${sanitized}.web.app`;
+      let healthy = false;
+      const healthStart = Date.now();
+      while (Date.now() - healthStart < 90_000) {
+        try {
+          const probe = await fetch(newUrl, { method: 'GET', redirect: 'follow' });
+          if (probe.status === 200) {
+            healthy = true;
+            break;
+          }
+        } catch {
+          // reintenta
+        }
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+      if (!healthy) {
+        throw new Error(
+          `El sitio ${sanitized}.web.app no respondió 200 tras publicar. Se mantiene la dirección anterior.`,
+        );
+      }
+
+      // 5) actualizar doc atómicamente (recién ahora, con el sitio ya sirviendo)
       await storeRef.update({
         runtimeSiteId: sanitized,
         siteId: sanitized,
         subdomain: sanitized,
-        defaultUrl: `https://${sanitized}.web.app`,
+        defaultUrl: newUrl,
         subdomainUpdatedAt: new Date(),
         subdomainOldSite: oldSiteId,
       });
 
-      // 4) eliminar sitio anterior (preserva cuota de 36 sitios)
+      // 6) eliminar sitio anterior (preserva cuota de 36 sitios)
       try {
         const oldSiteUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(oldSiteId)}`;
         const delRes = await fetch(oldSiteUrl, { method: 'DELETE', headers });
@@ -261,8 +299,20 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       logger.info(
         `[Subdomain] Tienda ${storeId}: ${oldSiteId} → ${sanitized} (proyecto ${targetProjectId})`,
       );
-      return { success: true, subdomain: sanitized, url: `https://${sanitized}.web.app` };
+      return { success: true, subdomain: sanitized, url: newUrl };
     } catch (err) {
+      // Revert: sólo si NOSOTROS creamos el sitio nuevo y el cambio no se confirmó.
+      if (createdNewSite) {
+        try {
+          const parentToClean = targetProjectId.startsWith('projects/')
+            ? targetProjectId
+            : `projects/${targetProjectId}`;
+          const cleanupUrl = `${HOSTING_API}/${parentToClean}/sites/${encodeURIComponent(sanitized)}`;
+          await fetch(cleanupUrl, { method: 'DELETE', headers });
+        } catch (cleanupErr) {
+          logger.warn(`[Subdomain] No se pudo limpiar el sitio nuevo ${sanitized}:`, cleanupErr);
+        }
+      }
       if (err instanceof HttpsError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`[Subdomain] Error cambiando subdominio de ${storeId}:`, err);

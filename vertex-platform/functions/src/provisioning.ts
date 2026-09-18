@@ -32,6 +32,7 @@ import {
   DEFAULT_SANDBOX_PUBLIC_KEY,
   DEFAULT_SANDBOX_ACCESS_TOKEN,
 } from './helpers';
+import { ensureAuthorizedDomain } from './hosting-auth.utils';
 import { seedStoreData } from './seeds';
 import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runtime';
 import { ensureWarmShardAvailable } from './shards';
@@ -1851,6 +1852,8 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
               const fallbackUrl = `https://${fallbackSiteId}.web.app`;
               await db.collection('stores').doc(storeId).update({
                 runtimeSiteId: fallbackSiteId,
+                siteId: fallbackSiteId,
+                subdomain: fallbackSiteId,
                 defaultUrl: fallbackUrl,
                 updatedAt: new Date(),
               });
@@ -1875,6 +1878,13 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
             }
             await new Promise((resolve) => setTimeout(resolve, 5000));
           }
+        }
+
+        // El dominio .web.app de un sitio multi-site NO viene autorizado por defecto en
+        // Firebase Auth: sin esto el login con Google del admin falla con
+        // auth/unauthorized-domain. Best-effort (no aborta el provisioning).
+        if (runtimeSiteId && runtimeSiteId !== 'default') {
+          await ensureAuthorizedDomain(auth, projectId, `${runtimeSiteId}.web.app`);
         }
       }
 

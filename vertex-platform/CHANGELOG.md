@@ -5,6 +5,9 @@
 ### Fixed
 - **Aislamiento Total del Estado de Despliegue por StoreId**: Banderas reactivas (`deployingStoreIds`, `localDeployErrors`, `userInitiatedDeployStoreIds`, `deploySessionTimestamps`, `dismissedDeployStoreIds`) e índices completamente aislados por `storeId` en `StoreDetailOrchestrationService` y `StoreDetail`. Mutar o iniciar un deploy en una tienda no altera botones, spinners ni barras de progreso en otras tiendas.
 - **Gestión Segura de Suscripciones en Tiempo Real**: Cancelación y desuscripción activa (`deployHistorySub`) y limpieza estricta de snapshots al desmontar o alternar entre tiendas para prevenir filtración de eventos cruzados y fugas de memoria.
+- **Dominios `.web.app` siempre funcionales**: al crear una tienda o cambiar su subdominio se autoriza el dominio en Firebase Auth (`ensureAuthorizedDomain`), se **verifica el clon del release** y se exige **health-check 200** antes de confirmar; si falla, se revierte el sitio nuevo y se mantiene la dirección anterior.
+- **Fallback de site reservado consistente**: el fallback ahora actualiza `siteId` y `subdomain` (antes el pipeline deployaba a un sitio vacío → 404).
+- **Login del admin en sitios multi-site**: se agregan los dominios `.web.app` a los Authorized Domains del shard (antes fallaba con `auth/unauthorized-domain`).
 
 ### Added
 - **Refresco Manual y en Vivo de Releases de Storefront en Orquestación**:
