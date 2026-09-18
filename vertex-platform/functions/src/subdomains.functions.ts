@@ -105,6 +105,37 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
       logger.warn('[Subdomain] Chequeo de colisión en Firestore falló:', err);
     }
 
+    // Colisión en el shard destino (Hosting es único por proyecto): si la tienda ya tiene
+    // shard asignado, chequeamos su proyecto además de los proyectos master.
+    if (storeId) {
+      try {
+        const sSnap = await db.collection('stores').doc(storeId).get();
+        const sData = (sSnap.data() || {}) as Record<string, unknown>;
+        let targetProject = String(
+          sData['gcpProjectId'] || sData['runtimeProjectId'] || sData['firebaseProjectId'] || '',
+        ).trim();
+        if (!targetProject && sData['shardId']) {
+          const shSnap = await db
+            .collection('infrastructure_shards')
+            .doc(String(sData['shardId']))
+            .get();
+          targetProject = String(
+            shSnap.data()?.['gcpProjectId'] || shSnap.data()?.['projectId'] || '',
+          ).trim();
+        }
+        if (targetProject && (await siteExists(targetProject, sanitized))) {
+          return {
+            available: false,
+            sanitized,
+            reason: 'ALREADY_REGISTERED',
+            message: 'Este dominio ya está en uso por otra tienda en Vertex.',
+          };
+        }
+      } catch (err) {
+        logger.warn('[Subdomain] Chequeo de colisión en shard falló:', err);
+      }
+    }
+
     const projectsToCheck = ['ecommerce-vertex', 'ecommerce-vertex-dev'];
     let taken = false;
     for (const projectId of projectsToCheck) {
@@ -211,7 +242,16 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       }
       if (!createRes.ok && createRes.status !== 409) {
         const body = (await createRes.json().catch(() => ({}))) as HostingErrorBody;
-        throw new Error(`sites.create falló: ${body?.error?.message || createRes.status}`);
+        const detail = String(body?.error?.message || '');
+        const reservedByAnotherProject =
+          createRes.status === 403 || /reserved by another project/i.test(detail);
+        if (reservedByAnotherProject) {
+          throw new HttpsError(
+            'already-exists',
+            `“${sanitized}” está reservado por otro proyecto de Firebase. Probá otra de las sugerencias.`,
+          );
+        }
+        throw new Error(`sites.create falló: ${detail || createRes.status}`);
       }
       if (createRes.ok) {
         createdNewSite = true;

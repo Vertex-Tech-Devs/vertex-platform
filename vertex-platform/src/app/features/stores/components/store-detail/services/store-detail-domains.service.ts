@@ -15,6 +15,16 @@ export class StoreDetailDomainsService {
   readonly dnsVerificationError = signal('');
   readonly dnsVerificationSuccess = signal('');
 
+  /**
+   * Dominio del sitio de Hosting de la tienda (target correcto del CNAME `www`).
+   * Un sitio multi-site se sirve en `<runtimeSiteId>.web.app`, NO en `<storeId>.web.app`.
+   */
+  private siteDomain(storeId: string): string {
+    const store = this.storesService.stores().find((s) => s.id === storeId);
+    const siteId = String(store?.runtimeSiteId || store?.subdomain || '').trim();
+    return siteId ? `${siteId}.web.app` : `${storeId}.web.app`;
+  }
+
   async connectDomain(storeId: string, domain: string): Promise<boolean> {
     if (!domain) {
       return false;
@@ -30,7 +40,7 @@ export class StoreDetailDomainsService {
         ? res.dnsRecords
         : [
             { host: '@', type: 'A', value: '199.36.158.100', requiredAction: 'ADD' },
-            { host: 'www', type: 'CNAME', value: `${storeId}.web.app`, requiredAction: 'ADD' },
+            { host: 'www', type: 'CNAME', value: this.siteDomain(storeId), requiredAction: 'ADD' },
           ];
       this.dnsRecords.set(records);
       this.domainStatus.set('pending');
@@ -68,7 +78,7 @@ export class StoreDetailDomainsService {
         ? res.dnsRecords
         : [
             { host: '@', type: 'A', value: '199.36.158.100', requiredAction: 'ADD' },
-            { host: 'www', type: 'CNAME', value: `${storeId}.web.app`, requiredAction: 'ADD' },
+            { host: 'www', type: 'CNAME', value: this.siteDomain(storeId), requiredAction: 'ADD' },
           ];
       this.dnsRecords.set(records);
       this.verifiedDomain = domain;
