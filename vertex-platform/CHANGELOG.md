@@ -11,6 +11,7 @@
 - **CNAME de dominio propio corregido**: el target `www` ahora apunta a `<runtimeSiteId>.web.app` (antes usaba el UUID de la tienda, inválido para verificación DNS).
 - **Disponibilidad de subdominio más precisa**: se chequea también el shard destino y se informa claramente cuando el nombre está reservado por otro proyecto de Firebase.
 - **Cambio de subdominio con clon real de versión**: Hosting no permite crear un release con la versión de otro sitio (`Site name mismatch`); ahora se clona la versión (`versions:clone`) al sitio nuevo y se publica el release sobre la versión clonada.
+- **Mensaje de nombre reservado con sugerencias**: al chocar con un nombre `.web.app` ya usado por otro proyecto de Firebase, el error indica que es único global e incluye alternativas concretas.
 
 ### Added
 - **Refresco Manual y en Vivo de Releases de Storefront en Orquestación**:

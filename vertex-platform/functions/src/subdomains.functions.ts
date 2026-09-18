@@ -246,9 +246,10 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
         const reservedByAnotherProject =
           createRes.status === 403 || /reserved by another project/i.test(detail);
         if (reservedByAnotherProject) {
+          const suggestions = buildSubdomainSuggestions(sanitized).join(', ');
           throw new HttpsError(
             'already-exists',
-            `“${sanitized}” está reservado por otro proyecto de Firebase. Probá otra de las sugerencias.`,
+            `“${sanitized}” está reservado por otro proyecto de Firebase (los nombres .web.app son únicos en todo Firebase). Probá: ${suggestions || 'otro nombre'}.`,
           );
         }
         throw new Error(`sites.create falló: ${detail || createRes.status}`);
