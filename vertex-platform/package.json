@@ -16,7 +16,7 @@
     "prebuild:prod": "npm run build --workspace=@vertex/contracts --if-present",
     "pretest": "npm run build --workspace=@vertex/contracts --if-present",
     "pretypecheck": "npm run build --workspace=@vertex/contracts --if-present",
-    "test": "ng test",
+    "test": "ng test --no-watch",
     "lint": "ng lint",
     "typecheck": "tsc --noEmit",
     "validate:rules": "tsx scripts/validate-firestore-rules.ts",

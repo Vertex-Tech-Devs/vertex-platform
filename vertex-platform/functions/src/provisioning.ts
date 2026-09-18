@@ -1992,16 +1992,30 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
         msg.includes('RESOURCE_EXHAUSTED') ||
         msg.includes('quota');
 
-      if (isQuotaError && runtimeMode === 'shared-shard' && shardId) {
+      const isUnreachableShard =
+        msg.includes('403') ||
+        msg.includes('404') ||
+        msg.includes('PERMISSION_DENIED') ||
+        msg.includes('Permission denied on resource project') ||
+        msg.includes('RESOURCES_NOT_FOUND') ||
+        msg.includes('was not found') ||
+        msg.includes('IAM_PROPAGATION_FAILED');
+
+      if ((isQuotaError || isUnreachableShard) && runtimeMode === 'shared-shard' && shardId) {
         console.warn(
-          `[provisioning:createWebApp] Quota exhausted on shard ${shardId} (${projectId}). Marking as FULL and auto-rotating to standby warm shard...`,
+          `[provisioning:createWebApp] ${isUnreachableShard ? 'Unreachable/inaccessible shard' : 'Quota exhausted'} on shard ${shardId} (${projectId}). Marking and auto-rotating to standby warm shard...`,
         );
-        // Mark exhausted shard as FULL
-        await db.collection('infrastructure_shards').doc(shardId).update({
-          status: 'FULL',
-          quotaExhausted: true,
-          updatedAt: new Date(),
-        });
+        // Mark exhausted or unreachable shard
+        await db
+          .collection('infrastructure_shards')
+          .doc(shardId)
+          .update({
+            status: isUnreachableShard ? 'DECOMMISSIONED' : 'FULL',
+            ...(isUnreachableShard
+              ? { healthStatus: 'UNREACHABLE', errorReason: msg.slice(0, 300) }
+              : { quotaExhausted: true }),
+            updatedAt: new Date(),
+          });
 
         // Query for a standby warm shard
         const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
@@ -2355,17 +2369,30 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
       const isDatastoreError = msg.includes('Datastore Mode') || msg.includes('DATASTORE_MODE');
+      const isUnreachableShard =
+        msg.includes('403') ||
+        msg.includes('404') ||
+        msg.includes('PERMISSION_DENIED') ||
+        msg.includes('Permission denied on resource project') ||
+        msg.includes('RESOURCES_NOT_FOUND') ||
+        msg.includes('was not found') ||
+        msg.includes('IAM_PROPAGATION_FAILED');
 
-      if (isDatastoreError && runtimeMode === 'shared-shard' && shardId) {
+      if ((isDatastoreError || isUnreachableShard) && runtimeMode === 'shared-shard' && shardId) {
         console.warn(
-          `[provisioning:initFirestore] Datastore Mode or precondition issue on shard ${shardId} (${projectId}). Marking as FULL and auto-rotating to standby warm shard...`,
+          `[provisioning:initFirestore] ${isUnreachableShard ? 'Unreachable/inaccessible shard' : 'Datastore Mode issue'} on shard ${shardId} (${projectId}). Marking and auto-rotating to standby warm shard...`,
         );
-        // Mark corrupt shard as FULL
-        await db.collection('infrastructure_shards').doc(shardId).update({
-          status: 'FULL',
-          corrupted: true,
-          updatedAt: new Date(),
-        });
+        // Mark corrupt or unreachable shard
+        await db
+          .collection('infrastructure_shards')
+          .doc(shardId)
+          .update({
+            status: isUnreachableShard ? 'DECOMMISSIONED' : 'FULL',
+            ...(isUnreachableShard
+              ? { healthStatus: 'UNREACHABLE', errorReason: msg.slice(0, 300) }
+              : { corrupted: true }),
+            updatedAt: new Date(),
+          });
 
         // Query for a standby warm shard
         const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
