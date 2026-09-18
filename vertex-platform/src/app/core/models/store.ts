@@ -143,12 +143,21 @@ export interface StoreShard {
   projectId: string;
   siteId: string;
   region: string;
-  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE' | 'WARMUP_READY' | 'WARMUP_PROVISIONING';
+  status:
+    | 'ACTIVE'
+    | 'FULL'
+    | 'DRAINING'
+    | 'MAINTENANCE'
+    | 'WARMUP_READY'
+    | 'WARMUP_PROVISIONING'
+    | 'DECOMMISSIONED';
   maxCapacity: number;
   currentStores: number;
   reservedStores: number;
   currentTemplateVersion?: string;
   currentDataVersion?: string;
+  healthStatus?: 'HEALTHY' | 'UNREACHABLE' | 'DEGRADED';
+  errorReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }

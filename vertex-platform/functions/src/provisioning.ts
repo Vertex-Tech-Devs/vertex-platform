@@ -969,24 +969,26 @@ export const provisionStore = onCall<CreateStorePayload>(
     });
 
     let selectedShard: StoreShard | null = null;
-    let maxAvailableSlots = 0;
 
     const verifiedActiveShards = allActiveShards.filter((shard) => {
       const isRegistered = shard.redirectUriStatus === 'registered' || shard.ready === true;
       const hasBilling = !!shard.billingAccountId;
+      const isHealthy = shard.status !== 'DECOMMISSIONED' && shard.healthStatus !== 'UNREACHABLE';
       const availableSlots =
         shard.maxCapacity - (shard.currentStores || 0) - (shard.reservedStores || 0);
-      return isRegistered && hasBilling && availableSlots > 0;
+      return isRegistered && hasBilling && isHealthy && availableSlots > 0;
     });
 
-    verifiedActiveShards.forEach((shard) => {
-      const availableSlots =
-        shard.maxCapacity - (shard.currentStores || 0) - (shard.reservedStores || 0);
-      if (availableSlots > maxAvailableSlots) {
-        maxAvailableSlots = availableSlots;
-        selectedShard = shard;
-      }
+    // Sort by available slots descending so the best candidate is picked first
+    verifiedActiveShards.sort((a, b) => {
+      const slotsA = a.maxCapacity - (a.currentStores || 0) - (a.reservedStores || 0);
+      const slotsB = b.maxCapacity - (b.currentStores || 0) - (b.reservedStores || 0);
+      return slotsB - slotsA;
     });
+
+    if (verifiedActiveShards.length > 0) {
+      selectedShard = verifiedActiveShards[0];
+    }
 
     let runtimeMode: StoreRuntimeMode;
     let shardId: string | null = null;
@@ -2026,106 +2028,115 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           .get();
 
         if (!warmSnap.empty) {
-          const registeredDoc = warmSnap.docs.find((d) => {
+          const healthyWarmDocs = warmSnap.docs.filter((d) => {
+            const data = d.data();
+            return data['healthStatus'] !== 'UNREACHABLE' && data['status'] !== 'DECOMMISSIONED';
+          });
+          const registeredDoc = healthyWarmDocs.find((d) => {
             const data = d.data();
             return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
           });
-          const warmDoc = registeredDoc || warmSnap.docs[0];
-          const warmData = warmDoc.data() as StoreShard;
-          const newShardId = warmDoc.id;
-          const newProjectId = warmData.projectId;
+          const warmDoc = registeredDoc || healthyWarmDocs[0];
+          if (warmDoc) {
+            const warmData = warmDoc.data() as StoreShard;
+            const newShardId = warmDoc.id;
+            const newProjectId = warmData.projectId;
 
-          // Promote warm shard to ACTIVE
-          await db.collection('infrastructure_shards').doc(newShardId).update({
-            status: 'ACTIVE',
-            updatedAt: new Date(),
-          });
+            // Promote warm shard to ACTIVE
+            await db.collection('infrastructure_shards').doc(newShardId).update({
+              status: 'ACTIVE',
+              updatedAt: new Date(),
+            });
 
-          // Update store document in Firestore to reference the new shard
-          await db.collection('stores').doc(storeId).update({
-            shardId: newShardId,
-            projectId: newProjectId,
-            gcpProjectId: newProjectId,
-            updatedAt: new Date(),
-          });
+            // Update store document in Firestore to reference the new shard
+            await db.collection('stores').doc(storeId).update({
+              shardId: newShardId,
+              projectId: newProjectId,
+              gcpProjectId: newProjectId,
+              updatedAt: new Date(),
+            });
 
-          // Update local variables for retry
-          shardId = newShardId;
-          projectId = newProjectId;
+            // Update local variables for retry
+            shardId = newShardId;
+            projectId = newProjectId;
 
-          // Trigger asynchronous background creation of a new warm shard
-          void ensureWarmShardAvailable().catch((e) =>
-            console.error('[provisioning:createWebApp] Background warm shard creation failed:', e),
-          );
+            // Trigger asynchronous background creation of a new warm shard
+            void ensureWarmShardAvailable().catch((e) =>
+              console.error(
+                '[provisioning:createWebApp] Background warm shard creation failed:',
+                e,
+              ),
+            );
 
-          // Retry createWebApp step logic on the new warm shard!
-          try {
-            await ensureFirebaseProject(auth, projectId);
-            if (runtimeSiteId) {
-              try {
-                await apiFetch(
-                  auth,
-                  `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
-                  { method: 'POST', body: { type: 'USER_SITE' } },
-                );
-              } catch (siteErr: any) {
-                const siteMsg = siteErr instanceof Error ? siteErr.message : String(siteErr);
-                if (
-                  !siteMsg.includes('already exists') &&
-                  !siteMsg.includes('409') &&
-                  !siteMsg.includes('reserved by another project') &&
-                  !siteMsg.includes('Invalid name')
-                )
-                  throw siteErr;
+            // Retry createWebApp step logic on the new warm shard!
+            try {
+              await ensureFirebaseProject(auth, projectId);
+              if (runtimeSiteId) {
+                try {
+                  await apiFetch(
+                    auth,
+                    `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${runtimeSiteId}`,
+                    { method: 'POST', body: { type: 'USER_SITE' } },
+                  );
+                } catch (siteErr: any) {
+                  const siteMsg = siteErr instanceof Error ? siteErr.message : String(siteErr);
+                  if (
+                    !siteMsg.includes('already exists') &&
+                    !siteMsg.includes('409') &&
+                    !siteMsg.includes('reserved by another project') &&
+                    !siteMsg.includes('Invalid name')
+                  )
+                    throw siteErr;
+                }
               }
-            }
 
-            const appsRes = (await apiFetch(
-              auth,
-              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
-            )) as { apps: Array<{ appId: string }> };
-
-            let appId: string;
-            if (appsRes.apps?.length) {
-              appId = appsRes.apps[0].appId;
-            } else {
-              await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
-              const refreshed = (await apiFetch(
+              const appsRes = (await apiFetch(
                 auth,
                 `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
               )) as { apps: Array<{ appId: string }> };
-              appId = refreshed.apps[0].appId;
+
+              let appId: string;
+              if (appsRes.apps?.length) {
+                appId = appsRes.apps[0].appId;
+              } else {
+                await createWebAppWithRetry(auth, projectId, storeId, webAppDisplayName);
+                const refreshed = (await apiFetch(
+                  auth,
+                  `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps`,
+                )) as { apps: Array<{ appId: string }> };
+                appId = refreshed.apps[0].appId;
+              }
+
+              const configRes = (await apiFetch(
+                auth,
+                `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
+              )) as Record<string, string>;
+
+              const shardAuthDomain = `${projectId}.firebaseapp.com`;
+              firebaseConfig = {
+                apiKey: configRes['apiKey'],
+                authDomain: shardAuthDomain,
+                projectId: projectId,
+                storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
+                messagingSenderId: configRes['messagingSenderId'],
+                appId: configRes['appId'],
+              };
+
+              await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
+
+              firebaseConfig['authDomain'] = shardAuthDomain;
+              await db
+                .collection('stores')
+                .doc(storeId)
+                .collection('private')
+                .doc('firebaseConfig')
+                .set(firebaseConfig);
+              await setStep('createWebApp', 'done');
+              return;
+            } catch (retryErr) {
+              await fail('createWebApp', retryErr);
+              return;
             }
-
-            const configRes = (await apiFetch(
-              auth,
-              `https://firebase.googleapis.com/v1beta1/projects/${projectId}/webApps/${appId}/config`,
-            )) as Record<string, string>;
-
-            const shardAuthDomain = `${projectId}.firebaseapp.com`;
-            firebaseConfig = {
-              apiKey: configRes['apiKey'],
-              authDomain: shardAuthDomain,
-              projectId: projectId,
-              storageBucket: normalizeStorageBucket(projectId, configRes['storageBucket']),
-              messagingSenderId: configRes['messagingSenderId'],
-              appId: configRes['appId'],
-            };
-
-            await db.collection('infrastructure_shards').doc(shardId).update({ firebaseConfig });
-
-            firebaseConfig['authDomain'] = shardAuthDomain;
-            await db
-              .collection('stores')
-              .doc(storeId)
-              .collection('private')
-              .doc('firebaseConfig')
-              .set(firebaseConfig);
-            await setStep('createWebApp', 'done');
-            return;
-          } catch (retryErr) {
-            await fail('createWebApp', retryErr);
-            return;
           }
         }
       }
@@ -2403,180 +2414,189 @@ async function executeProvisioningSteps(storeId: string): Promise<void> {
           .get();
 
         if (!warmSnap.empty) {
-          const registeredDoc = warmSnap.docs.find((d) => {
+          const healthyWarmDocs = warmSnap.docs.filter((d) => {
+            const data = d.data();
+            return data['healthStatus'] !== 'UNREACHABLE' && data['status'] !== 'DECOMMISSIONED';
+          });
+          const registeredDoc = healthyWarmDocs.find((d) => {
             const data = d.data();
             return data['redirectUriStatus'] === 'registered' || data['ready'] === true;
           });
-          const warmDoc = registeredDoc || warmSnap.docs[0];
-          const warmData = warmDoc.data() as StoreShard;
-          const newShardId = warmDoc.id;
-          const newProjectId = warmData.projectId;
+          const warmDoc = registeredDoc || healthyWarmDocs[0];
+          if (warmDoc) {
+            const warmData = warmDoc.data() as StoreShard;
+            const newShardId = warmDoc.id;
+            const newProjectId = warmData.projectId;
 
-          // Promote warm shard to ACTIVE
-          await db.collection('infrastructure_shards').doc(newShardId).update({
-            status: 'ACTIVE',
-            updatedAt: new Date(),
-          });
+            // Promote warm shard to ACTIVE
+            await db.collection('infrastructure_shards').doc(newShardId).update({
+              status: 'ACTIVE',
+              updatedAt: new Date(),
+            });
 
-          // Update store document in Firestore to reference the new shard
-          await db.collection('stores').doc(storeId).update({
-            shardId: newShardId,
-            projectId: newProjectId,
-            gcpProjectId: newProjectId,
-            updatedAt: new Date(),
-          });
+            // Update store document in Firestore to reference the new shard
+            await db.collection('stores').doc(storeId).update({
+              shardId: newShardId,
+              projectId: newProjectId,
+              gcpProjectId: newProjectId,
+              updatedAt: new Date(),
+            });
 
-          // Update local variables for retry
-          shardId = newShardId;
-          projectId = newProjectId;
+            // Update local variables for retry
+            shardId = newShardId;
+            projectId = newProjectId;
 
-          // Trigger background creation of a new warm shard
-          void ensureWarmShardAvailable().catch((e) =>
-            console.error('[provisioning:initFirestore] Background warm shard creation failed:', e),
-          );
+            // Trigger background creation of a new warm shard
+            void ensureWarmShardAvailable().catch((e) =>
+              console.error(
+                '[provisioning:initFirestore] Background warm shard creation failed:',
+                e,
+              ),
+            );
 
-          // Retry initFirestore on the fresh warm shard!
-          try {
-            await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+            // Retry initFirestore on the fresh warm shard!
             try {
-              const dbOp = (await apiFetch(
-                auth,
-                `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
-                { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
-              )) as { name: string };
-              await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
-            } catch (createErr) {
-              const cMsg = createErr instanceof Error ? createErr.message : String(createErr);
-              if (!cMsg.includes('already exists') && !cMsg.includes('409')) throw createErr;
-            }
-
-            const now = new Date().toISOString();
-            const configPath = `configuracion/store_${tenantId}`;
-            await retry(
-              () =>
-                apiFetch(
+              await ensureServiceEnabled(auth, projectId, 'firestore.googleapis.com');
+              try {
+                const dbOp = (await apiFetch(
                   auth,
-                  `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
-                  {
-                    method: 'PATCH',
-                    body: {
-                      fields: {
-                        tenantId: { stringValue: tenantId },
-                        storeId: { stringValue: tenantId },
-                        storeName: { stringValue: name },
-                        tagline: { stringValue: '' },
-                        strapline: { stringValue: '' },
-                        logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
-                        faviconUrl: { stringValue: '' },
-                        colors: {
-                          mapValue: {
-                            fields: {
-                              primary: { stringValue: '#ea580c' },
-                              accent: { stringValue: '#ef4444' },
-                              background: { stringValue: '#ffffff' },
-                            },
-                          },
-                        },
-                        contact: {
-                          mapValue: {
-                            fields: {
-                              email: { stringValue: ownerEmail },
-                              phone: { stringValue: '' },
-                              whatsapp: { stringValue: '' },
-                              whatsApp: { stringValue: '' },
-                              instagram: { stringValue: '' },
-                              facebook: { stringValue: '' },
-                            },
-                          },
-                        },
-                        seo: {
-                          mapValue: {
-                            fields: {
-                              metaTitle: { stringValue: name },
-                              metaDescription: { stringValue: `Bienvenido a ${name}` },
-                            },
-                          },
-                        },
-                        features: {
-                          mapValue: {
-                            fields: {
-                              reviewsEnabled: { booleanValue: false },
-                              wishlistEnabled: { booleanValue: false },
-                              blogEnabled: { booleanValue: false },
-                            },
-                          },
-                        },
-                        payments: {
-                          mapValue: {
-                            fields: {
-                              mercadoPagoPublicKey: {
-                                stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
+                  `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`,
+                  { method: 'POST', body: { type: 'FIRESTORE_NATIVE', locationId: 'nam5' } },
+                )) as { name: string };
+                await pollOperation(auth, dbOp.name, 'https://firestore.googleapis.com/v1');
+              } catch (createErr) {
+                const cMsg = createErr instanceof Error ? createErr.message : String(createErr);
+                if (!cMsg.includes('already exists') && !cMsg.includes('409')) throw createErr;
+              }
+
+              const now = new Date().toISOString();
+              const configPath = `configuracion/store_${tenantId}`;
+              await retry(
+                () =>
+                  apiFetch(
+                    auth,
+                    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${configPath}`,
+                    {
+                      method: 'PATCH',
+                      body: {
+                        fields: {
+                          tenantId: { stringValue: tenantId },
+                          storeId: { stringValue: tenantId },
+                          storeName: { stringValue: name },
+                          tagline: { stringValue: '' },
+                          strapline: { stringValue: '' },
+                          logoUrl: logoUrl ? { stringValue: logoUrl } : { stringValue: '' },
+                          faviconUrl: { stringValue: '' },
+                          colors: {
+                            mapValue: {
+                              fields: {
+                                primary: { stringValue: '#ea580c' },
+                                accent: { stringValue: '#ef4444' },
+                                background: { stringValue: '#ffffff' },
                               },
-                              mercadoPago: {
-                                mapValue: {
-                                  fields: {
-                                    enabled: { booleanValue: true },
-                                    sandboxMode: { booleanValue: true },
-                                    publicKey: {
-                                      stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
+                            },
+                          },
+                          contact: {
+                            mapValue: {
+                              fields: {
+                                email: { stringValue: ownerEmail },
+                                phone: { stringValue: '' },
+                                whatsapp: { stringValue: '' },
+                                whatsApp: { stringValue: '' },
+                                instagram: { stringValue: '' },
+                                facebook: { stringValue: '' },
+                              },
+                            },
+                          },
+                          seo: {
+                            mapValue: {
+                              fields: {
+                                metaTitle: { stringValue: name },
+                                metaDescription: { stringValue: `Bienvenido a ${name}` },
+                              },
+                            },
+                          },
+                          features: {
+                            mapValue: {
+                              fields: {
+                                reviewsEnabled: { booleanValue: false },
+                                wishlistEnabled: { booleanValue: false },
+                                blogEnabled: { booleanValue: false },
+                              },
+                            },
+                          },
+                          payments: {
+                            mapValue: {
+                              fields: {
+                                mercadoPagoPublicKey: {
+                                  stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
+                                },
+                                mercadoPago: {
+                                  mapValue: {
+                                    fields: {
+                                      enabled: { booleanValue: true },
+                                      sandboxMode: { booleanValue: true },
+                                      publicKey: {
+                                        stringValue: DEFAULT_SANDBOX_PUBLIC_KEY,
+                                      },
+                                      hasToken: { booleanValue: true },
+                                      secretRef: {
+                                        stringValue: `tenants/${tenantId}/mp_access_token`,
+                                      },
+                                      _sandboxFallbackToken: {
+                                        stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN,
+                                      },
+                                      accessTokenSecret: {
+                                        stringValue: `mp-access-token-${tenantId}`,
+                                      },
+                                      accessTokenMasked: { stringValue: 'TEST-1516****4666' },
+                                      webhookUrl: { stringValue: '' },
+                                      validationStatus: { stringValue: 'valid' },
+                                      validationMessage: {
+                                        stringValue:
+                                          'Credenciales de prueba predeterminadas de Vertex.',
+                                      },
+                                      updatedAt: { timestampValue: now },
                                     },
-                                    hasToken: { booleanValue: true },
-                                    secretRef: {
-                                      stringValue: `tenants/${tenantId}/mp_access_token`,
-                                    },
-                                    _sandboxFallbackToken: {
-                                      stringValue: DEFAULT_SANDBOX_ACCESS_TOKEN,
-                                    },
-                                    accessTokenSecret: {
-                                      stringValue: `mp-access-token-${tenantId}`,
-                                    },
-                                    accessTokenMasked: { stringValue: 'TEST-1516****4666' },
-                                    webhookUrl: { stringValue: '' },
-                                    validationStatus: { stringValue: 'valid' },
-                                    validationMessage: {
-                                      stringValue:
-                                        'Credenciales de prueba predeterminadas de Vertex.',
-                                    },
-                                    updatedAt: { timestampValue: now },
                                   },
                                 },
                               },
                             },
                           },
+                          currency: { stringValue: 'ARS' },
+                          currencySymbol: { stringValue: '$' },
+                          country: { stringValue: 'AR' },
+                          setupCompleted: { booleanValue: true },
+                          createdAt: { timestampValue: now },
+                          updatedAt: { timestampValue: now },
                         },
-                        currency: { stringValue: 'ARS' },
-                        currencySymbol: { stringValue: '$' },
-                        country: { stringValue: 'AR' },
-                        setupCompleted: { booleanValue: true },
-                        createdAt: { timestampValue: now },
-                        updatedAt: { timestampValue: now },
                       },
                     },
-                  },
-                ),
-              5,
-              6000,
-            );
+                  ),
+                5,
+                6000,
+              );
 
-            await deployStorefrontRules(auth, projectId);
-            await seedStoreData(
-              auth,
-              projectId,
-              tenantId,
-              effectiveVertical,
-              name,
-              hasMockData,
-              true,
-              tenantId,
-              effectiveMode,
-              ownerEmail,
-            );
+              await deployStorefrontRules(auth, projectId);
+              await seedStoreData(
+                auth,
+                projectId,
+                tenantId,
+                effectiveVertical,
+                name,
+                hasMockData,
+                true,
+                tenantId,
+                effectiveMode,
+                ownerEmail,
+              );
 
-            await setStep('initFirestore', 'done');
-            return;
-          } catch (retryErr) {
-            await fail('initFirestore', retryErr);
-            return;
+              await setStep('initFirestore', 'done');
+              return;
+            } catch (retryErr) {
+              await fail('initFirestore', retryErr);
+              return;
+            }
           }
         }
       }
