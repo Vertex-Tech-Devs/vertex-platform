@@ -46,9 +46,11 @@ export async function countAvailableShards(
   for (const doc of snap.docs) {
     const data = doc.data();
     const status = data['status'] as string;
+    const healthStatus = data['healthStatus'] as string | undefined;
     const current = Number(data['currentStores'] ?? 0);
     const maxCap = Number(data['maxCapacity'] ?? DEFAULT_MAX_STORES_PER_SHARD);
-    if (status === 'WARMUP_READY' || (status === 'ACTIVE' && current < maxCap)) {
+    const isHealthy = status !== 'DECOMMISSIONED' && healthStatus !== 'UNREACHABLE';
+    if (isHealthy && (status === 'WARMUP_READY' || (status === 'ACTIVE' && current < maxCap))) {
       available++;
     }
   }
@@ -452,13 +454,12 @@ export const checkWarmShardBuffer = functions.pubsub
     const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
 
     // Purge stale failed warm shard records with 0 active stores.
-    // FULL: fallo conocido. WARMUP_PROVISIONING: quedó colgado (función murió a
-    // mitad de provisioning) y no debe contar para el objetivo ni ocupar cupo.
+    // FULL / DECOMMISSIONED: fallo conocido o proyecto inaccesible. WARMUP_PROVISIONING: quedó colgado.
     const staleFailedSnap = await db
       .collection('infrastructure_shards')
       .where('environment', '==', env)
       .where('currentStores', '==', 0)
-      .where('status', 'in', ['FULL', 'WARMUP_PROVISIONING'])
+      .where('status', 'in', ['FULL', 'WARMUP_PROVISIONING', 'DECOMMISSIONED'])
       .get();
 
     for (const doc of staleFailedSnap.docs) {
