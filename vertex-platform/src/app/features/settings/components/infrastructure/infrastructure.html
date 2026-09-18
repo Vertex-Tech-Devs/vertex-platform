@@ -410,6 +410,7 @@
             [class.shard-card--primary]="shard.status === 'ACTIVE'"
             [class.shard-card--standby]="shard.status === 'WARMUP_READY'"
             [class.shard-card--pending]="shard.status === 'WARMUP_PENDING'"
+            [class.shard-card--warning]="shard.status === 'PARTIALLY_CONFIGURED'"
           >
             <div class="shard-card__head">
               <div class="shard-card__title-row">
@@ -433,6 +434,8 @@
                   <span class="badge badge--standby">STANDBY</span>
                 } @else if (shard.status === 'WARMUP_PENDING') {
                   <span class="badge badge--pending">PREPARANDO</span>
+                } @else if (shard.status === 'PARTIALLY_CONFIGURED') {
+                  <span class="badge badge--warning">CONFIGURACIÓN INCOMPLETA</span>
                 }
               </div>
             </div>

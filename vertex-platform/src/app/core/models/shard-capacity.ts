@@ -41,12 +41,22 @@ export function mapDnsRecords(records: RawDnsRecord[] | undefined): DnsRecord[] 
   }));
 }
 
+import type { ShardReadinessChecklist } from './store';
+
 export interface RuntimeShardCapacity {
   id: string;
   projectId: string;
   siteId: string;
   region: string;
-  status: 'ACTIVE' | 'FULL' | 'DRAINING' | 'MAINTENANCE' | 'WARMUP_READY' | 'WARMUP_PROVISIONING';
+  status:
+    | 'ACTIVE'
+    | 'FULL'
+    | 'DRAINING'
+    | 'MAINTENANCE'
+    | 'WARMUP_READY'
+    | 'WARMUP_PROVISIONING'
+    | 'PARTIALLY_CONFIGURED'
+    | 'DECOMMISSIONED';
   currentStores: number;
   reservedStores: number;
   maxCapacity: number;
@@ -74,6 +84,10 @@ export interface ShardReadiness {
   ready: boolean;
   missing: ShardReadinessReason[];
   checkedAt: string;
+  readinessChecklist?: ShardReadinessChecklist;
+  missingSteps?: string[];
+  actionableFixes?: string[];
+  lastValidatedAt?: string;
 }
 
 export interface ShardReadinessReport {

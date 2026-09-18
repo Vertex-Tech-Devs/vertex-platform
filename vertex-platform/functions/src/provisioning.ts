@@ -37,6 +37,7 @@ import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runt
 import { ensureWarmShardAvailable } from './shards';
 import { checkRateLimit, logAuditAction } from './stores';
 import { verifyGitHubOidcToken } from './github-oidc';
+import { evaluateShardReadiness } from './shard-validator';
 
 const CURRENT_TEMPLATE_VERSION = '0.8.5';
 
@@ -973,7 +974,10 @@ export const provisionStore = onCall<CreateStorePayload>(
     const verifiedActiveShards = allActiveShards.filter((shard) => {
       const isRegistered = shard.redirectUriStatus === 'registered' || shard.ready === true;
       const hasBilling = !!shard.billingAccountId;
-      const isHealthy = shard.status !== 'DECOMMISSIONED' && shard.healthStatus !== 'UNREACHABLE';
+      const isHealthy =
+        shard.status !== 'DECOMMISSIONED' &&
+        shard.status !== 'PARTIALLY_CONFIGURED' &&
+        shard.healthStatus !== 'UNREACHABLE';
       const availableSlots =
         shard.maxCapacity - (shard.currentStores || 0) - (shard.reservedStores || 0);
       return isRegistered && hasBilling && isHealthy && availableSlots > 0;
@@ -3931,8 +3935,8 @@ const HEAL_IAM_ROLES = [
 /**
  * triggerHealShards — Auto-heal nativo de shards (Operaciones Cloud).
  * Solo el admin de plataforma (vertex.tech.dev@gmail.com o claim admin). Habilita
- * las 7 APIs canónicas y asegura los roles IAM del orchestrator en cada shard
- * registrado, devolviendo un reporte tabular JSON.
+ * las 7 APIs canónicas, asegura los roles IAM del orchestrator en cada shard
+ * y evalúa exhaustivamente el checklist de los 6 pilares de preparación del shard.
  */
 export const triggerHealShards = onCall(
   { timeoutSeconds: 300, memory: '512MiB', cors: ALLOWED_ORIGINS },
@@ -3992,6 +3996,27 @@ export const triggerHealShards = onCall(
             quotaProject: projectId,
           });
         }
+
+        // Evaluar granularmente los 6 pilares de preparación y persistir en infrastructure_shards
+        const matchingDocs = shardsSnap.docs.filter((d) => {
+          const data = d.data();
+          const pId = String(data['projectId'] || data['id'] || '').trim();
+          return pId === projectId;
+        });
+
+        for (const sDoc of matchingDocs) {
+          const shardData = { id: sDoc.id, ...sDoc.data() } as StoreShard;
+          const evaluation = await evaluateShardReadiness(shardData);
+          await sDoc.ref.update({
+            status: evaluation.recommendedStatus,
+            readinessChecklist: evaluation.checklist,
+            missingSteps: evaluation.missingSteps,
+            actionableFixes: evaluation.fixes,
+            lastValidatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
+          });
+        }
+
         results.push({ shard: projectId, apis: 'OK', iam: 'OK', status: 'OK' });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
