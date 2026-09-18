@@ -257,8 +257,9 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
         createdNewSite = true;
       }
 
-      // 2) clonar release del sitio anterior (VERIFICADO: sin release no se cambia nada)
-      let versionName = '';
+      // 2) clonar la VERSIÓN del sitio anterior al nuevo (Hosting NO permite
+      //    crear un release con la versión de otro sitio: "Site name mismatch").
+      let sourceVersion = '';
       try {
         const releasesUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
           oldSiteId,
@@ -268,20 +269,46 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
           const relBody = (await relRes.json()) as {
             releases?: Array<{ version?: { name?: string } }>;
           };
-          versionName = relBody.releases?.[0]?.version?.name || '';
+          sourceVersion = relBody.releases?.[0]?.version?.name || '';
         }
       } catch (cloneErr) {
         logger.warn(`[Subdomain] No se pudo leer releases del sitio ${oldSiteId}:`, cloneErr);
       }
-      if (!versionName) {
+      if (!sourceVersion) {
         throw new HttpsError(
           'failed-precondition',
           'La tienda no tiene un release activo para clonar. Re-desplegá la tienda antes de cambiar la dirección.',
         );
       }
+
+      const cloneUrl = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(sanitized)}/versions:clone`;
+      const cloneRes = await fetch(cloneUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ sourceVersion, finalize: true }),
+      });
+      if (!cloneRes.ok) {
+        const body = (await cloneRes.json().catch(() => ({}))) as HostingErrorBody;
+        throw new HttpsError(
+          'failed-precondition',
+          `No se pudo clonar la versión al dominio nuevo (${cloneRes.status}). Re-desplegá la tienda y reintentá. ${
+            body?.error?.message || ''
+          }`.trim(),
+        );
+      }
+      const clonedBody = (await cloneRes.json().catch(() => ({}))) as { name?: string };
+      const clonedVersion = String(clonedBody?.name || '').trim();
+      if (!clonedVersion.includes(`/sites/${sanitized}/versions/`)) {
+        throw new HttpsError(
+          'internal',
+          'El clon de la versión no devolvió una versión válida del sitio nuevo.',
+        );
+      }
+
+      // 2b) crear el release en el sitio nuevo apuntando a la versión CLONADA (mismo sitio)
       const releaseCreate = `${HOSTING_API}/${parent}/sites/${encodeURIComponent(
         sanitized,
-      )}/releases?versionName=${encodeURIComponent(versionName)}`;
+      )}/releases?versionName=${encodeURIComponent(clonedVersion)}`;
       const releaseRes = await fetch(releaseCreate, { method: 'POST', headers });
       if (!releaseRes.ok) {
         const body = (await releaseRes.json().catch(() => ({}))) as HostingErrorBody;

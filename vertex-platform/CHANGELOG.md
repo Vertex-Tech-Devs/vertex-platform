@@ -10,6 +10,7 @@
 - **Login del admin en sitios multi-site**: se agregan los dominios `.web.app` a los Authorized Domains del shard (antes fallaba con `auth/unauthorized-domain`).
 - **CNAME de dominio propio corregido**: el target `www` ahora apunta a `<runtimeSiteId>.web.app` (antes usaba el UUID de la tienda, inválido para verificación DNS).
 - **Disponibilidad de subdominio más precisa**: se chequea también el shard destino y se informa claramente cuando el nombre está reservado por otro proyecto de Firebase.
+- **Cambio de subdominio con clon real de versión**: Hosting no permite crear un release con la versión de otro sitio (`Site name mismatch`); ahora se clona la versión (`versions:clone`) al sitio nuevo y se publica el release sobre la versión clonada.
 
 ### Added
 - **Refresco Manual y en Vivo de Releases de Storefront en Orquestación**:
