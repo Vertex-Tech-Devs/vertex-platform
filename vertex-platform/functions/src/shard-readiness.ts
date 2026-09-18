@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { ALLOWED_ORIGINS, PLATFORM_PROJECT } from './helpers';
 import { resolvePlatformEnvironment } from './runtime';
 import { checkRateLimit, logAuditAction } from './stores';
-import type { StoreShard } from './types';
+import type { StoreShard, ShardReadinessChecklist } from './types';
 
 /**
  * getShardReadiness — Estado de "listo para recibir tiendas" de cada shard del pool.
@@ -43,6 +43,10 @@ export interface ShardReadiness {
   ready: boolean;
   missing: ShardReadinessReason[];
   checkedAt: string;
+  readinessChecklist?: ShardReadinessChecklist;
+  missingSteps?: string[];
+  actionableFixes?: string[];
+  lastValidatedAt?: string;
 }
 
 async function verifyRedirectUri(clientId: string, redirectUri: string): Promise<boolean> {
@@ -177,6 +181,10 @@ export async function checkShardReadiness(
     ready: missing.length === 0,
     missing,
     checkedAt: checkedAt.toISOString(),
+    readinessChecklist: shard.readinessChecklist,
+    missingSteps: shard.missingSteps,
+    actionableFixes: shard.actionableFixes,
+    lastValidatedAt: shard.lastValidatedAt,
   };
 }
 

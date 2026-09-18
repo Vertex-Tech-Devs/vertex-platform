@@ -97,6 +97,7 @@ export interface StoreShard {
     | 'MAINTENANCE'
     | 'WARMUP_READY'
     | 'WARMUP_PROVISIONING'
+    | 'PARTIALLY_CONFIGURED'
     | 'DECOMMISSIONED';
   maxCapacity: number;
   currentStores: number;
@@ -111,8 +112,21 @@ export interface StoreShard {
   redirectUriCheckedAt?: Date;
   healthStatus?: 'HEALTHY' | 'UNREACHABLE' | 'DEGRADED';
   errorReason?: string;
+  readinessChecklist?: ShardReadinessChecklist;
+  missingSteps?: string[];
+  actionableFixes?: string[];
+  lastValidatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ShardReadinessChecklist {
+  gcpProjectAccessible: boolean;
+  canonicalApisReady: boolean;
+  iamRolesBound: boolean;
+  oauthRedirectConfigured: boolean;
+  authDomainsWhitelisted: boolean;
+  firestoreReady: boolean;
 }
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'error';

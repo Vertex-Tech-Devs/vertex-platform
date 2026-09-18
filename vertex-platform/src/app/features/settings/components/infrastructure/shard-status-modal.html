@@ -21,6 +21,97 @@
         </button>
       </div>
 
+      @if (shard.readinessChecklist) {
+        <div class="checklist-box">
+          <h3 class="checklist-title">
+            <i class="bi bi-list-check"></i>
+            Checklist de Validación (6 Pilares GCP)
+          </h3>
+          <div class="checklist-grid">
+            <div
+              class="check-item"
+              [class.check-item--ok]="shard.readinessChecklist.gcpProjectAccessible"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.gcpProjectAccessible"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.gcpProjectAccessible"
+              ></i>
+              <span>Proyecto GCP Accesible</span>
+            </div>
+            <div
+              class="check-item"
+              [class.check-item--ok]="shard.readinessChecklist.canonicalApisReady"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.canonicalApisReady"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.canonicalApisReady"
+              ></i>
+              <span>7 APIs Canónicas Habilitadas</span>
+            </div>
+            <div class="check-item" [class.check-item--ok]="shard.readinessChecklist.iamRolesBound">
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.iamRolesBound"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.iamRolesBound"
+              ></i>
+              <span>Roles IAM Orchestrator</span>
+            </div>
+            <div
+              class="check-item"
+              [class.check-item--ok]="shard.readinessChecklist.oauthRedirectConfigured"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.oauthRedirectConfigured"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.oauthRedirectConfigured"
+              ></i>
+              <span>OAuth Redirect Handler</span>
+            </div>
+            <div
+              class="check-item"
+              [class.check-item--ok]="shard.readinessChecklist.authDomainsWhitelisted"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.authDomainsWhitelisted"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.authDomainsWhitelisted"
+              ></i>
+              <span>Identity Toolkit Auth Domains</span>
+            </div>
+            <div
+              class="check-item"
+              [class.check-item--ok]="shard.readinessChecklist.firestoreReady"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="shard.readinessChecklist.firestoreReady"
+                [class.bi-x-circle-fill]="!shard.readinessChecklist.firestoreReady"
+              ></i>
+              <span>Firestore (default) Nativo</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (shard.actionableFixes && shard.actionableFixes.length > 0) {
+        <div class="fixes-box">
+          <h3 class="fixes-title">
+            <i class="bi bi-wrench-adjustable-circle-fill"></i>
+            Acciones de Remediación Requeridas
+          </h3>
+          <ul class="fixes-list">
+            @for (fix of shard.actionableFixes; track fix) {
+              <li class="fix-item">
+                <i class="bi bi-arrow-right-short"></i>
+                <span>{{ fix }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
       @if (shard.ready) {
         <div class="ready-box">
           <i class="bi bi-check-circle-fill"></i>
@@ -143,6 +234,11 @@
                       Está sin cupo (FULL). Si es un warmup fallido (0 tiendas), el scheduler lo
                       purga automáticamente a las 24h. Si tiene tiendas, vuelve a ACTIVE al liberar
                       cupo (deleteStore / activateStore).
+                    </li>
+                  } @else if (shard.status === 'PARTIALLY_CONFIGURED') {
+                    <li>
+                      El shard tiene una configuración incompleta. Verificá el checklist de los 6
+                      pilares y aplicá las acciones de remediación listadas arriba.
                     </li>
                   } @else {
                     <li>Revisá su estado en la consola de GCP o el scheduler del platform.</li>
