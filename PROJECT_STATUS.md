@@ -57,3 +57,10 @@
 
 ## 📦 Release: 0.9.0 (Producción)
 - Versión cerrada y taggeada **v0.9.0**.
+
+## 🧹 Gobierno de sitios y capacidad (Hosting)
+- **1 sitio por tienda** como norma; cada dominio/alias extra es **add-on pago** (`extraDomainsEntitlement`) porque consume 1 de los **36 sitios/proyecto**.
+- **Auditoría diaria** de sitios (03:00 ART) con auto-limpieza segura, reporte en `system_audit/sites_<fecha>` y alertas (`orphan_sites`, `extra_sites_unpaid`, `shard_capacity_*`).
+- **Capacidad por sitios reales** en la rotación de shards (alerta al 85% = 31/36).
+- KasaKalle: `kasa-kalle-ar.web.app` (único). Vidrios Emilia: `vidrios-emilia-ok.web.app`.
+- Limpieza ejecutada: 15 sitios huérfanos liberados (8 shards) con registro en `admin_audit`.

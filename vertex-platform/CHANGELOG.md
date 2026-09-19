@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **Auditoría diaria de sitios (prod)**: nueva función programada (03:00 ART) + callable para superadmin que detecta sitios huérfanos, tiendas con sitios extra sin add-on y shards ≥85% (36 sitios/proyecto), escribe `system_audit/sites_<fecha>`, genera alertas en el Centro de Alertas y aplica **limpieza segura** (sólo huérfanos sin releases, tope diario, con `admin_audit`). Nunca crea sitios (no quema SITE_IDs).
+- **Capacidad por sitios reales**: la selección/rotación de shards mide `sites.list` (36 por proyecto) y alerta al 85% en vez de contar tiendas.
+- **Add-on pago de dominios extra**: campo `extraDomainsEntitlement` en la tienda, callable `grantExtraDomains` (superadmin) y aviso en la UI de Dominios; cada sitio/alias extra consume 1 cupo del shard.
+- **Consolidación a 1 sitio por tienda**: KasaKalle quedó sólo con `kasa-kalle-ar.web.app` (alias eliminado) y se limpiaron 15 sitios huérfanos en 8 shards.
+
 ### Fixed
 - **Aislamiento Total del Estado de Despliegue por StoreId**: Banderas reactivas (`deployingStoreIds`, `localDeployErrors`, `userInitiatedDeployStoreIds`, `deploySessionTimestamps`, `dismissedDeployStoreIds`) e índices completamente aislados por `storeId` en `StoreDetailOrchestrationService` y `StoreDetail`. Mutar o iniciar un deploy en una tienda no altera botones, spinners ni barras de progreso en otras tiendas.
 - **Gestión Segura de Suscripciones en Tiempo Real**: Cancelación y desuscripción activa (`deployHistorySub`) y limpieza estricta de snapshots al desmontar o alternar entre tiendas para prevenir filtración de eventos cruzados y fugas de memoria.
