@@ -11,6 +11,53 @@ import {
 
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
 
+/** Cache corto del probe de disponibilidad (crear-y-borrar) para no spamear la API. */
+const PROBE_TTL_MS = 5 * 60_000;
+const probeCache = new Map<string, { free: boolean; message?: string; at: number }>();
+
+/**
+ * Probe autoritativo de disponibilidad de un SITE_ID de Hosting.
+ * Los `.web.app` son únicos GLOBALMENTE y no hay API de consulta global: se intenta
+ * crear el sitio en un proyecto propio y se borra inmediatamente si quedó libre.
+ * El resultado se cachea 5 minutos para no spamear la API mientras se tipea.
+ */
+async function probeSiteAvailability(
+  project: string,
+  candidate: string,
+): Promise<{ free: boolean; message?: string }> {
+  const cacheKey = `${project}:${candidate}`;
+  const cached = probeCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < PROBE_TTL_MS) {
+    return { free: cached.free, message: cached.message };
+  }
+  const authClient = await getOwnerOAuthClient();
+  const token = (await authClient.getAccessToken()).token;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const sitesUrl = `${HOSTING_API}/projects/${project}/sites`;
+  const probeRes = await fetch(`${sitesUrl}?siteId=${encodeURIComponent(candidate)}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ type: 'USER_SITE' }),
+  });
+  let result: { free: boolean; message?: string };
+  if (probeRes.ok) {
+    await fetch(`${sitesUrl}/${encodeURIComponent(candidate)}`, { method: 'DELETE', headers });
+    result = { free: true };
+  } else {
+    const body = (await probeRes.json().catch(() => ({}))) as HostingErrorBody;
+    const detail = String(body?.error?.message || '');
+    const reserved = probeRes.status === 403 || /reserved by another project/i.test(detail);
+    result = {
+      free: false,
+      message: reserved
+        ? `“${candidate}” está reservado por otro proyecto de Firebase (los nombres .web.app son únicos en todo Firebase). Probá: ${buildSubdomainSuggestions(candidate).join(', ')}.`
+        : 'Ese nombre ya está en uso. Probá una de las sugerencias.',
+    };
+  }
+  probeCache.set(cacheKey, { ...result, at: Date.now() });
+  return result;
+}
+
 interface HostingErrorBody {
   error?: { message?: string; code?: number };
 }
@@ -131,8 +178,38 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
             message: 'Este dominio ya está en uso por otra tienda en Vertex.',
           };
         }
+        // Probe AUTORITATIVO en el shard destino (crear-y-borrar, con cache corto).
+        if (targetProject) {
+          const probe = await probeSiteAvailability(targetProject, sanitized);
+          if (!probe.free) {
+            return {
+              available: false,
+              sanitized,
+              reason: 'RESERVED_BY_FIREBASE',
+              message: probe.message,
+              suggestions: buildSubdomainSuggestions(sanitized),
+            };
+          }
+        }
       } catch (err) {
         logger.warn('[Subdomain] Chequeo de colisión en shard falló:', err);
+      }
+    } else {
+      // Creación de tienda (aún sin shard): probe contra el proyecto master storefront;
+      // como los SITE_ID son únicos globalmente, esto también valida la disponibilidad.
+      try {
+        const probe = await probeSiteAvailability('ecommerce-vertex', sanitized);
+        if (!probe.free) {
+          return {
+            available: false,
+            sanitized,
+            reason: 'RESERVED_BY_FIREBASE',
+            message: probe.message,
+            suggestions: buildSubdomainSuggestions(sanitized),
+          };
+        }
+      } catch (err) {
+        logger.warn('[Subdomain] Probe de disponibilidad (master) falló:', err);
       }
     }
 

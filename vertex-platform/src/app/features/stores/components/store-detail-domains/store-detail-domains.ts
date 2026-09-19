@@ -28,6 +28,7 @@ export class StoreDetailDomains {
   readonly subAvailable = signal(false);
   readonly subTaken = signal(false);
   readonly subReason = signal('');
+  readonly subMessage = signal('');
   readonly subSuggestions = signal<string[]>([]);
   readonly subUpdating = signal(false);
   readonly subModalOpen = signal(false);
@@ -41,6 +42,9 @@ export class StoreDetailDomains {
     switch (this.subReason()) {
       case 'RESERVED_KEYWORD':
         return 'Palabra reservada del sistema';
+      case 'RESERVED_BY_FIREBASE':
+        // Nombre con dueño global en Firebase (no está en ninguna de nuestras tiendas).
+        return 'Reservado en Firebase';
       case 'ALREADY_REGISTERED':
         return 'En uso por otra tienda';
       case 'TAKEN':
@@ -62,6 +66,7 @@ export class StoreDetailDomains {
       this.subAvailable.set(false);
       this.subTaken.set(false);
       this.subReason.set('');
+      this.subMessage.set('');
       this.subSuggestions.set([]);
       this.subResult.set('');
       return;
@@ -73,6 +78,7 @@ export class StoreDetailDomains {
       this.subAvailable.set(res.available);
       this.subTaken.set(!res.available);
       this.subReason.set(res.reason || '');
+      this.subMessage.set(res.message || '');
       this.subSuggestions.set(res.suggestions || []);
       if (!res.available && res.sanitized && res.sanitized !== value) {
         this.subInput.set(res.sanitized);
