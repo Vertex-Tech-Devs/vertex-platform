@@ -41,16 +41,33 @@ export class StoreDetailDomains {
   subTakenMessage(): string {
     switch (this.subReason()) {
       case 'RESERVED_KEYWORD':
-        return 'Palabra reservada del sistema';
+        return 'Palabra reservada';
       case 'RESERVED_BY_FIREBASE':
-        // Nombre con dueño global en Firebase (no está en ninguna de nuestras tiendas).
-        return 'Reservado en Firebase';
+        // El ID existe en Firebase (de otro proyecto) aunque su sitio esté vacío.
+        return 'Nombre no disponible en Firebase';
       case 'ALREADY_REGISTERED':
-        return 'En uso por otra tienda';
+        return 'Ya está en uso en Vertex';
+      case 'CHECK_UNAVAILABLE':
+        return 'No pudimos verificar';
       case 'TAKEN':
-        return 'Nombre no disponible';
       default:
-        return 'Nombre no disponible';
+        return 'No disponible';
+    }
+  }
+
+  /** Icono del estado de disponibilidad (bi-*). */
+  subFeedbackIcon(): string {
+    switch (this.subReason()) {
+      case 'RESERVED_KEYWORD':
+        return 'bi-lock';
+      case 'RESERVED_BY_FIREBASE':
+        return 'bi-shield-lock';
+      case 'ALREADY_REGISTERED':
+        return 'bi-shop';
+      case 'CHECK_UNAVAILABLE':
+        return 'bi-cloud-slash';
+      default:
+        return 'bi-x-circle';
     }
   }
 

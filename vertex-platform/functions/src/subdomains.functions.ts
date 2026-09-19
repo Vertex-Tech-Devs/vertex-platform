@@ -13,7 +13,10 @@ const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
 
 /** Cache corto del probe de disponibilidad (crear-y-borrar) para no spamear la API. */
 const PROBE_TTL_MS = 5 * 60_000;
-const probeCache = new Map<string, { free: boolean; message?: string; at: number }>();
+const probeCache = new Map<
+  string,
+  { free: boolean; reason?: string; message?: string; at: number }
+>();
 
 /**
  * Probe autoritativo de disponibilidad de un SITE_ID de Hosting.
@@ -24,35 +27,61 @@ const probeCache = new Map<string, { free: boolean; message?: string; at: number
 async function probeSiteAvailability(
   project: string,
   candidate: string,
-): Promise<{ free: boolean; message?: string }> {
+): Promise<{ free: boolean; reason?: string; message?: string }> {
   const cacheKey = `${project}:${candidate}`;
   const cached = probeCache.get(cacheKey);
   if (cached && Date.now() - cached.at < PROBE_TTL_MS) {
-    return { free: cached.free, message: cached.message };
+    return { free: cached.free, reason: cached.reason, message: cached.message };
   }
   const authClient = await getOwnerOAuthClient();
   const token = (await authClient.getAccessToken()).token;
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const sitesUrl = `${HOSTING_API}/projects/${project}/sites`;
-  const probeRes = await fetch(`${sitesUrl}?siteId=${encodeURIComponent(candidate)}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ type: 'USER_SITE' }),
-  });
-  let result: { free: boolean; message?: string };
+  let probeRes: Response;
+  try {
+    probeRes = await fetch(`${sitesUrl}?siteId=${encodeURIComponent(candidate)}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ type: 'USER_SITE' }),
+    });
+  } catch (err) {
+    const message = `No pudimos verificar la disponibilidad ahora mismo (${err instanceof Error ? err.message : 'red'}). Reintentá en unos segundos.`;
+    probeCache.set(cacheKey, { free: false, reason: 'CHECK_UNAVAILABLE', message, at: Date.now() });
+    return { free: false, reason: 'CHECK_UNAVAILABLE', message };
+  }
+  let result: { free: boolean; reason?: string; message?: string };
   if (probeRes.ok) {
+    // Quedó libre: borramos el sitio de prueba inmediatamente.
     await fetch(`${sitesUrl}/${encodeURIComponent(candidate)}`, { method: 'DELETE', headers });
-    result = { free: true };
+    result = { free: true, reason: 'AVAILABLE' };
   } else {
     const body = (await probeRes.json().catch(() => ({}))) as HostingErrorBody;
     const detail = String(body?.error?.message || '');
-    const reserved = probeRes.status === 403 || /reserved by another project/i.test(detail);
-    result = {
-      free: false,
-      message: reserved
-        ? `“${candidate}” está reservado por otro proyecto de Firebase (los nombres .web.app son únicos en todo Firebase). Probá: ${buildSubdomainSuggestions(candidate).join(', ')}.`
-        : 'Ese nombre ya está en uso. Probá una de las sugerencias.',
-    };
+    // Hosting responde 400 FAILED_PRECONDITION con "reserved by another project"
+    // cuando el SITE_ID pertenece a otro proyecto de Firebase (único globalmente).
+    const reserved = /reserved by another project/i.test(detail);
+    if (reserved) {
+      result = {
+        free: false,
+        reason: 'RESERVED_BY_FIREBASE',
+        message:
+          'El nombre está tomado a nivel global de Firebase: los IDs `.web.app` son únicos en todo Firebase y quedan reservados por otro proyecto aunque su sitio esté vacío. Probá una de las sugerencias o vinculá tu propio dominio.',
+      };
+    } else if (probeRes.status === 409) {
+      result = {
+        free: false,
+        reason: 'TAKEN',
+        message: 'Ese nombre ya está en uso. Probá una de las sugerencias.',
+      };
+    } else {
+      result = {
+        free: false,
+        reason: 'CHECK_UNAVAILABLE',
+        message: `No pudimos verificar la disponibilidad ahora mismo (HTTP ${probeRes.status}${
+          detail ? `: ${detail}` : ''
+        }). Reintentá en unos segundos.`,
+      };
+    }
   }
   probeCache.set(cacheKey, { ...result, at: Date.now() });
   return result;
@@ -108,8 +137,9 @@ async function siteExists(projectId: string, siteId: string): Promise<boolean> {
 
 /**
  * checkSubdomainAvailability — verifica unicidad de una URL gratuita `.web.app`.
- * Consulta Firebase Hosting (sites.get) sobre el proyecto maestro storefront y, si el
- * candidato está ocupado, sugiere 3 alternativas limpias.
+ * Consulta Hosting (sites.get) y, de forma AUTORITATIVA, hace un probe crear-y-borrar
+ * en el shard de la tienda (o el proyecto master durante la creación) porque los
+ * SITE_ID son únicos globalmente y no existe API de consulta global.
  */
 export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: string }>(
   { cors: ALLOWED_ORIGINS, invoker: 'public' },
@@ -152,8 +182,7 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
       logger.warn('[Subdomain] Chequeo de colisión en Firestore falló:', err);
     }
 
-    // Colisión en el shard destino (Hosting es único por proyecto): si la tienda ya tiene
-    // shard asignado, chequeamos su proyecto además de los proyectos master.
+    // Colisión/probe en el shard destino (Hosting es único por proyecto).
     if (storeId) {
       try {
         const sSnap = await db.collection('stores').doc(storeId).get();
@@ -178,14 +207,13 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
             message: 'Este dominio ya está en uso por otra tienda en Vertex.',
           };
         }
-        // Probe AUTORITATIVO en el shard destino (crear-y-borrar, con cache corto).
         if (targetProject) {
           const probe = await probeSiteAvailability(targetProject, sanitized);
           if (!probe.free) {
             return {
               available: false,
               sanitized,
-              reason: 'RESERVED_BY_FIREBASE',
+              reason: probe.reason || 'RESERVED_BY_FIREBASE',
               message: probe.message,
               suggestions: buildSubdomainSuggestions(sanitized),
             };
@@ -195,15 +223,14 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
         logger.warn('[Subdomain] Chequeo de colisión en shard falló:', err);
       }
     } else {
-      // Creación de tienda (aún sin shard): probe contra el proyecto master storefront;
-      // como los SITE_ID son únicos globalmente, esto también valida la disponibilidad.
+      // Creación de tienda (aún sin shard): probe contra el proyecto master storefront.
       try {
         const probe = await probeSiteAvailability('ecommerce-vertex', sanitized);
         if (!probe.free) {
           return {
             available: false,
             sanitized,
-            reason: 'RESERVED_BY_FIREBASE',
+            reason: probe.reason || 'RESERVED_BY_FIREBASE',
             message: probe.message,
             suggestions: buildSubdomainSuggestions(sanitized),
           };
@@ -320,16 +347,26 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       if (!createRes.ok && createRes.status !== 409) {
         const body = (await createRes.json().catch(() => ({}))) as HostingErrorBody;
         const detail = String(body?.error?.message || '');
-        const reservedByAnotherProject =
-          createRes.status === 403 || /reserved by another project/i.test(detail);
-        if (reservedByAnotherProject) {
-          const suggestions = buildSubdomainSuggestions(sanitized).join(', ');
+        // Hosting devuelve 400 FAILED_PRECONDITION con "reserved by another project"
+        // cuando el SITE_ID pertenece a otro proyecto de Firebase (único globalmente).
+        if (/reserved by another project/i.test(detail)) {
           throw new HttpsError(
             'already-exists',
-            `“${sanitized}” está reservado por otro proyecto de Firebase (los nombres .web.app son únicos en todo Firebase). Probá: ${suggestions || 'otro nombre'}.`,
+            `El nombre “${sanitized}” está reservado por otro proyecto de Firebase (los IDs .web.app son únicos en todo Firebase). Probá una de las sugerencias o vinculá tu propio dominio.`,
           );
         }
-        throw new Error(`sites.create falló: ${detail || createRes.status}`);
+        if (createRes.status === 403 || createRes.status === 401) {
+          throw new HttpsError(
+            'permission-denied',
+            'No tenemos permisos de Hosting sobre este proyecto. Revisá la configuración de infraestructura o reintentá.',
+          );
+        }
+        throw new HttpsError(
+          'unavailable',
+          `No pudimos crear el sitio en Firebase Hosting (HTTP ${createRes.status}${
+            detail ? `: ${detail}` : ''
+          }). Reintentá en unos segundos.`,
+        );
       }
       if (createRes.ok) {
         createdNewSite = true;
@@ -415,8 +452,9 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
       if (!healthy) {
-        throw new Error(
-          `El sitio ${sanitized}.web.app no respondió 200 tras publicar. Se mantiene la dirección anterior.`,
+        throw new HttpsError(
+          'failed-precondition',
+          `El sitio ${sanitized}.web.app no respondió 200 tras publicar (la propagación puede tardar). Se mantiene la dirección anterior; reintentá en un minuto.`,
         );
       }
 

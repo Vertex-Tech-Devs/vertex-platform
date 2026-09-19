@@ -54,25 +54,40 @@
             ><span class="spinner-sm"></span> Verificando disponibilidad en Google...</span
           >
         } @else if (subAvailable()) {
-          <span class="badge badge--success">Disponible</span>
-          <button type="button" class="btn btn-primary btn--sm" (click)="openSubModal()">
-            Cambiar Dirección
-          </button>
+          <div class="subdomain-feedback subdomain-feedback--ok">
+            <span class="subdomain-feedback__icon"><i class="bi bi-check-lg"></i></span>
+            <div class="subdomain-feedback__body">
+              <strong class="subdomain-feedback__title">Disponible</strong>
+              <p class="subdomain-feedback__detail">
+                <code>{{ subInput() }}.web.app</code> está libre para tu tienda.
+              </p>
+            </div>
+            <button type="button" class="btn btn-primary btn--sm" (click)="openSubModal()">
+              Cambiar Dirección
+            </button>
+          </div>
         } @else if (subTaken()) {
-          <span class="badge badge--error">{{ subTakenMessage() }}</span>
-          @if (subMessage() || subReason()) {
-            <span class="subdomain-status__reason">{{ subMessage() || subReason() }}</span>
-          }
+          <div class="subdomain-feedback subdomain-feedback--error">
+            <span class="subdomain-feedback__icon">
+              <i class="bi" [class]="subFeedbackIcon()"></i>
+            </span>
+            <div class="subdomain-feedback__body">
+              <strong class="subdomain-feedback__title">{{ subTakenMessage() }}</strong>
+              <p class="subdomain-feedback__detail">{{ subMessage() || subReason() }}</p>
+            </div>
+          </div>
         } @else if (subInput().length >= 4) {
           <span class="badge badge--neutral">Verificá disponibilidad</span>
         }
       </div>
       @if (subTaken() && subSuggestions().length > 0) {
         <div class="subdomain-suggestions">
-          <span class="subdomain-suggestions__label">Sugerencias:</span>
+          <span class="subdomain-suggestions__label">
+            <i class="bi bi-lightbulb"></i> Sugerencias disponibles — tocá una para probarla:
+          </span>
           @for (sug of subSuggestions(); track sug) {
             <button type="button" class="chip-suggestion" (click)="pickSuggestion(sug)">
-              {{ sug }}.web.app
+              <i class="bi bi-globe2"></i> {{ sug }}.web.app
             </button>
           }
         </div>
