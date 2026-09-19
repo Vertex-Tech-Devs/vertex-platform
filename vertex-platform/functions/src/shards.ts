@@ -4,11 +4,17 @@ import { resolvePlatformEnvironment, DEFAULT_MAX_STORES_PER_SHARD } from './runt
 import {
   PLATFORM_PROJECT,
   getOwnerOAuthClient,
+  getPlatformServiceAccountOAuthClient,
   pickBillingAccount,
   apiFetch,
   pollOperation,
   sendDirectEmail,
 } from './helpers';
+import {
+  countHostingSites,
+  HOSTING_SITE_ALERT_THRESHOLD,
+  HOSTING_SITE_LIMIT,
+} from './hosting-sites.utils';
 
 /**
  * Lee una variable de entorno numérica con fallback seguro (evita NaN con
@@ -43,6 +49,11 @@ export async function countAvailableShards(
 ): Promise<number> {
   const snap = await db.collection('infrastructure_shards').where('environment', '==', env).get();
   let available = 0;
+  // El auth de Hosting sólo se necesita para shards cerca del límite (medición real de
+  // sitios), así que se resuelve de forma perezosa y una sola vez por corrida.
+  let hostingAuth: Awaited<ReturnType<typeof getPlatformServiceAccountOAuthClient>> | null = null;
+  const getAuth = async () => (hostingAuth ??= await getPlatformServiceAccountOAuthClient());
+
   for (const doc of snap.docs) {
     const data = doc.data();
     const status = data['status'] as string;
@@ -50,11 +61,65 @@ export async function countAvailableShards(
     const current = Number(data['currentStores'] ?? 0);
     const maxCap = Number(data['maxCapacity'] ?? DEFAULT_MAX_STORES_PER_SHARD);
     const isHealthy = status !== 'DECOMMISSIONED' && healthStatus !== 'UNREACHABLE';
-    if (isHealthy && (status === 'WARMUP_READY' || (status === 'ACTIVE' && current < maxCap))) {
+    if (!isHealthy) continue;
+    if (status === 'WARMUP_READY') {
       available++;
+      continue;
     }
+    if (status !== 'ACTIVE' || current >= maxCap) continue;
+
+    // Capacidad REAL = sitios de Hosting (cada dominio/alias consume 1 de 36).
+    // Medimos sólo cuando el shard se acerca al límite (85%) y dejamos alerta en el
+    // Centro de Alertas; el resto del tiempo usamos el conteo de tiendas (sin API calls).
+    if (current >= Math.floor((maxCap * HOSTING_SITE_ALERT_THRESHOLD) / HOSTING_SITE_LIMIT)) {
+      const projectId = String(data['gcpProjectId'] || data['projectId'] || doc.id).trim();
+      try {
+        const sitesUsed = await countHostingSites(await getAuth(), projectId);
+        if (sitesUsed !== null) {
+          const usable = HOSTING_SITE_LIMIT - 1; // reserva del sitio DEFAULT del proyecto
+          if (sitesUsed - 1 >= usable) continue; // sin cupo real: no cuenta como disponible
+          if (sitesUsed >= HOSTING_SITE_ALERT_THRESHOLD) {
+            await upsertShardCapacityAlert(db, projectId, sitesUsed);
+          }
+        }
+      } catch {
+        // Si no se pudo medir, seguimos con el conteo de tiendas (comportamiento previo).
+      }
+    }
+    available++;
   }
   return available;
+}
+
+/** Registra/actualiza la alerta de capacidad de sitios de un shard (dedupe por doc). */
+async function upsertShardCapacityAlert(
+  db: FirebaseFirestore.Firestore,
+  projectId: string,
+  sitesUsed: number,
+): Promise<void> {
+  const key = `shard_capacity_${projectId}`;
+  const ref = db.collection('alerts').doc(key);
+  const existing = await ref.get();
+  const severity = sitesUsed >= HOSTING_SITE_LIMIT - 2 ? 'critical' : 'warning';
+  const message = `El proyecto ${projectId} usa ${sitesUsed}/${HOSTING_SITE_LIMIT} sitios de Firebase Hosting (cada dominio/alias consume 1). Al llegar al límite no se podrán crear más tiendas en este shard: programá la rotación.`;
+  if (!existing.exists) {
+    await ref.set({
+      key,
+      kind: 'shard_capacity',
+      severity,
+      title: 'Capacidad de sitios del shard al límite',
+      message,
+      storeId: null,
+      link: '/settings/infrastructure',
+      status: 'open',
+      firstSeen: new Date(),
+      lastSeen: new Date(),
+      count: 1,
+      resolvedAt: null,
+    });
+  } else {
+    await ref.update({ status: 'open', severity, message, lastSeen: new Date() });
+  }
 }
 
 /**
