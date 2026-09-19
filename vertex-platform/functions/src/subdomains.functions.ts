@@ -1,7 +1,13 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getOwnerOAuthClient, ALLOWED_ORIGINS } from './helpers';
+import {
+  getOwnerOAuthClient,
+  getPlatformServiceAccountOAuthClient,
+  PLATFORM_PROJECT,
+  ALLOWED_ORIGINS,
+} from './helpers';
+import { resolvePlatformEnvironment } from './runtime';
 import { ensureAuthorizedDomain } from './hosting-auth.utils';
 import {
   buildSubdomainSuggestions,
@@ -10,6 +16,54 @@ import {
 } from './hosting-subdomain.utils';
 
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
+
+/**
+ * Auth para operaciones de Hosting: preferimos la Service Account de plataforma
+ * (tiene acceso a TODOS los shards y al proyecto master); si no está disponible,
+ * caemos al pool de owners.
+ */
+async function getHostingAuth() {
+  try {
+    return await getPlatformServiceAccountOAuthClient();
+  } catch {
+    return await getOwnerOAuthClient();
+  }
+}
+
+/**
+ * Proyecto sobre el que validamos disponibilidad cuando aún no hay shard
+ * (creación de tienda): usamos un shard del entorno actual y, si no hay,
+ * el proyecto master del storefront correspondiente.
+ */
+async function resolveProbeProject(
+  db: FirebaseFirestore.Firestore,
+  storeId?: string,
+): Promise<string> {
+  if (storeId) {
+    const snap = await db.collection('stores').doc(storeId).get();
+    const data = (snap.data() || {}) as Record<string, unknown>;
+    let target = String(
+      data['gcpProjectId'] || data['runtimeProjectId'] || data['firebaseProjectId'] || '',
+    ).trim();
+    if (!target && data['shardId']) {
+      const shard = await db.collection('infrastructure_shards').doc(String(data['shardId'])).get();
+      target = String(shard.data()?.['gcpProjectId'] || shard.data()?.['projectId'] || '').trim();
+    }
+    if (target) return target;
+  }
+  const env = resolvePlatformEnvironment(PLATFORM_PROJECT);
+  const shardsSnap = await db
+    .collection('infrastructure_shards')
+    .where('environment', '==', env)
+    .where('status', 'in', ['WARMUP_READY', 'ACTIVE'])
+    .limit(5)
+    .get();
+  for (const doc of shardsSnap.docs) {
+    const project = String(doc.data()['gcpProjectId'] || doc.data()['projectId'] || doc.id).trim();
+    if (project) return project;
+  }
+  return env === 'production' ? 'ecommerce-vertex' : 'ecommerce-vertex-dev';
+}
 
 /** Cache corto del probe de disponibilidad (crear-y-borrar) para no spamear la API. */
 const PROBE_TTL_MS = 5 * 60_000;
@@ -20,9 +74,8 @@ const probeCache = new Map<
 
 /**
  * Probe autoritativo de disponibilidad de un SITE_ID de Hosting.
- * Los `.web.app` son únicos GLOBALMENTE y no hay API de consulta global: se intenta
- * crear el sitio en un proyecto propio y se borra inmediatamente si quedó libre.
- * El resultado se cachea 5 minutos para no spamear la API mientras se tipea.
+ * Los `.web.app` son únicos GLOBALMENTE y no hay API de consulta global: se valida
+ * con `validateOnly=true` (sin crear el sitio). El resultado se cachea 5 minutos.
  */
 async function probeSiteAvailability(
   project: string,
@@ -33,7 +86,7 @@ async function probeSiteAvailability(
   if (cached && Date.now() - cached.at < PROBE_TTL_MS) {
     return { free: cached.free, reason: cached.reason, message: cached.message };
   }
-  const authClient = await getOwnerOAuthClient();
+  const authClient = await getHostingAuth();
   const token = (await authClient.getAccessToken()).token;
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const sitesUrl = `${HOSTING_API}/projects/${project}/sites`;
@@ -128,7 +181,7 @@ function isPlatformAdmin(token?: Record<string, unknown> | null): boolean {
 }
 
 async function siteExists(projectId: string, siteId: string): Promise<boolean> {
-  const auth = await getOwnerOAuthClient();
+  const auth = await getHostingAuth();
   const token = (await auth.getAccessToken()).token;
   const url = `${HOSTING_API}/projects/${projectId}/sites/${encodeURIComponent(siteId)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -226,9 +279,12 @@ export const checkSubdomainAvailability = onCall<{ candidate: string; storeId?: 
         logger.warn('[Subdomain] Chequeo de colisión en shard falló:', err);
       }
     } else {
-      // Creación de tienda (aún sin shard): probe contra el proyecto master storefront.
+      // Creación de tienda (aún sin shard): validamos contra un shard del entorno
+      // (o el master del storefront) usando la Service Account de plataforma, que
+      // sí tiene permiso sobre esos proyectos.
       try {
-        const probe = await probeSiteAvailability('ecommerce-vertex', sanitized);
+        const probeProject = await resolveProbeProject(db);
+        const probe = await probeSiteAvailability(probeProject, sanitized);
         if (!probe.free) {
           return {
             available: false,
@@ -308,7 +364,7 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       return { success: true, subdomain: sanitized, alreadyCurrent: true };
     }
 
-    const auth = await getOwnerOAuthClient();
+    const auth = await getHostingAuth();
     const token = (await auth.getAccessToken()).token;
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     let createdNewSite = false;
