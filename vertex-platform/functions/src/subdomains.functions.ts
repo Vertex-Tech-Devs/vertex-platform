@@ -39,11 +39,16 @@ async function probeSiteAvailability(
   const sitesUrl = `${HOSTING_API}/projects/${project}/sites`;
   let probeRes: Response;
   try {
-    probeRes = await fetch(`${sitesUrl}?siteId=${encodeURIComponent(candidate)}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ type: 'USER_SITE' }),
-    });
+    // validateOnly=true: Firebase valida el nombre SIN crear el sitio (evita efectos
+    // secundarios y cuota). Es exactamente el check que hace `firebase hosting:sites:create`.
+    probeRes = await fetch(
+      `${sitesUrl}?siteId=${encodeURIComponent(candidate)}&validateOnly=true`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ type: 'USER_SITE' }),
+      },
+    );
   } catch (err) {
     const message = `No pudimos verificar la disponibilidad ahora mismo (${err instanceof Error ? err.message : 'red'}). Reintentá en unos segundos.`;
     probeCache.set(cacheKey, { free: false, reason: 'CHECK_UNAVAILABLE', message, at: Date.now() });
@@ -51,8 +56,6 @@ async function probeSiteAvailability(
   }
   let result: { free: boolean; reason?: string; message?: string };
   if (probeRes.ok) {
-    // Quedó libre: borramos el sitio de prueba inmediatamente.
-    await fetch(`${sitesUrl}/${encodeURIComponent(candidate)}`, { method: 'DELETE', headers });
     result = { free: true, reason: 'AVAILABLE' };
   } else {
     const body = (await probeRes.json().catch(() => ({}))) as HostingErrorBody;
