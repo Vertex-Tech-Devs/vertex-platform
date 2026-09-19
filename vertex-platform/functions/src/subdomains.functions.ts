@@ -414,9 +414,46 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
           }`.trim(),
         );
       }
-      const clonedBody = (await cloneRes.json().catch(() => ({}))) as { name?: string };
-      const clonedVersion = String(clonedBody?.name || '').trim();
-      if (!clonedVersion.includes(`/sites/${sanitized}/versions/`)) {
+      // versions:clone es una OPERACIÓN LARGA (Operation). Hay que esperarla y leer la
+      // versión resultante de `response.name`; si no, caemos a listar las versiones del sitio.
+      const cloneOp = (await cloneRes.json().catch(() => ({}))) as { name?: string };
+      const resolveClonedVersion = async (): Promise<string> => {
+        const opName = String(cloneOp?.name || '').trim();
+        if (opName) {
+          for (let attempt = 0; attempt < 20; attempt++) {
+            const opRes = await fetch(`${HOSTING_API}/${opName}`, { headers });
+            if (opRes.ok) {
+              const op = (await opRes.json()) as {
+                done?: boolean;
+                response?: { name?: string; version?: { name?: string } };
+              };
+              if (op.done) {
+                const name = op.response?.name || op.response?.version?.name;
+                if (name) return String(name);
+                break;
+              }
+            }
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+        }
+        const versionsRes = await fetch(
+          `${HOSTING_API}/${parent}/sites/${encodeURIComponent(sanitized)}/versions?pageSize=10`,
+          { headers },
+        );
+        if (versionsRes.ok) {
+          const versionsBody = (await versionsRes.json()) as {
+            versions?: Array<{ name?: string; status?: string }>;
+          };
+          const candidates = versionsBody.versions || [];
+          const finalized =
+            candidates.find((v) => String(v.status || '').toUpperCase() === 'FINALIZED') ||
+            candidates[0];
+          if (finalized?.name) return String(finalized.name);
+        }
+        return '';
+      };
+      const clonedVersion = await resolveClonedVersion();
+      if (!clonedVersion) {
         throw new HttpsError(
           'internal',
           'El clon de la versión no devolvió una versión válida del sitio nuevo.',
@@ -430,8 +467,11 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
       const releaseRes = await fetch(releaseCreate, { method: 'POST', headers });
       if (!releaseRes.ok) {
         const body = (await releaseRes.json().catch(() => ({}))) as HostingErrorBody;
-        throw new Error(
-          `release create falló (${releaseRes.status}): ${body?.error?.message || ''}`,
+        throw new HttpsError(
+          'failed-precondition',
+          `No se pudo publicar la versión clonada en ${sanitized}.web.app (${releaseRes.status}). Reintentá en unos segundos. ${
+            body?.error?.message || ''
+          }`.trim(),
         );
       }
 
