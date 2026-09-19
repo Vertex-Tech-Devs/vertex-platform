@@ -182,6 +182,11 @@ export class StoreDetailDomains {
     setTimeout(() => this.subCopied.set(false), 1800);
   }
 
+  /** Sitios/dominios extra contratados (add-on pago). */
+  readonly extraDomainsEntitlement = computed(() =>
+    Number(this.store()?.extraDomainsEntitlement || 0),
+  );
+
   readonly domainInput = this.domainsService.domainInput;
   readonly domainStatus = this.domainsService.domainStatus;
   readonly dnsRecords = this.domainsService.dnsRecords;

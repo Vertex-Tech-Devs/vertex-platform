@@ -44,16 +44,33 @@ export async function runSitesAudit(options: AuditOptions): Promise<SitesAuditSu
   // Referencias: sitios usados por alguna tienda (principal, siteId, subdomain o alias).
   const storesSnap = await db.collection('stores').get();
   const referenced = new Set<string>();
+  const unpaidExtraSites: Array<{ storeId: string; name: string; sites: string[] }> = [];
   for (const doc of storesSnap.docs) {
     const data = doc.data() as Record<string, unknown>;
+    const names = new Set<string>();
     for (const key of ['runtimeSiteId', 'siteId', 'subdomain']) {
       const value = String(data[key] || '').trim();
-      if (value) referenced.add(value);
+      if (value) {
+        referenced.add(value);
+        names.add(value);
+      }
     }
     const aliases = (data['subdomainAliases'] as unknown[]) || [];
     for (const alias of aliases) {
       const value = String(alias || '').trim();
-      if (value) referenced.add(value);
+      if (value) {
+        referenced.add(value);
+        names.add(value);
+      }
+    }
+    // Política: los sitios EXTRA son add-on pago (cada sitio = 1 de 36 por shard).
+    const entitlement = Number(data['extraDomainsEntitlement'] || 0);
+    if (names.size > 1 + entitlement) {
+      unpaidExtraSites.push({
+        storeId: doc.id,
+        name: String(data['name'] || doc.id),
+        sites: Array.from(names),
+      });
     }
   }
 
@@ -124,11 +141,32 @@ export async function runSitesAudit(options: AuditOptions): Promise<SitesAuditSu
 
   const report = buildAuditReport(classifications, deleted);
 
-  // Reporte diario + alerta en el Centro de Alertas.
+  // Reporte diario + alertas en el Centro de Alertas (huérfanos y sitios extra sin add-on).
   await db
     .collection('system_audit')
     .doc(`sites_${report.date}`)
-    .set({ ...report, updatedAt: new Date(), actor: options.actor });
+    .set({ ...report, unpaidExtraSites, updatedAt: new Date(), actor: options.actor });
+  if (unpaidExtraSites.length > 0) {
+    const ref = db.collection('alerts').doc('extra_sites_unpaid');
+    const exists = (await ref.get()).exists;
+    await ref.set(
+      {
+        key: 'extra_sites_unpaid',
+        kind: 'extra_sites_unpaid',
+        severity: 'warning',
+        title: 'Tiendas con sitios extra sin add-on pago',
+        message: `${unpaidExtraSites.length} tienda(s) tienen más de un sitio .web.app sin add-on contratado: ${unpaidExtraSites
+          .map((s) => s.name)
+          .join(', ')}. Cada sitio extra consume 1 de los 36 cupos del shard.`,
+        storeId: null,
+        link: '/settings/infrastructure',
+        status: 'open',
+        lastSeen: new Date(),
+        ...(exists ? {} : { firstSeen: new Date(), count: 1, resolvedAt: null }),
+      },
+      { merge: true },
+    );
+  }
   if (report.orphan > 0) {
     const key = 'orphan_sites';
     const ref = db.collection('alerts').doc(key);

@@ -546,3 +546,28 @@ export const updateStoreSubdomain = onCall<{ storeId: string; newSubdomain: stri
     }
   },
 );
+
+/**
+ * grantExtraDomains — habilita sitios/dominios EXTRA para una tienda (add-on pago).
+ * Cada sitio `.web.app` extra consume 1 de los 36 cupos del shard, por eso se
+ * comercializa aparte. Sólo superadmins de plataforma pueden otorgarlo/revocarlo.
+ */
+export const grantExtraDomains = onCall<{ storeId: string; count: number }>(
+  { cors: ALLOWED_ORIGINS, invoker: 'public' },
+  async (request) => {
+    if (!request.auth || !isPlatformAdmin(request.auth?.token)) {
+      throw new HttpsError('permission-denied', 'Solo superadmins pueden otorgar dominios extra.');
+    }
+    const storeId = String(request.data?.storeId || '').trim();
+    if (!storeId || !/^[a-zA-Z0-9_-]{1,120}$/.test(storeId)) {
+      throw new HttpsError('invalid-argument', 'Invalid storeId.');
+    }
+    const count = Math.min(Math.max(Number(request.data?.count) || 0, 0), 10);
+    await getFirestore()
+      .collection('stores')
+      .doc(storeId)
+      .set({ extraDomainsEntitlement: count, updatedAt: new Date() }, { merge: true });
+    logger.info(`[Subdomain] Tienda ${storeId}: dominios extra habilitados = ${count}`);
+    return { success: true, storeId, extraDomainsEntitlement: count };
+  },
+);

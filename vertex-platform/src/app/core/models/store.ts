@@ -60,6 +60,11 @@ export interface Store {
   /** Tienda corporativa/interna: exenta del circuito de suscripción SaaS de terceros. */
   isExempt?: boolean;
   plan?: 'internal' | 'standard';
+  /**
+   * Cantidad de sitios/dominios EXTRA contratados (add-on pago).
+   * Cada sitio `.web.app` consume 1 de los 36 disponibles por shard, por eso es pago.
+   */
+  extraDomainsEntitlement?: number;
   provisioningSteps?: Record<string, ProvisioningStep>;
   unhandledProvisioningError?: string | null;
   error?: string | null;

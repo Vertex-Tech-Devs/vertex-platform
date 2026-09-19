@@ -4793,3 +4793,39 @@ html[data-theme='light'] {
     margin-top: 0;
   }
 }
+
+/* Aviso de dominios extra (add-on pago) */
+.paid-domains-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--platform-accent) 30%, var(--platform-input-border));
+  background: color-mix(in srgb, var(--platform-accent) 8%, var(--platform-card-bg));
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 999px;
+    color: var(--platform-accent);
+    background: color-mix(in srgb, var(--platform-accent) 16%, transparent);
+  }
+
+  &__body strong {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--platform-text-primary);
+  }
+
+  &__body p {
+    margin: 0.15rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--platform-text-secondary);
+  }
+}

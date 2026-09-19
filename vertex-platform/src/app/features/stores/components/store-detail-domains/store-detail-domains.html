@@ -32,6 +32,22 @@
       </button>
     </div>
 
+    <div class="paid-domains-note">
+      <span class="paid-domains-note__icon"><i class="bi bi-stars"></i></span>
+      <div class="paid-domains-note__body">
+        <strong>Dominios extra — add-on pago</strong>
+        <p>
+          Cada dominio o alias adicional <strong>ocupa 1 de los 36 sitios</strong> del shard (por
+          eso se comercializa aparte).
+          @if (extraDomainsEntitlement() > 0) {
+            Tenés <strong>{{ extraDomainsEntitlement() }}</strong> extra habilitado(s).
+          } @else {
+            Contactá a Vertex para contratar dominios extra.
+          }
+        </p>
+      </div>
+    </div>
+
     <div class="subdomain-editor">
       <div
         class="subdomain-input-wrap"
