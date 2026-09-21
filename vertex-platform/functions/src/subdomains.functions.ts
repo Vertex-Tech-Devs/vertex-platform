@@ -18,15 +18,15 @@ import {
 const HOSTING_API = 'https://firebasehosting.googleapis.com/v1beta1';
 
 /**
- * Auth para operaciones de Hosting: preferimos la Service Account de plataforma
- * (tiene acceso a TODOS los shards y al proyecto master); si no está disponible,
- * caemos al pool de owners.
+ * Auth para operaciones de Hosting: usamos el pool de owners (es el que crea sitios
+ * en los shards hoy, vía provisioning) y caemos a la Service Account de plataforma
+ * si el pool no está disponible.
  */
 async function getHostingAuth() {
   try {
-    return await getPlatformServiceAccountOAuthClient();
-  } catch {
     return await getOwnerOAuthClient();
+  } catch {
+    return await getPlatformServiceAccountOAuthClient();
   }
 }
 

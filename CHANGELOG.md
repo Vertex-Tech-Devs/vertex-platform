@@ -5,6 +5,11 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [Unreleased]
+
+### Added
+- feat(contracts): soporte para inventario numérico directo en productos simples sin variantes obligatorias (#361)
+
 ## [0.9.1] - 2026-09-11
 
 ### 🏬 Store Creation UX (`store-create`)
