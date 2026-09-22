@@ -1,0 +1,39 @@
+name: Dependabot Rebase & Auto-Merge Sweeper
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sweep:
+    name: Rebase conflicts and enable auto-merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "== Dependabot PRs abiertos =="
+          gh pr list --repo "$REPO" --author "app/dependabot" --state open \
+            --json number,headRefName,mergeable,mergeStateStatus,autoMergeRequest,isDraft \
+            --jq '.[] | "\(.number)\t\(.mergeable)\t\(.mergeStateStatus)\t\(.autoMergeRequest!=null)\t\(.isDraft)"' \
+          | while IFS=$'\t' read -r num mergeable state auto draft; do
+              echo "PR #$num mergeable=$mergeable state=$state auto=$auto draft=$draft"
+              if [ "$draft" = "true" ]; then echo "  skip (draft)"; continue; fi
+              if [ "$mergeable" = "CONFLICTING" ] || [ "$state" = "DIRTY" ]; then
+                echo "  conflicto → pidiendo @dependabot rebase"
+                gh pr comment "$num" --repo "$REPO" --body "@dependabot rebase" || true
+                continue
+              fi
+              if [ "$auto" = "false" ]; then
+                echo "  habilitando auto-merge (squash + delete-branch)"
+                gh pr merge "$num" --repo "$REPO" --auto --squash --delete-branch || true
+              fi
+            done
